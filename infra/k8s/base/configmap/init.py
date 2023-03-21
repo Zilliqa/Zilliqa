@@ -736,6 +736,7 @@ def wait_for_statefulset_ready(name):
     api_instance = client.AppsV1Api()
 
     while True:
+        print(f"Waiting for statefulset {name}");
         try:
             ret = api_instance.read_namespaced_stateful_set(namespace='default', name=name, exact=True)
         except ApiException as e:
@@ -774,8 +775,10 @@ def get_svc_ip(name):
     get k8s service (same namespace) ip from envVars
     :type name: str
     """
-    env_name = name.upper().replace('-', '_') + '_SERVICE_HOST'
-    return os.getenv(env_name)
+    print("Using DNS name for origin server {name}")
+    return name
+    #env_name = name.upper().replace('-', '_') + '_SERVICE_HOST'
+    #return os.getenv(env_name)
 
 
 def get_pods_locations(testnet, typename):
@@ -790,6 +793,25 @@ def get_pods_locations(testnet, typename):
             print('Exception when fetching {}-{} pods information: {}'.format(testnet, typename, e))
         else:
             return [(i.metadata.name, i.spec.node_name, i.status.pod_ip) for i in ret.items]
+            # # Get the IP of the service associated with this pod, so that the IP will be constant over restarts.
+            # svcs = api_instance.list_namespaced_service(namespace='default',
+            #                                             label_selector='testnet={},type={}'.format(testnet, typename))
+            # indexed_ips = { }
+            # #print(f"{svcs.items}")
+            # for svc in svcs.items:
+            #     indexed_ips[svc.metadata.name] = { "ip" :  svc.spec.cluster_ip }
+            # val = []
+            # print(f"Indexed {indexed_ips}")
+            # for i in ret.items:
+            #     maybe_ip = indexed_ips.get(f"svc-{i.metadata.name}")
+            #     our_ip = i.status.pod_ip
+            #     if maybe_ip is not None:
+            #         our_ip = maybe_ip["ip"]
+            #         print(f"Using service IP {our_ip} for pod {i.metadata.name}")
+            #     else:
+            #         print(f"Using pod IP for {i.metadata.name}")
+            #     val.append((i.metadata.name, i.spec.node_name, our_ip))
+            # return val
         finally:
             sys.stdout.flush()
             time.sleep(1)

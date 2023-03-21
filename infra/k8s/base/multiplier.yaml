@@ -97,7 +97,7 @@ spec:
         emptyDir: {}
       initContainers:
       - name: cleanup-keys
-        image: zilliqa/zilliqa
+        image: zilliqa
         env:
         - name: Z7A_POD_NAME
           valueFrom:
@@ -128,7 +128,7 @@ spec:
           name: zilliqa-config
       containers:
       - name: zilliqa
-        image: zilliqa/zilliqa
+        image: zilliqa
         # image: zilliqa/goduplicator:20190129
         #imagePullPolicy: Always
         securityContext:

@@ -8,7 +8,7 @@ rules:
   resources: ["statefulsets"]
   verbs: ["get"]
 - apiGroups: [""]
-  resources: ["pods", "nodes"]
+  resources: ["pods", "nodes", "services"]
   verbs: ["get", "list"]
 ---
 apiVersion: v1
@@ -133,7 +133,7 @@ spec:
           name: devnet-config
       initContainers:
       - name: build
-        image: zilliqa/zilliqa
+        image: zilliqa
         volumeMounts:
         - name: html
           mountPath: /tmp/html

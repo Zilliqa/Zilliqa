@@ -680,7 +680,7 @@ bool Node::ProcessVCFinalBlockCore(
 }
 
 bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
-                             [[gnu::unused]] const Peer& from,
+                             const Peer& from,
                              [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -694,7 +694,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
       // Buffer the Final Block
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
       m_seedTxnBlksBuffer.push_back(message);
-      LOG_GENERAL(INFO, "Seed not synced, buffered this FBLK");
+      LOG_GENERAL(INFO, "Not a synchronised seed node type - " << from << ", buffered this FBLK - " << m_mediator.m_lookup->GetSyncType());
       return false;
     } else {
       // If seed node is synced and have buffered txn blocks

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-devnet-lookup-0
+spec:
+  ports:
+    - port: 40000
+      name: zilliqa-app
+  selector:
+    statefulset.kubernetes.io/pod-name: devnet-lookup-0

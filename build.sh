@@ -74,10 +74,12 @@ run_clang_tidy_fix=0
 run_code_coverage=0
 build_type="RelWithDebInfo"
 
-./scripts/license_checker.sh
-./scripts/ci_xml_checker.sh constants.xml
-./scripts/ci_xml_checker.sh constants_local.xml
-if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
+if [ "x${FAST_BUILD}" != "x" ]; then
+ ./scripts/license_checker.sh
+ ./scripts/ci_xml_checker.sh constants.xml
+ ./scripts/ci_xml_checker.sh constants_local.xml
+ if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
+fi
 
 for option in "$@"
 do

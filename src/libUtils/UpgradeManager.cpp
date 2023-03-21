@@ -35,6 +35,9 @@ const string dsNodePubProp = "pubk";
 struct PTree {
   static boost::property_tree::ptree& GetInstance() {
     static boost::property_tree::ptree pt;
+    char buf[1024], *p;
+    p = getcwd(buf, 1016);
+    LOG_GENERAL(INFO, "Reading XML from " << dsNodeFile << "in "<< std::string(p));
     read_xml(dsNodeFile.c_str(), pt);
     return pt;
   }
@@ -47,6 +50,7 @@ const vector<string> ReadDSCommFromFile() {
   std::vector<std::string> result;
   for (auto& pubk : pt.get_child("dsnodes")) {
     if (pubk.first == dsNodePubProp) {
+      LOG_GENERAL(INFO, "read key " << pubk.second.data());
       result.emplace_back(pubk.second.data());
     }
   }

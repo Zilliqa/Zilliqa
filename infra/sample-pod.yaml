@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fish
+spec:
+  containers:
+  - name: fish
+    image: localhost:5001/fish/soup
+    ports:
+    - containerPort: 80

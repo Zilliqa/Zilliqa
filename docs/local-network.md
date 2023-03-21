@@ -14,7 +14,7 @@ assignments.
 Delete any previous dev cluster, just in case:
 
     ```
-   kind delete cluster zqdev
+   kind delete cluster -n zqdev
     ```
 
 
@@ -47,7 +47,7 @@ Delete any previous dev cluster, just in case:
 Note that `mitmweb` invokes your browser on launch. If you're running
 `brave`, `brave` won't go into the background when this happens, so
 `mitmweb` won't start. To "fix" this, start `mitmweb` with `--no-web-open-browser`.
-You can then navigate manually to `localhost:8081` to see the UI.
+You can then navigate manually to `localhost:8082` to see the UI.
 
 
 1. Check on the state of your cluster in the usual ways (`kubectl`, `k9s`, etc.).
@@ -172,3 +172,32 @@ curl http://l2api.local.z7a.xyz
 
 Sadly our networks are not very resilient, so we can't rely on Kubernetes' automatic rollouts to restart nodes with a new image.
 Instead, the easiest thing to do at the moment is to tear down the network and re-create it by running `tilt down`, waiting for all the pods to be deleted and then `tilt up` again.
+
+# Localdev
+
+There is a script, `scripts/localdev.py` which helps automate some of these tasks - run it with no arguments for details.
+
+# Logging
+
+You can log from nodes with command lines like:
+
+```sh
+kubectl logs --tail=100 -f -l type=normal | tee /tmp/logs.txt 2>&1
+```
+
+# Troubleshooting
+
+## "manifest still dirty after 100 tries"
+
+This implies that there is something wrong with your cache. Try blowing it away and starting again.
+on OS X the cache is in the VM, `/var/tmp/buildah-cache`.
+
+## podman machine ssh claims "too many authentication failures"
+
+You probably have too many keys in your agent - try
+
+```sh
+
+unset SSH_AUTH_SOCK
+```
+

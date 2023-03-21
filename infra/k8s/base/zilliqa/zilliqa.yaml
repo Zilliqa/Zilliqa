@@ -82,7 +82,7 @@ spec:
         emptyDir: {}
       initContainers:
       - name: init
-        image: zilliqa/zilliqa
+        image: zilliqa
         env:
         - name: Z7A_POD_NAME
           valueFrom:
@@ -123,7 +123,7 @@ spec:
           name: zilliqa-run
       containers:
       - name: zilliqa
-        image: zilliqa/zilliqa
+        image: zilliqa
         securityContext:
           privileged: true
         workingDir: /run/zilliqa
@@ -222,5 +222,3 @@ spec:
         volumeMounts:
         - mountPath: /run/zilliqa
           name: zilliqa-run
-      imagePullSecrets:
-      - name: ecr-creds

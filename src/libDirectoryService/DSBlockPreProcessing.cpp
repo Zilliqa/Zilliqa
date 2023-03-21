@@ -1234,6 +1234,7 @@ bool DirectoryService::DSBlockValidator(
                 "Calculated: "
                     << committeeHash << " Received: "
                     << m_pendingDSBlock->GetHeader().GetCommitteeHash());
+    LOG_GENERAL(WARNING, "DS Committee contains " << m_mediator.m_DSCommittee->size() << " members");
     for (const auto& i : *m_mediator.m_DSCommittee) {
       LOG_GENERAL(WARNING, i.second);
     }

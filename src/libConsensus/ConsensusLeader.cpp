@@ -376,7 +376,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                    m_committee.at(backupID).second.GetPrintableIPAddress());
     return false;
   }
-
+  
   if (commitInfo.size() != m_numOfSubsets) {
     LOG_GENERAL(WARNING, "Backup ID: " << backupID);
     LOG_CHECK_FAIL("Num of Commits sent by backup: ", commitInfo.size(),
@@ -606,7 +606,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                    m_committee.at(backupID).second.GetPrintableIPAddress());
     return false;
   }
-
+  
   // Check the subset size
   if (subsetInfo.size() > m_consensusSubsets.size()) {
     LOG_GENERAL(WARNING, "Response count " << subsetInfo.size() << " > "
