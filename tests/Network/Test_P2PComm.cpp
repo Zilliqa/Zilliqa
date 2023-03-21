@@ -281,7 +281,7 @@ int main(int argc, const char* argv[]) {
     boost::asio::io_context ctx(1);
     boost::asio::signal_set sig(ctx, SIGINT, SIGTERM);
     sig.async_wait([&](const boost::system::error_code&, int) { ctx.stop(); });
-    zil::p2p::GetInstance().StartServer(ctx, 33133, process_message);
+    zil::p2p::GetInstance().StartServer(ctx, 33133, 0, process_message);
     started = true;
     LOG_GENERAL(INFO, "Event loop is starting");
     ctx.run();

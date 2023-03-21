@@ -253,8 +253,9 @@ int main(int argc, const char* argv[]) {
       pendingTxnUpdater.emplace(zilliqa.GetMediator());
     }
 
-    if (ENABLE_SEED_TO_SEED_COMMUNICATION && !MULTIPLIER_SYNC_MODE) {
-      LOG_GENERAL(WARNING, "P2P protocol update: ignoring deprecated settings");
+    uint16_t additionalPort = 0;
+    if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
+      additionalPort = uint16_t(P2P_SEED_CONNECT_PORT);
     }
 
     boost::asio::io_context ctx(1);
@@ -265,7 +266,7 @@ int main(int argc, const char* argv[]) {
       zilliqa.Dispatch(std::move(message));
     };
     zil::p2p::GetInstance().StartServer(ctx, my_network_info.m_listenPortHost,
-                                        std::move(dispatcher));
+                                        additionalPort, std::move(dispatcher));
 
     ctx.run();
 

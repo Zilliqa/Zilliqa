@@ -57,17 +57,18 @@ std::optional<Signature> P2P::SignMessage(const zbytes& message) {
   return signature;
 }
 
-void P2P::StartServer(AsioContext& asio, uint16_t port, Dispatcher dispatcher) {
+void P2P::StartServer(AsioContext& asio, uint16_t port, uint16_t additionalPort,
+                      Dispatcher dispatcher) {
   LOG_MARKER();
 
-  assert(port > 0 && dispatcher);
-  assert(!m_server);
+  assert((port > 0 || additionalPort > 0) && dispatcher);
+  assert(!m_server && !m_additionalServer);
 
   if (!dispatcher) {
     throw std::runtime_error("P2P::StartServer: dispatcher is null");
   }
 
-  if (m_server) {
+  if (m_server || m_additionalServer) {
     throw std::runtime_error("P2P::StartServer: double start");
   }
 
@@ -79,11 +80,19 @@ void P2P::StartServer(AsioContext& asio, uint16_t port, Dispatcher dispatcher) {
     maxMsgSize = 1000000;
   }
 
-  m_server = P2PServer::CreateAndStart(
-      asio, port, maxMsgSize,
-      [this](const Peer& from, ReadMessageResult& readResult) -> bool {
-        return DispatchMessage(from, readResult);
-      });
+  auto dispatchFn = [this](const Peer& from,
+                           ReadMessageResult& readResult) -> bool {
+    return DispatchMessage(from, readResult);
+  };
+
+  if (port) {
+    m_server = P2PServer::CreateAndStart(asio, port, maxMsgSize, dispatchFn);
+  }
+
+  if (additionalPort) {
+    m_additionalServer =
+        P2PServer::CreateAndStart(asio, additionalPort, maxMsgSize, dispatchFn);
+  }
 
   if (!m_sendJobs) {
     m_sendJobs = SendJobs::Create();

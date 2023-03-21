@@ -42,10 +42,9 @@ class P2PServerImpl;
 class P2PServerConnection
     : public std::enable_shared_from_this<P2PServerConnection> {
  public:
-  P2PServerConnection(
-      std::weak_ptr<P2PServerImpl> owner, uint64_t this_id, Peer&& remote_peer,
-      /* TODO maybe insert timer - so don't removing AsioContext& asio, */
-      TcpSocket socket, size_t max_message_size);
+  P2PServerConnection(std::weak_ptr<P2PServerImpl> owner, uint64_t this_id,
+                      Peer&& remote_peer, TcpSocket socket,
+                      size_t max_message_size);
 
   void ReadNextMessage();
 
@@ -63,7 +62,6 @@ class P2PServerConnection
   std::weak_ptr<P2PServerImpl> m_owner;
   uint64_t m_id;
   Peer m_remotePeer;
-  //  AsioContext& m_asio;
   TcpSocket m_socket;
   size_t m_maxMessageSize;
   zbytes m_readBuffer;
@@ -94,11 +92,9 @@ std::optional<Peer> ExtractRemotePeer(const TcpSocket& socket) {
 class P2PServerImpl : public P2PServer,
                       public std::enable_shared_from_this<P2PServerImpl> {
  public:
-  P2PServerImpl(TcpAcceptor acceptor,
-                //                AsioContext& asio,
-                size_t max_message_size, Callback callback)
+  P2PServerImpl(TcpAcceptor acceptor, size_t max_message_size,
+                Callback callback)
       : m_acceptor(std::move(acceptor)),
-        //        m_asio(asio),
         m_maxMessageSize(max_message_size),
         m_callback(std::move(callback)) {}
 
@@ -161,7 +157,6 @@ class P2PServerImpl : public P2PServer,
   }
 
   TcpAcceptor m_acceptor;
-  //  AsioContext& m_asio;
   size_t m_maxMessageSize;
   Callback m_callback;
   uint64_t m_counter = 0;
@@ -209,11 +204,10 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
 
 P2PServerConnection::P2PServerConnection(
     std::weak_ptr<P2PServerImpl> owner, uint64_t this_id, Peer&& remote_peer,
-    /*AsioContext& asio,*/ TcpSocket socket, size_t max_message_size)
+    TcpSocket socket, size_t max_message_size)
     : m_owner(std::move(owner)),
       m_id(this_id),
       m_remotePeer(std::move(remote_peer)),
-      //      m_asio(asio),
       m_socket(std::move(socket)),
       m_maxMessageSize(max_message_size) {}
 

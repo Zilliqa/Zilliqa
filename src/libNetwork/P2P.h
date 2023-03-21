@@ -58,7 +58,7 @@ class P2P {
 
   /// Starts P2P server. This fn may throw on failures or invalid args
   void StartServer(boost::asio::io_context& asio, uint16_t port,
-                   Dispatcher dispatcher);
+                   uint16_t additionalPort, Dispatcher dispatcher);
 
   void InitializeRumorManager(const VectorOfNode& peers,
                               const std::vector<PubKey>& fullNetworkKeys);
@@ -124,6 +124,7 @@ class P2P {
   Dispatcher m_dispatcher;
   std::shared_ptr<SendJobs> m_sendJobs;
   std::shared_ptr<P2PServer> m_server;
+  std::shared_ptr<P2PServer> m_additionalServer;
   std::set<zbytes> m_broadcastHashes;
   std::deque<
       std::pair<zbytes, std::chrono::time_point<std::chrono::steady_clock>>>
