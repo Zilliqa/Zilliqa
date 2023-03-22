@@ -62,6 +62,7 @@ import time
 import pathlib
 import json
 import glob
+import json
 
 ZILLIQA_DIR=os.path.join(os.path.dirname(__file__), "..")
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
@@ -295,6 +296,31 @@ def sanitise_output(some_output):
     else:
         return some_output.decode('utf-8').strip()
 
+def log(rest):
+    logfile = rest[0]
+    with open(logfile, 'r') as f:
+        result = json.load(f)
+    logs = result['view']['logList']['segments']
+    filters = [*map(re.compile, rest[1:])]
+
+    def match_filters(span):
+        if len(filters) == 0:
+            return True
+        for f in filters:
+            if f.search(span):
+                return True
+        return False
+    
+    for v in logs:
+        spanId = v.get('spanId')
+        if spanId is None:
+            continue
+        if match_filters(spanId):
+            time = v.get('time')
+            text = v.get('text').strip()
+            
+            print(f"{spanId:20} {time} {text}")
+
 def run(which):
     run_or_die(["kubectl", "config", "use-context", "kind-zqdev"])
     kind_ip_addr = sanitise_output(run_or_die([CONFIG.docker_binary, "container", "inspect", "zqdev-control-plane",
@@ -490,5 +516,7 @@ if __name__ == "__main__":
         setup()
     elif cmd == "teardown":
         teardown()
+    elif cmd == "log":
+        log(args[1:])
     else:
         raise GiveUp(f"Invalid command {cmd}")
