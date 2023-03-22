@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 28,
+  "id": 27,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -33,7 +33,6 @@
         "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
-      "description": "    POW_SUBMISSION = 0x00,\n    DSBLOCK_CONSENSUS_PREP,\n    DSBLOCK_CONSENSUS,\n    MICROBLOCK_SUBMISSION,\n    FINALBLOCK_CONSENSUS_PREP,\n    FINALBLOCK_CONSENSUS,\n    VIEWCHANGE_CONSENSUS_PREP,\n    VIEWCHANGE_CONSENSUS,\n    ERROR,\n    SYNC\n",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -92,7 +91,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 4,
+      "id": 10,
       "options": {
         "legend": {
           "calcs": [],
@@ -112,14 +111,13 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "editorMode": "builder",
-          "expr": "zilliqa_tx_directoryservice_gauge{counter=\"DSState\"}",
-          "interval": "",
+          "expr": "zilliqa_consensus_leader_gauge{counter=\"ConsensusLeaderState\"}",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "DS state",
+      "title": "Consensus leader state",
       "type": "timeseries"
     },
     {
@@ -220,7 +218,7 @@
         "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
-      "description": "    0: POW_SUBMISSION\n    1: WAITING_DSBLOCK\n    2: MICROBLOCK_CONSENSUS_PREP,\n    3: MICROBLOCK_CONSENSUS,\n    4: WAITING_FINALBLOCK,\n    5: SYNC",
+      "description": "    POW_SUBMISSION = 0x00,\n    DSBLOCK_CONSENSUS_PREP,\n    DSBLOCK_CONSENSUS,\n    MICROBLOCK_SUBMISSION,\n    FINALBLOCK_CONSENSUS_PREP,\n    FINALBLOCK_CONSENSUS,\n    VIEWCHANGE_CONSENSUS_PREP,\n    VIEWCHANGE_CONSENSUS,\n    ERROR,\n    SYNC\n",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -274,12 +272,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 8
       },
-      "id": 2,
+      "id": 4,
       "options": {
         "legend": {
           "calcs": [],
@@ -299,13 +297,14 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "editorMode": "builder",
-          "expr": "zilliqa_node_gauge{counter=\"NodeState\"}",
+          "expr": "zilliqa_tx_directoryservice_gauge{counter=\"DSState\"}",
+          "interval": "",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Node state",
+      "title": "DS state",
       "type": "timeseries"
     },
     {
@@ -398,6 +397,192 @@
         }
       ],
       "title": "DS committee size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "    0: POW_SUBMISSION\n    1: WAITING_DSBLOCK\n    2: MICROBLOCK_CONSENSUS_PREP,\n    3: MICROBLOCK_CONSENSUS,\n    4: WAITING_FINALBLOCK,\n    5: SYNC",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "builder",
+          "expr": "zilliqa_node_gauge{counter=\"NodeState\"}",
+          "legendFormat": "{{pod}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Node state",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "builder",
+          "expr": "zilliqa_tx_finalblock_gauge{counter=\"TimedOutMicroblock\"}",
+          "legendFormat": "{{pod}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Timed out - didn't finish microblock consensus",
       "type": "timeseries"
     }
   ],
