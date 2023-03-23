@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include "JSONConversion.h"
 #include "LookupServer.h"
+#include "common/CommonData.h"
 #include "common/Constants.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
@@ -701,6 +702,31 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
                               tracerType);
 }
 
+// See https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/accounts/abi/abi.go#L242
+static bool UnpackRevert(const std::string &data_in, std::string &message) {
+  zbytes data(data_in.begin(), data_in.end());
+  // 68 bytes is the minimum: 4 prefix + 32 offset + 32 string length.
+  if (data.size() < 68 ||
+      // Keccack-256("Error(string)")[:4] == 0x08c379a0
+      !(data[0] == 0x08 && data[1] == 0xc3 && data[2] == 0x79 && data[3] == 0xa0)) {
+    TRACE_ERROR("Invalid revert data for unpacking");
+    return false;
+  }
+  // Take offset of the parameter
+  zbytes offset_vec(data.begin() + 4, data.begin() + 36);
+  size_t offset = static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(offset_vec));
+  zbytes len_vec(data.begin() + 4 + offset, data.begin() + 4 + offset + 32);
+  size_t len = static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(len_vec));
+  message.clear();
+  if (data.size() < 4 + offset + 32 + len) {
+    TRACE_ERROR("Invalid revert data for unpacking");
+    return false;
+  }
+  std::copy(data.begin() + 4 + offset + 32, data.begin() + 4 + offset + 32 + len,
+            std::back_inserter(message));
+  return true;
+}
+
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   Address fromAddr;
 
@@ -876,7 +902,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     std::string return_value;
     DataConversion::StringToHexStr(result.return_value(), return_value);
     boost::algorithm::to_lower(return_value);
-    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+    std::string revert_error_str;
+    std::ostringstream message;
+    message << "execution reverted";
+    if (UnpackRevert(result.return_value(), revert_error_str)) {
+      message << ": " << revert_error_str;
+    }
+    throw JsonRpcException(3, message.str(), "0x" + return_value);
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            EvmUtils::ExitReasonString(result.exit_reason()));
@@ -987,7 +1019,13 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
-    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+    std::string revert_error_str;
+    std::ostringstream message;
+    message << "execution reverted";
+    if (UnpackRevert(result.return_value(), revert_error_str)) {
+      message << ": " << revert_error_str;
+    }
+    throw JsonRpcException(3, message.str(), "0x" + return_value);
   } else {
     LOG_GENERAL(WARNING, "Warning! Misc error...");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
