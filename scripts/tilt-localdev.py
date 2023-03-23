@@ -15,7 +15,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Docs!
+This script supports development builds on Zilliqa.
+
+It should work on Linux or (recent) OS X/amd64; OS X/arm64 is untested.
+
+You can currently do a number of things, mostly just automating what's in docs/local-network.md
+
+podman-setup    - Setup podman machine for OS X
+podman-teardown - Tear down podman machine on OS X
+setup           - create a kind cluster and set it up for development
+teardown        - destroy the cluster
+up              - bring the cluster up with the latest build (equiv to tilt up)
+down            - take the cluster down (equiv to tilt down)
+reup            - Down, then up - useful when you've changed source and want the results to be reflected.
+
+build <tag> - this builds a quick & dirty Zilliqa container image for local development
+
+It's assumed that you have Scilla checked out as a sibling to Zilliqa.
+We:
+
+ - Create a temporary directory
+ - Copy some stuff from "Docker" into it
+ - Build Scilla
+ - Copy scilla into it.
+ - Build Zilliqa
+
+We use a magic dockerfile which does very bad things to Python, but is rather faster to build
+than the ordinary dockerfile.
+
+This is called by Tiltfile.dev, which uses it to build a (cached) container of your latest sources
+to run for localdev builds.
+
+For kubectl context:
+
+ kubectl config use-context kind-zqdev
+
 """
 
 import os
@@ -29,13 +63,10 @@ import pathlib
 import json
 import glob
 import json
-import random
 import time
-import string
 
-ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ZILLIQA_DIR=os.path.join(os.path.dirname(__file__), "..")
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
-TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 CONFIG = None
 
@@ -61,13 +92,11 @@ class Config:
             self.docker_binary = "podman"
             self.is_osx = True
         else:
-            self.using_podman = True
+            self.using_podman = False
             self.using_local_registry = True
-            self.docker_binary = "podman"
+            self.docker_binary = "docker"
             self.is_osx = False
         self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
-        self.testnet_name = "localdev"
-        self.strip_binaries = False
 
     def setup(self):
         """
@@ -142,6 +171,40 @@ def run_or_die(cmd, in_dir = None, env = None, in_background = False, pid_name =
             raise e
 
 
+def build_pod_services():
+    TEMPLATE = """
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-devnet-{name}-{index}
+  labels:
+    testnet: devnet
+    type: {name}
+spec:
+  ports:
+    - port: 30303
+      name: zilliqa-app
+  selector:
+    statefulset.kubernetes.io/pod-name: devnet-{name}-{index}
+"""
+    a_file = tempfile.NamedTemporaryFile(suffix = "nodeservices", prefix="localdev", delete = False)
+    name_to_load = a_file.name
+    print(f"> Writing node service resources to {name_to_load} .. ")
+    for (k,v) in CONFIG.pods_to_start.items():
+        for i in range(0,v):
+            data = TEMPLATE.format(name = k, index = i)
+            a_file.write(data.encode('utf-8'))
+    a_file.close()
+    print("> Applying {name_to_load}")
+    run_or_die(["kubectl", "apply", "-f", name_to_load], in_dir = ZILLIQA_DIR)
+
+def refine_tag_name(tag):
+    return tag
+#    if tag.startswith("localhost:5001/") or tag.startswith("127.0.0.1:5001/"):
+#        return tag
+#    else:
+#        return f"localhost:5001/{tag}"
 
 def setup_podman():
     run_or_die(["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
@@ -175,119 +238,42 @@ def configure_local_registry():
             print(f"Registering local repo for node {node}")
             run_or_die(["kubectl", "annotate", "node", node,  "kind.x-k8s.io/registry=localhost:5001" ])
 
-
-def get_minikube_ip():
-    result = sanitise_output(run_or_die(["minikube", "ip"], capture_output = True))
-    return result
-
-def gen_tag():
-    """
-    Generate a short random tag for builds
-    """
-    gen_from = string.ascii_lowercase + string.digits
-    result = "".join([ random.choice(gen_from) for _ in range(0,8) ])
-    return result
-
 def setup():
-    print("Creating minikube cluster .. ")
-    run_or_die(["minikube", "start", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
-                "--insecure-registry", "192.168.39.0/24", "--container-runtime", "cri-o"])
-    run_or_die(["minikube", "addons", "enable", "registry"])
-    run_or_die(["minikube", "addons", "enable", "ingress"])
-    run_or_die(["minikube", "addons", "enable", "ingress-dns"])
-    run_or_die(["kubectl", "config", "use-context", "minikube"])
-    # Pre-emptively grab busybox and nginx
-    for container in [ 'nginx', 'busybox' ]:
-        pull_container(container)
-        push_to_local_registry(container)
-    ip = get_minikube_ip()
-    print("Minikube is at {ip}");
-    print(f"""Please add
-
-[Resolver]
-DNS={ip}
-Domains=~localdomain
-
-    to your /etc/systemd/resolved.conf
-    And run
-
-systemctl restart systemd-resolved
-
-    You can then run localdev up
-""")
-
-
-
-def pull_container(container):
-    run_or_die([ CONFIG.docker_binary, "pull" , container])
-
-def push_to_local_registry(tag):
-    if CONFIG.using_podman:
-        extra_flags = [ "--tls-verify=false" ]
+    start_local_registry()
+    if CONFIG.using_local_registry:
+        create_config = "kind-cluster-local-registry.yaml"
     else:
-        extra_flags = [ ]
-    if tag.find('/') != -1:
-        print(f"> Pushing to local registry")
-        cmd = [ CONFIG.docker_binary, "push", tag ]
-        cmd.extend(extra_flags)
-        run_or_die(cmd, in_dir = ZILLIQA_DIR, capture_output = False)
+        create_config = "kind-cluster.yaml"
+    run_or_die(["kind", "create", "cluster", "--name", "zqdev", "--config", f"infra/{create_config}"],
+               in_dir = ZILLIQA_DIR)
+    run_or_die(["kubectl", "config", "use-context", "kind-zqdev"])
+    if CONFIG.using_local_registry:
+        configure_local_registry()
+    if False:
+        run_or_die(["kubectl", "apply", "-f", "infra/k8s/nginx/deploy.yaml"], in_dir = ZILLIQA_DIR)
+        # we need to wait a bit for the resource to exist.
+        done = False
+        # 0,5 turned out to be too small if you're pulling containers on creation - rrw 2023-02-13
+        for i in range(0,20):
+            try:
+                run_or_die(["kubectl", "wait", "--namespace", "ingress-nginx", "--for=condition=ready","pod", "--selector=app.kubernetes.io/component=controller",
+                            "--timeout=300s"])
+                done = True
+                break
+            except:
+                time.sleep(2)
+        if not done:
+            raise GiveUp("Couldn't build ingress")
+    build_pod_services()
+    print("All done.  You can now run localdev up");
 
 def teardown():
-    print("Destroying minikube cluster .. ")
-    run_or_die(["minikube", "delete"])
+    run_or_die(["kind", "delete", "cluster", "-n", "zqdev"])
 
-def go_up():
-    minikube = get_minikube_ip()
-    tag = gen_tag()
-    #tag = "w5fnelo8"
-    tag_name = f"{minikube}:5000/zilliqa:{tag}"
-    build_tag(tag_name)
-    write_testnet_configuration(tag_name, CONFIG.testnet_name)
-    start_testnet(CONFIG.testnet_name)
-    start_proxy(CONFIG.testnet_name)
-    show_proxy(CONFIG.testnet_name)
-
-def start_testnet(testnet_name):
-    run_or_die(["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
-
-def go_down():
-    stop_testnet(CONFIG.testnet_name)
-    stop_proxy(CONFIG.testnet_name)
-
-def stop_testnet(testnet_name):
-    run_or_die(["sh", "-c", "echo localdev | ./testnet.sh down"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
-
-def build_tag(tag_name):
-    print(f"Building Zilliqa to container {tag_name} .. ")
-    build_lite(tag_name)
-
-def write_testnet_configuration(tag_name, testnet_name):
-
-    instance_dir = os.path.join(TESTNET_DIR, testnet_name)
-    if os.path.exists(instance_dir):
-        print(f"Removing old testnet configuration ..")
-        shutil.rmtree(instance_dir)
-    print(f"Generating testnet configuration .. ")
-    run_or_die(["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
-                os.path.join(ZILLIQA_DIR, "constants_local.xml"),
-                "--image", tag_name,
-                "--localdev", "true",
-                "-n", "20",
-                "-d", "5",
-                "-l", "1",
-                "--guard", "4/10",
-                "--gentxn", "false",
-                "--multiplier-fanout", "2",
-                "--host-network", "false",
-                "--https", "localdomain",
-                "--seed-multiplier", "true",
-                "-f", "--bucket", "none"],
-               in_dir = TESTNET_DIR)
-
-def kill_mitmweb(pidfile_name):
+def kill_mitmweb():
     if CONFIG.is_osx:
         print("> killall doesn't work on OS X .. using pidfile")
-        pidfile = Pidfile(pidfile_name)
+        pidfile = Pidfile("mitmweb")
         pid = pidfile.get()
         if pid is not None:
             print(f"> Found pid {pid}")
@@ -311,65 +297,88 @@ def sanitise_output(some_output):
     else:
         return some_output.decode('utf-8').strip()
 
-def get_mitm_instances(testnet_name):
-    return { "explorer" : { "host" : f"{testnet_name}-explorer.localdomain", "port" : 5300 },
-             "api" : { "host" : f"{testnet_name}-api.localdomain", "port" : 5301 },
-             "l2api" : { "host" : f"{testnet_name}-l2api.localdomain", "port" : 5302 },
-             "newapi" : { "host" : f"{testnet_name}-newapi.localdomain", "port" : 5303 },
-             "origin" : { "host" : f"{testnet_name}-origin.localdomain", "port" : 5304 } }
+def log(rest):
+    logfile = rest[0]
+    with open(logfile, 'r') as f:
+        result = json.load(f)
+    logs = result['view']['logList']['segments']
+    filters = [*map(re.compile, rest[1:])]
 
-def stop_proxy(testnet_name):
-    mitm_instances = get_mitm_instances(testnet_name)
-    for m in mitm_instances.keys():
-        kill_mitmweb(f"mitmweb_{m}")
+    def match_filters(span):
+        if len(filters) == 0:
+            return True
+        for f in filters:
+            if f.search(span):
+                return True
+        return False
+    
+    for v in logs:
+        spanId = v.get('spanId')
+        if spanId is None:
+            continue
+        if match_filters(spanId):
+            time = v.get('time')
+            text = v.get('text').strip()
+            
+            print(f"{spanId:20} {time} {text}")
 
-def start_proxy(testnet_name):
-    print(f"> Wait for loadbalancer .. ")
-    while True:
-        lb_addr = run_or_die(["kubectl",
-                              "get",
-                              "ingress",
-                              "-o",
-                              "jsonpath={.items[].status.loadBalancer.ingress[].ip}"],
-                             capture_output = True)
-        if lb_addr is None or len(lb_addr) == 0:
-            print(".")
-            std.stdout.flush()
-            time.sleep(2)
-        else:
-            break
-    lb_addr = lb_addr.decode('utf-8')
-    print(f"> Load balancer ip {lb_addr}")
+def run(which):
+    run_or_die(["kubectl", "config", "use-context", "kind-zqdev"])
+    kind_ip_addr = sanitise_output(run_or_die([CONFIG.docker_binary, "container", "inspect", "zqdev-control-plane",
+                               "--format", "{{ .NetworkSettings.Networks.kind.IPAddress }}"], capture_output = True))
 
-    if lb_addr is None or len(lb_addr) is None:
-        raise GiveUp("Cannot find IP address of LB: give up");
-    print("Killing old mitmweb instances .. ")
-    stop_proxy(testnet_name)
-    mitm_instances = get_mitm_instances(testnet_name)
-    print("Starting new mitmweb instances .. ")
-    for (k,v) in mitm_instances.items():
-        port = v['port']
-        print(f"Starting {k} on port {port}, webserver {port+3000} .. ")
+    print(f"> kind ip address {kind_ip_addr}")
+    if kind_ip_addr is None or len(kind_ip_addr) == 0:
+        raise GiveUp("Cannot find IP address of kind cluster: give up");
+    kill_mitmweb()
+    if which == "up":
+        # Try to work out if there are any pods left.
+        while True:
+            result = run_or_die(["kubectl", "get", "pod", "-o", "json"], capture_output = True)
+            some_json = json.loads(result)
+            if len(some_json['items']) == 0:
+                print("Pods have died. Continuing")
+                break
+            else:
+                the_pods = [ val['metadata']['name'] for val in some_json['items'] ]
+                for pod in the_pods:
+                    print(f"Killing pod {pod}");
+                    run_or_die(["kubectl", "delete", "pod", pod, "--grace-period", "0", "--force"], allow_failure = True)
+                print(f"Waiting for pods to die: {' '.join(the_pods)}")
+                time.sleep(2.0)
+
         mitm_cmd = ["mitmweb",
                     "--mode",
-                    f"reverse:http://{lb_addr}:80",
+                    f"reverse:http://{kind_ip_addr}:5300",
                     "--modify-headers",
-                    f"/~q/Host/{v['host']}",
-                    "--no-web-open-browser",
-                    "--listen-port", str(port),
-                    "--web-port", str(port+3000)
+                    "/~q/Host/l2api.local.z7a.xyz",
+                    "--no-web-open-browser"
                     ]
-        run_or_die(mitm_cmd, in_dir = ZILLIQA_DIR, in_background = True ,pid_name = f"mitmweb_{k}")
+        run_or_die(mitm_cmd, in_dir = ZILLIQA_DIR, in_background = True ,pid_name = "mitmweb")
+    tilt_cmd = ["tilt", "--context", "kind-zqdev", "-f", "Tiltfile", which]
+    if which == "up":
+        info = {
+            "endpoints" : {
+                "api" : "http://localhost:5302" ,
+                "mitwmweb" : "http://localhost:8081",
+                "tilt" : "http://localhost:10350",
+                "devex" : "http://localhost:8110"
+            }
+        }
+        print(json.dumps(info))
+        #print("*** Send API requests to http://localhost:5302 ***")
+        #print("*** Monitor http requests via mitmweb at http://localhost:8081 ****")
+        #print("*** Monitor tilt at http://localhost/http requests via mitmweb at http://localhost:10350 ****")
+        env_to_use = os.environ.copy()
+        env_to_use.update(CONFIG.default_env)
+        os.execvpe('tilt', tilt_cmd, env_to_use )
+    else:
+        run_or_die(tilt_cmd, in_dir = ZILLIQA_DIR)
 
-def show_proxy(testnet_name):
-    info = []
-    for (k,v) in mitm_instances.items():
-        port = v['port']
-        info[k] = { "comm" : f"http://localhost:{port}", "monitor" : f"http://localhost:{port+3000}" }
-    
-    print(json.dumps(info))
-
-def build_lite(tag):
+def build_lite(args):
+    if len(args) != 1:
+        raise GiveUp("Need a single argument - the tag to build")
+    tag = refine_tag_name(args[0])
     workspace = os.path.join(ZILLIQA_DIR, "_localdev")
     print(f"> Using workspace {workspace}")
     print(f"> Startup: removing workspace to avoid pollution ...")
@@ -399,12 +408,11 @@ def build_lite(tag):
                     os.path.join(workspace, "zilliqa", "build", "lib"), dirs_exist_ok = True)
     tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
     tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
-    if CONFIG.strip_binaries:
-        for strip_dir in [ tgt_bin_dir, tgt_lib_dir ]:
-            all_files = glob.glob(strip_dir + r'/*')
-            for f in all_files:
-                print(f)
-                run_or_die(["strip", f])
+    for strip_dir in [ tgt_bin_dir, tgt_lib_dir ]:
+        all_files = glob.glob(strip_dir + r'/*')
+        for f in all_files:
+            print(f)
+            run_or_die(["strip", f])
 
     lib_tgt = os.path.join(workspace, "zilliqa", "lib")
     try:
@@ -440,7 +448,16 @@ def build_lite(tag):
     new_env["DOCKER_BUILDKIT"] = "1"
     run_or_die([CONFIG.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.lite")], in_dir = ZILLIQA_DIR, env = new_env,
                capture_output = False)
-    push_to_local_registry(tag)
+    if CONFIG.using_podman:
+        extra_flags = [ "--tls-verify=false" ]
+    else:
+        extra_flags = [ ]
+    if tag.find('/') != -1:
+        print(f"> Pushing to local registry")
+        cmd = [ CONFIG.docker_binary, "push", tag ]
+        cmd.extend(extra_flags)
+        run_or_die(cmd, in_dir = ZILLIQA_DIR, env = new_env, capture_output = False)
+
     #cmd = [ "kind", "load", "docker-image", tag, "-n", "zqdev" ]
     #run_or_die(cmd, in_dir = ZILLIQA_DIR, env = new_env, capture_output = False)
     print(f"> Built in workspace {workspace}")
@@ -498,22 +515,15 @@ if __name__ == "__main__":
     if cmd == "build":
         build(args[1:])
     elif cmd == "build-lite":
-        build_lite(args[1])
+        build_lite(args[1:])
     elif cmd == "podman-setup":
         setup_podman()
     elif cmd == "podman-teardown":
         teardown_podman()
-    elif cmd == "start-proxy":
-        start_proxy(CONFIG.testnet_name)
-        show_proxy(CONFIG.testnet_name)
-    elif cmd == "show-proxy":
-        display_proxy()
     elif cmd == "up":
-        go_up()
+        run("up")
     elif cmd == "down":
-        go_down()
-    elif cmd == "write_testnet_config":
-        write_testnet_configuration(args[1], CONFIG.testnet_name)
+        run("down")
     elif cmd == "reup":
         run("down")
         time.sleep(4.0)
@@ -522,5 +532,7 @@ if __name__ == "__main__":
         setup()
     elif cmd == "teardown":
         teardown()
+    elif cmd == "log":
+        log(args[1:])
     else:
         raise GiveUp(f"Invalid command {cmd}")

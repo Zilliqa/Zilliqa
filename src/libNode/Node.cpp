@@ -389,6 +389,7 @@ void Node::Init() {
       LOG_GENERAL(WARNING, "Initial DS comm size 0 ");
     }
 
+    LOG_GENERAL(INFO, "Setting built DS Comm [6]");
     m_mediator.m_blocklinkchain.SetBuiltDSComm(buildDSComm);
   }
 
@@ -827,6 +828,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       LOG_GENERAL(FATAL, "Initial DS comm size 0 ");
     }
 
+    LOG_GENERAL(INFO, "Setting built DS Comm [7]");
     m_mediator.m_blocklinkchain.SetBuiltDSComm(buildDSComm);
   }
 

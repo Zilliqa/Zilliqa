@@ -341,6 +341,7 @@ bool Retriever::RetrieveBlockLink() {
           *vcblock, dsComm, false);
     }
 
+    LOG_GENERAL(INFO, "Setting built DS Comm");
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);
 
     m_mediator.m_blocklinkchain.AddBlockLink(

@@ -6,3 +6,6 @@ bases:
 nameSuffix: normal
 commonLabels:
   type: normal
+replicas:
+- name: devnet-normal
+  count: 15

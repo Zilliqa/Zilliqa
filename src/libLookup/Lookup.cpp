@@ -2753,6 +2753,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(
       }
     }
 
+    LOG_GENERAL(INFO, "Setting built DS Comm [3]");
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
   }
 
@@ -2881,7 +2882,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(
               index_num, newDScomm)) {
         LOG_GENERAL(WARNING, "Could not verify all DS blocks");
       }
-      m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
+    LOG_GENERAL(INFO, "Setting built DS Comm [4]");
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
       uint64_t dsblocknumafter =
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -4995,6 +4997,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
                             << "Verified successfully");
     }
 
+    LOG_GENERAL(INFO, "Setting built DS Comm [5]");
     m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
   }
   uint64_t dsblocknumafter =

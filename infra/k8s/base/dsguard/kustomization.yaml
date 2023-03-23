@@ -6,3 +6,6 @@ bases:
 nameSuffix: dsguard
 commonLabels:
   type: dsguard
+replicas:
+- name: devnet-dsguard
+  count: 5

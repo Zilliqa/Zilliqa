@@ -5,6 +5,7 @@ metadata:
 spec:
   containers:
   - name: fish
-    image: localhost:5001/fish/soup
+    image: 192.168.39.228:5000/zilliqa:v1
+    imagePullPolicy: Always
     ports:
     - containerPort: 80

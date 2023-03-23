@@ -832,7 +832,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return;
   }
-
+  LOG_GENERAL(INFO, "Setting built DS Comm [2]");
   m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
   StartFirstTxEpoch();

@@ -540,7 +540,7 @@ def create_start_sh(args):
         return '{0:032X}'.format(int(ip, 16))
 
     def defer_cmd(cmd, seconds):
-        return 'sleep {} && {} &'.format(seconds, cmd)
+        return 'sleep {} && echo \'{}\' && {} &'.format(seconds, cmd, cmd)
 
     # FIXME(#313): Before Zilliqa daemon is integrated, there's no way to recover a DS node
     def cmd_zilliqa_daemon(args, recovery=False, resume=False):
@@ -662,8 +662,9 @@ def create_start_sh(args):
         gen_bucket_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_testnet_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
-        defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
-        defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
+        defer_cmd(cmd_setprimaryds, 60) if is_ds(args) and not args.recover_from_testnet else '',
+        defer_cmd(cmd_startpow, 180) if is_non_ds(args) and not args.recover_from_testnet else '',
+        "sleep 100" if not is_ds(args) else '',
         cmd_zilliqa_daemon(args, resume=args.resume),
         '[ "$1" != "--recovery" ] && exit 1',
         '# The followings are recovery sequences'
@@ -775,7 +776,7 @@ def get_svc_ip(name):
     get k8s service (same namespace) ip from envVars
     :type name: str
     """
-    print("Using DNS name for origin server {name}")
+    print(f"Using DNS name for origin server {name}")
     return name
     #env_name = name.upper().replace('-', '_') + '_SERVICE_HOST'
     #return os.getenv(env_name)

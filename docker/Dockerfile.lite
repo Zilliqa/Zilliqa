@@ -75,7 +75,7 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
 RUN python3 -m pip install --upgrade pip setuptools wheel \
-  && python3 -m pip install --no-cache-dir -r requirements3.txt
+  && python3 -m pip install -I  --no-cache-dir -r requirements3.txt
 
 RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
   && chmod a+x /usr/bin/pip3 \

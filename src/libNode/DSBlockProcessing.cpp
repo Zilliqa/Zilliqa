@@ -728,6 +728,7 @@ bool Node::ProcessVCDSBlocksMessage(
     return false;
   }
 
+    LOG_GENERAL(INFO, "Setting built DS Comm [8]");  
   m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
