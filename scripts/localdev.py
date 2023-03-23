@@ -188,6 +188,30 @@ def gen_tag():
     result = "".join([ random.choice(gen_from) for _ in range(0,8) ])
     return result
 
+def print_config_advice():
+    ip = get_minikube_ip()
+    host_names = run_or_die(["kubectl", "get", "ingress", "-o", "jsonpath={.items[*].metadata.name}"], capture_output = True)
+    host_names = sanitise_output(host_names).split()
+    hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
+    print("Minikube is at {ip}")
+    print(f"""Please add
+
+[Resolver]
+DNS={ip}
+Domains=~localdomain
+
+    to your /etc/systemd/resolved.conf
+    And run
+
+systemctl restart systemd-resolved
+
+    Or add
+
+{hosts}
+
+    to your /etc/hosts.
+""")
+          
 def setup():
     print("Creating minikube cluster .. ")
     run_or_die(["minikube", "start", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
@@ -200,21 +224,8 @@ def setup():
     for container in [ 'nginx', 'busybox' ]:
         pull_container(container)
         push_to_local_registry(container)
-    ip = get_minikube_ip()
-    print("Minikube is at {ip}");
-    print(f"""Please add
-
-[Resolver]
-DNS={ip}
-Domains=~localdomain
-
-    to your /etc/systemd/resolved.conf
-    And run
-
-systemctl restart systemd-resolved
-
-    You can then run localdev up
-""")
+    print_config_advice()
+    print("You can then run localdev up")
 
 
 
@@ -448,6 +459,28 @@ def build_lite(tag):
         print(f"> Removing workspace")
         shutil.rmtree(workspace)
 
+
+def which_pod_said(node_type, recency, what):
+    pod_op = run_or_die(["kubectl",
+                            "get",
+                            "pod",
+                            f"-l type={node_type}",
+                            "-o", "jsonpath={.items[*].metadata.name}" ], capture_output = True)
+    pod_names = sanitise_output(pod_op).split()
+    expression = re.compile(what)
+    pods_said = [ ]
+    print("Pods: {' '.join(pod_names)}")
+    for n in pod_names:
+        print(f".. {n}")
+        logs = run_or_die(["kubectl","logs", f"--tail={recency}", n ],
+                          capture_output = True)
+        logs = sanitise_output(logs)
+        if expression.search(logs):
+            pods_said.append(n)
+
+    print("----")
+    print(" ".join(pods_said))
+    
 def build(args):
     if len(args) != 1:
         raise GiveUp("Need a single argument - the tag to build")
@@ -522,5 +555,9 @@ if __name__ == "__main__":
         setup()
     elif cmd == "teardown":
         teardown()
+    elif cmd == "which-pod-said":
+        which_pod_said(args[1], args[2], args[3])
+    elif cmd == "print-config-advice":
+        print_config_advice()
     else:
         raise GiveUp(f"Invalid command {cmd}")
