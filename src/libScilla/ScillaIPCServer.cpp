@@ -18,15 +18,15 @@
 #include "ScillaIPCServer.h"
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/common/specification.h>
-#include <sstream>
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
-#include "libServer/JSONConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
+
+#include <sstream>
 
 using namespace std;
 using namespace Contract;
@@ -242,8 +242,19 @@ void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
   INC_CALLS(GetCallsCounter());
   const auto address = Address{request["addr"].asString()};
   const auto vname = request["vname"].asString();
-  const auto indicesVector =
-      JSONConversion::convertJsonArrayToVector(request["indices"]);
+  if (!request["indices"].isArray()) {
+    return;
+  }
+  std::vector<std::string> indicesVector;
+  for (const auto &index : request["indices"]) {
+    if (!index.isString()) {
+      continue;
+    }
+    std::stringstream ss;
+    ss << quoted(index.asString());
+    indicesVector.emplace_back(ss.str());
+  }
+
   if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
           response, address, vname, indicesVector)) {
     LOG_GENERAL(WARNING, "Unable to fetch json state for addr " << address);
