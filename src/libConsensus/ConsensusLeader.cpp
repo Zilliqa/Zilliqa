@@ -286,6 +286,7 @@ bool ConsensusLeader::StartConsensusSubsets() {
     LOG_GENERAL(WARNING, "GenerateChallengeMessage failed");
     m_state = ERROR;
     zil::local::variables.SetConsensusState(int(m_state));
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -378,6 +379,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
     // Set overall state to ERROR
     m_state = ERROR;
     zil::local::variables.SetConsensusState(int(m_state));
+    zil::local::variables.AddConsensusError(1);
   } else {
     LOG_GENERAL(
         INFO, "[Subset " << subsetID << "] Subset failed to reach consensus!");
@@ -837,6 +839,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                              << " Actual = " << m_commitCounter);
             m_state = ERROR;
             zil::local::variables.SetConsensusState(int(m_state));
+            zil::local::variables.AddConsensusError(1);
           } else {
             LOG_GENERAL(INFO, "Sufficient final commits. Required = "
                                   << m_numForConsensus
@@ -880,6 +883,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
   if (!aggregated_response.Initialized()) {
     LOG_GENERAL(WARNING, "AggregateCommits failed");
     SetStateSubset(subsetID, ERROR);
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -894,6 +898,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
                                 aggregated_key)) {
     LOG_GENERAL(WARNING, "MultiSigVerify failed");
     SetStateSubset(subsetID, ERROR);
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -1090,6 +1095,8 @@ bool ConsensusLeader::StartConsensus(
                                  << m_numForConsensus
                                  << " Actual = " << m_commitCounter);
         m_state = ERROR;
+        zil::local::variables.SetConsensusState(int(m_state));
+        zil::local::variables.AddConsensusError(1);
       } else {
         LOG_GENERAL(INFO, "Sufficient commits. Required = " << m_numForConsensus
                                                             << " Actual = "
