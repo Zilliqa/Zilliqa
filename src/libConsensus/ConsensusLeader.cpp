@@ -64,7 +64,7 @@ class LeaderVariables {
   }
 };
 
-static BackupVariables variables{};
+static LeaderVariables variables{};
 
 }  // namespace local
 }  // namespace zil

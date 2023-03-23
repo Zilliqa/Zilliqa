@@ -123,15 +123,15 @@ class P2PVariables {
                                           "P2P metrics", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
-        result.Set(broadcastReceived, {{"counter", "BroadcastReceived"}});
-        result.Set(gossipReceived, {{"counter", "GossipReceived"}});
-        result.Set(normalReceived, {{"counter", "NormalReceived"}});
-        result.Set(gossipReceivedForward, {{"counter", "GossipReceivedForward"}});
-        result.Set(eventCallback, {{"counter", "EventCallback"}});
-        result.Set(eventCallbackTooFewBytes, {{"counter", "EventCallbackTooFewBytes"}});
-        result.Set(eventCallbackFailure, {{"counter", "EventCallbackFailure"}});
-        result.Set(eventCallbackServerSeed, {{"counter", "EventCallbackServerSeed"}});
-        result.Set(newConnections, {{"counter", "NewConnections"}});
+        result.Set(broadcastReceived.load(), {{"counter", "BroadcastReceived"}});
+        result.Set(gossipReceived.load(), {{"counter", "GossipReceived"}});
+        result.Set(normalReceived.load(), {{"counter", "NormalReceived"}});
+        result.Set(gossipReceivedForward.load(), {{"counter", "GossipReceivedForward"}});
+        result.Set(eventCallback.load(), {{"counter", "EventCallback"}});
+        result.Set(eventCallbackTooFewBytes.load(), {{"counter", "EventCallbackTooFewBytes"}});
+        result.Set(eventCallbackFailure.load(), {{"counter", "EventCallbackFailure"}});
+        result.Set(eventCallbackServerSeed.load(), {{"counter", "EventCallbackServerSeed"}});
+        result.Set(newConnections.load(), {{"counter", "NewConnections"}});
       });
     }
   }

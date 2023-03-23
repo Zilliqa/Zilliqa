@@ -32,6 +32,7 @@
 
 #include "Blacklist.h"
 #include "Peer.h"
+#include "libMetrics/Api.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 
@@ -73,9 +74,10 @@ class SendJobsVariables {
                                           "Send Jobs metrics", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
-        result.Set(sendMessageToPeerCount, {{"counter", "SendMessageToPeerCount"}});
-        result.Set(sendMessageToPeerFailed, {{"counter", "SendMessageToPeerFailed"}});
-        result.Set(sendMessageToPeerSyncCount, {{"counter", "SendMessageToPeerSyncCount"}});
+        result.Set(sendMessageToPeerCount.load(), {{"counter", "SendMessageToPeerCount"}});
+        result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
+        result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
+        result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
       });
     }
   }
