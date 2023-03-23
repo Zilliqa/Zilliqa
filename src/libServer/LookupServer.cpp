@@ -558,6 +558,11 @@ Json::Value LookupServer::CreateTransaction(
   INC_CALLS(GetCallsCounter());
 
   LOG_MARKER();
+  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be!!!");
+  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be!!!");
+  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be!!!");
+  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be!!!");
+  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be!!!");
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");

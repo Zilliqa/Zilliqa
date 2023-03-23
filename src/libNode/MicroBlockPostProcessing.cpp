@@ -45,7 +45,8 @@ namespace local {
 class MicroBlockPostProcessingVariables {
   int errorsMissingTx = 0;
   int consensusErrorCode = -1;
-  //int errorsMissingTx = 0;
+  int microblockConsensusMessages = 0;
+  int microblockConsensusFailedBadly = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -58,6 +59,16 @@ class MicroBlockPostProcessingVariables {
   void AddErrorsMissingTx(int missingTx) {
     Init();
     errorsMissingTx += missingTx;
+  }
+
+  void AddMicroblockConsensusMessages(int count) {
+    Init();
+    microblockConsensusMessages += count;
+  }
+
+  void AddMicroblockConsensusFailedBadly(int count) {
+    Init();
+    microblockConsensusFailedBadly += count;
   }
 
   void Init() {
@@ -124,12 +135,14 @@ bool Node::ProcessMicroBlockConsensus(
           message, offset, consensus_id, senderPubKey, reserialized_message)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "PreProcessMessage failed");
+    zil::local::variables.AddMicroblockConsensusFailedBadly(1);
     return false;
   }
 
   if (!IsShardNode(senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "ProcessMicroBlockConsensus signed by non shard member");
+    zil::local::variables.AddMicroblockConsensusFailedBadly(1);
     return false;
   }
 
@@ -137,13 +150,15 @@ bool Node::ProcessMicroBlockConsensus(
     AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                    from, senderPubKey);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+    LOG_GENERAL(WARNING, m_mediator.m_currentEpochNum <<
               "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
       LOG_GENERAL(WARNING, "Consensus ID in message ("
                                << consensus_id << ") is smaller than current ("
                                << m_mediator.m_consensusID << ")");
+
+      zil::local::variables.AddMicroblockConsensusFailedBadly(1);
       return false;
     } else if (consensus_id > m_mediator.m_consensusID) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -151,6 +166,7 @@ bool Node::ProcessMicroBlockConsensus(
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
 
+      LOG_GENERAL(WARNING, "Adding to buffer");
       AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                      from, senderPubKey);
     } else {
@@ -218,6 +234,8 @@ bool Node::ProcessMicroBlockConsensusCore(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
+
+  zil::local::variables.AddMicroblockConsensusMessages(1);
 
   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

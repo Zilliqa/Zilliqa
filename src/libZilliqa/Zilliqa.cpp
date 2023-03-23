@@ -604,9 +604,9 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
   DetachedFunction(1, func);
 
   m_msgQueueSize.SetCallback([this](auto &&result) {
-    if (m_msgQueueSize.Enabled()) {
+    //if (m_msgQueueSize.Enabled()) {
       result.Set(m_msgQueue.size(), {{"counter", "QueueSize"}});
-    }
+    //}
   });
 }
 
