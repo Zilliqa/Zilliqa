@@ -239,6 +239,8 @@ mod tests {
         let config = ScillaBackendConfig {
             path: PathBuf::default(),
             zil_scaling_factor: 1,
+            scilla_stdlib_dir: "".to_owned(),
+            scilla_root_dir: "".to_owned(),
         };
         let extras = EvmProto::EvmEvalExtras::new();
         ScillaBackend::new(config, H160::default(), extras)

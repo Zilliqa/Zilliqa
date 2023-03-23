@@ -371,7 +371,7 @@ impl Backend for ScillaBackend {
         let mut args = serde_json::Map::new();
         args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
         args.insert("vname".to_owned(), vname.into());
-        args.insert("indices".to_owned(),  indices.into());
+        args.insert("indices".to_owned(), indices.into());
         let Ok(result) = self.call_ipc_server_api("fetchStateJson", args) else {
             return Vec::new()
         };

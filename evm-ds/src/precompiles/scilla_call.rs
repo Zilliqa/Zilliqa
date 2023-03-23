@@ -4,7 +4,7 @@ use evm::{Context, ExitError};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 
-use ethabi::{decode};
+use ethabi::decode;
 use ethabi::ethereum_types::Address;
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
@@ -112,8 +112,7 @@ fn build_result_json(
         if let Token::Uint(solidity_uint) = solidity_value {
             // Scilla doesn't like hex strings
             json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("{}", solidity_uint)});
-        }
-        else {
+        } else {
             json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": solidity_value.to_string()});
         }
         result_arguments.as_array_mut().unwrap().push(json_arg);
