@@ -66,8 +66,7 @@ std::vector<std::string> ScillaUtils::GetContractCheckerCmdLineArgsForEvm() {
   std::vector<std::string> args = {
       "--scilla-root-dir", SCILLA_ROOT, "--scilla-stdlib-dir",
       SCILLA_LIB + ":" + boost::filesystem::current_path().string() + '/' +
-          EXTLIB_FOLDER,
-      ""};
+          EXTLIB_FOLDER};
   return args;
 }
 
