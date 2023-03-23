@@ -12,4 +12,5 @@ target_link_libraries(Scilla
   PUBLIC
     jsoncpp_lib
   PRIVATE
-    Persistence)
+    Persistence
+    Utils)
