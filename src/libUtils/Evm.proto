@@ -95,6 +95,7 @@ message EvmArgs {
   bool tx_trace_enabled = 12;
   string tx_trace = 13;
   bool is_static_call = 14;
+  Address caller = 15;
 }
 
 message EvmLog {

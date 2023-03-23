@@ -261,7 +261,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     inputGas = std::max(remainingGas, inputGas);
     evm::EvmArgs evmCallArgs;
     *evmCallArgs.mutable_address() = ctx.destination();
-    *evmCallArgs.mutable_origin() = ctx.caller();
+    *evmCallArgs.mutable_origin() = mProtoArgs.origin();
+    *evmCallArgs.mutable_caller() = ctx.caller();
     const auto code = mAccountStore.GetContractCode(
         ProtoToAddress(callData.callee_address()));
     *evmCallArgs.mutable_code() =
@@ -492,7 +493,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     const auto inputGas = targetGas - baseFee;
     evm::EvmArgs evmCreateArgs;
     *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
-    *evmCreateArgs.mutable_origin() = AddressToProto(fromAddress);
+    *evmCreateArgs.mutable_origin() = mProtoArgs.origin();
+    *evmCreateArgs.mutable_caller() = AddressToProto(fromAddress);
     *evmCreateArgs.mutable_code() = createData.call_data();
     evmCreateArgs.set_gas_limit(inputGas);
     *evmCreateArgs.mutable_apparent_value() = createData.value();

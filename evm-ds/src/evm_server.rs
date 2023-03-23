@@ -61,6 +61,7 @@ impl EvmServer {
                 let apparent_value = U256::from(args.get_apparent_value());
                 let gas_limit = args.get_gas_limit();
                 let estimate = args.get_estimate();
+                let caller = H160::from(args.get_caller());
                 let backend =
                     ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
                 let gas_scaling_factor = self.gas_scaling_factor;
@@ -77,6 +78,7 @@ impl EvmServer {
                     data,
                     apparent_value,
                     gas_limit,
+                    caller,
                     backend,
                     gas_scaling_factor,
                     estimate,
