@@ -64,6 +64,8 @@ class FinalBLockProcessingVariables {
   int forwardedTx = 0;
   int timedOutMicroblock = 0;
   int missedMicroblockConsensus = 0;
+  int isShardLeader = -1;
+  int shard = -1;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -93,6 +95,16 @@ class FinalBLockProcessingVariables {
     timedOutMicroblock += number;
   }
 
+  void SetIsShardLeader(int number) {
+    Init();
+    isShardLeader = number;
+  }
+
+  void SetShard(int number) {
+    Init();
+    shard = number;
+  }
+
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge",
@@ -104,6 +116,8 @@ class FinalBLockProcessingVariables {
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
         result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
         result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
+        result.Set(shard, {{"counter", "Shard"}});
       });
     }
   }
@@ -444,11 +458,15 @@ void Node::UpdateStateForNextConsensusRound() {
                          << "][" << m_mediator.m_currentEpochNum << "]["
                          << m_myshardId << "][  0] SCLD");
     m_isPrimary = true;
+    zil::local::variables.SetIsShardLeader(1);
   } else {
     LOG_EPOCH(
         INFO, m_mediator.m_currentEpochNum,
         "The new shard leader is m_consensusLeaderID " << m_consensusLeaderID);
+    zil::local::variables.SetIsShardLeader(0);
   }
+
+  zil::local::variables.SetShard(m_myshardId);
 }
 
 void Node::ScheduleMicroBlockConsensus() {
