@@ -372,7 +372,7 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size);
+    LOG_GENERAL(INFO, "Chetan SendMessageToPeer peer = "<<peer<<"Enqueueing message, size=" << message.size);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
@@ -411,6 +411,7 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
+    LOG_MARKER();
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
       LOG_GENERAL(INFO,
                   "Ignoring blacklisted peer " << peer.GetPrintableIPAddress());
@@ -425,7 +426,9 @@ class SendJobsImpl : public SendJobs,
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
   }
 
+
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
+    LOG_GENERAL(INFO, "Chetan OnPeerQueueFinished peer = "<<peer);
     if (ec) {
       LOG_GENERAL(
           INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
@@ -436,6 +439,7 @@ class SendJobsImpl : public SendJobs,
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
+      LOG_GENERAL(INFO, "Chetan impossible peer = "<<peer);
       return;
     }
 

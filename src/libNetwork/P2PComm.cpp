@@ -1174,6 +1174,7 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
                                          inject_trace_context);
 
   for (const auto& peer : peers) {
+    LOG_GENERAL(INFO, "Chetan send peer =" << peer);
     sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist);
   }
 }

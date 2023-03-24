@@ -2443,6 +2443,7 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
       lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
       if (m_mediator.m_DSCommittee != nullptr) {
         for (const auto &i : *m_mediator.m_DSCommittee) {
+          LOG_GENERAL(INFO, "Chetan Adding peer to send to ds = "<< i.second);
           peerList.push_back(i.second);
         }
       }
@@ -2450,6 +2451,7 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
       lock_guard<mutex> g(m_mutexShardMember);
       if (m_myShardMembers != nullptr) {
         for (const auto &i : *m_myShardMembers) {
+          LOG_GENERAL(INFO, "Chetan Adding peer to send to normal = "<< i.second);
           peerList.push_back(i.second);
         }
       }
@@ -2459,6 +2461,7 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
 
   if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
     // send to upper seeds
+    LOG_GENERAL(INFO, "Chetan Sending whitelisting message to lookups");
     m_mediator.m_lookup->SendMessageToSeedNodes(message);
   }
   return true;
@@ -2487,9 +2490,11 @@ bool Node::ProcessRemoveNodeFromBlacklist(
     const zbytes &message, unsigned int offset, const Peer &from,
     [[gnu::unused]] const unsigned char &startByte) {
   LOG_MARKER();
+  LOG_GENERAL(INFO, "Chetan ProcessRemoveNodeFromBlacklist = "<< from);
 
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
     // Blacklist - strict one - since too many whitelist request in current ds
+    LOG_GENERAL(INFO, "Chetan ProcessRemoveNodeFromBlacklist blacklisting again= "<< from);
     // epoch.
     Blacklist::GetInstance().Add(from.GetIpAddress());
     return false;

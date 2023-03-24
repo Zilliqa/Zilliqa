@@ -62,6 +62,8 @@ void Blacklist::Add(const uint128_t& ip, const bool strict,
     // already existed, then over-ride strictness
     if (!res.second) {
       res.first->second = strict;
+    LOG_GENERAL(INFO,
+                "Chetan Added as strict blacklist IP: " << IPConverter::ToStrFromNumericalIP(ip));
     }
   } else {
     LOG_GENERAL(INFO,
@@ -74,6 +76,8 @@ void Blacklist::Remove(const uint128_t& ip) {
   if (!m_enabled) {
     return;
   }
+  LOG_GENERAL(INFO,
+              "Chetan Removed from blacklist IP: " << IPConverter::ToStrFromNumericalIP(ip));
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
   m_blacklistIP.erase(ip);
