@@ -468,13 +468,13 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
-    if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-      LOG_GENERAL(INFO,
-                  "Ignoring blacklisted peer " <<
-                  peer.GetPrintableIPAddress()
-                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
-      return;
-    }
+    //if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
+    //  LOG_GENERAL(INFO,
+    //              "Ignoring blacklisted peer " <<
+    //              peer.GetPrintableIPAddress()
+    //              << "allow relaxed blacklist " << allow_relaxed_blacklist);
+    //  return;
+    //}
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
