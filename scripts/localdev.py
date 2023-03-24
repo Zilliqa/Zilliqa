@@ -192,6 +192,14 @@ def print_config_advice():
     ip = get_minikube_ip()
     host_names = run_or_die(["kubectl", "get", "ingress", "-o", "jsonpath={.items[*].metadata.name}"], capture_output = True)
     host_names = sanitise_output(host_names).split()
+    # May have to be hardcoded, since the net isn't running at this point...
+    if len(host_names) == 0:
+        host_names = [  "localdev-api.localdomain",
+                        "localdev-explorer.localdomain",
+                        "localdev-l2api.localdomain",
+                        "localdev-newapi.localdomain",
+                        "localdev-origin.localdomain",
+                        "localdev-origin-internal.localdomain" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
     print("Minikube is at {ip}")
     print(f"""Please add
@@ -214,18 +222,35 @@ systemctl restart systemd-resolved
           
 def setup():
     print("Creating minikube cluster .. ")
-    run_or_die(["minikube", "start", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
+    run_or_die(["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
                 "--insecure-registry", "192.168.39.0/24", "--container-runtime", "cri-o"])
     run_or_die(["minikube", "addons", "enable", "registry"])
     run_or_die(["minikube", "addons", "enable", "ingress"])
     run_or_die(["minikube", "addons", "enable", "ingress-dns"])
     run_or_die(["kubectl", "config", "use-context", "minikube"])
-    # Pre-emptively grab busybox and nginx
-    for container in [ 'nginx', 'busybox' ]:
-        pull_container(container)
-        push_to_local_registry(container)
+    pull_containers()
     print_config_advice()
     print("You can then run localdev up")
+
+
+def pull_containers():
+    # Pre-emptively grab busybox and nginx
+    ip = get_minikube_ip()
+    remote_registry = f"{ip}:5000"
+    for container in [ 'docker.io/localstack/localstack:latest',
+                       'docker.io/library/nginx:latest',
+                       'docker.io/library/busybox:latest' ]:
+        pull_container(container)
+        if container.startswith('docker.io/library'):
+            local_tag = container.split('/')[-1]
+        elif container.startswith('docker.io/'):
+            local_tag = '/'.join(container.split('/')[1:])
+        
+        local_tag = f"{remote_registry}/{local_tag}"
+            
+        print("Retagging {container} as {local_tag} .. ")
+        run_or_die([CONFIG.docker_binary, "tag", container, local_tag])
+        push_to_local_registry(local_tag)
 
 
 
@@ -257,6 +282,9 @@ def go_up():
     start_testnet(CONFIG.testnet_name)
     start_proxy(CONFIG.testnet_name)
     show_proxy(CONFIG.testnet_name)
+    # @TODO automate this - rrw 2023-03-24
+    print("If nginx doesn't respond to http (eg. if localdev-explorer.localdomain hangs), try ")
+    print("kubectl rollout restart -n ingress-nginx deployment/ingress-nginx-controller")
 
 def start_testnet(testnet_name):
     run_or_die(["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
@@ -345,7 +373,7 @@ def start_proxy(testnet_name):
                              capture_output = True)
         if lb_addr is None or len(lb_addr) == 0:
             print(".")
-            std.stdout.flush()
+            sys.stdout.flush()
             time.sleep(2)
         else:
             break
@@ -373,11 +401,11 @@ def start_proxy(testnet_name):
         run_or_die(mitm_cmd, in_dir = ZILLIQA_DIR, in_background = True ,pid_name = f"mitmweb_{k}")
 
 def show_proxy(testnet_name):
-    info = []
+    info = { }
+    mitm_instances = get_mitm_instances(testnet_name)
     for (k,v) in mitm_instances.items():
         port = v['port']
         info[k] = { "comm" : f"http://localhost:{port}", "monitor" : f"http://localhost:{port+3000}" }
-    
     print(json.dumps(info))
 
 def build_lite(tag):
@@ -410,11 +438,11 @@ def build_lite(tag):
                     os.path.join(workspace, "zilliqa", "build", "lib"), dirs_exist_ok = True)
     tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
     tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
+    print(f"strip_binaries {CONFIG.strip_binaries}")
     if CONFIG.strip_binaries:
         for strip_dir in [ tgt_bin_dir, tgt_lib_dir ]:
             all_files = glob.glob(strip_dir + r'/*')
             for f in all_files:
-                print(f)
                 run_or_die(["strip", f])
 
     lib_tgt = os.path.join(workspace, "zilliqa", "lib")
@@ -480,7 +508,7 @@ def which_pod_said(node_type, recency, what):
 
     print("----")
     print(" ".join(pods_said))
-    
+
 def build(args):
     if len(args) != 1:
         raise GiveUp("Need a single argument - the tag to build")
@@ -540,7 +568,7 @@ if __name__ == "__main__":
         start_proxy(CONFIG.testnet_name)
         show_proxy(CONFIG.testnet_name)
     elif cmd == "show-proxy":
-        display_proxy()
+        show_proxy(CONFIG.testnet_name)
     elif cmd == "up":
         go_up()
     elif cmd == "down":
@@ -553,6 +581,8 @@ if __name__ == "__main__":
         run("up")
     elif cmd == "setup":
         setup()
+    elif cmd == "pull-containers":
+        pull_containers()
     elif cmd == "teardown":
         teardown()
     elif cmd == "which-pod-said":
