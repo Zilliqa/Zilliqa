@@ -39,6 +39,16 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+template <
+    class result_t   = std::chrono::milliseconds,
+    class clock_t    = std::chrono::steady_clock,
+    class duration_t = std::chrono::milliseconds
+>
+auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+{
+    return std::chrono::duration_cast<result_t>(clock_t::now() - start);
+}
+
 namespace zil {
 namespace local {
 
@@ -79,6 +89,8 @@ class MicroBlockPostProcessingVariables {
       temp->SetCallback([this](auto&& result) {
         result.Set(consensusErrorCode, {{"counter", "ConsensusErrorCode"}});
         result.Set(errorsMissingTx, {{"counter", "ErrorsMissingTx"}});
+        result.Set(microblockConsensusMessages, {{"counter", "MicroblockConsensusMessages"}});
+        result.Set(microblockConsensusFailedBadly, {{"counter", "MicroblockConsensusFailedBadly"}});
       });
     }
   }
@@ -125,6 +137,25 @@ bool Node::ProcessMicroBlockConsensus(
                 "Node::ProcessMicroBlockConsensus not expected to be "
                 "called from LookUp node.");
     return true;
+  }
+
+  //static std::map<std::string, int> microblockConsensusMessages;
+  {
+    lock_guard<mutex> g(m_mutexTemp);
+
+    auto messageAsString = DataConversion::Uint8VecToHexStrRet(message);
+    auto peerString = from.GetPrintableIPAddress() + ":" + to_string(from.m_listenPortHost);
+
+    auto it = microblockConsensusMessages.find(messageAsString);
+
+    if (it == microblockConsensusMessages.end()) {
+      microblockConsensusMessages[messageAsString] = 1;
+    } else {
+      it->second++;
+
+      LOG_GENERAL(WARNING, "Duplicate message! " << it->second << " times." << messageAsString << " From: " << peerString);
+      return true;
+    }
   }
 
   uint32_t consensus_id = 0;
@@ -179,6 +210,7 @@ bool Node::ProcessMicroBlockConsensus(
 }
 
 void Node::CommitMicroBlockConsensusBuffer() {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
   for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
@@ -243,6 +275,8 @@ bool Node::ProcessMicroBlockConsensusCore(
     return false;
   }
 
+  auto start = std::chrono::steady_clock::now();
+
   // Consensus message must be processed in order. The following will block till
   // it is the right order.
   std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
@@ -273,6 +307,8 @@ bool Node::ProcessMicroBlockConsensusCore(
                 "messages");
     return false;
   }
+
+  LOG_GENERAL(WARNING, "Time to wait until messages are in order: " << since(start).count() << " ms");
 
   lock_guard<mutex> g(m_mutexConsensus);
 

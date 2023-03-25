@@ -176,6 +176,9 @@ class Node : public Executable {
   std::condition_variable cv_TxnProcFinished;
   bool m_txnProcessingFinished = false;
 
+  std::mutex m_mutexTemp;
+  std::map<std::string, int> microblockConsensusMessages;
+
   std::mutex m_mutexMicroBlockConsensusBuffer;
   std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
 

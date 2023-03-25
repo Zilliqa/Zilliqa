@@ -2012,12 +2012,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
       }
     }
 
-    LOG_GENERAL(INFO, "Txn processed: " << processed_count
+    LOG_GENERAL(WARNING, "Txn processed: " << processed_count
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
 
     zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
+    //zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
   }
 
   {

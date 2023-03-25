@@ -26,6 +26,7 @@
 #include "P2PComm.h"
 #include "common/Messages.h"
 #include "libCrypto/Sha2.h"
+#include "libMetrics/Api.h"
 #include "libUtils/DataConversion.h"
 
 namespace {
@@ -38,6 +39,55 @@ RRS::Message::Type convertType(uint8_t type) {
 }
 
 }  // anonymous namespace
+
+template <
+    class result_t   = std::chrono::milliseconds,
+    class clock_t    = std::chrono::steady_clock,
+    class duration_t = std::chrono::milliseconds
+>
+auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+{
+  return std::chrono::duration_cast<result_t>(clock_t::now() - start);
+}
+
+
+namespace zil {
+namespace local {
+
+class RumourManagerVariables {
+  int rumoursReceived = 0;
+  int rumoursSendMessage = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void AddRumoursReceived(int rum) {
+    Init();
+    rumoursReceived += rum;
+  }
+
+  void AddSendMessage(int rum) {
+    Init();
+    rumoursSendMessage += rum;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "rumours.gauge",
+                                          "Rumours", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(rumoursReceived, {{"counter", "RumoursReceived"}});
+        result.Set(rumoursSendMessage, {{"counter", "RumoursSendMessage"}});
+      });
+    }
+  }
+};
+
+static RumourManagerVariables variables{};
+
+}  // namespace local
+}  // namespace zil
 
 // CONSTRUCTORS
 RumorManager::RumorManager()
@@ -180,6 +230,8 @@ bool RumorManager::Initialize(const VectorOfNode& peers, const Peer& myself,
 
 void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
                                   const PubKey& pubKey) {
+
+  LOG_MARKER();
   std::lock_guard<std::mutex> guard(m_mutex);  // critical section
   auto it = m_pubKeyPeerBiMap.left.find(pubKey);
   if (it != m_pubKeyPeerBiMap.left.end()) {
@@ -208,6 +260,7 @@ void RumorManager::SpreadBufferedRumors() {
 
 bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
+  LOG_MARKER();
   PubKey senderPubKey;
   zbytes messagePubK;
   std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
@@ -313,6 +366,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
 
 RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
     const RawBytes& message) {
+  LOG_MARKER();
   // Add round and type to outgoing message
   RawBytes cmd = {(unsigned char)RRS::Message::Type::FORWARD};
   unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
@@ -389,6 +443,7 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
 std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     const RawBytes& message, const RRS::Message::Type& t, const Peer& from) {
   zbytes message_wo_keysig;
+  LOG_MARKER();
 
   if (((RRS::Message::Type::EMPTY_PUSH == t ||
         RRS::Message::Type::EMPTY_PULL == t) &&
@@ -453,6 +508,11 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
+  LOG_MARKER();
+
+  zil::local::variables.AddRumoursReceived(1);
+  auto start0 = std::chrono::steady_clock::now();
+
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
@@ -461,6 +521,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     }
   }
 
+  auto start1 = std::chrono::steady_clock::now();
   std::lock_guard<std::mutex> guard(m_mutex);
 
   auto p = m_peerIdPeerBimap.right.find(from);
@@ -612,12 +673,18 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
 
   SendMessages(from, pullMsgs.second);
 
+  if(since(start1).count() > 1000) {
+    LOG_GENERAL(WARNING, "Time to wait, rum recvd0: " << since(start0).count() << " ms");
+    LOG_GENERAL(WARNING, "Time to wait, rum recvd1: " << since(start1).count() << " ms");
+  }
+
   return {toBeDispatched, message_wo_keysig};
 }
 
 void RumorManager::AppendKeyAndSignature(RawBytes& result,
                                          const RawBytes& messageToSig) {
   // Add pubkey and signature before chainid + message body
+  LOG_MARKER();
   RawBytes tmp;
   m_selfKey.second.Serialize(tmp, 0);
 
@@ -634,6 +701,10 @@ void RumorManager::AppendKeyAndSignature(RawBytes& result,
 
 void RumorManager::SendMessage(const Peer& toPeer,
                                const RRS::Message& message) {
+  LOG_MARKER();
+  auto start0 = std::chrono::steady_clock::now();
+  zil::local::variables.AddSendMessage(1);
+
   // Add round and type to outgoing message
   RRS::Message::Type t = message.type();
   RawBytes cmd = {(unsigned char)t};
@@ -705,11 +776,18 @@ void RumorManager::SendMessage(const Peer& toPeer,
     std::this_thread::sleep_for(
         std::chrono::milliseconds(SIMULATED_NETWORK_DELAY_IN_MS));
   }
+
+  auto start1 = std::chrono::steady_clock::now();
+
   P2PComm::GetInstance().SendMessage(toPeer, cmd, zil::p2p::START_BYTE_GOSSIP);
+
+  LOG_GENERAL(WARNING, "Time to wait, rum send0: " << since(start0).count() << " ms");
+  LOG_GENERAL(WARNING, "Time to wait, rum send1: " << since(start1).count() << " ms");
 }
 
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages) {
+  LOG_MARKER();
   for (auto& k : messages) {
     SendMessage(toPeer, k);
   }
@@ -742,6 +820,7 @@ void RumorManager::PrintStatistics() {
 }
 
 void RumorManager::CleanUp() {
+  LOG_MARKER();
   int count = 0;
   auto now = std::chrono::high_resolution_clock::now();
   while (!m_rumorRawMsgTimestamp.empty()) {
