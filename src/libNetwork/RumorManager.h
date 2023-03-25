@@ -73,6 +73,9 @@ class RumorManager {
   std::atomic<bool> m_continueRound;
   std::condition_variable m_condStopRound;
 
+  std::mutex m_mutexTemp;
+  std::map<std::string, int> rumourManagerMessagesSeen;
+
   int32_t m_rawMessageExpiryInMs{};
 
   void SendMessages(const Peer& toPeer,
