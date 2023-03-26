@@ -703,7 +703,7 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
 }
 
 // See https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/accounts/abi/abi.go#L242
-static bool UnpackRevert(const std::string &data_in, std::string &message) {
+bool EthRpcMethods::UnpackRevert(const std::string &data_in, std::string &message) {
   zbytes data(data_in.begin(), data_in.end());
   // 68 bytes is the minimum: 4 prefix + 32 offset + 32 string length.
   if (data.size() < 68 ||

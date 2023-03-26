@@ -25,7 +25,7 @@ describe("Revert Contract Call", function () {
   });
 
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5001
-  xit("Should be reverted without any reason if specified gasLimit is not enough to complete txn", async function () {
+  it("Should be reverted without any reason if specified gasLimit is not enough to complete txn", async function () {
     await expect(this.contract.outOfGas({gasLimit: 100000})).to.be.revertedWithoutReason();
   });
 });
