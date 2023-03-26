@@ -718,7 +718,7 @@ def cli(ctx):
      teardown-k8s    - Bring down k8s
      teardown-podman - On OS X only, tears down podman
 
-    WARNING: Only tested so far on Ubuntu 22.04 .
+    WARNING: Only tested so far on Ubuntu 22.04 . OS X MAY NOT WORK.
     """
     ctx.obj = Config()
     ctx.obj.setup()
