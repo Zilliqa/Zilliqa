@@ -2,10 +2,10 @@ use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError};
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 
+use crate::precompiles::scilla_common::get_contract_addr_and_name;
+use crate::precompiles::scilla_common::substitute_scilla_type_with_sol;
 use ethabi::decode;
-use ethabi::ethereum_types::Address;
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
 use hex::ToHex;
@@ -34,7 +34,7 @@ pub(crate) fn scilla_call(
         }
     }
 
-    let (code_address, passed_transition_name) = get_contract_addr_and_transition(input)?;
+    let (code_address, passed_transition_name) = get_contract_addr_and_name(input)?;
 
     let code = backend.code_as_json(code_address);
     if code.is_empty() {
@@ -69,8 +69,8 @@ pub(crate) fn scilla_call(
 fn build_result_json(
     input: &[u8],
     expected_transition: &str,
-    transitions: &Vec<serde_json::Value>,
-) -> Result<serde_json::Value, PrecompileFailure> {
+    transitions: &Vec<Value>,
+) -> Result<Value, PrecompileFailure> {
     let mut solidity_args = vec![ParamType::Address, ParamType::String];
     let mut scilla_args = vec![];
 
@@ -92,11 +92,11 @@ fn build_result_json(
         }
     }
     for scilla_arg in &scilla_args {
-        let decoded_arg = substitute_scilla_arg(scilla_arg.1)?;
+        let decoded_arg = substitute_scilla_type_with_sol(scilla_arg.1)?;
         solidity_args.push(decoded_arg);
     }
 
-    let Ok(decoded_values) = ethabi::decode(&solidity_args, input) else {
+    let Ok(decoded_values) = decode(&solidity_args, input) else {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Unable to get all arguments from precompile input")),
         });
@@ -119,53 +119,6 @@ fn build_result_json(
     }
     result["params"] = result_arguments;
     Ok(result)
-}
-
-fn substitute_scilla_arg(arg_name: &str) -> Result<ParamType, PrecompileFailure> {
-    let mapping = BTreeMap::from([
-        ("Int32", ParamType::Int(32)),
-        ("Int64", ParamType::Int(64)),
-        ("Int128", ParamType::Int(128)),
-        ("Int256", ParamType::Int(256)),
-        ("Uint32", ParamType::Uint(32)),
-        ("Uint64", ParamType::Uint(64)),
-        ("Uint128", ParamType::Uint(128)),
-        ("Uint256", ParamType::Uint(256)),
-        ("String", ParamType::String),
-        ("ByStr", ParamType::String),
-        ("ByStr20", ParamType::String),
-        ("ByStr32", ParamType::String),
-    ]);
-    let Some(val) = mapping.get(arg_name) else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Unknown argument type provided")),
-        });
-    };
-    Ok(val.to_owned())
-}
-
-fn get_contract_addr_and_transition(input: &[u8]) -> Result<(Address, String), PrecompileFailure> {
-    let partial_types = vec![ParamType::Address, ParamType::String];
-    let partial_tokens = decode(&partial_types, input);
-    let Ok(partial_tokens) = partial_tokens  else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
-        });
-    };
-
-    if partial_types.len() < 2 {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
-        });
-    }
-
-    let (Token::Address(code_address), Token::String(transition)) = (&partial_tokens[0], &partial_tokens[1]) else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
-        });
-    };
-
-    Ok((code_address.to_owned(), transition.to_owned()))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
