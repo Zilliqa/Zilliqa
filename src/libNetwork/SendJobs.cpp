@@ -44,6 +44,7 @@ class SendJobsVariables {
   std::atomic<int> sendMessageToPeerFailed = 0;
   std::atomic<int> sendMessageToPeerSyncCount = 0;
   std::atomic<int> activePeersSize = 0;
+  std::atomic<int> hostNetworkIssue = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -61,6 +62,11 @@ class SendJobsVariables {
   void AddSendMessageToPeerSyncCount(int count) {
     Init();
     sendMessageToPeerSyncCount += count;
+  }
+
+  void AddHostNetworkIssue(int count) {
+    Init();
+    hostNetworkIssue += count;
   }
 
   void SetActivePeersSize(int amount) {
@@ -270,9 +276,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void SendMessage() {
-    if (!CheckAgainstBlacklist()) {
-      return;
-    }
+    //if (!CheckAgainstBlacklist()) {
+    //  return;
+    //}
 
     auto& msg = m_queue.front().msg;
 
@@ -330,7 +336,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     if (m_queue.empty()) {
       // impossible
-      zil::local::variables.AddSendMessageToPeerFailed(1);
+      //zil::local::variables.AddSendMessageToPeerFailed(1);
       LOG_GENERAL(WARNING, "Unexpected queue state, peer="
                                << m_peer.GetPrintableIPAddress() << ":"
                                << m_peer.GetListenPortHost());
@@ -423,7 +429,7 @@ class SendJobsImpl : public SendJobs,
     zil::local::variables.AddSendMessageToPeerCount(1);
     if (peer.m_listenPortHost == 0) {
       LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
-      zil::local::variables.AddSendMessageToPeerFailed(1);
+      //zil::local::variables.AddSendMessageToPeerFailed(1);
       return;
     }
 
@@ -502,6 +508,7 @@ class SendJobsImpl : public SendJobs,
 
     if (IsHostHavingNetworkIssue(ec)) {
       zil::local::variables.AddSendMessageToPeerFailed(1);
+      zil::local::variables.AddHostNetworkIssue(1);
       if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                  << ec.value() << " (" << ec.message()
