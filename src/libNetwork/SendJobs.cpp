@@ -45,6 +45,7 @@ class SendJobsVariables {
   std::atomic<int> sendMessageToPeerSyncCount = 0;
   std::atomic<int> activePeersSize = 0;
   std::atomic<int> hostNetworkIssue = 0;
+  std::atomic<int> messagesTimedOut = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -64,14 +65,19 @@ class SendJobsVariables {
     sendMessageToPeerSyncCount += count;
   }
 
+  void SetActivePeersSize(int amount) {
+    Init();
+    activePeersSize = amount;
+  }
+
   void AddHostNetworkIssue(int count) {
     Init();
     hostNetworkIssue += count;
   }
 
-  void SetActivePeersSize(int amount) {
+  void AddMessagesTimedOut(int count) {
     Init();
-    activePeersSize = amount;
+    messagesTimedOut += count;
   }
 
   void Init() {
@@ -84,6 +90,8 @@ class SendJobsVariables {
         result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
         result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
         result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
+        result.Set(hostNetworkIssue.load(), {{"counter", "HostNetworkIssue"}});
+        result.Set(messagesTimedOut.load(), {{"counter", "MessagesTimedOut"}});
       });
     }
   }
@@ -357,6 +365,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     if (m_queue.front().expires_at < Clock()) {
       Done(ec ? ec : TIMED_OUT);
+      zil::local::variables.AddHostNetworkIssue(1);
       return true;
     }
 

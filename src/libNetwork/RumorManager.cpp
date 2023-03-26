@@ -61,6 +61,10 @@ class RumourManagerVariables {
   int rumourLengthTwoOrMore = 0;
   int rumourLengthSize = 0;
   std::map<int, int> rumourTypes;
+  int sendMessageOne = 0;
+  int sendMessageTwo = 0;
+  int sendMessageThree = 0;
+  int sendMessageFour = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -103,7 +107,27 @@ class RumourManagerVariables {
 
   void AddRumourType(int rum) {
     Init();
-    rumourTypes[rum] += 1;
+    rumourTypes[rum]++;
+  }
+
+  void AddSendMessageOne(int rum) {
+    Init();
+    sendMessageOne += rum;
+  }
+
+  void AddSendMessageTwo(int rum) {
+    Init();
+    sendMessageTwo += rum;
+  }
+
+  void AddSendMessageThree(int rum) {
+    Init();
+    sendMessageThree += rum;
+  }
+
+  void AddSendMessageFour(int rum) {
+    Init();
+    sendMessageFour += rum;
   }
 
   void Init() {
@@ -635,6 +659,8 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
       // Now that's the new hash message. So we dont have the real message.
       // So lets ask the sender for it.
       RRS::Message pullMsg(RRS::Message::Type::PULL, recvdRumorId, -1);
+
+      zil::local::variables.AddSendMessageOne(1);
       SendMessage(from, pullMsg);
     } else {
       recvdRumorId = it->second;
@@ -646,6 +672,8 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
       if (it == m_rumorHashRawMsgBimap.left.end()) {
         // didn't receive real message (PUSH) yet :( Lets ask this peer.
         RRS::Message pullMsg(RRS::Message::Type::PULL, recvdRumorId, -1);
+
+        zil::local::variables.AddSendMessageTwo(1);
         SendMessage(from, pullMsg);
       }
     }
@@ -657,6 +685,8 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
       if (it2 != m_rumorIdHashBimap.right.end()) {
         recvdRumorId = it2->second;
         RRS::Message pushMsg(RRS::Message::Type::PUSH, recvdRumorId, -1);
+
+        zil::local::variables.AddSendMessageThree(1);
         SendMessage(from, pushMsg);
       }
     } else  // I dont have it as of now. Add this peer to subscriber list for
@@ -722,6 +752,8 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
             continue;
           }
           RRS::Message pushMsg(RRS::Message::Type::PUSH, recvdRumorId, -1);
+
+          zil::local::variables.AddSendMessageFour(1);
           SendMessage(p, pushMsg);
         }
         m_hashesSubscriberMap.erase(hash);
