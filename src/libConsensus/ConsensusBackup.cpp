@@ -173,9 +173,15 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
     // Unicast to the leader
     // =====================
-    LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce2)");
-    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
-                                       commit);
+
+    if(m_myID <= 348) {
+      LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce2)");
+      P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+                                         commit);
+    } else {
+      LOG_GENERAL(WARNING, "NOT Uni-casting response to leader (message announce2)");
+    }
+
   }
   return result;
 }
