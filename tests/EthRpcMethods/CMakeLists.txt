@@ -13,6 +13,7 @@ target_include_directories(Test_EthRpcMethods
 target_link_libraries(Test_EthRpcMethods
         PUBLIC
         Server
+        Mediator
         Boost::unit_test_framework
         )
 

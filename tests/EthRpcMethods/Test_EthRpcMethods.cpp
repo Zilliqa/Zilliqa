@@ -36,9 +36,7 @@ BOOST_AUTO_TEST_CASE(test_UnpackRevert1) {
       "0020000000000000000000000000000000000000000000000000000000000000001a"
       "5a61703a2057726f6e6720747261646520646972656374696f6e000000000000");
   std::string input_str(input.begin(), input.end());
-  std::cout << "Input str: " << input_str << std::endl;
   EthRpcMethods::UnpackRevert(input_str, message);
-  printf("Message: '%s'\n", message.c_str());
   BOOST_CHECK_EQUAL(message, "Zap: Wrong trade direction");
 }
 
@@ -58,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test_UnpackRevert3) {
   // not long enough
   zbytes input = DataConversion::HexStrToUint8VecRet(
       "08c379a00000000000000000000000000000000"
-      "00000000000000000000000000000002");
+      "000000000000000000000000000000020");
   std::string input_str(input.begin(), input.end());
   BOOST_ASSERT(!EthRpcMethods::UnpackRevert(input_str, message));
 }
