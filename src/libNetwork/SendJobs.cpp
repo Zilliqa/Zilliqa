@@ -284,9 +284,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void SendMessage() {
-    //if (!CheckAgainstBlacklist()) {
-    //  return;
-    //}
+    if (!CheckAgainstBlacklist()) {
+      return;
+    }
 
     auto& msg = m_queue.front().msg;
 
