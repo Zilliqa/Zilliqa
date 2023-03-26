@@ -233,9 +233,25 @@ def setup_k8s(ctx):
     run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
     wait_for_running_pod(config, "registry", "kube-system")
     wait_for_running_pod(config, "registry-proxy", "kube-system")
+    wait_for_local_registry(config)
     pull_containers(config)
     print_config_advice(config)
     print("You can then run localdev up")
+
+def wait_for_local_registry(config):
+    """
+    Wait for the local registry to be up
+    """
+    ip = get_minikube_ip(config)
+    print(f"Waiting for http://{ip}:5000/v2 .. ")
+    while True:
+        try:
+            run_or_die(config, [ "curl", f"http://{ip}:5000/v2" ] )
+            print(".. OK")
+            break
+        except:
+            print("...")
+            time.sleep(5)
 
 def wait_for_running_pod(config, podname_prefix, namespace):
     """
@@ -274,7 +290,7 @@ def pull_containers(config):
         elif container.startswith('docker.io/'):
             local_tag = '/'.join(container.split('/')[1:])
         local_tag = f"{remote_registry}/{local_tag}"
-        print("Retagging {container} as {local_tag} .. ")
+        print(f"Retagging {container} as {local_tag} .. ")
         run_or_die(config, [config.docker_binary, "tag", container, local_tag])
         push_to_local_registry(config, local_tag)
 
@@ -652,7 +668,15 @@ def print_config_advice_cmd(ctx):
     config = get_config(ctx)
     print_config_advice(config)
 
-
+@click.command("wait-for-local-registry")
+@click.pass_context
+def wait_for_local_registry_cmd(ctx):
+    """
+    Wait for the local container registry to be running
+    """
+    config = get_config(ctx)
+    wait_for_local_registry(config)
+    
 @click.command("wait-for-running-pod")
 @click.pass_context
 @click.argument("prefix")
@@ -690,6 +714,7 @@ debug.add_command(print_config_advice_cmd)
 debug.add_command(pull_containers_cmd)
 debug.add_command(wait_for_running_pod_cmd)
 debug.add_command(wait_for_termination_cmd)
+debug.add_command(wait_for_local_registry_cmd)
 
 @click.group()
 @click.pass_context
