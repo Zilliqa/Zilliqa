@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Docs!
+See the docstring for cli() for details.
 """
 
 import os
@@ -32,12 +32,12 @@ import json
 import random
 import time
 import string
+import click
 
 ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
-CONFIG = None
 
 class Config:
     def __init__(self):
@@ -82,11 +82,12 @@ class GiveUp(Exception):
     pass
 
 class Pidfile:
-    def __init__(self, name):
+    def __init__(self, config, name):
         self._name = name
+        self._config = config
 
     def get_file_name(self):
-        return os.path.join(CONFIG.cache_dir, f"{self._name}.pid")
+        return os.path.join(self._config.cache_dir, f"{self._name}.pid")
 
     def put(self, pidval):
         file_name = self.get_file_name()
@@ -109,12 +110,16 @@ class Pidfile:
         except:
             pass
 
-def run_or_die(cmd, in_dir = None, env = None, in_background = False, pid_name = None, capture_output = False, allow_failure = False):
+def get_config(ctx):
+    """ Get config from the click context """
+    return ctx.obj
+
+def run_or_die(config, cmd, in_dir = None, env = None, in_background = False, pid_name = None, capture_output = False, allow_failure = False):
     if env is None:
         env_to_use = os.environ.copy()
-        env_to_use.update(CONFIG.default_env)
+        env_to_use.update(config.default_env)
     else:
-        env_to_use = CONFIG.default_env.copy()
+        env_to_use = config.default_env.copy()
         env_to_use.update(env)
 
     try:
@@ -122,7 +127,7 @@ def run_or_die(cmd, in_dir = None, env = None, in_background = False, pid_name =
             print(">&" + " ".join(cmd))
             proc = subprocess.Popen(cmd, cwd = in_dir, env = env_to_use)
             if pid_name is not None:
-                pid_obj = Pidfile(pid_name)
+                pid_obj = Pidfile(config, pid_name)
                 print(f">& process {pid_name} has pid {proc.pid}");
                 pid_obj.put(proc.pid)
             return None
@@ -142,42 +147,34 @@ def run_or_die(cmd, in_dir = None, env = None, in_background = False, pid_name =
             raise e
 
 
+@click.command("setup-podman")
+@click.pass_context
+def setup_podman(ctx):
+    """
+    Set up podman on OS X machines.
+    """
+    config = get_config(ctx)
+    if config.is_osx:
+        run_or_die(config, ["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
+        # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
+        run_or_die(config, ["podman", "machine", "set", "--rootful" ])
+        run_or_die(config, ["podman", "machine", "start"])
+    else:
+        print("No need to setup podman on non-OS X machines")
 
-def setup_podman():
-    run_or_die(["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
-    # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
-    run_or_die(["podman", "machine", "set", "--rootful" ])
-    run_or_die(["podman", "machine", "start"])
+@click.command("teardown-podman")
+@click.pass_context
+def teardown_podman(ctx):
+    """
+    Tear down podman (on OS X only)
+    """
+    config = get_config(ctx)
+    if config.is_osx:
+        run_or_die(config, ["podman", "machine", "stop"])
+        run_or_die(config, ["podman", "machine", "rm", "-f"])
 
-def teardown_podman():
-    run_or_die(["podman", "machine", "stop"])
-    run_or_die(["podman", "machine", "rm", "-f"])
-
-def start_local_registry():
-    result = sanitise_output(run_or_die([ CONFIG.docker_binary, "inspect", "-f={{.State.Running}}", "kind-registry"], allow_failure = True, capture_output = True))
-    if result != "true":
-        print("Registry not running - starting it .. ")
-        run_or_die([ CONFIG.docker_binary, "run", "-d", "--restart=always", "-p", "127.0.0.1:5001:5000", "--name", "kind-registry", "registry:2"])
-
-def configure_local_registry():
-    result = sanitise_output(run_or_die([ CONFIG.docker_binary , "inspect", "-f={{json .NetworkSettings.Networks.kind}}", "kind-registry"], capture_output = True))
-    if result == 'null':
-        print("Connect registry to cluster network ..");
-        run_or_die([ CONFIG.docker_binary, "network", "connect", "kind", "kind-registry" ])
-    # Now document it.
-    # run_or_die(["kubectl", "apply", "-f", "infra/k8s/local-registry.yaml"], in_dir = ZILLIQA_DIR)
-    # .. and tell kind about it.
-    # Faster if we do this locally - so only do this on OS X
-    if CONFIG.using_local_registry:
-        some_node_data = sanitise_output(run_or_die(["kind", "get", "nodes", "-n", "zqdev" ], capture_output = True))
-        some_nodes = some_node_data.split()
-        for node in some_nodes:
-            print(f"Registering local repo for node {node}")
-            run_or_die(["kubectl", "annotate", "node", node,  "kind.x-k8s.io/registry=localhost:5001" ])
-
-
-def get_minikube_ip():
-    result = sanitise_output(run_or_die(["minikube", "ip"], capture_output = True))
+def get_minikube_ip(config):
+    result = sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
     return result
 
 def gen_tag():
@@ -188,9 +185,9 @@ def gen_tag():
     result = "".join([ random.choice(gen_from) for _ in range(0,8) ])
     return result
 
-def print_config_advice():
-    ip = get_minikube_ip()
-    host_names = run_or_die(["kubectl", "get", "ingress", "-o", "jsonpath={.items[*].metadata.name}"], capture_output = True)
+def print_config_advice(config):
+    ip = get_minikube_ip(config)
+    host_names = run_or_die(config, ["kubectl", "get", "ingress", "-o", "jsonpath={.items[*].metadata.name}"], capture_output = True)
     host_names = sanitise_output(host_names).split()
     # May have to be hardcoded, since the net isn't running at this point...
     if len(host_names) == 0:
@@ -219,97 +216,164 @@ systemctl restart systemd-resolved
 
     to your /etc/hosts.
 """)
-          
-def setup():
+
+@click.command("setup-k8s")
+@click.pass_context
+def setup_k8s(ctx):
+    """
+    Set up a minikube cluster with appropriate containers and add-ons to run a local development version of Zilliqa
+    """
+    config = get_config(ctx)
     print("Creating minikube cluster .. ")
-    run_or_die(["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
+    run_or_die(config, ["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
                 "--insecure-registry", "192.168.39.0/24", "--container-runtime", "cri-o"])
-    run_or_die(["minikube", "addons", "enable", "registry"])
-    run_or_die(["minikube", "addons", "enable", "ingress"])
-    run_or_die(["minikube", "addons", "enable", "ingress-dns"])
-    run_or_die(["kubectl", "config", "use-context", "minikube"])
-    pull_containers()
-    print_config_advice()
+    run_or_die(config, ["minikube", "addons", "enable", "registry"])
+    run_or_die(config, ["minikube", "addons", "enable", "ingress"])
+    run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
+    run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
+    wait_for_running_pod(config, "registry", "kube-system")
+    wait_for_running_pod(config, "registry-proxy", "kube-system")
+    pull_containers(config)
+    print_config_advice(config)
     print("You can then run localdev up")
 
+def wait_for_running_pod(config, podname_prefix, namespace):
+    """
+    Wait for a pod with a name starting with podman_prefix to be running
+    """
+    print(f"Waiting for {podname_prefix} in {namespace}. .. ")
+    while True:
+        pod_data = run_or_die(config, [ "kubectl",
+                                        "get",
+                                        "pod",
+                                        "-n", namespace,
+                                        "-o", "jsonpath={ range .items[*] }{.metadata.name}:{.status.phase}{\"\\n\"}{end}" ],
+                              capture_output = True )
+        pods = sanitise_output(pod_data).split('\n')
+        hr = ""
+        for p in pods:
+            line = p.split(':')
+            if (line[0].startswith(podname_prefix) and line[1].lower() == "running"):
+                print(f": {line[0]} is running")
+                return True
+        print(f": {' '.join(pods)}")
+        time.sleep(2)
 
-def pull_containers():
+
+def pull_containers(config):
     # Pre-emptively grab busybox and nginx
-    ip = get_minikube_ip()
+    ip = get_minikube_ip(config)
     remote_registry = f"{ip}:5000"
     for container in [ 'docker.io/localstack/localstack:latest',
                        'docker.io/library/nginx:latest',
-                       'docker.io/library/busybox:latest' ]:
-        pull_container(container)
+                       'docker.io/library/busybox:latest',
+                       'docker.io/zilliqa/devex:a532d82' ]:
+        pull_container(config, container)
         if container.startswith('docker.io/library'):
             local_tag = container.split('/')[-1]
         elif container.startswith('docker.io/'):
             local_tag = '/'.join(container.split('/')[1:])
-        
         local_tag = f"{remote_registry}/{local_tag}"
-            
         print("Retagging {container} as {local_tag} .. ")
-        run_or_die([CONFIG.docker_binary, "tag", container, local_tag])
-        push_to_local_registry(local_tag)
+        run_or_die(config, [config.docker_binary, "tag", container, local_tag])
+        push_to_local_registry(config, local_tag)
 
 
 
-def pull_container(container):
-    run_or_die([ CONFIG.docker_binary, "pull" , container])
+def pull_container(config, container):
+    run_or_die(config, [ config.docker_binary, "pull" , container])
 
-def push_to_local_registry(tag):
-    if CONFIG.using_podman:
+def push_to_local_registry(config, tag):
+    if config.using_podman:
         extra_flags = [ "--tls-verify=false" ]
     else:
         extra_flags = [ ]
     if tag.find('/') != -1:
         print(f"> Pushing to local registry")
-        cmd = [ CONFIG.docker_binary, "push", tag ]
+        cmd = [ config.docker_binary, "push", tag ]
         cmd.extend(extra_flags)
-        run_or_die(cmd, in_dir = ZILLIQA_DIR, capture_output = False)
+        run_or_die(config, cmd, in_dir = ZILLIQA_DIR, capture_output = False)
 
-def teardown():
+@click.command("teardown-k8s")
+@click.pass_context
+def teardown_k8s(ctx):
+    """ Tear down k8s cluster; when you restart it you will need to rewrite your host lookups """
+    config = get_config(ctx)
     print("Destroying minikube cluster .. ")
-    run_or_die(["minikube", "delete"])
+    run_or_die(config, ["minikube", "delete"])
 
-def go_up():
-    minikube = get_minikube_ip()
+@click.command("up")
+@click.pass_context
+def up_cmd(ctx):
+    """
+    Build Zilliqa (via a process equivalent to the build_lite command), write configuration files for a
+    testnet named localdev, run `localdev/config.sh up`, and start a proxy to allow the user to monitor traffic
+    on the API ports.
+    """
+    config = get_config(ctx)
+    minikube = get_minikube_ip(config)
     tag = gen_tag()
     #tag = "w5fnelo8"
     tag_name = f"{minikube}:5000/zilliqa:{tag}"
-    build_tag(tag_name)
-    write_testnet_configuration(tag_name, CONFIG.testnet_name)
-    start_testnet(CONFIG.testnet_name)
-    start_proxy(CONFIG.testnet_name)
-    show_proxy(CONFIG.testnet_name)
+    build_lite(config, tag_name)
+    write_testnet_configuration(config, tag_name, config.testnet_name)
+    start_testnet(config, config.testnet_name)
+    start_proxy(config, config.testnet_name)
+    show_proxy(config, config.testnet_name)
     # @TODO automate this - rrw 2023-03-24
     print("If nginx doesn't respond to http (eg. if localdev-explorer.localdomain hangs), try ")
     print("kubectl rollout restart -n ingress-nginx deployment/ingress-nginx-controller")
 
-def start_testnet(testnet_name):
-    run_or_die(["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
+def start_testnet(config, testnet_name):
+    run_or_die(config, ["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
 
-def go_down():
-    stop_testnet(CONFIG.testnet_name)
-    stop_proxy(CONFIG.testnet_name)
+def wait_for_termination(config):
+    """
+    Wait for the localdev network to die so we can restart it
+    """
+    print(f"Waiting for all pods in the main namespace to die .. ")
+    while True:
+        pod_data = run_or_die(config, [ "kubectl", "get", "pod",
+                                        "-o", "jsonpath={ .items[*].metadata.name }" ],
+                              capture_output = True)
+        podx = sanitise_output(pod_data)
+        pods = podx.split(" ")
+        # Annoyingly, splitting a zero-length list causes an array of length 1 ..
+        if len(podx) == 0 or len(pods) == 0:
+            break
+        else:
+            print(f": {' '.join(pods)}")
+            time.sleep(2)
 
-def stop_testnet(testnet_name):
-    run_or_die(["sh", "-c", "echo localdev | ./testnet.sh down"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
+@click.command("down")
+@click.pass_context
+def down_cmd(ctx):
+    """ Bring the testnet down and stop the proxies """
+    config = get_config(ctx)
+    stop_testnet(config, config.testnet_name)
+    stop_proxy(config, config.testnet_name)
+    wait_for_termination(config)
 
-def build_tag(tag_name):
+def stop_testnet(config, testnet_name):
+    # tediously, testnet.sh has a habit of returning non-zero error codes when eg. the testnet has already been destroyed :-(
+    run_or_die(config, ["sh", "-c", "echo localdev | ./testnet.sh down"], in_dir=os.path.join(TESTNET_DIR, testnet_name), allow_failure = True)
+
+def build_tag(config, tag_name):
     print(f"Building Zilliqa to container {tag_name} .. ")
-    build_lite(tag_name)
+    build_lite(config, tag_name)
 
-def write_testnet_configuration(tag_name, testnet_name):
-
+def write_testnet_configuration(config, tag_name, testnet_name):
     instance_dir = os.path.join(TESTNET_DIR, testnet_name)
+    minikube_ip = get_minikube_ip(config)
     if os.path.exists(instance_dir):
         print(f"Removing old testnet configuration ..")
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
-    run_or_die(["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
+    run_or_die(config,
+               ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
                 os.path.join(ZILLIQA_DIR, "constants_local.xml"),
                 "--image", tag_name,
+                "--local-repo", f"{minikube_ip}:5000",
                 "--localdev", "true",
                 "-n", "20",
                 "-d", "5",
@@ -323,24 +387,16 @@ def write_testnet_configuration(tag_name, testnet_name):
                 "-f", "--bucket", "none"],
                in_dir = TESTNET_DIR)
 
-def kill_mitmweb(pidfile_name):
-    if CONFIG.is_osx:
-        print("> killall doesn't work on OS X .. using pidfile")
-        pidfile = Pidfile(pidfile_name)
-        pid = pidfile.get()
-        if pid is not None:
-            print(f"> Found pid {pid}")
-            try:
-                os.kill(pid, 9)
-            except Exception as e:
-                print(f"> cannot kill - {e}")
-                pidfile.zap()
-                pass
-    else:
+def kill_mitmweb(config, pidfile_name):
+    pidfile = Pidfile(config, pidfile_name)
+    pid = pidfile.get()
+    if pid is not None:
+        print(f"> Found pid {pid}")
         try:
-            run_or_die(["killall", "mitmweb"])
-        except:
-            # Probably nothing was running.
+            os.kill(pid, 9)
+        except Exception as e:
+            print(f"> cannot kill - {e}")
+            pidfile.zap()
             pass
 
 def sanitise_output(some_output):
@@ -357,15 +413,15 @@ def get_mitm_instances(testnet_name):
              "newapi" : { "host" : f"{testnet_name}-newapi.localdomain", "port" : 5303 },
              "origin" : { "host" : f"{testnet_name}-origin.localdomain", "port" : 5304 } }
 
-def stop_proxy(testnet_name):
+def stop_proxy(config, testnet_name):
     mitm_instances = get_mitm_instances(testnet_name)
     for m in mitm_instances.keys():
-        kill_mitmweb(f"mitmweb_{m}")
+        kill_mitmweb(config, f"mitmweb_{m}")
 
-def start_proxy(testnet_name):
+def start_proxy(config, testnet_name):
     print(f"> Wait for loadbalancer .. ")
     while True:
-        lb_addr = run_or_die(["kubectl",
+        lb_addr = run_or_die(config, ["kubectl",
                               "get",
                               "ingress",
                               "-o",
@@ -383,7 +439,7 @@ def start_proxy(testnet_name):
     if lb_addr is None or len(lb_addr) is None:
         raise GiveUp("Cannot find IP address of LB: give up");
     print("Killing old mitmweb instances .. ")
-    stop_proxy(testnet_name)
+    stop_proxy(config, testnet_name)
     mitm_instances = get_mitm_instances(testnet_name)
     print("Starting new mitmweb instances .. ")
     for (k,v) in mitm_instances.items():
@@ -398,9 +454,9 @@ def start_proxy(testnet_name):
                     "--listen-port", str(port),
                     "--web-port", str(port+3000)
                     ]
-        run_or_die(mitm_cmd, in_dir = ZILLIQA_DIR, in_background = True ,pid_name = f"mitmweb_{k}")
+        run_or_die(config, mitm_cmd, in_dir = ZILLIQA_DIR, in_background = True ,pid_name = f"mitmweb_{k}")
 
-def show_proxy(testnet_name):
+def show_proxy(config, testnet_name):
     info = { }
     mitm_instances = get_mitm_instances(testnet_name)
     for (k,v) in mitm_instances.items():
@@ -408,7 +464,22 @@ def show_proxy(testnet_name):
         info[k] = { "comm" : f"http://localhost:{port}", "monitor" : f"http://localhost:{port+3000}" }
     print(json.dumps(info))
 
-def build_lite(tag):
+@click.command("build-lite")
+@click.argument("tag")
+@click.pass_context
+def build_lite_cmd(ctx, tag):
+    """
+    Builds a Zilliqa container using docker/Dockerfile.lite
+    This uses your local compiler and OS, so you need to set that up as described in README.md and have vcpkg available.
+    It copies in (but does not build) scilla, so if you are making changes to Scilla you will need to rebuild it yourself.
+    Dockerfile.lite contains just enough mechanism to let Zilliqa run.
+
+    TAG is the container tag to build - eg. 'zilliqa:v1'
+    """
+    config = get_config(ctx)
+    build_lite(config, tag)
+
+def build_lite(config, tag):
     workspace = os.path.join(ZILLIQA_DIR, "_localdev")
     print(f"> Using workspace {workspace}")
     print(f"> Startup: removing workspace to avoid pollution ...")
@@ -417,9 +488,9 @@ def build_lite(tag):
     except:
         pass
     # Let's start off by building Scilla, in case it breaks.
-    run_or_die(["make"], in_dir = SCILLA_DIR)
-    run_or_die(["./build.sh"], in_dir = ZILLIQA_DIR)
-    run_or_die(["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
+    run_or_die(config, ["make"], in_dir = SCILLA_DIR)
+    run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
+    run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
     # OK. That worked. Now copy the relevant bits to our workspace
     try:
@@ -438,12 +509,12 @@ def build_lite(tag):
                     os.path.join(workspace, "zilliqa", "build", "lib"), dirs_exist_ok = True)
     tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
     tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
-    print(f"strip_binaries {CONFIG.strip_binaries}")
-    if CONFIG.strip_binaries:
+    if config.strip_binaries:
+        print("Stripping binaries for a smaller container .. ")
         for strip_dir in [ tgt_bin_dir, tgt_lib_dir ]:
             all_files = glob.glob(strip_dir + r'/*')
             for f in all_files:
-                run_or_die(["strip", f])
+                run_or_die(config, ["strip", f])
 
     lib_tgt = os.path.join(workspace, "zilliqa", "lib")
     try:
@@ -458,8 +529,8 @@ def build_lite(tag):
         # This is _horrid_, but it is fast and mostly works.
         if not os.path.exists(full_tgt):
             shutil.copyfile(f, full_tgt)
-            if os.path.isfile(full_tgt):
-                run_or_die(["strip", full_tgt])
+            if config.strip_binaries and os.path.isfile(full_tgt):
+                run_or_die(config, ["strip", full_tgt])
             print(file_name)
 
     evm_ds_tgt = os.path.join(workspace, "zilliqa", "evm-ds")
@@ -469,7 +540,8 @@ def build_lite(tag):
         pass
     shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "target", "release", "evm-ds"),
                     os.path.join(evm_ds_tgt, "evm-ds"))
-    run_or_die(["strip", os.path.join(evm_ds_tgt, "evm-ds")])
+    if config.strip_binaries:
+        run_or_die(config, ["strip", os.path.join(evm_ds_tgt, "evm-ds")])
     os.chmod(os.path.join(evm_ds_tgt, "evm-ds"), 0o755)
     # This exists because it is a parent of evm_ds_tgt
     shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "log4rs.yml"),
@@ -477,19 +549,17 @@ def build_lite(tag):
 
     new_env = os.environ.copy()
     new_env["DOCKER_BUILDKIT"] = "1"
-    run_or_die([CONFIG.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.lite")], in_dir = ZILLIQA_DIR, env = new_env,
+    run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.lite")], in_dir = ZILLIQA_DIR, env = new_env,
                capture_output = False)
-    push_to_local_registry(tag)
-    #cmd = [ "kind", "load", "docker-image", tag, "-n", "zqdev" ]
-    #run_or_die(cmd, in_dir = ZILLIQA_DIR, env = new_env, capture_output = False)
+    push_to_local_registry(config, tag)
     print(f"> Built in workspace {workspace}")
-    if not CONFIG.keep_workspace:
+    if not config.keep_workspace:
         print(f"> Removing workspace")
         shutil.rmtree(workspace)
 
 
-def which_pod_said(node_type, recency, what):
-    pod_op = run_or_die(["kubectl",
+def which_pod_said(config, node_type, recency, what):
+    pod_op = run_or_die(config, ["kubectl",
                             "get",
                             "pod",
                             f"-l type={node_type}",
@@ -500,7 +570,7 @@ def which_pod_said(node_type, recency, what):
     print("Pods: {' '.join(pod_names)}")
     for n in pod_names:
         print(f".. {n}")
-        logs = run_or_die(["kubectl","logs", f"--tail={recency}", n ],
+        logs = run_or_die(config, ["kubectl","logs", f"--tail={recency}", n ],
                           capture_output = True)
         logs = sanitise_output(logs)
         if expression.search(logs):
@@ -509,85 +579,162 @@ def which_pod_said(node_type, recency, what):
     print("----")
     print(" ".join(pods_said))
 
-def build(args):
-    if len(args) != 1:
-        raise GiveUp("Need a single argument - the tag to build")
-    tag = refine_tag_name(args[0])
-    workspace = os.path.join(ZILLIQA_DIR, "_localdev")
-    print(f"> Using workspace {workspace}")
-    print(f"> Startup: removing workspace to avoid pollution ...")
-    try:
-        shutil.rmtree(workspace)
-    except:
-        pass
-    # Let's start off by building Scilla, in case it breaks.
-    run_or_die(["make"], in_dir = SCILLA_DIR)
-    # OK. That worked. Now copy the relevant bits to our workspace
-    try:
-        os.makedirs(os.path.join(workspace, "scilla"), 0o755)
-    except:
-        pass
-    shutil.copytree(os.path.join(SCILLA_DIR, "bin"),
-                    os.path.join(workspace, "scilla", "bin"), dirs_exist_ok = True)
-    shutil.copytree(os.path.join(SCILLA_DIR, "_build", "install", "default", "lib", "scilla", "stdlib"),
-                    os.path.join(workspace, "scilla", "stdlib"), dirs_exist_ok = True)
-    new_env = os.environ.copy()
-    new_env["DOCKER_BUILDKIT"] = "1"
-    run_or_die([CONFIG.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.dev")], in_dir = ZILLIQA_DIR, env = new_env,
-               capture_output = False)
-    if CONFIG.using_podman:
-        extra_flags = [ "--tls-verify=false" ]
-    else:
-        extra_flags = [ ]
-    if tag.find('/') != -1:
-        cmd = [ CONFIG.docker_binary, "push", tag ]
-        cmd.extend(extra_flags)
-        run_or_die(cmd, in_dir = ZILLIQA_DIR, env = new_env, capture_output = False)
-    print(f"> Built in workspace {workspace}")
-    if not CONFIG.keep_workspace:
-        print(f"> Removing workspace")
-        shutil.rmtree(workspace)
+@click.command("reup")
+@click.pass_context
+def reup_cmd(ctx):
+    """
+    Equivalent to `localdev down && localdev up`
+    """
+    down_cmd(ctx)
+    up_cmd(ctx)
+
+@click.command("pull-containers")
+@click.pass_context
+def pull_containers_cmd(ctx):
+    """
+    Pull external containers and push them to the k8s registry for loading
+    (up may not work if you don't do this)
+    This command is executed implicitly by setup-k8s
+    """
+    config = get_config(ctx)
+    pull_containers(config)
+
+@click.command("show-proxy")
+@click.pass_context
+def show_proxy_cmd(ctx):
+    """
+    Show proxy settings
+    """
+    config = get_config(ctx)
+    show_proxy(config, config.testnet_name)
+
+@click.command("which-pod-said")
+@click.pass_context
+@click.argument("nodetype")
+@click.argument("recency")
+@click.argument("term")
+def which_pod_said_cmd(ctx, nodetype, recency, term):
+    """
+    Find out which pods said something
+
+    NODETYPE is the type of pod (normal, dsguard, .. )
+    RECENCY is the number of lines of history to check (typically 10000)
+    TERM is the term to check for
+    """
+    config = get_config(ctx)
+    which_pod_said(config, nodetype, recency, term)
+
+@click.command("start-proxy")
+@click.pass_context
+def start_proxy_cmd(ctx):
+    """
+    Start the mitm proxies
+    """
+    config = get_config(ctx)
+    start_proxy(config, config.testnet_name)
+    show_proxy(config, config.testnet_name)
+
+@click.command("write-testnet-config")
+@click.pass_context
+@click.argument("tag")
+def write_testnet_config_cmd(ctx, tag):
+    """
+    Write config for the testnet
+
+    TAG is the tag for the Zilliqa docker image to run.
+    """
+    config = get_config(ctx)
+    write_testnet_configuration(config, tag, config.testnet_name)
+
+@click.command("print-config-advice")
+@click.pass_context
+def print_config_advice_cmd(ctx):
+    config = get_config(ctx)
+    print_config_advice(config)
+
+
+@click.command("wait-for-running-pod")
+@click.pass_context
+@click.argument("prefix")
+@click.argument("namespace")
+def wait_for_running_pod_cmd(ctx, prefix, namespace):
+    """
+    Wait for a running pod.
+
+    PREFIX is the prefix of the pod name to wait for.
+    NAMESPACE is the namespace to look for it in.
+    """
+    config = get_config(ctx)
+    wait_for_running_pod(config,prefix,namespace)
+
+@click.command("wait-for-termination")
+@click.pass_context
+def wait_for_termination_cmd(ctx):
+    """
+    Wait for running pods to terminate so we can start a new network
+    """
+    config = get_config(ctx)
+    wait_for_termination(config)
+
+@click.group()
+@click.pass_context
+def debug(ctx):
+    """
+    Debugging commands - used to test parts of localdev in isolation
+    """
+    pass
+
+debug.add_command(start_proxy_cmd)
+debug.add_command(write_testnet_config_cmd)
+debug.add_command(print_config_advice_cmd)
+debug.add_command(pull_containers_cmd)
+debug.add_command(wait_for_running_pod_cmd)
+debug.add_command(wait_for_termination_cmd)
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    """
+    localdev.py sets up local development environments for Zilliqa.
+
+    It is for internal use only and requires the use of the `testnet`
+    private repository. We'll hope to relax this restriction when we can.
+
+    You will need a directory structure that looks like this:
+
+    scilla/        - from git@github.com:zilliqa/scilla
+    zilliqa/       - from git@github.com:zilliqa/zilliqa
+    testnet/       - from git@github.com:zilliqa/testnet
+
+    You may need the ZIL_5135_localdev branch of testnet if it hasn't yet
+    been merged.
+
+    You will need to have built scilla.
+
+    localdev.py runs in stages:
+     setup-podman    - on OS X only, sets up podman
+     setup-k8s       - Sets up k8s (currently via minikube)
+     up              - Brings the system up.
+     teardown-k8s    - Bring down k8s
+     teardown-podman - On OS X only, tears down podman
+
+    WARNING: Only tested so far on Ubuntu 22.04 .
+    """
+    ctx.obj = Config()
+    ctx.obj.setup()
+
+cli.add_command(build_lite_cmd)
+cli.add_command(setup_podman)
+cli.add_command(teardown_podman)
+cli.add_command(setup_k8s)
+cli.add_command(teardown_k8s)
+cli.add_command(up_cmd)
+cli.add_command(down_cmd)
+cli.add_command(show_proxy_cmd)
+cli.add_command(which_pod_said_cmd)
+cli.add_command(debug)
+cli.add_command(pull_containers_cmd)
+cli.add_command(reup_cmd)
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    if len(args) < 1:
-        print(__doc__, file=sys.stderr)
-        raise GiveUp("Syntax: localdev [cmd] <args..>")
-    cmd = args[0]
-    CONFIG = Config()
-    CONFIG.setup()
-    if cmd == "build":
-        build(args[1:])
-    elif cmd == "build-lite":
-        build_lite(args[1])
-    elif cmd == "podman-setup":
-        setup_podman()
-    elif cmd == "podman-teardown":
-        teardown_podman()
-    elif cmd == "start-proxy":
-        start_proxy(CONFIG.testnet_name)
-        show_proxy(CONFIG.testnet_name)
-    elif cmd == "show-proxy":
-        show_proxy(CONFIG.testnet_name)
-    elif cmd == "up":
-        go_up()
-    elif cmd == "down":
-        go_down()
-    elif cmd == "write_testnet_config":
-        write_testnet_configuration(args[1], CONFIG.testnet_name)
-    elif cmd == "reup":
-        run("down")
-        time.sleep(4.0)
-        run("up")
-    elif cmd == "setup":
-        setup()
-    elif cmd == "pull-containers":
-        pull_containers()
-    elif cmd == "teardown":
-        teardown()
-    elif cmd == "which-pod-said":
-        which_pod_said(args[1], args[2], args[3])
-    elif cmd == "print-config-advice":
-        print_config_advice()
-    else:
-        raise GiveUp(f"Invalid command {cmd}")
+    cli()
