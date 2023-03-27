@@ -21,13 +21,14 @@
 #include <iostream>
 #include <optional>
 
+#include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
 #include "libEth/filters/PendingTxnUpdater.h"
 #include "libMetrics/Logging.h"
 #include "libMetrics/Tracing.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
@@ -246,27 +247,28 @@ int main(int argc, const char* argv[]) {
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));
 
-    auto dispatcher = [&zilliqa](Zilliqa::Msg message) mutable -> void {
-      zilliqa.Dispatch(std::move(message));
-    };
-
-    // Only start the incoming message queue
-    P2PComm::GetInstance().StartMessagePump(dispatcher);
-
     std::optional<evmproj::filters::PendingTxnUpdater> pendingTxnUpdater;
     if (identity.find("seedpub") == 0) {
       LOG_GENERAL(INFO, "Starting pending txn updater...");
       pendingTxnUpdater.emplace(zilliqa.GetMediator());
     }
 
-    if (ENABLE_SEED_TO_SEED_COMMUNICATION && !MULTIPLIER_SYNC_MODE) {
-      LOG_GENERAL(DEBUG, "P2PSeed Do not open listener");
-      // Do not open listener
-      P2PComm::GetInstance().EnableConnect();
-    } else {
-      P2PComm::GetInstance().EnableListener(my_network_info.m_listenPortHost,
-                                            ENABLE_SEED_TO_SEED_COMMUNICATION);
+    uint16_t additionalPort = 0;
+    if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
+      additionalPort = uint16_t(P2P_SEED_CONNECT_PORT);
     }
+
+    boost::asio::io_context ctx(1);
+    boost::asio::signal_set sig(ctx, SIGINT, SIGTERM);
+    sig.async_wait([&](const boost::system::error_code&, int) { ctx.stop(); });
+
+    auto dispatcher = [&zilliqa](Zilliqa::Msg message) {
+      zilliqa.Dispatch(std::move(message));
+    };
+    zil::p2p::GetInstance().StartServer(ctx, my_network_info.m_listenPortHost,
+                                        additionalPort, std::move(dispatcher));
+
+    ctx.run();
 
     if (pendingTxnUpdater.has_value()) {
       LOG_GENERAL(INFO, "Shutting down pending txn updater...");

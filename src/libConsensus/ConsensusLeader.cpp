@@ -23,7 +23,7 @@
 #include "libMessage/Messenger.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -323,8 +323,8 @@ bool ConsensusLeader::StartConsensusSubsets() {
   std::mt19937 randomEngine(randomDevice());
   shuffle(peerInfo.begin(), peerInfo.end(), randomEngine);
 
-  P2PComm::GetInstance().SendMessage(peerInfo, challenge,
-                                     zil::p2p::START_BYTE_NORMAL, true, true);
+  zil::p2p::GetInstance().SendMessage(peerInfo, challenge,
+                                      zil::p2p::START_BYTE_NORMAL, true, true);
 
   return true;
 }
@@ -555,8 +555,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
                                                 __FUNCTION__);
 
-    P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg,
-                                       zil::p2p::START_BYTE_NORMAL, true, true);
+    zil::p2p::GetInstance().SendMessage(
+        peerInfo, consensusFailureMsg, zil::p2p::START_BYTE_NORMAL, true, true);
     auto main_func = [this]() mutable -> void {
       if (m_shardCommitFailureHandlerFunc != nullptr) {
         m_shardCommitFailureHandlerFunc(m_commitFailureMap);
@@ -810,12 +810,12 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       }
 
       if (BROADCAST_GOSSIP_MODE) {
-        P2PComm::GetInstance().SpreadRumor(collectivesig);
+        zil::p2p::GetInstance().SpreadRumor(collectivesig);
       } else {
         auto span = zil::trace::Tracing::CreateSpan(
             zil::trace::FilterClass::NODE, __FUNCTION__);
 
-        P2PComm::GetInstance().SendMessage(
+        zil::p2p::GetInstance().SendMessage(
             peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
       }
 
@@ -1061,7 +1061,7 @@ bool ConsensusLeader::StartConsensus(
   // =======================================
 
   if (useGossipProto) {
-    P2PComm::GetInstance().SpreadRumor(announcement_message);
+    zil::p2p::GetInstance().SpreadRumor(announcement_message);
   } else {
     std::deque<Peer> peer;
 
@@ -1072,8 +1072,8 @@ bool ConsensusLeader::StartConsensus(
     auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
                                                 __FUNCTION__);
 
-    P2PComm::GetInstance().SendMessage(peer, announcement_message,
-                                       zil::p2p::START_BYTE_NORMAL, true, true);
+    zil::p2p::GetInstance().SendMessage(
+        peer, announcement_message, zil::p2p::START_BYTE_NORMAL, true, true);
   }
 
   if (m_numOfSubsets > 1) {

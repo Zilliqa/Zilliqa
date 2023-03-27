@@ -28,7 +28,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -277,7 +277,7 @@ bool DirectoryService::ProcessSetPrimary(
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // Now I need to find my index in the sorted list (this will be my ID for the
@@ -626,7 +626,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
   }
 
@@ -930,7 +930,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
+  zil::p2p::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
 
   m_awaitingToSubmitNetworkInfoUpdate = false;
 
@@ -1031,7 +1031,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     // Lookup to store the info
@@ -1147,7 +1147,7 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  P2PComm::GetInstance().SendMessage(requestingNode, txnPoolMessage);
+  zil::p2p::GetInstance().SendMessage(requestingNode, txnPoolMessage);
   return true;
 }
 

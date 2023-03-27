@@ -24,7 +24,7 @@
 
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/SWInfo.h"
@@ -65,7 +65,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
     // Send the generic message to the local node
     zbytes tmp;
     DataConversion::HexStrToUint8Vec(args[0].c_str(), tmp);
-    P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
+    zil::p2p::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
 
@@ -80,7 +80,7 @@ void process_remote_cmd(const char* progname, const char* cmdname,
     Peer my_port(remote_ip, listen_port);
     zbytes tmp;
     DataConversion::HexStrToUint8Vec(args[0].c_str(), tmp);
-    P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
+    zil::p2p::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
 

@@ -30,7 +30,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -141,7 +141,7 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
     newDSmembers.emplace_back(newDSmember.second);
   }
 
-  P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message);
+  zil::p2p::GetInstance().SendMessage(newDSmembers, dsblock_message);
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I will send DSBlock to lookups and new DS nodes");
@@ -213,15 +213,15 @@ void DirectoryService::SendDSBlockToShardNodes(
                               << std::get<SHARD_NODE_PEER>(p->at(i)));
       }
 
-      P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
-                                                  dsblock_message_to_shard);
+      zil::p2p::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
+                                                   dsblock_message_to_shard);
     } else {
       vector<Peer> shard_peers;
       for (const auto& kv : *p) {
         shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
       }
-      P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                  dsblock_message_to_shard);
+      zil::p2p::GetInstance().SendBroadcastMessage(shard_peers,
+                                                   dsblock_message_to_shard);
     }
 
     p++;
@@ -353,7 +353,6 @@ void DirectoryService::StartNextTxEpoch() {
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
-  P2PComm::ClearPeerConnectionCount();
 
   m_mediator.m_node->CleanWhitelistReqs();
 
@@ -434,7 +433,7 @@ void DirectoryService::StartNextTxEpoch() {
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // ReInitialize RumorManager for this epoch.
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
   if (m_mediator.m_node->m_myshardId == 0 || m_dsEpochAfterUpgrade) {
     LOG_GENERAL(
@@ -503,7 +502,6 @@ void DirectoryService::StartFirstTxEpoch() {
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
-  P2PComm::ClearPeerConnectionCount();
 
   m_mediator.m_node->CleanWhitelistReqs();
 
@@ -586,7 +584,7 @@ void DirectoryService::StartFirstTxEpoch() {
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
       // ReInitialize RumorManager for this epoch.
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     if (m_mediator.m_node->m_myshardId == 0) {
       auto func = [this]() mutable -> void {

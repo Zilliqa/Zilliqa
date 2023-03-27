@@ -18,7 +18,8 @@
 #include "DataSender.h"
 
 #include "libNetwork/Blacklist.h"
-#include "libNetwork/P2PComm.h"
+// XXX #include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
@@ -57,7 +58,8 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
     allLookupNodes.emplace_back(tmp);
   }
 
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  // XXX P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  zil::p2p::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
 void SendDataToShardNodesDefault(
@@ -74,9 +76,10 @@ void SendDataToShardNodesDefault(
 
   for (const auto& receivers : sharded_receivers) {
     if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
-      P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
+      // XXX P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
+      zil::p2p::GetInstance().SendRumorToForeignPeers(receivers, message);
     } else {
-      P2PComm::GetInstance().SendBroadcastMessage(receivers, message);
+      zil::p2p::GetInstance().SendBroadcastMessage(receivers, message);
     }
   }
 }

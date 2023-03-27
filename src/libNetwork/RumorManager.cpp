@@ -23,7 +23,8 @@
 #include <string>
 #include <thread>
 
-#include "P2PComm.h"
+// XXX #include "P2PComm.h"
+#include "P2P.h"
 #include "common/Messages.h"
 #include "libCrypto/Sha2.h"
 #include "libMetrics/Api.h"
@@ -366,8 +367,8 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
                          SIGNATURE_RESPONSE_SIZE,
                      message.end());
 
-  if (!P2PComm::GetInstance().VerifyMessage(raw_message, toVerify,
-                                            senderPubKey)) {
+  // XXX
+  if (!zil::p2p::VerifyMessage(raw_message, toVerify, senderPubKey)) {
     LOG_GENERAL(WARNING, "Signature verification failed. so ignoring message");
     return false;
   }
@@ -476,8 +477,14 @@ RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
   RawBytes tmp;
   m_selfKey.second.Serialize(tmp, 0);
 
-  Signature sig = P2PComm::GetInstance().SignMessage(message);
-  sig.Serialize(tmp, PUB_KEY_SIZE);
+  // XXX
+  auto sig = zil::p2p::GetInstance().SignMessage(message);
+  if (!sig) {
+    // TODO log fatal ???
+    return {};
+  }
+
+  sig->Serialize(tmp, PUB_KEY_SIZE);
 
   cmd.insert(cmd.end(), tmp.begin(), tmp.end());
 
@@ -504,7 +511,7 @@ void RumorManager::SendRumorToForeignPeers(
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
-  P2PComm::GetInstance().SendMessage(toForeignPeers, cmd,
+  zil::p2p::GetInstance().SendMessage(toForeignPeers, cmd,
                                      zil::p2p::START_BYTE_GOSSIP);
 
   if(since(startx).count() > 1000) {
@@ -526,7 +533,7 @@ void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
-  P2PComm::GetInstance().SendMessage(toForeignPeers, cmd,
+  zil::p2p::GetInstance().SendMessage(toForeignPeers, cmd,
                                      zil::p2p::START_BYTE_GOSSIP);
 
   if(since(startx).count() > 1000) {
@@ -545,7 +552,7 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
-  P2PComm::GetInstance().SendMessage(toForeignPeer, cmd,
+  zil::p2p::GetInstance().SendMessage(toForeignPeer, cmd,
                                      zil::p2p::START_BYTE_GOSSIP);
 
   if(since(startx).count() > 1000) {
@@ -609,7 +616,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     tmp.push_back((unsigned char)(CHAIN_ID >> 8) & 0XFF);
     tmp.push_back((unsigned char)(CHAIN_ID & 0xFF));
     tmp.insert(tmp.end(), message_wo_keysig.begin(), message_wo_keysig.end());
-    if (!P2PComm::GetInstance().VerifyMessage(tmp, toVerify, senderPubKey)) {
+    if (!zil::p2p::VerifyMessage(tmp, toVerify, senderPubKey)) {
       LOG_GENERAL(WARNING,
                   "Signature verification failed. so ignoring message");
       return {false, {}};
@@ -760,9 +767,9 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
       }
 
       // toBeDispatched
-      auto result = m_rumorHashRawMsgBimap.insert(
+      auto result1 = m_rumorHashRawMsgBimap.insert(
           RumorHashRumorBiMap::value_type(hash, message_wo_keysig));
-      if (result.second) {
+      if (result1.second) {
         LOG_PAYLOAD(
             INFO,
             "New msg for hash [" << hashStr.substr(0, 6) << "] from " << from,
@@ -770,7 +777,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
         toBeDispatched = true;
         // add the timestamp for this raw rumor message
         m_rumorRawMsgTimestamp.push_back(std::make_pair(
-            result.first, std::chrono::high_resolution_clock::now()));
+            result1.first, std::chrono::high_resolution_clock::now()));
       } else {
         LOG_PAYLOAD(DEBUG,
                     "Old Gossip Raw message received from Peer: "
@@ -840,8 +847,12 @@ void RumorManager::AppendKeyAndSignature(RawBytes& result,
   tmp2.push_back((unsigned char)(CHAIN_ID & 0xFF));
   tmp2.insert(tmp2.end(), messageToSig.begin(), messageToSig.end());
 
-  Signature sig = P2PComm::GetInstance().SignMessage(tmp2);
-  sig.Serialize(tmp, PUB_KEY_SIZE);
+  auto sig = zil::p2p::GetInstance().SignMessage(tmp2);
+  if (!sig) {
+    // XXX log fatal?
+    return;
+  }
+  sig->Serialize(tmp, PUB_KEY_SIZE);
 
   result.insert(result.end(), tmp.begin(), tmp.end());
   if(since(startx).count() > 1000) {
@@ -929,7 +940,7 @@ void RumorManager::SendMessage(const Peer& toPeer,
 
   auto start1 = std::chrono::steady_clock::now();
 
-  P2PComm::GetInstance().SendMessage(toPeer, cmd, zil::p2p::START_BYTE_GOSSIP);
+  zil::p2p::GetInstance().SendMessage(toPeer, cmd, zil::p2p::START_BYTE_GOSSIP);
 
   if (since(start1).count() > 1000 || since(start0).count() > 1000) {
     LOG_GENERAL(WARNING, "Time to wait, rum send0: " << since(start0).count() << " ms");
