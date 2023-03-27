@@ -246,6 +246,7 @@ void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
     return;
   }
   std::vector<std::string> indicesVector;
+  std::string vec_str;
   for (const auto &index : request["indices"]) {
     if (!index.isString()) {
       continue;
@@ -253,12 +254,19 @@ void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
     std::stringstream ss;
     ss << quoted(index.asString());
     indicesVector.emplace_back(ss.str());
+    vec_str += ss.str() + ", ";
   }
+
+  LOG_GENERAL(WARNING, "READING STORAGE With vname: "
+                           << vname << ", and vector: " << vec_str);
 
   if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
           response, address, vname, indicesVector)) {
     LOG_GENERAL(WARNING, "Unable to fetch json state for addr " << address);
   }
+
+  string msg = JSONUtils::GetInstance().convertJsontoStr(response);
+  LOG_GENERAL(WARNING, "READ JSON: " << msg);
   if (LOG_SC) {
     LOG_GENERAL(WARNING,
                 "Successfully fetch json substate for addr " << address);

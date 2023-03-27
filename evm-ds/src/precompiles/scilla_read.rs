@@ -57,13 +57,19 @@ pub(crate) fn scilla_read(
     let field_type = get_field_type_by_name(&passed_field_name, &fields)?;
     let scilla_field = decode_indices(input, &field_type)?;
 
-    let read_result =
+    let substate_json =
         backend.susbtate_as_json(code_address, &passed_field_name, &scilla_field.indices);
+
+    let Ok(_substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Unable to parse substate json")),
+        });
+    };
 
     Ok((
         PrecompileOutput {
             output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
-            output: read_result.to_vec(),
+            output: substate_json.to_vec(),
         },
         gas_needed,
     ))
@@ -136,11 +142,16 @@ fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, P
 
     let mut indices = vec![];
     for value in decoded_array.iter().skip(2) {
-        if let Token::Uint(solidity_uint) = value {
-            // Scilla doesn't like hex strings
-            indices.push(format!("{}", solidity_uint));
-        } else {
-            indices.push(value.to_string());
+        match value {
+            Token::Uint(solidity_uint) => {
+                indices.push(format!("{}", solidity_uint));
+            },
+            Token::Address(solidity_addr) => {
+                indices.push(format!("0x{}", hex::encode(solidity_addr)));
+            },
+            _ => {
+                indices.push(value.to_string());
+            }
         }
     }
     Ok(ScillaField {
@@ -149,8 +160,29 @@ fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, P
     })
 }
 
-fn encode_result_type<T>(_arg_type_name: &str, _value: T) -> Option<bool> {
-    None
+fn extract_substate_from_json(value: &Value, vname: &str, def: &ScillaField) -> Result<Token, PrecompileFailure> {
+    if(value.is_object() || value.get(vname).is_none()) {
+        return Ok(Token::Bytes(Vec::new()));
+    }
+    if def.indices.is_empty() {
+        return encode_result_type(&value[vname], def);
+    }
+    let mut value = value[vname].as_object().unwrap();
+
+    for index in def.indices.clone().iter().take(def.indices.len() - 1) {
+        if !value[index].is_object() {
+            return Err(PrecompileFailure::Error {
+                exit_status: ExitError::Other(Cow::Borrowed("Scilla field definition doesn't match with returned value")),
+            });
+        }
+        value = value[index].as_object().unwrap();
+    }
+
+    encode_result_type(&value[def.indices.last().unwrap()], def)
+}
+
+fn encode_result_type(value: &Value, def: &ScillaField) -> Result<Token, PrecompileFailure> {
+    Ok(Token::Bytes(Vec::new()))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {

@@ -17,7 +17,7 @@ pub fn substitute_scilla_type_with_sol(arg_name: &str) -> Result<ParamType, Prec
         ("Uint256", ParamType::Uint(256)),
         ("String", ParamType::String),
         ("ByStr", ParamType::String),
-        ("ByStr20", ParamType::String),
+        ("ByStr20", ParamType::Address),
         ("ByStr32", ParamType::String),
     ]);
     let Some(val) = mapping.get(arg_name) else {

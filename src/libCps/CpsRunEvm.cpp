@@ -347,8 +347,11 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
       jsonData["_address"].asString(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
-  const uint64_t remainingGas =
+  uint64_t remainingGas =
       GasConv::GasUnitsFromEthToCore(evm_result.remaining_gas());
+  if (mCpsContext.estimate) {
+    remainingGas -= (SCILLA_RUNNER_INVOKE_GAS + CONTRACT_INVOKE_GAS);
+  }
 
   const bool isStatic = callData.is_static();
 
