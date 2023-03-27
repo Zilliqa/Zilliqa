@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
     disableTrace: false, // If set to true, plugin won't trace transaction
     uploadAst: true // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
   },
-  defaultNetwork: "testnet",
+  defaultNetwork: "isolated_server",
   networks: {
     isolated_server: {
       url: "http://localhost:5555/",
@@ -96,29 +96,14 @@ const config: HardhatUserConfig = {
       protocolVersion: 0x41,
       miningState: false
     },
-    mainnet_rehearsal: {
-      url: "https://v880-rehearsal-l2api.mainnet.aws.zilliqa.com",
-      websocketUrl: "https://v880-rehearsal-l2api.mainnet.aws.zilliqa.com",
-      accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"
-      ],
-      chainId: 32769,
-      zilliqaNetwork: true,
-      web3ClientVersion: "Zilliqa/v8.2",
-      protocolVersion: 0x41,
-      miningState: false
-    },
     testnet: {
-      url: "https://devnet-nathan-l2api.dev.z7a.xyz",
-      websocketUrl: "wss://devnet-nathan-l2api.dev.z7a.xyz",
+      url: "https://devnetnh-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://devnetnh-l2api.dev.z7a.xyz",
       accounts: [
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
-        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
-        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3"
+        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89"
       ],
       chainId: 32769,
       zilliqaNetwork: true,

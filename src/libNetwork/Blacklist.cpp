@@ -52,7 +52,6 @@ bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
 /// Reputation Manager may use this function
 void Blacklist::Add(const uint128_t& ip, const bool strict,
                     const bool ignoreWhitelist) {
-  return;
   if (!m_enabled) {
     return;
   }
