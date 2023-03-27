@@ -852,7 +852,6 @@ void RumorManager::AppendKeyAndSignature(RawBytes& result,
 void RumorManager::SendMessage(const Peer& toPeer,
                                const RRS::Message& message) {
   //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   auto start0 = std::chrono::steady_clock::now();
   zil::local::variables.AddSendMessage(1);
 
@@ -941,7 +940,6 @@ void RumorManager::SendMessage(const Peer& toPeer,
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages) {
   //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   zil::local::variables.AddSendMessage(1);
   for (auto& k : messages) {
     SendMessage(toPeer, k);
