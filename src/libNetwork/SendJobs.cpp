@@ -500,7 +500,7 @@ class SendJobsImpl : public SendJobs,
       if(ec) {
         it->second.failures = it->second.failures + 1;
       } else {
-        it->second.successes = it->second.successes + 1
+        it->second.successes = it->second.successes + 1;
       }
 
       iterations++;
