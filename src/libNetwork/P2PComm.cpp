@@ -329,7 +329,6 @@ const std::string ReadStateToStr(zil::p2p::ReadState& s) {
 
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
-  LOG_MARKER();
   struct AutoClose {
     ~AutoClose() {
       if (bev) {
