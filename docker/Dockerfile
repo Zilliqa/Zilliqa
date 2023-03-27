@@ -111,7 +111,8 @@ COPY vcpkg.json .
 
 # python3 is unfortunately needed for upb which has a problem finding the
 # vcpkg compiled python.
-RUN apt-get update -y && apt-get install -y python3-dev
+RUN apt-get update
+RUN apt-get install -y python3-dev
 RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
 RUN apt-get remove -y python3-dev && apt-get autoremove -y
 
