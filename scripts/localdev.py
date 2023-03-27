@@ -389,6 +389,7 @@ def write_testnet_configuration(config, tag_name, testnet_name):
                ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
                 os.path.join(ZILLIQA_DIR, "constants_local.xml"),
                 "--image", tag_name,
+                "--k8s-logs", "true",
                 "--local-repo", f"{minikube_ip}:5000",
                 "--localdev", "true",
                 "-n", "20",
