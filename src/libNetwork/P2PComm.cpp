@@ -364,7 +364,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 
   size_t len = evbuffer_get_length(input);
-  LOG_GENERAL(INFO, "Incoming message of size " << len);
+  LOG_GENERAL(INFO, "Incoming message of size " << len << " from = "<<from);
   if (len < zil::p2p::HDR_LEN) {
     // not enough bytes received, wait for the next callback
     LOG_GENERAL(WARNING, "not enough bytes recieved");
