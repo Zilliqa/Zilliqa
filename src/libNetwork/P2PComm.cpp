@@ -486,7 +486,6 @@ void P2PComm::EventCbServerSeed(struct bufferevent* bev, short events,
 void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
   LOG_MARKER();
   struct evbuffer* input = bufferevent_get_input(bev);
-
   size_t len = evbuffer_get_length(input);
   if (len >= MAX_READ_WATERMARK_IN_BYTES) {
     // Get the IP info
@@ -626,6 +625,10 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
                    zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST);
     CloseAndFreeBevP2PSeedConnServer(bev);
   }
+}
+void P2PComm ::AcceptErrorCallback(struct evconnlistener* listener, void* ctx) {
+  int err = EVUTIL_SOCKET_ERROR();
+  LOG_GENERAL(INFO, "Got an error on the listener " << err << evutil_socket_error_to_string(err));
 }
 
 void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
@@ -1016,6 +1019,8 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
     // fixme: should we exit here?
     return;
   }
+  evconnlistener_set_error_cb(listener1, AcceptErrorCallback);
+
   struct evconnlistener* listener2 = NULL;
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && startSeedNodeListener) {
     LOG_GENERAL(INFO, "P2PSeed Start listener on " << P2P_SEED_CONNECT_PORT);

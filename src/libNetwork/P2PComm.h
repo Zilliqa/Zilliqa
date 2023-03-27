@@ -90,6 +90,8 @@ class P2PComm {
                                        evutil_socket_t cli_sock,
                                        struct sockaddr* cli_addr, int socklen,
                                        void* arg);
+  static void AcceptErrorCallback(struct evconnlistener *listener, void *ctx);
+
   static void AcceptCbServerSeed(evconnlistener* listener,
                                  evutil_socket_t cli_sock,
                                  struct sockaddr* cli_addr, int socklen,
