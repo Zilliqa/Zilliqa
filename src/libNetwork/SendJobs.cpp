@@ -487,32 +487,6 @@ class SendJobsImpl : public SendJobs,
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
 
-    {
-      std::lock_guard<std::mutex> g(m_mutexTemp);
-
-      auto it = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
-
-      if (it != sendJobsConnectionList.end()) {
-        sendJobsConnectionList[peer.GetPrintableIPAddress()] = Connections{};
-        it = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
-      }
-
-      if(ec) {
-        it->second.failures = it->second.failures + 1;
-      } else {
-        it->second.successes = it->second.successes + 1;
-      }
-
-      iterations++;
-
-      if(iterations % 100 == 0) {
-        LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << iterations << " iterations");
-        for(auto const& itt : sendJobsConnectionList) {
-          LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << itt.first << " - " << itt.second.successes << " successes, " << itt.second.failures << " failures");
-        }
-      }
-    }
-
     if (ec) {
       LOG_GENERAL(
           INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
@@ -556,6 +530,30 @@ class SendJobsImpl : public SendJobs,
     // explicit Close() because shared_ptr may be reused in async operation
     it->second->Close();
     m_activePeers.erase(it);
+
+    //{
+    //  auto itX = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
+
+    //  if (itX != sendJobsConnectionList.end()) {
+    //    sendJobsConnectionList[peer.GetPrintableIPAddress()] = Connections{};
+    //    itX = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
+    //  }
+
+    //  if(ec) {
+    //    itX->second.failures = itX->second.failures + 1;
+    //  } else {
+    //    itX->second.successes = itX->second.successes + 1;
+    //  }
+
+    //  iterations++;
+
+    //  if(iterations % 100 == 0) {
+    //    LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << iterations << " iterations");
+    //    for(auto const& itt : sendJobsConnectionList) {
+    //      LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << itt.first << " - " << itt.second.successes << " successes, " << itt.second.failures << " failures");
+    //    }
+    //  }
+    //}
   }
 
   void WorkerThread() {
