@@ -50,7 +50,6 @@ describe("Contract Deployment using Ethers.js", function () {
     });
 
     describe("When constructor parameter is an address", function () {
-      let contract;
       let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
       before(async function () {
         this.withAddressConstructor = await parallelizer.deployContract("WithAddressConstructor", ADDRESS);
