@@ -571,7 +571,6 @@ class SendJobsImpl : public SendJobs,
     });
 
     t.detach();
-    }
   }
 
   void WorkerThread() {
