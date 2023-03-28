@@ -562,7 +562,8 @@ class SendJobsImpl : public SendJobs,
 
       variables.iterations++;
 
-      if(variables.iterations % 100 == 0) {
+      //if(variables.iterations % 100 == 0) {
+      if(true) {
         LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << variables.iterations << " iterations");
         for(auto const& itt : variables.sendJobsConnectionList) {
           LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << itt.first << " - " << itt.second.successes << " successes, " << itt.second.failures << " failures");
