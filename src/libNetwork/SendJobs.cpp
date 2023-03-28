@@ -81,6 +81,14 @@ class SendJobsVariables {
       });
     }
   }
+
+  std::mutex m_mutexTemp;
+  struct Connections {
+    int failures = 0;
+    int successes = 0;
+  };
+  int iterations = 0;
+  std::map<std::string, Connections> sendJobsConnectionList;
 };
 
 static SendJobsVariables variables{};
@@ -531,33 +539,39 @@ class SendJobsImpl : public SendJobs,
     it->second->Close();
     m_activePeers.erase(it);
 
-    //std::cerr << "will segv" << std::endl;
-    //std::cout << "will segv" << std::endl;
+    auto printableIP = peer.GetPrintableIPAddress();
+    auto succ = !ec;
 
-    //{
-    //  std::lock_guard<std::mutex> g(m_mutexTemp);
-    //  auto itX = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
+    std::thread t([succ, printableIP ] {
 
-    //  if (itX != sendJobsConnectionList.end()) {
-    //    sendJobsConnectionList[peer.GetPrintableIPAddress()] = Connections{};
-    //    itX = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
-    //  }
+      auto &variables = zil::local::variables;
 
-    //  if(ec) {
-    //    itX->second.failures = itX->second.failures + 1;
-    //  } else {
-    //    itX->second.successes = itX->second.successes + 1;
-    //  }
+      std::lock_guard<std::mutex> g(variables.m_mutexTemp);
+      auto itX = variables.sendJobsConnectionList.find(printableIP);
 
-    //  iterations++;
+      if (itX != variables.sendJobsConnectionList.end()) {
+        variables.sendJobsConnectionList[printableIP] = zil::local::SendJobsVariables::Connections{};
+        itX = variables.sendJobsConnectionList.find(printableIP);
+      }
 
-    //  if(iterations % 100 == 0) {
-    //    LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << iterations << " iterations");
-    //    for(auto const& itt : sendJobsConnectionList) {
-    //      LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << itt.first << " - " << itt.second.successes << " successes, " << itt.second.failures << " failures");
-    //    }
-    //  }
-    //}
+      if(succ) {
+        itX->second.successes = itX->second.successes + 1;
+      } else {
+        itX->second.failures = itX->second.failures + 1;
+      }
+
+      variables.iterations++;
+
+      if(variables.iterations % 100 == 0) {
+        LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << variables.iterations << " iterations");
+        for(auto const& itt : variables.sendJobsConnectionList) {
+          LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << itt.first << " - " << itt.second.successes << " successes, " << itt.second.failures << " failures");
+        }
+      }
+    });
+
+    t.detach();
+    }
   }
 
   void WorkerThread() {
