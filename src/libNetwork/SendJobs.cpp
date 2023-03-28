@@ -209,8 +209,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                            [self = shared_from_this()](const ErrorCode& ec) {
                              if (ec != OPERATION_ABORTED) {
                                self->OnConnected(ec);
+                             } else {
+                               LOG_GENERAL(INFO, "EM5122 Error");
                              }
-                             LOG_GENERAL(INFO,"EM5122 Error");
                            });
   }
 
@@ -240,6 +241,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         [self = shared_from_this()](const ErrorCode& ec, size_t) {
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
+          } else {
+            LOG_GENERAL(INFO, "EM5122 aborted");
           }
         });
   }
