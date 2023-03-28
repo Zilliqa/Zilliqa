@@ -531,6 +531,9 @@ class SendJobsImpl : public SendJobs,
     it->second->Close();
     m_activePeers.erase(it);
 
+    std::cerr << "will segv" << std::endl;
+    std::cout << "will segv" << std::endl;
+
     {
       std::lock_guard<std::mutex> g(m_mutexTemp);
       auto itX = sendJobsConnectionList.find(peer.GetPrintableIPAddress());
