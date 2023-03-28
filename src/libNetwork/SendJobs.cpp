@@ -493,15 +493,7 @@ class SendJobsImpl : public SendJobs,
     AsioContext localCtx(1);
 
     auto doneCallback = [&localCtx](const Peer& peer) {
-      auto peerStr = peer.GetPrintableIPAddress();
-      if (ec) {
-        zil::local::variables.AddSendMessageToPeerFailed(1);
-        LOG_GENERAL(WARNING, "Send message to "
-                                 << peerStr
-                                 << " failed with error: " << ec.message());
-      } else {
-        LOG_GENERAL(INFO, "Send message to " << peerStr << " done");
-      }
+      LOG_GENERAL(INFO, "Send messages to " << peer << " done");
       localCtx.stop();
     };
 
