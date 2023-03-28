@@ -52,6 +52,6 @@ jobs:
       run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
     - name: Push Docker images
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' || github.ref_name == 'master'
       run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash
