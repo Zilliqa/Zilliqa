@@ -138,8 +138,9 @@ void CloseGracefully(Socket socket) {
     socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
   }
   if (!ec) {
-    LOG_GENERAL(WARNING, "EM5122 failed to read bytes: " << ec);
     std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
+  } else {
+    LOG_GENERAL(WARNING, "EM5122 failed to read bytes: " << ec);
   }
 }
 
@@ -249,6 +250,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   /// Deal with blacklist in which peer may have appeared after some delay
   bool CheckAgainstBlacklist() {
+    LOG_MARKER();
     auto sz = m_queue.size();
     if (sz > 0 && IsBlacklisted(m_peer, false)) {
       if (!IsBlacklisted(m_peer, true)) {
@@ -306,6 +308,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   bool ExpiredOrDone(const ErrorCode& ec = ErrorCode{}) {
+    LOG_MARKER();
     if (m_queue.empty()) {
       LOG_GENERAL(WARNING, "EM5122 queue is empty");
       Done();
