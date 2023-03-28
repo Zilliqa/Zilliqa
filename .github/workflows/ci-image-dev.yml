@@ -12,7 +12,7 @@ on:
       - 'release/**'
   pull_request:
     branches:
-      - 'main'
+      - 'master'
 
 jobs:
   push-to-ecr:
