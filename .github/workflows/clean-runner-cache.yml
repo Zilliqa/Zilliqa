@@ -1,0 +1,17 @@
+name: Self Hosted runners - Clean docker cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clean-docker-cache:
+    strategy:
+      matrix:
+        runner: [docker, docker, docker, docker, docker, docker, docker]
+    runs-on: ${{ matrix.runner }}
+    steps:
+    - name: Docker prune
+      shell: bash
+      run: |
+        docker container prune -f
+        docker image prune -a -f

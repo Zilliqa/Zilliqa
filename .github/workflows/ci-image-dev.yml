@@ -10,8 +10,6 @@ on:
   push:
     branches-ignore:
       - 'release/**'
-    paths-ignore:
-    - 'Jenkinsfile'
 
 jobs:
   push-to-ecr:
@@ -21,6 +19,11 @@ jobs:
     name: build
     runs-on: docker
     steps:
+    - name: Clean environment
+      shell: bash
+      run: |
+        docker container prune -f
+        docker image prune -a -f
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'
       uses: actions/checkout@v3
       with:
@@ -43,6 +46,6 @@ jobs:
     - name: Build Docker images
       run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
-    - name: Push Docker images
-      run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
-      shell: bash
+    # - name: Push Docker images
+    #   run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
+    #   shell: bash
