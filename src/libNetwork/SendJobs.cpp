@@ -549,7 +549,7 @@ class SendJobsImpl : public SendJobs,
       std::lock_guard<std::mutex> g(variables.m_mutexTemp);
       auto itX = variables.sendJobsConnectionList.find(printableIP);
 
-      if (itX != variables.sendJobsConnectionList.end()) {
+      if (itX == variables.sendJobsConnectionList.end()) {
         variables.sendJobsConnectionList[printableIP] = zil::local::SendJobsVariables::Connections{};
         itX = variables.sendJobsConnectionList.find(printableIP);
       }
