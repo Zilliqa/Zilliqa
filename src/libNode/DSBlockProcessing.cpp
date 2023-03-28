@@ -518,6 +518,8 @@ bool Node::ProcessVCDSBlocksMessage(
 
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    LOG_EXTRA("Shards updated " << m_mediator.m_ds->m_shards.size() << "->"
+                                << t_shards.size());
     m_mediator.m_ds->m_shards = std::move(t_shards);
   }
 

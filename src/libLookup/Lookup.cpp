@@ -1078,10 +1078,10 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
 
       if (replaceMyPeerWithDefault && (key == m_mediator.m_selfKey.second)) {
         m_mediator.m_DSCommittee->emplace_back(make_pair(key, Peer()));
-        LOG_GENERAL(INFO, "Added self " << Peer());
+        LOG_GENERAL(INFO, "### Added self " << Peer());
       } else {
         m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
-        LOG_GENERAL(INFO, "Added peer " << peer);
+        LOG_GENERAL(INFO, "### Added peer " << peer);
       }
     }
   }
@@ -2262,6 +2262,7 @@ bool Lookup::ProcessSetShardFromSeed(
   }
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
+  LOG_EXTRA("Shards updated " << m_shards.size() << "->" << shards.size());
   m_mediator.m_ds->m_shards = std::move(shards);
 
   cv_shardStruct.notify_all();

@@ -198,4 +198,12 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
   LOG_GENERAL(WARNING, " Received = " << received);   \
   LOG_GENERAL(WARNING, " Expected = " << expected);
 
+#define LOG_EXTRA_ENABLED 1
+
+#if LOG_EXTRA_ENABLED
+#define LOG_EXTRA(msg) LOG_GENERAL(INFO, "### " << msg)
+#else
+#define LOG_EXTRA(...)
+#endif
+
 #endif  // ZILLIQA_SRC_LIBUTILS_LOGGER_H_

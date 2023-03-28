@@ -325,9 +325,12 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   LOG_MARKER();
   std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
+  auto old_size = m_mediator.m_DSCommittee->size();
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second,
                                    *m_mediator.m_DSCommittee,
                                    m_mediator.m_dsBlockChain.GetLastBlock());
+  LOG_EXTRA("m_DSCommittee updated " << old_size << "->"
+                                     << m_mediator.m_DSCommittee->size());
 }
 
 void DirectoryService::StartNextTxEpoch() {
@@ -743,6 +746,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
     if (m_mode == BACKUP_DS) {
+      LOG_EXTRA("Shards updated " << m_shards.size() << "->"
+                                  << m_tempShards.size());
       m_shards = std::move(m_tempShards);
       m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
       m_mapNodeReputation = std::move(m_tempMapNodeReputation);

@@ -470,6 +470,7 @@ bool DirectoryService::CleanVariables() {
 
   LOG_MARKER();
 
+  LOG_EXTRA("Shards cleared");
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
   m_allPoWConns.clear();

@@ -118,6 +118,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   LOG_MARKER();
 
+  LOG_EXTRA("Shards cleared " << m_shards.size());
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
 
@@ -136,6 +137,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_TOLERANCE_LO,
                                            SHARD_SIZE_TOLERANCE_HI,
                                            numNodesForSharding, shardCounts);
+  LOG_EXTRA("Shards size generated " << shardCounts.size());
 
   // Abort if zero shards generated
   if (shardCounts.empty()) {
@@ -308,7 +310,7 @@ void DirectoryService::InjectPoWForDSNode(
     ++counter;
   }
 
-  LOG_GENERAL(INFO, "Num PoWs after injection = " << sortedPoWSolns.size());
+  LOG_GENERAL(INFO, "### Num PoWs after injection = " << sortedPoWSolns.size());
 }
 
 bool DirectoryService::VerifyPoWWinner(
