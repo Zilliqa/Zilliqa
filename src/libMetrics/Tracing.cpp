@@ -346,8 +346,8 @@ class TracingImpl {
       options.kind = trace_api::SpanKind::kServer;
       options.parent = std::move(ctx_opt.value());
 
-      auto span = CreateSpanImpl(
-          name, options, ExtractSenderIdentityFromIds(remote_trace_info));
+      return CreateSpanImpl(name, options,
+                            ExtractSenderIdentityFromIds(remote_trace_info));
     }
     return Span{};
   }
