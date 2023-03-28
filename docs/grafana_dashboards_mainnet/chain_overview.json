@@ -17,6 +17,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 14,
+  "iteration": 1679968070703,
   "links": [],
   "panels": [
     {
@@ -24,7 +25,8 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -40,7 +42,7 @@
         "y": 0
       },
       "hiddenSeries": false,
-      "id": 10,
+      "id": 6,
       "legend": {
         "avg": false,
         "current": false,
@@ -67,7 +69,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "zilliqa_tx_finalblock_gauge{counter=\"ForwardedTx\"}",
+          "expr": "zilliqa_tx_mediator_gauge{counter=\"CurrentEpochNum\", pod=~\"$podname\"}",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -77,7 +79,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Forwarded TXs (P2P)",
+      "title": "Block height (TX)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -93,8 +95,9 @@
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "decimals": null,
+          "format": "none",
+          "label": "",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -136,7 +139,7 @@
         "y": 0
       },
       "hiddenSeries": false,
-      "id": 6,
+      "id": 4,
       "legend": {
         "avg": false,
         "current": false,
@@ -163,9 +166,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "zilliqa_tx_mediator_gauge{counter=\"CurrentEpochNum\"}",
+          "expr": "zilliqa_tx_mediator_gauge{counter=\"CurrentEpochNum\", pod=~\"$podname\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -173,7 +176,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Block height (TX)",
+      "title": "Current epoch number",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -215,7 +218,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
+      "datasource": null,
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -232,7 +235,7 @@
         "y": 8
       },
       "hiddenSeries": false,
-      "id": 4,
+      "id": 14,
       "legend": {
         "avg": false,
         "current": false,
@@ -259,7 +262,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "zilliqa_tx_mediator_gauge{counter=\"CurrentEpochNum\"}",
+          "expr": "zilliqa_finalblockpostproc_gauge{counter=\"MbInFinal\"}",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -269,7 +272,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Current epoch number",
+      "title": "Mb in TX block",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -406,8 +409,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
-      "description": "",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -417,13 +419,13 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 16
       },
       "hiddenSeries": false,
-      "id": 2,
+      "id": 10,
       "legend": {
         "avg": false,
         "current": false,
@@ -450,9 +452,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "zilliqa_tx_finalblock_gauge{counter=\"LastVcBlockHeight\"}",
+          "expr": "zilliqa_tx_finalblock_gauge{counter=\"ForwardedTx\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -460,7 +462,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Last VC block height",
+      "title": "Forwarded TXs (P2P)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -591,21 +593,139 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 2,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.2.0",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "zilliqa_tx_finalblock_gauge{counter=\"LastVcBlockHeight\"}",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Last VC block height",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
+  "refresh": "5m",
   "schemaVersion": 26,
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0,
+        "label": null,
+        "name": "podname",
+        "options": [
+          {
+            "selected": true,
+            "text": ".*",
+            "value": ".*"
+          }
+        ],
+        "query": ".*",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Chain overview  v2",
   "uid": "dp4vT2-Vz",
-  "version": 6
+  "version": 12
 }
