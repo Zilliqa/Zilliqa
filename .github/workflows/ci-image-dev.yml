@@ -29,7 +29,7 @@ jobs:
         docker system df
         docker system prune -a -f --filter "until=336h"
         docker system df
-    - name: Get image tag from git commit
+    - name: Set checkout branch
       id: checkout-branch
       run: |
         if [ "${{ inputs.commitOrTag }}" = "" ]; then
@@ -60,7 +60,7 @@ jobs:
     - name: Build Docker images
       run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
-    # - name: Push Docker images
-    #   if: github.event_name == 'pull_request' || github.ref_name == 'master'
-    #   run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
-    #   shell: bash
+    - name: Push Docker images
+      if: github.event_name == 'pull_request' || github.ref_name == 'master'
+      run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
+      shell: bash
