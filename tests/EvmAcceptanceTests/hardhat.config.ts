@@ -2,7 +2,6 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import "dotenv/config";
-import "hardhat-ethernal";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 
 if (ENV_VARS.scilla) {
