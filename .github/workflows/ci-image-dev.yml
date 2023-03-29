@@ -6,7 +6,7 @@ on:
       commitOrTag:
         description: 'Commit or tag'
         required: false
-        default: ${{ github.event.pull_request.head.ref }}
+        default: ''
   push:
     branches-ignore:
       - 'release/**'
@@ -29,12 +29,20 @@ jobs:
         docker system df
         docker system prune -a -f --filter "until=336h"
         docker system df
-    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+    - name: Get image tag from git commit
+      id: checkout-branch
+      run: |
+        if [ "${{ inputs.commitOrTag }}" = "" ]; then
+          echo "branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+        else
+          echo "branch=${{ inputs.commitOrTag }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+    - name: 'Checkout scm'
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-        ref: ${{ inputs.commitOrTag }}
-        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ steps.checkout-branch.outputs.branch }}
     - name: Configure AWS Credentials
       uses: Zilliqa/gh-actions-workflows/actions/configure-aws-credentials@v1
       with:
