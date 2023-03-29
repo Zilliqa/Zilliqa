@@ -371,7 +371,6 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
 void Node::ProcessTransactionWhenShardLeader(
     const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be (leader)");
 
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
@@ -675,8 +674,6 @@ void Node::UpdateProcessedTransactions() {
 void Node::ProcessTransactionWhenShardBackup(
     const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "create transaction being called when it shouldn't be (backup)");
 
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
@@ -1846,7 +1843,6 @@ bool Node::MicroBlockValidator(const zbytes& message, unsigned int offset,
     return true;
   }
 
-  // Should see this in logs...
   LOG_MARKER();
 
   m_microblock.reset(new MicroBlock);

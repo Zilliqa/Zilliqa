@@ -1550,7 +1550,6 @@ bool Node::ProcessMBnForwardTransaction(
 
   MBnForwardedTxnEntry entry;
   zil::local::variables.AddForwardedTx(1);
-  LOG_GENERAL(WARNING, "ForwardedTXs: " << entry.m_transactions.size());
 
   if (!Messenger::GetNodeMBnForwardTransaction(message, cur_offset, entry)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

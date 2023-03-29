@@ -40,17 +40,6 @@ RRS::Message::Type convertType(uint8_t type) {
 
 }  // anonymous namespace
 
-template <
-    class result_t   = std::chrono::milliseconds,
-    class clock_t    = std::chrono::steady_clock,
-    class duration_t = std::chrono::milliseconds
->
-auto since(std::chrono::time_point<clock_t, duration_t> const& start)
-{
-  return std::chrono::duration_cast<result_t>(clock_t::now() - start);
-}
-
-
 namespace zil {
 namespace local {
 
@@ -155,9 +144,6 @@ RumorManager::~RumorManager() {}
 // PRIVATE METHODS
 
 void RumorManager::StartRounds() {
-  //LOG_MARKER();
-
-
   // To make sure we always have m_continueRound set at start of round.
   {
     std::unique_lock<std::mutex> guard(m_continueRoundMutex);
@@ -167,8 +153,6 @@ void RumorManager::StartRounds() {
   std::thread([&]() {
     unsigned int rounds = 0;
     while (true) {
-      auto startx = std::chrono::steady_clock::now();
-
       std::unique_lock<std::mutex> guard(m_continueRoundMutex);
       m_continueRound = true;
       {  // critical section
@@ -198,33 +182,22 @@ void RumorManager::StartRounds() {
         LOG_GENERAL(INFO, "Stopping round now..");
         return;
       }
-
-      if(since(startx).count() > 1000) {
-        LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-      }
     }
   }).detach();
 }
 
 void RumorManager::StopRounds() {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     m_continueRound = false;
   }
   m_condStopRound.notify_all();
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 // PUBLIC METHODS
 bool RumorManager::Initialize(const VectorOfNode& peers, const Peer& myself,
                               const PairOfKey& myKeys,
                               const std::vector<PubKey>& fullNetworkKeys) {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (m_continueRound) {
@@ -284,17 +257,12 @@ bool RumorManager::Initialize(const VectorOfNode& peers, const Peer& myself,
                                      (ROUND_TIME_IN_MS);  // milliseconds
 
 
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
   return true;
 }
 
 void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
                                   const PubKey& pubKey) {
 
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   std::lock_guard<std::mutex> guard(m_mutex);  // critical section
   auto it = m_pubKeyPeerBiMap.left.find(pubKey);
   if (it != m_pubKeyPeerBiMap.left.end()) {
@@ -306,39 +274,23 @@ void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
                                          boost::bimaps::_key = newPeerInfo);
       LOG_GENERAL(INFO, "Updated peer info successfully!");
 
-      if(since(startx).count() > 1000) {
-        LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-      }
-
       return;
     }
   }
   LOG_GENERAL(WARNING, "Failed to updated peer info!");
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 void RumorManager::SpreadBufferedRumors() {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   if (m_continueRound) {
     for (const auto& i : m_bufferRawMsg) {
       AddRumor(i);
     }
     m_bufferRawMsg.clear();
   }
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   PubKey senderPubKey;
   zbytes messagePubK;
   std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
@@ -372,18 +324,11 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
     return false;
   }
 
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
-
   // All checks passed. Good to spread this rumor
   return AddRumor(raw_message);
 }
 
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   if (message.size() > 0 && message.size() <= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
     RawBytes hash = SHA256Calculator::FromBytes(message);
     std::string output;
@@ -434,11 +379,6 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
                         << ", Round: 0, Hash: " << output.substr(0, 6) << " ]",
                     message, 10);
 
-
-        if(since(startx).count() > 1000) {
-          LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-        }
-
         return m_rumorHolder->addRumor(m_rumorIdGenerator);
       }
     } else {
@@ -450,17 +390,11 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
                              << MAX_GOSSIP_MSG_SIZE_IN_BYTES);
   }
 
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
   return false;
 }
 
 RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
     const RawBytes& message) {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   // Add round and type to outgoing message
   RawBytes cmd = {(unsigned char)RRS::Message::Type::FORWARD};
   unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
@@ -483,17 +417,11 @@ RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
 
   cmd.insert(cmd.end(), message.begin(), message.end());
 
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
   return cmd;
 }
 
 void RumorManager::SendRumorToForeignPeers(
     const std::deque<Peer>& toForeignPeers, const RawBytes& message) {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
@@ -506,16 +434,10 @@ void RumorManager::SendRumorToForeignPeers(
 
   P2PComm::GetInstance().SendMessage(toForeignPeers, cmd,
                                      zil::p2p::START_BYTE_GOSSIP);
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
                                            const RawBytes& message) {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
@@ -528,16 +450,10 @@ void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
 
   P2PComm::GetInstance().SendMessage(toForeignPeers, cmd,
                                      zil::p2p::START_BYTE_GOSSIP);
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
                                           const RawBytes& message) {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   LOG_PAYLOAD(INFO,
               "New message to be gossiped forwarded to Foreign Peer:"
                   << toForeignPeer << "by me:" << m_selfPeer,
@@ -547,17 +463,11 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
 
   P2PComm::GetInstance().SendMessage(toForeignPeer, cmd,
                                      zil::p2p::START_BYTE_GOSSIP);
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     const RawBytes& message, const RRS::Message::Type& t, const Peer& from) {
   zbytes message_wo_keysig;
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
 
   if (((RRS::Message::Type::EMPTY_PUSH == t ||
         RRS::Message::Type::EMPTY_PULL == t) &&
@@ -617,42 +527,13 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
   } else {
     message_wo_keysig = message;
   }
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
   return {true, message_wo_keysig};
 }
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
-  //LOG_MARKER();
-  {
-    std::lock_guard<std::mutex> g(m_mutexTemp);
-
-    auto messageAsString = DataConversion::Uint8VecToHexStrRet(message);
-    auto infoString = "Type: " + std::to_string(type) + " Round: " +
-                      std::to_string(round) + ":" + std::to_string(from.m_listenPortHost) + " Message: " + messageAsString;
-
-    auto it = rumourManagerMessagesSeen.find(infoString);
-
-    if (it == rumourManagerMessagesSeen.end()) {
-      rumourManagerMessagesSeen[infoString] = 1;
-    } else {
-      it->second++;
-
-      LOG_GENERAL(WARNING, "Duplicate message! " << it->second << " times." << infoString);
-
-      if (it->second > 3) {
-        LOG_GENERAL(WARNING, "Duplicate message! " << it->second << " times. Ignoring message!!");
-        return {false, {}};
-      }
-    }
-  }
 
   zil::local::variables.AddRumoursReceived(1);
-  auto start0 = std::chrono::steady_clock::now();
-
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
@@ -661,7 +542,6 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     }
   }
 
-  auto start1 = std::chrono::steady_clock::now();
   std::lock_guard<std::mutex> guard(m_mutex);
 
   auto p = m_peerIdPeerBimap.right.find(from);
@@ -819,19 +699,12 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
 
   SendMessages(from, pullMsgs.second);
 
-  if(since(start1).count() > 1000) {
-    LOG_GENERAL(WARNING, "Time to wait, rum recvd0: " << since(start0).count() << " ms");
-    LOG_GENERAL(WARNING, "Time to wait, rum recvd1: " << since(start1).count() << " ms");
-  }
-
   return {toBeDispatched, message_wo_keysig};
 }
 
 void RumorManager::AppendKeyAndSignature(RawBytes& result,
                                          const RawBytes& messageToSig) {
   // Add pubkey and signature before chainid + message body
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   RawBytes tmp;
   m_selfKey.second.Serialize(tmp, 0);
 
@@ -844,15 +717,10 @@ void RumorManager::AppendKeyAndSignature(RawBytes& result,
   sig.Serialize(tmp, PUB_KEY_SIZE);
 
   result.insert(result.end(), tmp.begin(), tmp.end());
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 void RumorManager::SendMessage(const Peer& toPeer,
                                const RRS::Message& message) {
-  //LOG_MARKER();
-  auto start0 = std::chrono::steady_clock::now();
   zil::local::variables.AddSendMessage(1);
 
   // Add round and type to outgoing message
@@ -927,19 +795,11 @@ void RumorManager::SendMessage(const Peer& toPeer,
         std::chrono::milliseconds(SIMULATED_NETWORK_DELAY_IN_MS));
   }
 
-  auto start1 = std::chrono::steady_clock::now();
-
   P2PComm::GetInstance().SendMessage(toPeer, cmd, zil::p2p::START_BYTE_GOSSIP);
-
-  if (since(start1).count() > 1000 || since(start0).count() > 1000) {
-    LOG_GENERAL(WARNING, "Time to wait, rum send0: " << since(start0).count() << " ms");
-    LOG_GENERAL(WARNING, "Time to wait, rum send1: " << since(start1).count() << " ms");
-  }
 }
 
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages) {
-  //LOG_MARKER();
   zil::local::variables.AddSendMessage(1);
   for (auto& k : messages) {
     SendMessage(toPeer, k);
@@ -952,8 +812,6 @@ const RumorManager::RumorIdRumorBimap& RumorManager::rumors() const {
 }
 
 void RumorManager::PrintStatistics() {
-  //LOG_MARKER();
-  auto startx = std::chrono::steady_clock::now();
   // we use hash of message to uniquely identify message across different nodes
   // in network.
   for (const auto& i : m_rumorHolder->rumorsMap()) {
@@ -971,15 +829,9 @@ void RumorManager::PrintStatistics() {
                                       << state);
     }
   }
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
-  }
 }
 
 void RumorManager::CleanUp() {
-  auto startx = std::chrono::steady_clock::now();
-  //LOG_MARKER();
   int count = 0;
   auto now = std::chrono::high_resolution_clock::now();
   while (!m_rumorRawMsgTimestamp.empty()) {
@@ -1003,9 +855,5 @@ void RumorManager::CleanUp() {
   }
   if (count != 0) {
     LOG_GENERAL(INFO, "Cleaned " << count << " messages");
-  }
-
-  if(since(startx).count() > 1000) {
-    LOG_GENERAL(WARNING, "Long time waiting for mutex: " << since(startx).count() << " ms");
   }
 }

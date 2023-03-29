@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 15,
-  "iteration": 1679944224504,
+  "iteration": 1680088540224,
   "links": [],
   "panels": [
     {
@@ -1368,7 +1368,7 @@
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "v880-rehearsal-.*",
           "value": "v880-rehearsal-.*"
         },
@@ -1389,7 +1389,7 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},

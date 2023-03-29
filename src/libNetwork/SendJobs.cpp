@@ -81,14 +81,6 @@ class SendJobsVariables {
       });
     }
   }
-
-  std::mutex m_mutexTemp;
-  struct Connections {
-    int failures = 0;
-    int successes = 0;
-  };
-  int iterations = 0;
-  std::map<std::string, Connections> sendJobsConnectionList;
 };
 
 static SendJobsVariables variables{};
@@ -476,13 +468,13 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
-    //if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-    //  LOG_GENERAL(INFO,
-    //              "Ignoring blacklisted peer " <<
-    //              peer.GetPrintableIPAddress()
-    //              << "allow relaxed blacklist " << allow_relaxed_blacklist);
-    //  return;
-    //}
+    if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
+      LOG_GENERAL(INFO,
+                  "Ignoring blacklisted peer " <<
+                  peer.GetPrintableIPAddress()
+                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
+      return;
+    }
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
@@ -538,40 +530,6 @@ class SendJobsImpl : public SendJobs,
     // explicit Close() because shared_ptr may be reused in async operation
     it->second->Close();
     m_activePeers.erase(it);
-
-    auto printableIP = peer.GetPrintableIPAddress();
-    auto succ = !ec;
-
-    std::thread t([succ, printableIP ] {
-
-      auto &variables = zil::local::variables;
-
-      std::lock_guard<std::mutex> g(variables.m_mutexTemp);
-      auto itX = variables.sendJobsConnectionList.find(printableIP);
-
-      if (itX == variables.sendJobsConnectionList.end()) {
-        variables.sendJobsConnectionList[printableIP] = zil::local::SendJobsVariables::Connections{};
-        itX = variables.sendJobsConnectionList.find(printableIP);
-      }
-
-      if(succ) {
-        itX->second.successes = itX->second.successes + 1;
-      } else {
-        itX->second.failures = itX->second.failures + 1;
-      }
-
-      variables.iterations++;
-
-      if(variables.iterations % 100 == 0) {
-      //if(true) {
-        LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << variables.iterations << " iterations");
-        for(auto const& itt : variables.sendJobsConnectionList) {
-          LOG_GENERAL(INFO, "SendJobsImpl::OnPeerQueueFinished() - " << itt.first << " - " << itt.second.successes << " successes, " << itt.second.failures << " failures");
-        }
-      }
-    });
-
-    t.detach();
   }
 
   void WorkerThread() {
