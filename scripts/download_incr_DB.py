@@ -63,6 +63,7 @@ def getURL():
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
+        print("UploadLock() request gives {response.status_code}")
 	if response.status_code == 200:
 		return True
 	return False
@@ -314,7 +315,7 @@ def calculate_multipart_etag(source_path, chunk_size):
 		new_etag = '""'
 
 	return new_etag
-				
+
 def run():
 	dir_name = STORAGE_PATH + "/historical-data"
 	main_persistence = STORAGE_PATH + "/persistence"
@@ -346,6 +347,7 @@ def run():
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
 				GetEntirePersistenceFromS3()
 			else:
+                                print("Waiting for upload lock")
 				time.sleep(1)
 				continue
 

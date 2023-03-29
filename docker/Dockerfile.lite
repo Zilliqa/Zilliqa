@@ -82,7 +82,7 @@ RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
   && rm /usr/bin/pip \
   && ln -s /usr/bin/pip3 /usr/bin/pip
 
-RUN mkdir -p /scilla/0 /zilliqa/scripts
+RUN mkdir -p /scilla/0 /zilliqa/scripts /etc/zilliqa
 
 COPY _localdev/scilla/bin /scilla/0/bin
 COPY _localdev/scilla/stdlib /scilla/0/src/stdlib
