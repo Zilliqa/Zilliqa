@@ -45,6 +45,18 @@ jobs:
       with:
         fetch-depth: 0
         ref: ${{ steps.checkout-branch.outputs.branch }}
+    - name: Check Pull Request
+      run: |
+        base_branch=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+        feature_branch=$(echo "${{ github.ref }}" | sed 's|.*/||')
+        pull_requests=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/pulls?state=open | jq -r ".[] | select(.base.ref == \"$base_branch\" and .head.ref == \"$feature_branch\") | .html_url")
+
+        if [ -n "$pull_requests" ]; then
+          echo "There is an open pull request from the current feature branch to the default branch"
+        else
+          echo "There is no open pull request from the current feature branch to the default branch"
+        fi
+      shell: bash
     - name: Configure AWS Credentials
       uses: Zilliqa/gh-actions-workflows/actions/configure-aws-credentials@v1
       with:
