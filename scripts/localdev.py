@@ -414,7 +414,7 @@ def write_testnet_configuration(config, tag_name, testnet_name):
                 "--k8s-logs", "true",
                 "--local-repo", f"{minikube_ip}:5000",
                 "--localdev", "true",
-                "--nominated-genesis-file", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
+                "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
                 "-n", "20",
                 "-d", "5",
                 "-l", "1",
@@ -661,7 +661,7 @@ def restart_ingress_cmd(ctx):
     """Restart the k8s ingress as it sometimes sticks connections"""
     config = get_config(ctx)
     restart_ingress(config)
-    
+
 @click.command("reup")
 @click.pass_context
 def reup_cmd(ctx):
@@ -701,7 +701,7 @@ def log_snapshot_cmd(ctx, recency):
     """
     config = get_config(ctx)
     log_snapshot(config, recency)
-    
+
 @click.command("which-pod-said")
 @click.pass_context
 @click.argument("nodetype")
@@ -834,7 +834,7 @@ def cli(ctx):
 
     There are also commands to collect logs, and one to restart the
     ingress, since it sometimes sticks.
-    
+
     WARNING: Only tested so far on Ubuntu 22.04 . OS X MAY NOT WORK.
 
     """

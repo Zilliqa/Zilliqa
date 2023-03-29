@@ -128,7 +128,6 @@ def SetCurrentTxBlkNum(txBlkNum):
 	logging.info("[" + str(datetime.datetime.now()) + "] SetCurrentTxBlkNum:" + txBlkNum + " for uploading process")	
 
 def SetLock():
-        print("SetLock")
 	Path(".lock").touch()
 	bashCommand = awsCli() + " s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -468,7 +467,6 @@ def main():
 	blockNum = -1
 	global start
 	start = (int)(time.time()) # script started. set `start` time being inactive
-        print("Running upload_incr_DB .. ")
 	while True:
 		try:
 			if shallStartFlag == False:

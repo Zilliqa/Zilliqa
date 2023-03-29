@@ -614,8 +614,6 @@ Json::Value LookupServer::CreateTransaction(
     if (_json.isMember("priority")) {
       priority = _json["priority"].asBool();
     }
-    LOG_GENERAL(INFO, "RRW1: Creating transaction to shard " << shard << " with type " <<
-                Transaction::GetTransactionType(tx));
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         if (ARCHIVAL_LOOKUP) {
@@ -2393,9 +2391,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   if (!tx.IsEth() && scType == Transaction::CONTRACT_CREATION) {
     // Scilla smart CONTRACT_CREATION call should be executed in shard rather
     // than DS.
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    }
+    mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
     resultStr = "Contract Creation txn, sent to shard";
   } else {
     // CONTRACT_CALL - scilla and EVM , CONTRACT_CREATION - EVM

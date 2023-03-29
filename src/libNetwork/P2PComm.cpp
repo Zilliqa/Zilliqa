@@ -45,8 +45,6 @@
 #include "common/Messages.h"
 #include "libMetrics/Api.h"
 
-#define CONN_BACKLOG 4
-
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -992,7 +990,7 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
 
   struct evconnlistener* listener1 = evconnlistener_new_bind(
       m_base, AcceptConnectionCallback, nullptr,
-      LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, CONN_BACKLOG,
+      LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
       (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
   if (listener1 == NULL) {
     LOG_GENERAL(FATAL, "evconnlistener_new_bind failure.");
@@ -1009,7 +1007,7 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     listener2 = evconnlistener_new_bind(
         m_base, AcceptCbServerSeed, nullptr,
-        LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, CONN_BACKLOG,
+        LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
         (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
 
     if (listener2 == NULL) {
