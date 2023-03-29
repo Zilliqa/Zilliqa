@@ -47,7 +47,7 @@ jobs:
         ref: ${{ steps.checkout-branch.outputs.branch }}
     - name: Check Pull Request
       run: |
-        pull_requests=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/pulls?state=open | jq -r ".[] | select(.base.ref == \"$base_branch\" and .head.ref == \"${{ github.ref_name }}\") | .html_url")
+        pull_requests=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/Zilliqa/Zilliqa/pulls?state=open&per_page=100&base=${{ github.event.repository.default_branch }}&head=${{ github.event.repository.owner.login }}:${{ github.ref_name }}" | jq -r ".[].url"
 
         if [ -n "$pull_requests" ]; then
           echo "There is an open pull request from the current feature branch to the default branch"
