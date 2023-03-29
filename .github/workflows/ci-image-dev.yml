@@ -10,9 +10,6 @@ on:
   push:
     branches-ignore:
       - 'release/**'
-  pull_request:
-    branches:
-      - 'master'
 
 jobs:
   push-to-ecr:
@@ -29,11 +26,24 @@ jobs:
         docker system df
         docker system prune -a -f --filter "until=336h"
         docker system df
-    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+    - name: 'Checkout scm'
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
         ref: ${{ inputs.commitOrTag }}
+    - name: Check Pull Request open to the default branch
+      id: is-pr-open
+      run: |
+        pull_requests=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/Zilliqa/Zilliqa/pulls?state=open&per_page=100&base=${{ github.event.repository.default_branch }}&head=${{ github.event.repository.owner.login }}:${{ github.ref_name }}" | jq -r ".[].url")
+
+        if [ -n "$pull_requests" ]; then
+          echo "There is an open pull request from the current feature branch to the default branch"
+          echo "result=true" >> $GITHUB_OUTPUT
+        else
+          echo "There is no open pull request from the current feature branch to the default branch"
+          echo "result=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
     - name: Configure AWS Credentials
       uses: Zilliqa/gh-actions-workflows/actions/configure-aws-credentials@v1
       with:
@@ -52,6 +62,6 @@ jobs:
       run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
     - name: Push Docker images
-      if: github.event_name == 'pull_request' || github.ref_name == 'master'
+      if: steps.is-pr-open.outputs.result == 'true' || github.ref_name == 'master'
       run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash
