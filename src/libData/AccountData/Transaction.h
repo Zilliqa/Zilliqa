@@ -23,6 +23,7 @@
 #include "common/Constants.h"
 #include "common/Hashes.h"
 #include "common/Serializable.h"
+#include "libUtils/Logger.h"
 
 struct TransactionCoreInfo {
   TransactionCoreInfo() = default;
@@ -195,6 +196,8 @@ class Transaction : public SerializableDataBlock {
   static ContractType GetTransactionType(const Transaction& tx) {
     auto const nullAddr = IsNullAddress(tx.GetToAddr());
 
+    LOG_GENERAL(INFO, "RRW2: Data Empty? " << tx.GetData().empty() <<
+                "Code empty?" << tx.GetCode().empty() << " nulladdr?  " << nullAddr);
     if ((!tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
       return CONTRACT_CALL;
     }

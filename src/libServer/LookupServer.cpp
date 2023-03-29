@@ -614,6 +614,8 @@ Json::Value LookupServer::CreateTransaction(
     if (_json.isMember("priority")) {
       priority = _json["priority"].asBool();
     }
+    LOG_GENERAL(INFO, "RRW1: Creating transaction to shard " << shard << " with type " <<
+                Transaction::GetTransactionType(tx));
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         if (ARCHIVAL_LOOKUP) {

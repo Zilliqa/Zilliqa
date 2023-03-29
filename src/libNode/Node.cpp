@@ -2025,7 +2025,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             rejectTxns.emplace_back(status.second, status.first);
           }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to "
+                                   << " rejected by pool due to ( " << (int)status.first << ") "
                                    << status.first);
         }
       } else {
