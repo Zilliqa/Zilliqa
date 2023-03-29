@@ -231,6 +231,7 @@ def start_k8s_cmd(ctx):
     """
     config = get_config(ctx)
     start_k8s(config)
+    pull_containers(config)
 
 @click.command("setup-k8s")
 @click.pass_context
