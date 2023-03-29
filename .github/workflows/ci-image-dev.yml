@@ -47,9 +47,7 @@ jobs:
         ref: ${{ steps.checkout-branch.outputs.branch }}
     - name: Check Pull Request
       run: |
-        base_branch=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
-        feature_branch=$(echo "${{ github.ref }}" | sed 's|.*/||')
-        pull_requests=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/pulls?state=open | jq -r ".[] | select(.base.ref == \"$base_branch\" and .head.ref == \"$feature_branch\") | .html_url")
+        pull_requests=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/pulls?state=open | jq -r ".[] | select(.base.ref == \"$base_branch\" and .head.ref == \"${{ github.ref_name }}\") | .html_url")
 
         if [ -n "$pull_requests" ]; then
           echo "There is an open pull request from the current feature branch to the default branch"
@@ -78,3 +76,10 @@ jobs:
       if: github.event_name == 'pull_request' || github.ref_name == 'master'
       run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash
+
+# curl -s -H "Authorization: $GITHUB_TOKEN" "https://api.github.com/repos/Zilliqa/Zilliqa/pulls?state=open"
+
+# curl -s -H "Authorization: $GITHUB_TOKEN" "https://api.github.com/repos/Zilliqa/Zilliqa/pulls?state=open&base=master&head=networking_fix" | jq -r ".[] | select(.base.ref == \"master\" and .number == \"3527\") | .url"
+
+
+# curl -s -H "Authorization: $GITHUB_TOKEN" "https://api.github.com/repos/Zilliqa/Zilliqa/pulls?state=open&per_page=100&base=master&head=networking_fix" | jq -r ".[].url"
