@@ -34,8 +34,10 @@ jobs:
       run: |
         if [ "${{ inputs.commitOrTag }}" = "" ]; then
           echo "branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.pull_request.head.ref }}"
         else
           echo "branch=${{ inputs.commitOrTag }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ inputs.commitOrTag }}"
         fi
       shell: bash
     - name: 'Checkout scm'
