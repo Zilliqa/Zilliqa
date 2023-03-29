@@ -63,7 +63,6 @@ def getURL():
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
-        print("UploadLock() request gives {response.status_code}")
 	if response.status_code == 200:
 		return True
 	return False
@@ -347,7 +346,6 @@ def run():
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
 				GetEntirePersistenceFromS3()
 			else:
-                                print("Waiting for upload lock")
 				time.sleep(1)
 				continue
 
