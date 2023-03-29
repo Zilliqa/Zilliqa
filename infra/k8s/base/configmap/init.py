@@ -639,6 +639,9 @@ def create_start_sh(args):
 
     start_sh = [
         '#!/bin/bash',
+        'ulimit -c unlimited',
+        'echo wheeeee',
+        'sysctl -w kernel.core_pattern=core.%p.%s.%c.%d.%P',
         'cp /zilliqa/scripts/upload_incr_DB.py /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         'cp /zilliqa/scripts/download_incr_DB.py /run/zilliqa/download_incr_DB.py',
         'chmod u+x /run/zilliqa/download_incr_DB.py',
