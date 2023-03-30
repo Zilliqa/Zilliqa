@@ -10,8 +10,9 @@ on:
   push:
     branches-ignore:
       - 'release/**'
-    paths-ignore:
-    - 'Jenkinsfile'
+  pull_request:
+    branches:
+      - 'master'
 
 jobs:
   push-to-ecr:
@@ -21,6 +22,13 @@ jobs:
     name: build
     runs-on: docker
     steps:
+    - name: Clean environment
+      # Prune the Docker resources created over 10 days before the current execution (change the value for a more/less aggressive cleanup).
+      shell: bash
+      run: |
+        docker system df
+        docker system prune -a -f --filter "until=336h"
+        docker system df
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'
       uses: actions/checkout@v3
       with:
@@ -44,5 +52,6 @@ jobs:
       run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
     - name: Push Docker images
+      if: github.event_name == 'pull_request' || github.ref_name == 'master'
       run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash

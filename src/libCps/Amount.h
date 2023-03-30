@@ -21,27 +21,40 @@
 #include "common/BaseType.h"
 #include "common/Constants.h"
 
+#include <variant>
+
 namespace libCps {
 class Amount final {
  public:
-  Amount() : m_value(0) {}
-  static Amount fromWei(const uint256_t& wei) { return Amount{wei}; }
-  static Amount fromQa(const uint256_t& qa) {
+  constexpr Amount() : m_value(uint256_t{0}) {}
+  constexpr static Amount fromWei(const uint256_t& wei) { return Amount{wei}; }
+  constexpr static Amount fromQa(const uint256_t& qa) {
     return Amount{qa * EVM_ZIL_SCALING_FACTOR};
   }
-  uint256_t toWei() const { return m_value; }
-  uint128_t toQa() const { return uint128_t{m_value / EVM_ZIL_SCALING_FACTOR}; }
-  bool isZero() const { return m_value.is_zero(); }
-  auto operator<=(const Amount& other) const {
-    return m_value <= other.m_value;
+  constexpr uint256_t toWei() const {
+    if (std::holds_alternative<uint128_t>(m_value)) {
+      return uint256_t{std::get<uint128_t>(m_value) * EVM_ZIL_SCALING_FACTOR};
+    }
+    return std::get<uint256_t>(m_value);
   }
-  auto operator>(const Amount& other) const { return !(*this <= other); }
+  constexpr uint128_t toQa() const {
+    if (std::holds_alternative<uint256_t>(m_value)) {
+      return uint128_t{std::get<uint256_t>(m_value) / EVM_ZIL_SCALING_FACTOR};
+    }
+    return std::get<uint128_t>(m_value);
+  }
+  constexpr auto operator<=(const Amount& other) const {
+    return toQa() <= other.toQa();
+  }
+  constexpr auto operator>(const Amount& other) const {
+    return !(*this <= other);
+  }
 
  private:
-  Amount(const uint256_t& wei) : m_value(wei){};
+  constexpr Amount(const uint256_t& wei) : m_value(wei){};
 
  private:
-  uint256_t m_value;
+  std::variant<uint128_t, uint256_t> m_value;
 };
 }  // namespace libCps
 
