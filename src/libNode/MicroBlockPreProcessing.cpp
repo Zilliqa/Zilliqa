@@ -41,6 +41,37 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+namespace zil {
+namespace local {
+
+class MicroBlockPreProcessingVariables {
+  int isShardLeader = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetIsShardLeader(int val) {
+    Init();
+    isShardLeader = val;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.microblockpre.gauge",
+                                          "Consensus microblock pre", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
+      });
+    }
+  }
+};
+
+static MicroBlockPreProcessingVariables variables{};
+
+}  // namespace local
+}  // namespace zil
+
 bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1102,6 +1133,8 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
 bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   LOG_MARKER();
 
+  zil::local::variables.SetIsShardLeader(1);
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::RunConsensusOnMicroBlockWhenShardLeader not "
@@ -1220,6 +1253,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
       return false;
     }
 
+    LOG_GENERAL(WARNING, "Announcing new microblock!");
     return Messenger::SetNodeMicroBlockAnnouncement(
         newAnnouncement, offset, consensusID, blockNumber, blockHash, leaderID,
         leaderKey, *m_microblock, messageToCosign);
@@ -1256,6 +1290,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
 bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   LOG_MARKER();
+
+  zil::local::variables.SetIsShardLeader(0);
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1329,8 +1365,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
 
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    LOG_GENERAL(INFO, "I am shard backup");
-    LOG_GENERAL(INFO, "Leader IP    = "
+    LOG_GENERAL(WARNING, "I am shard backup");
+    LOG_GENERAL(WARNING, "Leader IP    = "
                           << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     for (const auto& it : *m_myShardMembers) {

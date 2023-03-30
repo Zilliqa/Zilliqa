@@ -55,6 +55,93 @@ const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_ROUND_LEN = 4;
 const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
 
+namespace zil {
+namespace local {
+
+class P2PVariables {
+  std::atomic<int> broadcastReceived = 0;
+  std::atomic<int> gossipReceived = 0;
+  std::atomic<int> normalReceived = 0;
+  std::atomic<int> gossipReceivedForward = 0;
+  std::atomic<int> eventCallback = 0;
+  std::atomic<int> eventCallbackTooFewBytes = 0;
+  std::atomic<int> eventCallbackFailure = 0;
+  std::atomic<int> eventCallbackServerSeed = 0;
+  std::atomic<int> newConnections = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void AddBroadcastReceived(int count) {
+    Init();
+    broadcastReceived += count;
+  }
+
+  void AddGossipReceived(int count) {
+    Init();
+    gossipReceived += count;
+  }
+
+  void AddNormalReceived(int count) {
+    Init();
+    normalReceived += count;
+  }
+
+  void AddGossipReceivedForward(int count) {
+    Init();
+    gossipReceivedForward += count;
+  }
+
+  void AddEventCallback(int count) {
+    Init();
+    eventCallback += count;
+  }
+
+  void AddEventCallbackTooFewBytes(int count) {
+    Init();
+    eventCallbackTooFewBytes += count;
+  }
+
+  void AddEventCallbackFailure(int count) {
+    Init();
+    eventCallbackFailure += count;
+  }
+
+  void AddEventCbServerSeed(int count) {
+    Init();
+    eventCallbackServerSeed += count;
+  }
+
+  void AddNewConnections(int count) {
+    Init();
+    newConnections += count;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "p2p.gauge",
+                                          "P2P metrics", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(broadcastReceived.load(), {{"counter", "BroadcastReceived"}});
+        result.Set(gossipReceived.load(), {{"counter", "GossipReceived"}});
+        result.Set(normalReceived.load(), {{"counter", "NormalReceived"}});
+        result.Set(gossipReceivedForward.load(), {{"counter", "GossipReceivedForward"}});
+        result.Set(eventCallback.load(), {{"counter", "EventCallback"}});
+        result.Set(eventCallbackTooFewBytes.load(), {{"counter", "EventCallbackTooFewBytes"}});
+        result.Set(eventCallbackFailure.load(), {{"counter", "EventCallbackFailure"}});
+        result.Set(eventCallbackServerSeed.load(), {{"counter", "EventCallbackServerSeed"}});
+        result.Set(newConnections.load(), {{"counter", "NewConnections"}});
+      });
+    }
+  }
+};
+
+static P2PVariables variables{};
+
+}  // namespace local
+}  // namespace zil
+
 zil::p2p::Dispatcher P2PComm::m_dispatcher;
 std::mutex P2PComm::m_mutexPeerConnectionCount;
 std::map<uint128_t, uint16_t> P2PComm::m_peerConnectionCount;
@@ -143,6 +230,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
 
   // Check if this message has been received before
   bool found = false;
+  zil::local::variables.AddBroadcastReceived(1);
   {
     lock_guard<mutex> guard(p2p.m_broadcastHashesMutex);
 
@@ -187,6 +275,8 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
                                           std::string& traceInfo) {
   unsigned char gossipMsgTyp = message.at(0);
 
+  zil::local::variables.AddGossipReceived(1);
+
   const uint32_t gossipMsgRound = (message.at(GOSSIP_MSGTYPE_LEN) << 24) +
                                   (message.at(GOSSIP_MSGTYPE_LEN + 1) << 16) +
                                   (message.at(GOSSIP_MSGTYPE_LEN + 2) << 8) +
@@ -207,6 +297,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
   P2PComm& p2p = P2PComm::GetInstance();
   if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
     LOG_GENERAL(INFO, "Gossip type FORWARD from " << from);
+    zil::local::variables.AddGossipReceivedForward(1);
 
     if (p2p.SpreadForeignRumor(rumor_message)) {
       // skip the keys and signature.
@@ -317,6 +408,8 @@ void P2PComm::ClearPeerConnectionCount() {
 
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
+
+  zil::local::variables.AddEventCallback(1);
   struct AutoClose {
     ~AutoClose() {
       if (bev) {
@@ -355,6 +448,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   if (len < zil::p2p::HDR_LEN) {
     // not enough bytes received, wait for the next callback
     auto_close.bev = nullptr;
+    zil::local::variables.AddEventCallbackTooFewBytes(1);
     return;
   }
 
@@ -396,6 +490,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     LOG_PAYLOAD(INFO, "Incoming normal " << from, result.message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
+    zil::local::variables.AddNormalReceived(1);
     // Queue the message
     m_dispatcher(MakeMsg(std::move(result.message), from,
                          zil::p2p::START_BYTE_NORMAL, result.traceInfo));
@@ -419,18 +514,21 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
           "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
           "(messageLength = "
               << result.message.size() << ")");
+      zil::local::variables.AddEventCallbackFailure(1);
       return;
     }
 
     ProcessGossipMsg(result.message, from, result.traceInfo);
   } else {
     // Unexpected start byte. Drop this message
+    zil::local::variables.AddEventCallbackFailure(1);
     LOG_GENERAL(WARNING, "Incorrect start byte " << result.startByte);
   }
 }
 
 void P2PComm::EventCbServerSeed(struct bufferevent* bev, short events,
                                 [[gnu::unused]] void* ctx) {
+  zil::local::variables.AddEventCbServerSeed(1);
   int fd = bufferevent_getfd(bev);
   struct sockaddr_in cli_addr {};
   socklen_t addr_size = sizeof(struct sockaddr_in);
@@ -618,6 +716,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
+  zil::local::variables.AddNewConnections(1);
   LOG_GENERAL(DEBUG, "Connection from " << from);
 
   if (Blacklist::GetInstance().Exist(from.m_ipAddress,
