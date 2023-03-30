@@ -39,8 +39,8 @@ class EthRpcMethods {
                              "Calls to ethereum API", "Calls"};
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
-      bool priority, unsigned int shard, const Transaction& tx,
-      unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
+      const Transaction& tx, unsigned int num_shards, bool toAccountExist,
+      bool toAccountIsContract);
 
   CreateTransactionTargetFunc m_createTransactionTarget =
       [this](const Transaction& tx, uint32_t shardId) -> bool {
