@@ -3,7 +3,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-describe("Scilla HelloWorld contract", function () {
+describe("Scilla Fungible token contract", function () {
   let contract: ScillaContract;
   let aliceAddress: string;
   let bobAddress: string;
@@ -57,11 +57,13 @@ describe("Scilla HelloWorld contract", function () {
   });
 
   it("Should be possible to transfer", async function () {
-    // let privkey = '07e0b1d1870a0ba1b60311323cb9c198d6f6193b2219381c189afab3f5ac41a9';
-    // parallelizer.zilliqaSetup.zilliqa.wallet.addByPrivateKey(privkey);
     const address = "0xBFe2445408C51CD8Ee6727541195b02c891109ee";
 
-    let x = await contract.Transfer(address, 10);
+    try {
+      await contract.Transfer(address, 10);
+    } catch (error) {
+      console.log("Error: ", error)
+    }
 
     expect(await getBalance(address)).to.be.eq(10)
   });
