@@ -2018,7 +2018,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
     zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
-    //zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
   }
 
   {
