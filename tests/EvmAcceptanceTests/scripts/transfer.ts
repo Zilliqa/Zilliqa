@@ -1,5 +1,6 @@
 import { initZilliqa } from "hardhat-scilla-plugin";
 import hre, { network } from "hardhat";
+import { expect } from "chai";
 
 const {BN, Long, bytes, units} = require('@zilliqa-js/util');
 const {Zilliqa} = require('@zilliqa-js/zilliqa');
@@ -12,7 +13,7 @@ const {
 async function main() {
     // Deploy contract
 
-    const NETWORK = "ISO";
+    const NETWORK = "DEVNET";
 
     let privkey;
     let hostname: string;
@@ -42,8 +43,12 @@ async function main() {
     const balance = await zilliqaSetup.zilliqa.blockchain.getBalance(address);
     console.log(`Your balance is ${balance.result.balance}`)
 
-    await contract.Transfer("0xBFe2445408C51CD8Ee6727541195b02c891109ee", 100);
+    const userAddress = "0xBFe2445408C51CD8Ee6727541195b02c891109ee"
+    await contract.Transfer(userAddress, 100);
+    const balances = await contract.balances();
     console.log(await contract.balances())
+    expect(Number(balances[userAddress.toLowerCase()])).to.be.eq(100);
+
     // const ftAddr = toBech32Address("509ae6e5d91cee3c6571dcd04aa08288a29d563a");
     // try {
     //     // const contract = zilliqa.contracts.at(ftAddr);
