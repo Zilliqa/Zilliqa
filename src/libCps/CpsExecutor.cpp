@@ -116,6 +116,8 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     const auto gasRemainedCore = clientContext.gasLimit - NORMAL_TRAN_GAS;
     RefundGas(clientContext, gasRemainedCore);
     mAccountStore.CommitAtomics();
+    mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
+
     return {TxnStatus::NOT_PRESENT, true, {}};
   }
 
