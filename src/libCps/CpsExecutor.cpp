@@ -166,6 +166,8 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     mAccountStore.CommitAtomics();
   }
 
+  // Increase nonce regardless of processing result
+  mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
   return execResult;
 }
 
@@ -241,6 +243,10 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     RefundGas(clientContext, gasRemainedCore);
     mAccountStore.CommitAtomics();
   }
+  if (!isEstimate && !isEthCall) {
+    // Increase nonce regardless of processing result for transaction calls
+    mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
+  }
   // Always mark run as successful in estimate mode
   if (isEstimate) {
     if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
@@ -288,8 +294,6 @@ CpsExecuteResult CpsExecutor::processLoop(const CpsContext& context) {
     }
   }
 
-  // Increase nonce regardless of processing result
-  mAccountStore.IncreaseNonceForAccountAtomic(context.origSender);
   return runResult;
 }
 
