@@ -108,6 +108,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     if (!mAccountStore.TransferBalanceAtomic(
             clientContext.origin, clientContext.recipient,
             Amount::fromQa(clientContext.amount))) {
+      mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
     mTxReceipt.SetCumGas(NORMAL_TRAN_GAS);
@@ -117,7 +118,6 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     RefundGas(clientContext, gasRemainedCore);
     mAccountStore.CommitAtomics();
     mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
-
     return {TxnStatus::NOT_PRESENT, true, {}};
   }
 
