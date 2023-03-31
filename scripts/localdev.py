@@ -444,7 +444,12 @@ def sanitise_output(some_output):
     if some_output is None:
         return None
     else:
-        return some_output.decode('utf-8').strip()
+        try:
+            return some_output.decode('utf-8').strip()
+        except:
+            # Not UTF-8! Let's try latin-1 as a random codec that accepts
+            # any code sequence.
+            return some_output.decode('latin_1').strip()
 
 def get_mitm_instances(testnet_name):
     return { "explorer" : { "host" : f"{testnet_name}-explorer.localdomain", "port" : 5300 },
