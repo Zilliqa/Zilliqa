@@ -253,7 +253,13 @@ bool AccountStoreSC::UpdateAccounts(
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
-    const auto cpsRunResult = cpsExecutor.RunFromScilla(scillaContext);
+    auto cpsRunResult = cpsExecutor.RunFromScilla(scillaContext);
+    // Scilla runtime could fail but such transactions are not considered as
+    // failed
+    if (!cpsRunResult.isSuccess &&
+        cpsRunResult.txnStatus == TxnStatus::NOT_PRESENT) {
+      cpsRunResult.isSuccess = true;
+    }
     error_code = cpsRunResult.txnStatus;
     return cpsRunResult.isSuccess;
   }

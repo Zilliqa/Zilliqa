@@ -59,6 +59,7 @@ struct CpsAccountStoreInterface {
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;
   virtual void IncreaseNonceForAccountAtomic(const Address& account) = 0;
+  virtual void IncreaseNonceForAccount(const Address& address) = 0;
   virtual uint64_t GetNonceForAccountAtomic(const Address& account) = 0;
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
