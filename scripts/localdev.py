@@ -33,6 +33,7 @@ import random
 import time
 import string
 import click
+import datetime
 
 ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
@@ -217,6 +218,21 @@ systemctl restart systemd-resolved
     to your /etc/hosts.
 """)
 
+
+def start_k8s(config):
+    print("Starting minikube .. ")
+    run_or_die(config, ["minikube", "start", "--driver", "kvm2"])
+
+@click.command("start-k8s")
+@click.pass_context
+def start_k8s_cmd(ctx):
+    """
+    Restart minikube after a reboot or after you've stopped it for some other reason
+    """
+    config = get_config(ctx)
+    start_k8s(config)
+    pull_containers(config)
+
 @click.command("setup-k8s")
 @click.pass_context
 def setup_k8s(ctx):
@@ -327,6 +343,9 @@ def up_cmd(ctx):
     on the API ports.
     """
     config = get_config(ctx)
+    up(config)
+
+def up(config):
     minikube = get_minikube_ip(config)
     tag = gen_tag()
     #tag = "w5fnelo8"
@@ -366,6 +385,9 @@ def wait_for_termination(config):
 def down_cmd(ctx):
     """ Bring the testnet down and stop the proxies """
     config = get_config(ctx)
+    down(config)
+
+def down(config):
     stop_testnet(config, config.testnet_name)
     stop_proxy(config, config.testnet_name)
     wait_for_termination(config)
@@ -392,6 +414,7 @@ def write_testnet_configuration(config, tag_name, testnet_name):
                 "--k8s-logs", "true",
                 "--local-repo", f"{minikube_ip}:5000",
                 "--localdev", "true",
+                "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
                 "-n", "20",
                 "-d", "5",
                 "-l", "1",
@@ -540,6 +563,7 @@ def build_lite(config, tag):
         pass
     src_name = os.path.join(ZILLIQA_DIR, "build", "vcpkg_installed", "x64-linux-dynamic", "lib")
     in_files = glob.glob(src_name + r'/*.so*')
+    print("Copying libraries .. ")
     for f in in_files:
         file_name = os.path.split(f)[1]
         full_tgt = os.path.join(lib_tgt, file_name)
@@ -548,7 +572,8 @@ def build_lite(config, tag):
             shutil.copyfile(f, full_tgt)
             if config.strip_binaries and os.path.isfile(full_tgt):
                 run_or_die(config, ["strip", full_tgt])
-            print(file_name)
+            # Avoid printing too much to stdout - rrw 2023-03-28
+            #print(file_name)
 
     evm_ds_tgt = os.path.join(workspace, "zilliqa", "evm-ds")
     try:
@@ -575,19 +600,48 @@ def build_lite(config, tag):
         shutil.rmtree(workspace)
 
 
-def which_pod_said(config, node_type, recency, what):
-    pod_op = run_or_die(config, ["kubectl",
-                            "get",
-                            "pod",
-                            f"-l type={node_type}",
-                            "-o", "jsonpath={.items[*].metadata.name}" ], capture_output = True)
+def get_pod_names(config, node_type = None):
+    cmd =  ["kubectl",
+            "get",
+            "pod",
+            "-o", "jsonpath={.items[*].metadata.name}" ]
+    if node_type is not None:
+        cmd.append(f"-l type={node_type}")
+    pod_op = run_or_die(config,cmd, capture_output = True)
     pod_names = sanitise_output(pod_op).split()
+    return pod_names
+
+def get_rfc3339_recency(config,recency):
+    recency_num = int(recency)
+    from_date = datetime.datetime.now() - datetime.timedelta(seconds=recency_num)
+    utc_time = from_date.astimezone(datetime.timezone.utc)
+    rfc_time = utc_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    return rfc_time
+
+def log_snapshot(config, recency):
+    pod_names = get_pod_names(config)
+    log_name = "/tmp/" + "".join([random.choice(string.digits) for _ in range(0,10) ])
+    os.makedirs(log_name, 0o755)
+    rfc_time = get_rfc3339_recency(config, recency)
+    for n in pod_names:
+        print(f"..{n}")
+        logs = run_or_die(config, ["kubectl", "logs", f"--since-time={rfc_time}", n],
+                          capture_output = True)
+        logs = sanitise_output(logs)
+        output_file = os.path.join(log_name, f"{n}")
+        with open(output_file, 'w') as f:
+            f.write(logs)
+    print(f"Logs in {log_name}")
+
+def which_pod_said(config, node_type, recency, what):
+    pod_names = get_pod_names(config, node_type)
     expression = re.compile(what)
+    rfc_time = get_rfc3339_recency(config, recency)
     pods_said = [ ]
     print("Pods: {' '.join(pod_names)}")
     for n in pod_names:
         print(f".. {n}")
-        logs = run_or_die(config, ["kubectl","logs", f"--tail={recency}", n ],
+        logs = run_or_die(config, ["kubectl","logs", f"--since-time={rfc_time}", n ],
                           capture_output = True)
         logs = sanitise_output(logs)
         if expression.search(logs):
@@ -596,14 +650,27 @@ def which_pod_said(config, node_type, recency, what):
     print("----")
     print(" ".join(pods_said))
 
+def restart_ingress(config):
+    print("Restarting ingress .. ")
+    run_or_die(config, ["kubectl", "rollout", "restart", "deployment",
+                        "ingress-nginx-controller", "-n", "ingress-nginx" ])
+
+@click.command("restart-ingress")
+@click.pass_context
+def restart_ingress_cmd(ctx):
+    """Restart the k8s ingress as it sometimes sticks connections"""
+    config = get_config(ctx)
+    restart_ingress(config)
+
 @click.command("reup")
 @click.pass_context
 def reup_cmd(ctx):
     """
     Equivalent to `localdev down && localdev up`
     """
-    down_cmd(ctx)
-    up_cmd(ctx)
+    config = get_config(ctx)
+    down(config)
+    up(config)
 
 @click.command("pull-containers")
 @click.pass_context
@@ -625,6 +692,16 @@ def show_proxy_cmd(ctx):
     config = get_config(ctx)
     show_proxy(config, config.testnet_name)
 
+@click.command("log-snapshot")
+@click.pass_context
+@click.argument("recency")
+def log_snapshot_cmd(ctx, recency):
+    """
+    Grab logs for the last RECENCY seconds for all pods and save them in /tmp
+    """
+    config = get_config(ctx)
+    log_snapshot(config, recency)
+
 @click.command("which-pod-said")
 @click.pass_context
 @click.argument("nodetype")
@@ -635,7 +712,7 @@ def which_pod_said_cmd(ctx, nodetype, recency, term):
     Find out which pods said something
 
     NODETYPE is the type of pod (normal, dsguard, .. )
-    RECENCY is the number of lines of history to check (typically 10000)
+    RECENCY is the number of seconds back to check.
     TERM is the term to check for
     """
     config = get_config(ctx)
@@ -701,6 +778,14 @@ def wait_for_termination_cmd(ctx):
     config = get_config(ctx)
     wait_for_termination(config)
 
+@click.command("rfc3339")
+@click.argument("recency")
+@click.pass_context
+def rfc3339_cmd(ctx, recency):
+    """ Print an RFC3339 date RECENCY seconds ago """
+    config = get_config(ctx)
+    print(get_rfc3339_recency(config, recency))
+
 @click.group()
 @click.pass_context
 def debug(ctx):
@@ -716,12 +801,12 @@ debug.add_command(pull_containers_cmd)
 debug.add_command(wait_for_running_pod_cmd)
 debug.add_command(wait_for_termination_cmd)
 debug.add_command(wait_for_local_registry_cmd)
+debug.add_command(rfc3339_cmd)
 
 @click.group()
 @click.pass_context
 def cli(ctx):
-    """
-    localdev.py sets up local development environments for Zilliqa.
+    """localdev.py sets up local development environments for Zilliqa.
 
     It is for internal use only and requires the use of the `testnet`
     private repository. We'll hope to relax this restriction when we can.
@@ -744,7 +829,14 @@ def cli(ctx):
      teardown-k8s    - Bring down k8s
      teardown-podman - On OS X only, tears down podman
 
+    If you reboot your machine, `localdev.py start-k8s` will restart
+    minikube for you.
+
+    There are also commands to collect logs, and one to restart the
+    ingress, since it sometimes sticks.
+
     WARNING: Only tested so far on Ubuntu 22.04 . OS X MAY NOT WORK.
+
     """
     ctx.obj = Config()
     ctx.obj.setup()
@@ -753,6 +845,7 @@ cli.add_command(build_lite_cmd)
 cli.add_command(setup_podman)
 cli.add_command(teardown_podman)
 cli.add_command(setup_k8s)
+cli.add_command(start_k8s_cmd)
 cli.add_command(teardown_k8s)
 cli.add_command(up_cmd)
 cli.add_command(down_cmd)
@@ -761,6 +854,8 @@ cli.add_command(which_pod_said_cmd)
 cli.add_command(debug)
 cli.add_command(pull_containers_cmd)
 cli.add_command(reup_cmd)
+cli.add_command(log_snapshot_cmd)
+cli.add_command(restart_ingress_cmd)
 
 if __name__ == "__main__":
     cli()

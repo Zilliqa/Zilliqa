@@ -314,7 +314,7 @@ def calculate_multipart_etag(source_path, chunk_size):
 		new_etag = '""'
 
 	return new_etag
-				
+
 def run():
 	dir_name = STORAGE_PATH + "/historical-data"
 	main_persistence = STORAGE_PATH + "/persistence"
