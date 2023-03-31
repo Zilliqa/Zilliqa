@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use crate::precompiles::scilla_common::{
     get_contract_addr_and_name, substitute_scilla_type_with_sol,
 };
-use ethabi::decode;
+use ethabi::{Address, Bytes, decode, encode, Uint};
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
 use serde_json::Value;
@@ -60,16 +60,25 @@ pub(crate) fn scilla_read(
     let substate_json =
         backend.susbtate_as_json(code_address, &passed_field_name, &scilla_field.indices);
 
-    let Ok(_substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
+    let Ok(substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Unable to parse substate json")),
         });
     };
 
+    let Ok(result) = extract_substate_from_json(&substate_json, &passed_field_name, &scilla_field) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Unable to extract return value")),
+        });
+    };
+
+    let encoded = encode(&vec![result]);
+
+
     Ok((
         PrecompileOutput {
             output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
-            output: substate_json.to_vec(),
+            output: encoded,
         },
         gas_needed,
     ))
@@ -100,13 +109,13 @@ fn get_field_type_by_name(field_name: &str, fields: &Value) -> Result<String, Pr
 }
 
 fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, PrecompileFailure> {
-    let input_field_type = input_field_type.replace(['(', ')'], "");
+    let input_field_type = input_field_type.replace(['(', ')'], "").replace("Option", "");
 
     let chunks = input_field_type.split_whitespace().collect::<Vec<_>>();
     if chunks.len() == 1 {
         return Ok(ScillaField {
             indices: vec![],
-            ret_type: chunks.last().unwrap().to_string(),
+            ret_type: chunks[0].to_string(),
         });
     }
     // We support only maps and maps of maps
@@ -161,7 +170,7 @@ fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, P
 }
 
 fn extract_substate_from_json(value: &Value, vname: &str, def: &ScillaField) -> Result<Token, PrecompileFailure> {
-    if(value.is_object() || value.get(vname).is_none()) {
+    if !value.is_object() || value.get(vname).is_none() {
         return Ok(Token::Bytes(Vec::new()));
     }
     if def.indices.is_empty() {
@@ -182,6 +191,25 @@ fn extract_substate_from_json(value: &Value, vname: &str, def: &ScillaField) -> 
 }
 
 fn encode_result_type(value: &Value, def: &ScillaField) -> Result<Token, PrecompileFailure> {
+    if value.is_null() || !value.is_string() {
+       return Ok(Token::Bytes(Vec::new()));
+    }
+    let value = value.as_str().unwrap();
+    if def.ret_type.starts_with("Uint") {
+        return Ok(Token::Uint(Uint::from_dec_str(value).unwrap_or_default()));
+    } else if def.ret_type.starts_with("Int") {
+        return Ok(Token::Int(Uint::from_dec_str(value).unwrap_or_default()));
+    }
+    else if def.ret_type.starts_with("String") {
+        return Ok(Token::String(String::from(value)));
+    }
+    else if def.ret_type.eq("ByStr20") {
+        return Ok(Token::Address(Address::from_slice(value.replace("0x", "").as_bytes())));
+    }
+    else if def.ret_type.starts_with("By") {
+        return Ok(Token::Bytes(Bytes::from(value.as_bytes())));
+    }
+
     Ok(Token::Bytes(Vec::new()))
 }
 
