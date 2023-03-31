@@ -1,3 +1,5 @@
+/* Invoke this script with "npx hardhat run scripts/transfer.ts" */
+
 import { initZilliqa } from "hardhat-scilla-plugin";
 import hre, { network } from "hardhat";
 import { expect } from "chai";
@@ -13,23 +15,30 @@ const {
 async function main() {
     // Deploy contract
 
-    const NETWORK = "DEVNET";
+    const NETWORK = process.env.NETWORK || "LOCALDEV";
+
 
     let privkey;
     let hostname: string;
     let chainid;
     if (NETWORK === "DEVNET") {
+      console.log("Using DEVNET");
         privkey = '07e0b1d1870a0ba1b60311323cb9c198d6f6193b2219381c189afab3f5ac41a9';
         hostname = "https://dev-api.zilliqa.com";
         chainid = 333;
-
+    } else if (NETWORK == "LOCALDEV") {
+      console.log("Using LOCALDEV");
+        privkey = '254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004';
+        hostname = "http://localhost:5301";
+        chainid = 1;
     } else /*if (NETWORK === "ISO_SERVER")*/ {
+      console.log("Using ISO_SERVER");
         privkey = '254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004';
         hostname = "http://localhost:5555";
         chainid = 1;
     }
 
-    const zilliqaSetup = initZilliqa(hostname, chainid, [privkey]);
+  const zilliqaSetup = initZilliqa(hostname, chainid, [privkey], 30);
 
     const address = getAddressFromPrivateKey(privkey);
     let contract = await hre.deployScilla("FungibleToken", address, "Saeed's Token", "SDT", 2, 1_000);
@@ -44,7 +53,8 @@ async function main() {
     console.log(`Your balance is ${balance.result.balance}`)
 
     const userAddress = "0xBFe2445408C51CD8Ee6727541195b02c891109ee"
-    await contract.Transfer(userAddress, 100);
+  const result = await contract.Transfer(userAddress, 100);
+  console.log(`Result ${JSON.stringify(result)}`);
     const balances = await contract.balances();
     console.log(await contract.balances())
     expect(Number(balances[userAddress.toLowerCase()])).to.be.eq(100);
