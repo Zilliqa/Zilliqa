@@ -254,7 +254,7 @@ bool AccountStoreSC::UpdateAccounts(
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     auto cpsRunResult = cpsExecutor.RunFromScilla(scillaContext);
-    // Scilla rntime could fail but such transactions are not considered as
+    // Scilla runtime could fail but such transactions are not considered as
     // failed
     if (!cpsRunResult.isSuccess &&
         cpsRunResult.txnStatus == TxnStatus::NOT_PRESENT) {
