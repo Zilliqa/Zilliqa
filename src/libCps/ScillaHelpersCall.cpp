@@ -208,6 +208,9 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
       continue;
     }
 
+    // Transitions are always recorded in the receipt, even if their destination
+    // is an account and therefore doesn't accept them - tested on 8.2.x
+    // - rrw 2023-03-31.
     receipt.AddTransition(scillaArgs.dest, msg, scillaArgs.depth);
 
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -226,6 +229,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     std::vector<Address> extlibs;
     uint32_t scillaVersion;
 
+    // ZIL-5165: Don't fail if the recipient is a user account.
     if (!acc_store.GetContractAuxiliaries(recipient, isLibrary, scillaVersion,
                                           extlibs)) {
       LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
