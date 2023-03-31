@@ -463,7 +463,6 @@ std::string EthRpcMethods::CreateTransactionEth(
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
-    bool priority = false;
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         if (ARCHIVAL_LOOKUP) {
@@ -473,7 +472,7 @@ std::string EthRpcMethods::CreateTransactionEth(
           // A simple transfer to an account that is a contract
           // is processed like a CONTRACT_CALL.
           auto check =
-              CheckContractTxnShards(priority, shard, tx, num_shards,
+              CheckContractTxnShards(tx, num_shards,
                                      toAccountExist, toAccountIsContract);
           mapIndex = check.second;
         }
@@ -481,7 +480,7 @@ std::string EthRpcMethods::CreateTransactionEth(
       case Transaction::ContractType::CONTRACT_CREATION:
       case Transaction::ContractType::CONTRACT_CALL: {
         auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
+            CheckContractTxnShards(tx, num_shards,
                                    toAccountExist, toAccountIsContract);
         mapIndex = check.second;
       } break;
@@ -517,66 +516,10 @@ std::string EthRpcMethods::CreateTransactionEth(
 }
 
 std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
-    bool priority, unsigned int shard, const Transaction &tx,
-    unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-  INC_CALLS(GetInvocationsCounter());
-
-  unsigned int mapIndex = shard;
-  std::string resultStr;
-
-  if (!ENABLE_SC) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "Smart contract is disabled");
-  }
-
-  if (!toAccountExist) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                           "Target account does not exist");
-  } else if (Transaction::GetTransactionType(tx) ==
-                 Transaction::CONTRACT_CALL &&
-             !toAccountIsContract) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                           "Non - contract address called");
-  }
-
-  Address affectedAddress =
-      (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
-          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
-                                           tx.GetVersionIdentifier())
-          : tx.GetToAddr();
-
-  unsigned int to_shard =
-      Transaction::GetShardIndex(affectedAddress, num_shards);
-  // Use m_sendSCCallsToDS as initial setting
-  bool sendToDs = priority || m_sharedMediator.m_lookup->m_sendSCCallsToDS;
-  if ((to_shard == shard) && !sendToDs) {
-    if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding shard maximum limit");
-    }
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    }
-    resultStr =
-        "Contract Creation/Call Txn, Shards Match of the sender "
-        "and receiver";
-  } else {
-    if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(
-          ServerBase::RPC_INVALID_PARAMETER,
-          (boost::format(
-               "txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") %
-           tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT)
-              .str());
-    }
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-    } else {
-      mapIndex = num_shards;
-    }
-    resultStr = "Contract Creation/Call Txn, Sent To Ds";
-  }
-  return make_pair(resultStr, mapIndex);
+    const Transaction &tx, unsigned int num_shards, bool toAccountExist,
+    bool toAccountIsContract) {
+  return m_lookupServer->CheckContractTxnShards(tx, num_shards, toAccountExist,
+                                                toAccountIsContract);
 }
 
 Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {

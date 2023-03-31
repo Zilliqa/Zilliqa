@@ -610,10 +610,6 @@ Json::Value LookupServer::CreateTransaction(
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
-    bool priority = false;
-    if (_json.isMember("priority")) {
-      priority = _json["priority"].asBool();
-    }
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         if (ARCHIVAL_LOOKUP) {
@@ -633,9 +629,8 @@ Json::Value LookupServer::CreateTransaction(
         // We use the same logic for CONTRACT_CREATION and CONTRACT_CALL.
         // TODO(valeryz): once we stop using Zilliqa APIs for EVM, revert
         // to the old behavior where CONTRACT_CREATION can be sharded.
-        auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
+        auto check = CheckContractTxnShards(tx, num_shards, toAccountExist,
+                                            toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1,
@@ -644,9 +639,8 @@ Json::Value LookupServer::CreateTransaction(
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
-        auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
+        auto check = CheckContractTxnShards(tx, num_shards, toAccountExist,
+                                            toAccountIsContract);
         ret["Info"] = check.first;
         mapIndex = check.second;
       } break;
@@ -2359,14 +2353,11 @@ Json::Value LookupServer::GetStateProof(const string& address,
 }
 
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
-    bool priority, unsigned int shard, const Transaction& tx,
+     const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
   TRACE(zil::trace::FilterClass::DEMO);
 
   INC_CALLS(GetCallsCounter());
-
-  unsigned int mapIndex = shard;
-  std::string resultStr;
 
   if (!ENABLE_SC) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -2384,47 +2375,11 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
                            "Non - contract address called");
   }
 
-  Transaction::ContractType scType = Transaction::GetTransactionType(tx);
-
-  // Use m_sendSCCallsToDS as initial setting
-  bool sendToDs = priority || m_sharedMediator.m_lookup->m_sendSCCallsToDS;
-  if (!tx.IsEth() && scType == Transaction::CONTRACT_CREATION) {
-    // Scilla smart CONTRACT_CREATION call should be executed in shard rather
-    // than DS.
-    mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    resultStr = "Contract Creation txn, sent to shard";
+  unsigned int mapIndex;
+  if (ARCHIVAL_LOOKUP) {
+    mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
   } else {
-    // CONTRACT_CALL - scilla and EVM , CONTRACT_CREATION - EVM
-    Address affectedAddress = tx.GetToAddr();
-    unsigned int to_shard =
-        Transaction::GetShardIndex(affectedAddress, num_shards);
-    if ((to_shard == shard) && !sendToDs) {
-      if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
-        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                               "txn gas limit exceeding shard maximum limit");
-      }
-      if (ARCHIVAL_LOOKUP) {
-        mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-      }
-      resultStr =
-          "Contract Creation/Call Txn, Shards Match of the sender "
-          "and receiver";
-    } else {
-      if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-        throw JsonRpcException(
-            ServerBase::RPC_INVALID_PARAMETER,
-            (boost::format(
-                 "txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") %
-             tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT)
-                .str());
-      }
-      if (ARCHIVAL_LOOKUP) {
-        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-      } else {
-        mapIndex = num_shards;
-      }
-      resultStr = "Contract Creation/Call Txn, Sent To Ds";
-    }
+    mapIndex = num_shards;
   }
-  return make_pair(resultStr, mapIndex);
+  return make_pair("Contract Creation/Call Txn, Sent To Ds", mapIndex);
 }

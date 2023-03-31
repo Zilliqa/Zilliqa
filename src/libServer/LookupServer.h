@@ -59,9 +59,6 @@ class LookupServer : public Server,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
 
-  std::pair<std::string, unsigned int> CheckContractTxnShards(
-      bool priority, unsigned int shard, const Transaction& tx,
-      unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
   mp::cpp_dec_float_50 CalculateTotalSupply();
 
  public:
@@ -361,6 +358,10 @@ class LookupServer : public Server,
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();
   std::string GetNodeState();
+
+  std::pair<std::string, unsigned int> CheckContractTxnShards(
+      const Transaction& tx, unsigned int num_shards, bool toAccountExist,
+      bool toAccountIsContract);
 
   static void AddToRecentTransactions(const dev::h256& txhash);
 
