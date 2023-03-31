@@ -22,6 +22,7 @@ describe("Scilla Fungible token contract", function () {
     }
 
     contract = await parallelizer.deployScillaContract("FungibleToken", parallelizer.zilliqaAccountAddress, "Saeed's Token", "SDT", 2, 1_000);
+    null_contract = await parallelizer.deployScillaContract("HelloWorld", parallelizer.zilliqaAccountAddress, "0xBFe2445408C51CD8Ee6727541195b02c891109ee");
     aliceAddress = parallelizer.zilliqaSetup.zilliqa.wallet.create().toLocaleLowerCase()
     bobAddress = parallelizer.zilliqaSetup.zilliqa.wallet.create().toLocaleLowerCase()
     ownerAddress = parallelizer.zilliqaAccountAddress;
@@ -67,4 +68,14 @@ describe("Scilla Fungible token contract", function () {
 
     expect(await getBalance(address)).to.be.eq(10)
   });
+
+  it("Should not be possible to transfer to a contract which does not accept", async function() {
+    try {
+      result = await contract.Transfer(null_contract, 10);
+      console.log(`result ${JSON.serialise(result)}`);
+      expect(result.receipt.accepted).to.be.false;
+    } catch (error) {
+      console.log("Error: ", error);
+    }
+  }
 });

@@ -16,7 +16,7 @@ export class Parallelizer {
   constructor() {
     const privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
-    this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey]);
+    this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey], 30);
   }
 
   async deployContract(contractName: string, ...args: any[]) {

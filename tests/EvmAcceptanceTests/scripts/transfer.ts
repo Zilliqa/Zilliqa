@@ -52,13 +52,15 @@ async function main() {
     const balance = await zilliqaSetup.zilliqa.blockchain.getBalance(address);
     console.log(`Your balance is ${balance.result.balance}`)
 
-    const userAddress = "0xBFe2445408C51CD8Ee6727541195b02c891109ee"
-  const result = await contract.Transfer(userAddress, 100);
-  console.log(`Result ${JSON.stringify(result)}`);
+  //  const userAddress = "0xBFe2445408C51CD8Ee6727541195b02c891109ee"
+    const userAddress = "0xBFe2445408C51CD8Ee6727541195b02c891109ef"
+    const result = await contract.Transfer(userAddress, 100);
+    console.log(`Result ${JSON.stringify(result)}`);
     const balances = await contract.balances();
     console.log(await contract.balances())
     expect(Number(balances[userAddress.toLowerCase()])).to.be.eq(100);
 
+  
     // const ftAddr = toBech32Address("509ae6e5d91cee3c6571dcd04aa08288a29d563a");
     // try {
     //     // const contract = zilliqa.contracts.at(ftAddr);
