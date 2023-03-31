@@ -355,9 +355,8 @@ def up(config):
     start_testnet(config, config.testnet_name)
     start_proxy(config, config.testnet_name)
     show_proxy(config, config.testnet_name)
-    # @TODO automate this - rrw 2023-03-24
-    print("If nginx doesn't respond to http (eg. if localdev-explorer.localdomain hangs), try ")
-    print("kubectl rollout restart -n ingress-nginx deployment/ingress-nginx-controller")
+    restart_ingress(config);
+    print("Ingress restarted; you should be ready to go...");
 
 def start_testnet(config, testnet_name):
     run_or_die(config, ["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
