@@ -204,15 +204,19 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
     }
     LOG_GENERAL(INFO,
                 "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
+    {
+      std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+      m_rejoinRecoverySignal = false;
+    }
     ComposeAndSendGetDirectoryBlocksFromSeed(
         m_mediator.m_blocklinkchain.GetLatestIndex() + 1, true,
         LOOKUP_NODE_MODE);
     GetTxBlockFromSeedNodes(txBlockNum, 0);
     std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-    // TODO: cv fix
-    if (m_mediator.m_lookup->cv_setRejoinRecovery.wait_for(
-            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL)) !=
-        std::cv_status::timeout) {
+    if (!cv_setRejoinRecovery.wait_for(
+            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL), [this]() {
+              return m_rejoinRecoverySignal.load();
+            })) {
       if (m_rejoinInProgress) {
         break;
       }
@@ -2959,6 +2963,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(
   // #ifndef IS_LOOKUP_NODE
 
   if (AlreadyJoinedNetwork()) {
+    {
+      std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+      m_rejoinRecoverySignal = true;
+    }
     cv_setTxBlockFromSeed.notify_all();
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
       cv_setRejoinRecovery.notify_all();
@@ -3048,6 +3056,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         m_mediator.m_ds->RejoinAsDS(false);
       } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
         m_rejoinInProgress = true;
+        {
+          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+          m_rejoinRecoverySignal = true;
+        }
         cv_setRejoinRecovery.notify_all();
         RejoinNetwork();
       }
@@ -3056,6 +3068,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       LOG_GENERAL(INFO,
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
+      {
+          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+          m_rejoinRecoverySignal = true;
+      }
       cv_setRejoinRecovery.notify_all();
       return false;
     }
@@ -3076,6 +3092,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         if (!CommitTxBlocks(txBlocks)) {
           if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
             m_rejoinInProgress = true;
+            {
+              std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+              m_rejoinRecoverySignal = true;
+            }
             cv_setRejoinRecovery.notify_all();
             RejoinNetwork();
           }
@@ -3366,6 +3386,10 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         if (ARCHIVAL_LOOKUP || (!ARCHIVAL_LOOKUP && FinishRejoinAsLookup())) {
           SetSyncType(SyncType::NO_SYNC);
+          {
+            std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+            m_rejoinRecoverySignal = true;
+          }
           m_rejoinInProgress = false;
           m_rejoinNetworkAttempts = 0;  // reset rejoining attempts
           cv_setRejoinRecovery.notify_all();
@@ -3453,6 +3477,10 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     } else {
       LOG_GENERAL(INFO, "GetDsInfo is failed.RejoinNetwork now");
       m_rejoinInProgress = true;
+      {
+        std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+        m_rejoinRecoverySignal = true;
+      }
       cv_setRejoinRecovery.notify_all();
       RejoinNetwork();
     }

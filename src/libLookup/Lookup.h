@@ -532,6 +532,7 @@ class Lookup : public Executable {
   // Seed rejoin recovery
   std::mutex m_mutexCvSetRejoinRecovery;
   std::condition_variable cv_setRejoinRecovery;
+  std::atomic<bool> m_rejoinRecoverySignal{false};
 
   // Enable/Disable jsonrpc port
   std::mutex m_mutexJsonRpc;
