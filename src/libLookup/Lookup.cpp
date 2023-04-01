@@ -3135,10 +3135,9 @@ bool Lookup::GetDSInfo() {
     while (!m_fetchedDSInfo) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Waiting for DSInfo");
 
-      // TODO: cv fix
-      if (cv_dsInfoUpdate.wait_for(lock,
-                                   chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
-          std::cv_status::timeout) {
+      if (!cv_dsInfoUpdate.wait_for(lock,
+                                    chrono::seconds(NEW_NODE_SYNC_INTERVAL),
+                                    [this]() { return m_fetchedDSInfo; })) {
         // timed out
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Timed out waiting for DSInfo");
@@ -4368,17 +4367,18 @@ bool Lookup::GetDSInfoLoop() {
       return false;
     }
   }*/
-
-  while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-    GetDSInfoFromSeedNodes();
+  {
     unique_lock<mutex> lk(m_mutexDSInfoUpdation);
-    // TODO: cv fix
-    if (cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
-        cv_status::timeout) {
-      counter++;
+    m_fetchedDSInfo = false;
+    while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+      GetDSInfoFromSeedNodes();
+      if (!cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL),
+                                    [this]() { return m_fetchedDSInfo; })) {
+        counter++;
 
-    } else {
-      break;
+      } else {
+        break;
+      }
     }
   }
   {
