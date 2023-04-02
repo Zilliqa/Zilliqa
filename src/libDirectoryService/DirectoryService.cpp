@@ -1106,6 +1106,10 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
       m_totalTxnFees += cogsrews.GetRewards();
     }
   }
+  {
+    lock_guard<mutex> lock(m_mediator.m_lookup->m_mutexSetCosigRewardsFromSeed);
+    m_mediator.m_lookup->m_setCosigRewardsFromSeedSignal = true;
+  }
   m_mediator.m_lookup->cv_setCosigRewardsFromSeed.notify_all();
 
   return true;

@@ -530,6 +530,7 @@ class Lookup : public Executable {
   // Get cosigrewards from seed
   std::mutex m_mutexSetCosigRewardsFromSeed;
   std::condition_variable cv_setCosigRewardsFromSeed;
+  bool m_setCosigRewardsFromSeedSignal;
 
   // Seed rejoin recovery
   std::mutex m_mutexCvSetRejoinRecovery;

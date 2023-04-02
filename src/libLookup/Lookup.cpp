@@ -3289,13 +3289,16 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       while (retry <= RETRY_COSIGREWARDS_COUNT) {
         // Get the cosig for this txblock
         auto txblk_num = txBlock.GetHeader().GetBlockNum();
+        {
+          std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
+          m_setCosigRewardsFromSeedSignal = false;
+        }
         ComposeAndSendGetCosigsRewardsFromSeed(txblk_num);
         std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
-        // TODO: cv fix
-        if (cv_setCosigRewardsFromSeed.wait_for(
+        if (!cv_setCosigRewardsFromSeed.wait_for(
                 cv_lk,
-                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS)) ==
-            std::cv_status::timeout) {
+                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
+                [this]() { return m_setCosigRewardsFromSeedSignal; })) {
           LOG_GENERAL(WARNING,
                       "[Retry: " << retry
                                  << "] Didn't receive cosig rewards for txblk "
