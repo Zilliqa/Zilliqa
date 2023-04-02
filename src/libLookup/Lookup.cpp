@@ -1591,6 +1591,12 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   zbytes retMsg = {MessageType::DIRECTORY,
                    DSInstructionType::GETDSLEADERTXNPOOL};
 
+  // Clear the DS Leader txn pool message signal state.
+  {
+    unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
+    m_dsLeaderTxnPoolSignal = false;
+  }
+
   if (!Messenger::SetLookupGetDSLeaderTxnPool(
           retMsg, MessageOffset::BODY, m_mediator.m_selfKey,
           m_mediator.m_selfPeer.m_listenPortHost)) {
@@ -1623,11 +1629,9 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   static constexpr const chrono::seconds GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS{
       3};
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
-  // TODO: cv fix
-  if (cv_dsLeaderTxnPool.wait_for(lock,
-                                  GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS) ==
-      std::cv_status::timeout) {
-    // timed out
+  if (!cv_dsLeaderTxnPool.wait_for(
+          lock, GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS,
+          [this]() { return m_dsLeaderTxnPoolSignal; })) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Timed out waiting for DS leader txn pool");
     return std::nullopt;
@@ -3901,6 +3905,7 @@ bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
 
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
   m_dsLeaderTxnPool = std::move(txns);
+  m_dsLeaderTxnPoolSignal = true;
   cv_dsLeaderTxnPool.notify_all();
 
   return true;

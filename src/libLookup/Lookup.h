@@ -581,6 +581,7 @@ class Lookup : public Executable {
   std::mutex m_mutexDSLeaderTxnPool;
   std::condition_variable cv_dsLeaderTxnPool;
   std::vector<Transaction> m_dsLeaderTxnPool;
+  bool m_dsLeaderTxnPoolSignal = false;
 
   // exit trigger
   std::atomic<bool> m_exitPullThread{};
