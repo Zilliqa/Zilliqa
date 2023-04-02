@@ -924,16 +924,19 @@ bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
 bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
   // loop until vcfinal block is received
   auto getmessage = ComposeGetVCFinalBlockMessageForL2l(blockNum);
-  while (!m_mediator.m_lookup->m_vcFinalBlockProcessed &&
-         (GetSyncType() == SyncType::NO_SYNC)) {
+  bool vcFinalBlockProcessed;
+  {
+    unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
+    vcFinalBlockProcessed = m_vcFinalBlockProcessed;
+  }
+  while (!vcFinalBlockProcessed && (GetSyncType() == SyncType::NO_SYNC)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "GetVCFinalBlockFromL2lDataProvider for block " << blockNum);
     SendMessageToRandomL2lDataProvider(getmessage);
-    unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCFinalBlockProcessed);
-    // TODO: cv fix
-    if (m_mediator.m_lookup->cv_vcFinalBlockProcessed.wait_for(
-            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL)) ==
-            std::cv_status::timeout &&
+    unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
+    if (!cv_vcFinalBlockProcessed.wait_for(
+                                           lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
+                                           [this]() { return m_vcFinalBlockProcessed; }) &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetVCFinalBlockFromL2lDataProvider Timeout... may be "
@@ -941,8 +944,12 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
     } else {
       break;
     }
+    vcFinalBlockProcessed = m_vcFinalBlockProcessed;
   }
-  m_mediator.m_lookup->m_vcFinalBlockProcessed = false;
+  {
+    unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
+    m_vcFinalBlockProcessed = false;
+  }
   return true;
 }
 
