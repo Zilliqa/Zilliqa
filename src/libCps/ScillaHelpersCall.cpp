@@ -196,15 +196,17 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     }
 
     const auto recipient = Address(msg["_recipient"].asString());
+    const bool recipientExists = acc_store.AccountExistsAtomic(recipient);
+    const bool isRecipientContract = acc_store.IsAccountContract(recipient);
 
     // Recipient is contract
     // _tag field is empty
     const bool isNextContract = !msg["_tag"].asString().empty();
 
     // Stop going further as transaction has been finished
-    if (!isNextContract) {
-      results.entries.emplace_back(ScillaCallParseResult::SingleResult{
-          {}, recipient, amount, isNextContract});
+    if (!isNextContract || !recipientExists || !isRecipientContract) {
+      results.entries.emplace_back(
+          ScillaCallParseResult::SingleResult{{}, recipient, amount, false});
       continue;
     }
 

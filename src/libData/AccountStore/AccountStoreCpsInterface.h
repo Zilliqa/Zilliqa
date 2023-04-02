@@ -42,6 +42,15 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   virtual bool AccountExistsAtomic(const Address& address) override {
     return mAccountStore.GetAccountAtomic(address) != nullptr;
   }
+
+  virtual bool IsAccountContract(const Address& address) override {
+    const Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account == nullptr) {
+      return false;
+    }
+    return account->isContract();
+  }
+
   virtual bool AddAccountAtomic(const Address& address) override {
     if (!mAccountStore.AddAccountAtomic(address, {0, 0})) {
       return false;

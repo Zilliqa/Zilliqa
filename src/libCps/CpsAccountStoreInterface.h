@@ -36,6 +36,7 @@ struct CpsAccountStoreInterface {
   virtual uint64_t GetNonceForAccount(const Address& account) = 0;
   virtual bool AddAccountAtomic(const Address& accont) = 0;
   virtual bool AccountExistsAtomic(const Address& accont) = 0;
+  virtual bool IsAccountContract(const Address& accont) = 0;
   virtual Address GetAddressForContract(const Address& account,
                                         uint32_t transaction_version) = 0;
   virtual bool IncreaseBalanceAtomic(const Address& account, Amount amount) = 0;
