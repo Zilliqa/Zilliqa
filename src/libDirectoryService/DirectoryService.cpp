@@ -701,12 +701,15 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
 
   if (fetchShardingStruct) {
     // Ask for the sharding structure from lookup
+    {
+      std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+      m_mediator.m_lookup->m_shardStructSignal = false;
+    }
     m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
-    // TODO: cv fix
     std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
-    if (m_mediator.m_lookup->cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
+    if (!m_mediator.m_lookup->cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
+            [this]() { return m_mediator.m_lookup->m_shardStructSignal; })) {
       LOG_GENERAL(WARNING,
                   "Didn't receive sharding structure! Try checking next epoch");
     } else {

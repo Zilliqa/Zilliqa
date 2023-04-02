@@ -191,6 +191,7 @@ class Lookup : public Executable {
 
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;
+  bool m_shardStructSignal;
 
   void ComposeAndSendGetShardingStructureFromSeed();
 

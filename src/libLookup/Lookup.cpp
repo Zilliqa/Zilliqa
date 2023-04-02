@@ -224,12 +224,15 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
   }
   if (!m_rejoinInProgress) {
     // Ask for the sharding structure from lookup
+    {
+      std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+      m_shardStructSignal = false;
+    }
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    // TODO: cv fix
-    if (cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
+    if (!cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
+            [this]() { return m_shardStructSignal; })) {
       LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
     } else {
       ProcessEntireShardingStructure();
@@ -2281,6 +2284,10 @@ bool Lookup::ProcessSetShardFromSeed(
 
   m_mediator.m_ds->m_shards = std::move(shards);
 
+  {
+    std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+    m_shardStructSignal = true;
+  }
   cv_shardStruct.notify_all();
 
   return true;
@@ -3313,12 +3320,15 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // If yes, just keep sycing until vacaous epoch. Don't proceed further.
       if (!m_mediator.m_node->m_confirmedNotInNetwork) {
         // Ask for the sharding structure from lookup
+        {
+          std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+          m_shardStructSignal = false;
+        }
         ComposeAndSendGetShardingStructureFromSeed();
         std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-        // TODO: cv fix
-        if (cv_shardStruct.wait_for(
-                cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-            std::cv_status::timeout) {
+        if (!cv_shardStruct.wait_for(
+                cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
+                [this]() { return m_shardStructSignal; })) {
           LOG_GENERAL(
               WARNING,
               "Didn't receive sharding structure! Try checking next epoch");
@@ -4339,12 +4349,15 @@ void Lookup::StartSynchronization() {
     }
     // Ask for the sharding structure from lookup (may have got new ds block
     // with new sharding struct)
+    {
+      std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+      m_shardStructSignal = false;
+    }
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    // TODO: cv fix
-    if (cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
+    if (!cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
+            [this]() { return m_shardStructSignal; })) {
       LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
     } else {
       ProcessEntireShardingStructure();
