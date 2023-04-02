@@ -124,6 +124,7 @@ class Lookup : public Executable {
   // Get StateDeltas from seed
   std::mutex m_mutexSetStateDeltasFromSeed;
   std::condition_variable cv_setStateDeltasFromSeed;
+  bool m_setStateDeltasFromSeedSignal;
 
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;

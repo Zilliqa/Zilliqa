@@ -3206,13 +3206,16 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     unsigned int retry = 1;
     while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
+      {
+        std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltasFromSeed);
+        m_setStateDeltasFromSeedSignal = false;
+      }
       // Get the state-delta for all txBlocks from random lookup nodes
       GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
       std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltasFromSeed);
-      // TODO: cv fix
-      if (cv_setStateDeltasFromSeed.wait_for(
-              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
-          std::cv_status::timeout) {
+      if (!cv_setStateDeltasFromSeed.wait_for(
+              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS),
+              [this]() { return m_setStateDeltasFromSeedSignal; })) {
         LOG_GENERAL(
             WARNING,
             "[Retry: " << retry
@@ -3609,6 +3612,10 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (AlreadyJoinedNetwork()) {
+    {
+      unique_lock<std::mutex> lock(m_mutexSetStateDeltasFromSeed);
+      m_setStateDeltasFromSeedSignal = true;
+    }
     cv_setStateDeltasFromSeed.notify_all();
     return true;
   }
@@ -3681,6 +3688,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     }
   }
 
+  m_setStateDeltasFromSeedSignal = true;
   cv_setStateDeltasFromSeed.notify_all();
   return true;
 }
