@@ -890,18 +890,21 @@ zbytes Lookup::ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
 
 bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
   // loop until ds block is received
-  while (!m_mediator.m_lookup->m_vcDsBlockProcessed &&
-         (GetSyncType() == SyncType::NO_SYNC)) {
+  bool dsBlockProcessed;
+  {
+    unique_lock<mutex> lock(m_mutexVCDSBlockProcessed);
+    dsBlockProcessed = m_vcDsBlockProcessed;
+  }
+  while (!dsBlockProcessed && (GetSyncType() == SyncType::NO_SYNC)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "GetDSBlockFromL2lDataProvider for block " << blockNum);
     SendMessageToRandomL2lDataProvider(
         ComposeGetDSBlockMessageForL2l(blockNum));
 
-    unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCDSBlockProcessed);
-    // TODO: cv fix
-    if (m_mediator.m_lookup->cv_vcDsBlockProcessed.wait_for(
-            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL)) ==
-            std::cv_status::timeout &&
+    unique_lock<mutex> lock(m_mutexVCDSBlockProcessed);
+    if (!cv_vcDsBlockProcessed.wait_for(
+            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
+            [this]() { return m_vcDsBlockProcessed; }) &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetDSBlockFromL2lDataProvider Timeout... may be ds block "
@@ -909,8 +912,12 @@ bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
     } else {
       break;
     }
+    dsBlockProcessed = m_vcDsBlockProcessed;
   }
-  m_mediator.m_lookup->m_vcDsBlockProcessed = false;
+  {
+    unique_lock<mutex> lock(m_mutexVCDSBlockProcessed);
+    m_vcDsBlockProcessed = false;
+  }
   return true;
 }
 
