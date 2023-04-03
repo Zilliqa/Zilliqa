@@ -1,7 +1,7 @@
 set(PATCHES
-    0001-cxx17.patch
     sink_filter.patch
-    extra_data.patch)
+    extra_data.patch
+    c++20.patch)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
