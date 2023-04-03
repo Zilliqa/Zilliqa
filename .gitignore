@@ -111,3 +111,14 @@ vcpkg_installed/
 
 *.pyc
 .husky/
+
+# Localdev's working directory
+_localdev/
+
+# Emacs backups
+*~
+\#*
+.\#*
+
+# Dependencies
+src/depends

@@ -148,6 +148,13 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     }
   };
 
+  virtual void IncreaseNonceForAccount(const Address& address) override {
+    Account* account = mAccountStore.GetAccount(address);
+    if (account != nullptr) {
+      account->IncreaseNonce();
+    }
+  };
+
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
       const std::string& vname, const std::vector<std::string>& indices,

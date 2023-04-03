@@ -27,6 +27,44 @@
 
 using namespace std;
 
+namespace zil {
+namespace local {
+
+class BackupVariables {
+  int consensusState = -1;
+  int consensusError = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetConsensusState(int state) {
+    Init();
+    consensusState = state;
+  }
+
+  void AddConsensusError(int count) {
+    Init();
+    consensusError += count;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.backup.gauge",
+                                          "Consensus bacup state", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(consensusState, {{"counter", "ConsensusState"}});
+        result.Set(consensusError, {{"counter", "ConsensusError"}});
+      });
+    }
+  }
+};
+
+static BackupVariables variables{};
+
+}  // namespace local
+}  // namespace zil
+
 bool ConsensusBackup::CheckState(Action action) {
   static const std::multimap<ConsensusCommon::State, Action> ACTIONS_FOR_STATE =
       {{INITIAL, PROCESS_ANNOUNCE},
@@ -97,9 +135,12 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
         // Update internal state
         // =====================
         m_state = ERROR;
+        zil::local::variables.SetConsensusState(int(m_state));
+        zil::local::variables.AddConsensusError(1);
 
         // Unicast to the leader
         // =====================
+        LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce)");
         P2PComm::GetInstance().SendMessage(
             GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
@@ -128,9 +169,11 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
     // Update internal state
     // =====================
     m_state = COMMIT_DONE;
+    zil::local::variables.SetConsensusState(int(m_state));
 
     // Unicast to the leader
     // =====================
+    LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce2)");
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        commit);
   }
@@ -149,6 +192,7 @@ bool ConsensusBackup::ProcessMessageConsensusFailure(const zbytes& announcement,
   }
 
   m_state = INITIAL;
+  zil::local::variables.SetConsensusState(int(m_state));
 
   return true;
 }
@@ -234,6 +278,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
       LOG_GENERAL(WARNING,
                   "[Subset " << subsetID << "] Invalid aggregated commit");
       m_state = ERROR;
+      zil::local::variables.SetConsensusState(int(m_state));
+      zil::local::variables.AddConsensusError(1);
       return false;
     }
 
@@ -241,6 +287,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     if (!challengeSubsetInfo.at(subsetID).challenge.Initialized()) {
       LOG_GENERAL(WARNING, "[Subset " << subsetID << "] Invalid challenge");
       m_state = ERROR;
+      zil::local::variables.SetConsensusState(int(m_state));
+      zil::local::variables.AddConsensusError(1);
       return false;
     }
 
@@ -252,6 +300,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
       LOG_GENERAL(WARNING,
                   "[Subset " << subsetID << "] Generated challenge mismatch");
       m_state = ERROR;
+      zil::local::variables.SetConsensusState(int(m_state));
+      zil::local::variables.AddConsensusError(1);
       return false;
     }
 
@@ -275,10 +325,12 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // =====================
 
     m_state = nextstate;
+    zil::local::variables.SetConsensusState(int(m_state));
 
     // Unicast to the leader
     // =====================
 
+    LOG_GENERAL(WARNING, "Uni-casting response to leader (message challenge)");
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
 
@@ -346,6 +398,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
                                 aggregated_key)) {
     LOG_GENERAL(WARNING, "Collective signature verification failed");
     m_state = ERROR;
+    zil::local::variables.SetConsensusState(int(m_state));
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -374,6 +428,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
               GetCommitteeMember(m_leaderID).first, m_messageToCosign)) {
         LOG_GENERAL(WARNING, "Message validation failed");
         m_state = ERROR;
+        zil::local::variables.SetConsensusState(int(m_state));
+        zil::local::variables.AddConsensusError(1);
         return false;
       }
     }
@@ -391,6 +447,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
       // =====================
 
       m_state = nextstate;
+      zil::local::variables.SetConsensusState(int(m_state));
 
       // Save the collective sig over the first round
       m_CS1 = m_collectiveSig;
@@ -398,6 +455,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
       // Unicast to the leader
       // =====================
+      LOG_GENERAL(WARNING, "Uni-casting response to leader (message collective sig core)");
       P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                          finalcommit);
     }
@@ -410,6 +468,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     // =====================
 
     m_state = nextstate;
+    zil::local::variables.SetConsensusState(int(m_state));
   }
 
   return result;
@@ -454,6 +513,7 @@ ConsensusBackup::ConsensusBackup(
       m_readinessFunc(std::move(collsig_readiness_func)) {
   LOG_MARKER();
   m_state = INITIAL;
+  zil::local::variables.SetConsensusState(int(m_state));
 
   LOG_GENERAL(INFO, "Consensus ID = " << m_consensusID);
   LOG_GENERAL(INFO, "Leader ID    = " << m_leaderID);

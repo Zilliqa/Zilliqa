@@ -62,6 +62,10 @@ class FinalBLockProcessingVariables {
   int lastBlockHeight = 0;
   int lastVcBlockHeight = 0;
   int forwardedTx = 0;
+  int timedOutMicroblock = 0;
+  int missedMicroblockConsensus = 0;
+  int isShardLeader = -1;
+  int shard = -1;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -69,6 +73,11 @@ class FinalBLockProcessingVariables {
   void SetLastBlockHeight(int height) {
     Init();
     lastBlockHeight = height;
+  }
+
+  void AddMissedMicroblockConsensus(int missed) {
+    Init();
+    missedMicroblockConsensus += missed;
   }
 
   void SetLastVcBlockHeight(int height) {
@@ -81,6 +90,21 @@ class FinalBLockProcessingVariables {
     forwardedTx += number;
   }
 
+  void AddTimedOutMicroblock(int number) {
+    Init();
+    timedOutMicroblock += number;
+  }
+
+  void SetIsShardLeader(int number) {
+    Init();
+    isShardLeader = number;
+  }
+
+  void SetShard(int number) {
+    Init();
+    shard = number;
+  }
+
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge",
@@ -90,6 +114,10 @@ class FinalBLockProcessingVariables {
         result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
         result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
+        result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
+        result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
+        result.Set(shard, {{"counter", "Shard"}});
       });
     }
   }
@@ -430,11 +458,15 @@ void Node::UpdateStateForNextConsensusRound() {
                          << "][" << m_mediator.m_currentEpochNum << "]["
                          << m_myshardId << "][  0] SCLD");
     m_isPrimary = true;
+    zil::local::variables.SetIsShardLeader(1);
   } else {
     LOG_EPOCH(
         INFO, m_mediator.m_currentEpochNum,
         "The new shard leader is m_consensusLeaderID " << m_consensusLeaderID);
+    zil::local::variables.SetIsShardLeader(0);
   }
+
+  zil::local::variables.SetShard(m_myshardId);
 }
 
 void Node::ScheduleMicroBlockConsensus() {
@@ -1009,7 +1041,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
+        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus. Timeout: " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
+        zil::local::variables.AddTimedOutMicroblock(1);
       }
     }
 
