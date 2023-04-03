@@ -6,9 +6,9 @@ use std::borrow::Cow;
 use crate::precompiles::scilla_common::{
     get_contract_addr_and_name, substitute_scilla_type_with_sol,
 };
-use ethabi::{Address, Bytes, decode, encode, Uint};
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
+use ethabi::{decode, encode, Address, Bytes, Uint};
 use serde_json::Value;
 
 const BASE_COST: u64 = 15;
@@ -72,8 +72,7 @@ pub(crate) fn scilla_read(
         });
     };
 
-    let encoded = encode(&vec![result]);
-
+    let encoded = encode(&[result]);
 
     Ok((
         PrecompileOutput {
@@ -109,7 +108,9 @@ fn get_field_type_by_name(field_name: &str, fields: &Value) -> Result<String, Pr
 }
 
 fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, PrecompileFailure> {
-    let input_field_type = input_field_type.replace(['(', ')'], "").replace("Option", "");
+    let input_field_type = input_field_type
+        .replace(['(', ')'], "")
+        .replace("Option", "");
 
     let chunks = input_field_type.split_whitespace().collect::<Vec<_>>();
     if chunks.len() == 1 {
@@ -154,10 +155,10 @@ fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, P
         match value {
             Token::Uint(solidity_uint) => {
                 indices.push(format!("{}", solidity_uint));
-            },
+            }
             Token::Address(solidity_addr) => {
                 indices.push(format!("0x{}", hex::encode(solidity_addr)));
-            },
+            }
             _ => {
                 indices.push(value.to_string());
             }
@@ -169,7 +170,11 @@ fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, P
     })
 }
 
-fn extract_substate_from_json(value: &Value, vname: &str, def: &ScillaField) -> Result<Token, PrecompileFailure> {
+fn extract_substate_from_json(
+    value: &Value,
+    vname: &str,
+    def: &ScillaField,
+) -> Result<Token, PrecompileFailure> {
     if !value.is_object() || value.get(vname).is_none() {
         return Ok(Token::Bytes(Vec::new()));
     }
@@ -181,7 +186,9 @@ fn extract_substate_from_json(value: &Value, vname: &str, def: &ScillaField) -> 
     for index in def.indices.clone().iter().take(def.indices.len() - 1) {
         if !value[index].is_object() {
             return Err(PrecompileFailure::Error {
-                exit_status: ExitError::Other(Cow::Borrowed("Scilla field definition doesn't match with returned value")),
+                exit_status: ExitError::Other(Cow::Borrowed(
+                    "Scilla field definition doesn't match with returned value",
+                )),
             });
         }
         value = value[index].as_object().unwrap();
@@ -192,21 +199,20 @@ fn extract_substate_from_json(value: &Value, vname: &str, def: &ScillaField) -> 
 
 fn encode_result_type(value: &Value, def: &ScillaField) -> Result<Token, PrecompileFailure> {
     if value.is_null() || !value.is_string() {
-       return Ok(Token::Bytes(Vec::new()));
+        return Ok(Token::Bytes(Vec::new()));
     }
     let value = value.as_str().unwrap();
     if def.ret_type.starts_with("Uint") {
         return Ok(Token::Uint(Uint::from_dec_str(value).unwrap_or_default()));
     } else if def.ret_type.starts_with("Int") {
         return Ok(Token::Int(Uint::from_dec_str(value).unwrap_or_default()));
-    }
-    else if def.ret_type.starts_with("String") {
+    } else if def.ret_type.starts_with("String") {
         return Ok(Token::String(String::from(value)));
-    }
-    else if def.ret_type.eq("ByStr20") {
-        return Ok(Token::Address(Address::from_slice(value.replace("0x", "").as_bytes())));
-    }
-    else if def.ret_type.starts_with("By") {
+    } else if def.ret_type.eq("ByStr20") {
+        return Ok(Token::Address(Address::from_slice(
+            value.replace("0x", "").as_bytes(),
+        )));
+    } else if def.ret_type.starts_with("By") {
         return Ok(Token::Bytes(Bytes::from(value.as_bytes())));
     }
 

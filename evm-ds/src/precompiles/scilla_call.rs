@@ -108,18 +108,17 @@ fn build_result_json(
 
     let mut result_arguments = Value::Array(vec![]);
     for (scilla_arg, solidity_value) in scilla_args.iter().zip(decoded_values.iter().skip(2)) {
-        let json_arg: Value;
-        match solidity_value {
+        let json_arg: Value = match solidity_value {
             Token::Uint(solidity_uint) => {
-                json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("{}", solidity_uint)});
-            },
+                json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("{}", solidity_uint)})
+            }
             Token::Address(solidity_addr) => {
-                json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("0x{}", hex::encode(solidity_addr))});
+                json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("0x{}", hex::encode(solidity_addr))})
             }
             _ => {
-                json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": solidity_value.to_string()});
+                json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": solidity_value.to_string()})
             }
-        }
+        };
         result_arguments.as_array_mut().unwrap().push(json_arg);
     }
     result["params"] = result_arguments;
