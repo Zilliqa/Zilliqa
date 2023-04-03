@@ -37,7 +37,7 @@
     "ethers": "^5.7.1",
     "hardhat": "^2.10.1",
     "hardhat-gas-reporter": "^1.0.9",
-    "hardhat-scilla-plugin": "^1.6.1",
+    "hardhat-scilla-plugin": "^1.8.1",
     "husky": "^8.0.3",
     "lint-staged": "^13.0.3",
     "prettier": "^2.7.1",
@@ -54,7 +54,6 @@
     "deep-equal-in-any-order": "^2.0.1",
     "dotenv": "^16.0.3",
     "glob": "^8.0.3",
-    "hardhat-ethernal": "^3.1.0",
     "s-expression": "^3.1.1",
     "yargs": "^17.6.2"
   },
