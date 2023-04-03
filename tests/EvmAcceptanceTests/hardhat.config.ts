@@ -56,7 +56,8 @@ const config: HardhatUserConfig = {
       chainId: 1337,
       web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
       protocolVersion: 0x3f,
-      accounts: [ // memonic: guard same cactus near figure photo remove letter target alien initial remove
+      accounts: [
+        // memonic: guard same cactus near figure photo remove letter target alien initial remove
         "67545ce31f5ca86719cf3743730435768515ebf014f84811463edcf7dcfaf91e",
         "9be4f8840833f64d4881027f4a53961d75bc649ac4801b33f746487ca8873f14",
         "32a75b674cc41405c914de1fe7b031b832dfd9203e1a287d09122bab689519e3",
@@ -139,7 +140,7 @@ const config: HardhatUserConfig = {
       protocolVersion: 0x41,
       zilliqaNetwork: true,
       miningState: false
-    },
+    }
   },
   mocha: {
     timeout: ENV_VARS.mochaTimeout,
