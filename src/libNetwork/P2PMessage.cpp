@@ -109,6 +109,7 @@ ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
   };
 
   if (!buf || buf_size < HDR_LEN) {
+    LOG_GENERAL(WARNING, "Not enough data to read message header");
     return ReadState::NOT_ENOUGH_DATA;
   }
 

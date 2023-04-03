@@ -34,6 +34,38 @@
 #include <queue>
 #endif
 
+namespace zil {
+namespace local {
+
+class ThreadPoolVariables {
+  int jobs = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetJobs(int job) {
+    Init();
+    jobs = job;
+  }
+
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "threadpool.gauge",
+                                          "Threadpool", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(jobs, {{"counter", "Jobs"}});
+      });
+    }
+  }
+};
+
+static ThreadPoolVariables tpool_variables{};
+
+}  // namespace local
+}  // namespace zil
+
 /**
  * Simple thread pool that creates `threadCount` threads upon its creation, and
  * pulls from a queue to get new jobs. This class requires a number of C++11
@@ -92,6 +124,7 @@ class ThreadPool {
     if (0 == _jobsLeft % 100) {
       LOG_GENERAL(INFO, "PoolName: " << _poolName << " JobLeft: " << _jobsLeft);
     }
+    zil::local::tpool_variables.SetJobs(_jobsLeft);
   }
 
   /// Joins with all threads. Blocks until all threads have completed. The queue

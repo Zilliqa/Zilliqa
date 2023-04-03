@@ -168,12 +168,12 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
       ScillaResult{std::min(retScillaVal.gasRemained,
                             mCpsContext.scillaExtras.gasLimit - createPenalty)};
 
-  const auto checkerResult = InvokeScillaInterpreter(INVOKE_TYPE::CHECKER);
+  auto checkerResult = InvokeScillaInterpreter(INVOKE_TYPE::CHECKER);
   if (!checkerResult.isSuccess) {
     receipt.AddError(CHECKER_FAILED);
     span.SetError("Scilla contract checker failed");
     LOG_GENERAL(WARNING, "CHECKER out: " << checkerResult.returnVal);
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
 
   std::map<std::string, zbytes> t_metadata;
@@ -185,8 +185,9 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   if (!ScillaHelpers::ParseContractCheckerOutput(
           mAccountStore, mArgs.dest, checkerResult.returnVal, receipt,
           t_metadata, mArgs.gasLimit, isLibrary)) {
+    receipt.AddError(CHECKER_FAILED);
     span.SetError("Unable to parse contract checker result");
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
 
   mArgs.gasLimit -= SCILLA_RUNNER_INVOKE_GAS;
@@ -194,13 +195,14 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   if (!runnerResult.isSuccess) {
     span.SetError("Interpreter run is not successful");
     receipt.AddError(RUNNER_FAILED);
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
 
   if (!ScillaHelpersCreate::ParseCreateContract(
           mArgs.gasLimit, runnerResult.returnVal, receipt, isLibrary)) {
+    receipt.AddError(RUNNER_FAILED);
     span.SetError("Unable to parse contract create result");
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
 
   t_metadata.emplace(mAccountStore.GenerateContractStorageKey(
@@ -212,7 +214,9 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::ERROR, false, retScillaVal};
   }
 
-  mAccountStore.MarkNewLibraryCreated(mArgs.dest);
+  if (isLibrary) {
+    mAccountStore.MarkNewLibraryCreated(mArgs.dest);
+  }
 
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
@@ -316,7 +320,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   if (!runnerResult.isSuccess) {
     span.SetError("Interpreter run is not successful");
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
 
   const auto parseCallResults = ScillaHelpersCall::ParseCallContract(
@@ -328,7 +332,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
       return {TxnStatus::NOT_PRESENT, true, retScillaVal};
     }
     span.SetError("Parsing call result failed");
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
 
   // Only transfer funds when accepted is true

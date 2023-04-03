@@ -678,6 +678,7 @@ class EthRpcMethods {
 
   Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
+  static bool UnpackRevert(const std::string &data_in, std::string &message);
 
  public:
   Mediator& m_sharedMediator;

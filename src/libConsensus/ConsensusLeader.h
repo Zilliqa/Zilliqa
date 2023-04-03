@@ -21,6 +21,7 @@
 #include <condition_variable>
 
 #include "ConsensusCommon.h"
+#include "libMetrics/Api.h"
 
 typedef std::function<bool(const zbytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;
@@ -165,6 +166,7 @@ class ConsensusLeader : public ConsensusCommon {
  private:
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
+  std::unique_ptr<Z_I64GAUGE> m_gaugeNumForConsensus;
 };
 
 #endif  // ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_

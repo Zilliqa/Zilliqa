@@ -10,8 +10,6 @@ on:
   push:
     branches-ignore:
       - 'release/**'
-    paths-ignore:
-    - 'Jenkinsfile'
 
 jobs:
   push-to-ecr:
@@ -21,6 +19,13 @@ jobs:
     name: build
     runs-on: docker
     steps:
+    - name: Clean environment
+      # Prune the Docker resources created over 10 days before the current execution (change the value for a more/less aggressive cleanup).
+      shell: bash
+      run: |
+        docker system df
+        docker system prune -a -f --filter "until=336h"
+        docker system df
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'
       uses: actions/checkout@v3
       with:
