@@ -298,7 +298,8 @@ class LookupServer : public Server,
   inline virtual void GetTotalCoinSupplyAsIntI(const Json::Value& request,
                                           Json::Value& response) {
     (void)request;
-    response = this->GetTotalCoinSupplyAsInt();
+    static_assert(sizeof(unsigned long) <= sizeof(Json::UInt64));
+    response = static_cast<Json::UInt64>(this->GetTotalCoinSupplyAsInt());
   }
 
   inline virtual void GetPendingTxnsI(const Json::Value& request,
