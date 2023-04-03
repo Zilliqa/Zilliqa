@@ -72,7 +72,10 @@ pub(crate) fn scilla_read(
         });
     };
 
-    let encoded = encode(&[result]);
+    let encoded = match result {
+        Some(token) => encode(&[token]),
+        _ => Vec::default(),
+    };
 
     Ok((
         PrecompileOutput {
@@ -174,9 +177,9 @@ fn extract_substate_from_json(
     value: &Value,
     vname: &str,
     def: &ScillaField,
-) -> Result<Token, PrecompileFailure> {
+) -> Result<Option<Token>, PrecompileFailure> {
     if !value.is_object() || value.get(vname).is_none() {
-        return Ok(Token::Bytes(Vec::new()));
+        return Ok(None);
     }
     if def.indices.is_empty() {
         return encode_result_type(&value[vname], def);
@@ -197,26 +200,49 @@ fn extract_substate_from_json(
     encode_result_type(&value[def.indices.last().unwrap()], def)
 }
 
-fn encode_result_type(value: &Value, def: &ScillaField) -> Result<Token, PrecompileFailure> {
-    if value.is_null() || !value.is_string() {
-        return Ok(Token::Bytes(Vec::new()));
-    }
-    let value = value.as_str().unwrap();
+fn encode_result_type(
+    value: &Value,
+    def: &ScillaField,
+) -> Result<Option<Token>, PrecompileFailure> {
     if def.ret_type.starts_with("Uint") {
-        return Ok(Token::Uint(Uint::from_dec_str(value).unwrap_or_default()));
-    } else if def.ret_type.starts_with("Int") {
-        return Ok(Token::Int(Uint::from_dec_str(value).unwrap_or_default()));
-    } else if def.ret_type.starts_with("String") {
-        return Ok(Token::String(String::from(value)));
-    } else if def.ret_type.eq("ByStr20") {
-        return Ok(Token::Address(Address::from_slice(
-            value.replace("0x", "").as_bytes(),
+        if value.is_null() || !value.is_string() {
+            return Ok(Some(Token::Uint(Uint::from(0))));
+        }
+        let value = value.as_str().unwrap();
+        return Ok(Some(Token::Uint(
+            Uint::from_dec_str(value).unwrap_or_default(),
         )));
+    } else if def.ret_type.starts_with("Int") {
+        if value.is_null() || !value.is_string() {
+            return Ok(Some(Token::Int(Uint::from(0))));
+        }
+        let value = value.as_str().unwrap();
+        return Ok(Some(Token::Int(
+            Uint::from_dec_str(value).unwrap_or_default(),
+        )));
+    } else if def.ret_type.starts_with("String") {
+        if value.is_null() || !value.is_string() {
+            return Ok(Some(Token::String(String::from(""))));
+        }
+        let value = value.as_str().unwrap();
+        return Ok(Some(Token::String(String::from(value))));
+    } else if def.ret_type.eq("ByStr20") {
+        if value.is_null() || !value.is_string() {
+            return Ok(Some(Token::String(String::from("0x"))));
+        }
+        let value = value.as_str().unwrap();
+        return Ok(Some(Token::Address(Address::from_slice(
+            value.replace("0x", "").as_bytes(),
+        ))));
     } else if def.ret_type.starts_with("By") {
-        return Ok(Token::Bytes(Bytes::from(value.as_bytes())));
+        if value.is_null() || !value.is_string() {
+            return Ok(Some(Token::Bytes(Vec::default())));
+        }
+        let value = value.as_str().unwrap();
+        return Ok(Some(Token::Bytes(Bytes::from(value.as_bytes()))));
     }
 
-    Ok(Token::Bytes(Vec::new()))
+    Ok(None)
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
