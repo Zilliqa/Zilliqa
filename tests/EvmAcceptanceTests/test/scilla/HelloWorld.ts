@@ -1,6 +1,6 @@
-import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
 import hre from "hardhat";
+import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 
 describe("Scilla HelloWorld contract", function () {
