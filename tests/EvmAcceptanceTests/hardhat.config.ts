@@ -2,7 +2,6 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import "dotenv/config";
-import "hardhat-ethernal";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 
 if (ENV_VARS.scilla) {
@@ -57,7 +56,8 @@ const config: HardhatUserConfig = {
       chainId: 1337,
       web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
       protocolVersion: 0x3f,
-      accounts: [ // memonic: guard same cactus near figure photo remove letter target alien initial remove
+      accounts: [
+        // memonic: guard same cactus near figure photo remove letter target alien initial remove
         "67545ce31f5ca86719cf3743730435768515ebf014f84811463edcf7dcfaf91e",
         "9be4f8840833f64d4881027f4a53961d75bc649ac4801b33f746487ca8873f14",
         "32a75b674cc41405c914de1fe7b031b832dfd9203e1a287d09122bab689519e3",
@@ -114,6 +114,21 @@ const config: HardhatUserConfig = {
     local_network: {
       url: "http://localhost:8080",
       websocketUrl: "ws://localhost:8080",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+      ],
+      chainId: 0x8001,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
+    localdev: {
+      url: "http://localhost:5301",
+      websocketUrl: "ws://localhost:5301",
       accounts: [
         "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",

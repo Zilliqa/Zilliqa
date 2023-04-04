@@ -92,7 +92,7 @@ describe("Transfer ethers", function () {
     let diff = initialOwnerBal - finalOwnerBal;
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
-    if (diff > (ACCOUNT_VALUE * 4)) {
+    if (diff > ACCOUNT_VALUE * 4) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
   });

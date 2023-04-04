@@ -1,8 +1,8 @@
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
-import hre, { ethers } from "hardhat";
+import hre, {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
-import { toBech32Address, Zilliqa } from "@zilliqa-js/zilliqa";
+import {toBech32Address, Zilliqa} from "@zilliqa-js/zilliqa";
 
 xdescribe("Move Zil", function () {
   const ZIL_AMOUNT = 2_000_000;
@@ -51,7 +51,7 @@ xdescribe("Move Zil", function () {
     let balanceResponse = await zilliqa.blockchain.getBalance(to_be_funded_contract.address!);
     let balance = Number.parseInt(balanceResponse.result.balance);
     expect(balance).to.be.eq(1_000_000);
-  
+
     balanceResponse = await zilliqa.blockchain.getBalance(contract.address!);
     balance = Number.parseInt(balanceResponse.result.balance);
     expect(balance).to.be.eq(0);
