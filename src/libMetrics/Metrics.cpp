@@ -61,7 +61,7 @@ void Metrics::Init() {
 
   } else if (cmp == "otlphttp") {
     InitOTHTTP();
-  } else if (cmp == "otlphttp") {
+  } else if (cmp == "otlpgrpc") {
     InitOtlpGrpc();
   } else if (cmp == "stdout") {
     InitStdOut();

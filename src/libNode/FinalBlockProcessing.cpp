@@ -15,7 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/algorithm/string.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 #include "Node.h"
 #include "RootComputation.h"
@@ -30,7 +32,8 @@
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -693,7 +696,8 @@ bool Node::ProcessVCFinalBlockCore(
       return false;
     }
 
-    zil::local::variables.SetLastVcBlockHeight(vcBlock.GetHeader().GetViewChangeEpochNo());
+    zil::local::variables.SetLastVcBlockHeight(
+        vcBlock.GetHeader().GetViewChangeEpochNo());
   }
 
   if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
@@ -1103,7 +1107,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
     // Remove all TXs from the pending pool
     lock_guard<mutex> g(m_mutexPending);
-    for (const auto &txnHash : txsExecuted) {
+    for (const auto& txnHash : txsExecuted) {
       m_pendingTxns.erase(txnHash);
     }
   }
@@ -1760,9 +1764,16 @@ bool Node::SendPendingTxnToLookup() {
   LOG_GENERAL(
       INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              "PendingTxnsSend");
-  span.SetAttribute("Count", pendingTxns.size());
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "PendingTxnsSend",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute(
+      "pending_txns_send.txns",
+      boost::join(pendingTxns | boost::adaptors::map_keys |
+                      boost::adaptors::transformed(
+                          [](const auto& hash) { return hash.hex(); }),
+                  ","));
+  span.SetAttribute("pending_txns_send.count", pendingTxns.size());
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 
