@@ -39,7 +39,7 @@ pub(crate) fn scilla_call(
     let code = backend.code_as_json(code_address);
     if code.is_empty() {
         return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("There so code under given address")),
+            exit_status: ExitError::Other(Cow::Borrowed("There no code under given address")),
         });
     }
     let Ok(code) = serde_json::from_slice::<serde_json::Value>(&code) else {

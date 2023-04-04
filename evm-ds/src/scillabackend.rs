@@ -355,13 +355,8 @@ impl Backend for ScillaBackend {
             .arg(scilla_file)
             .output();
 
+        let _ = fs::remove_file(temp_dir);
         if let Ok(output) = output {
-            let _ = fs::remove_file(temp_dir);
-            println!(
-                "Got from exec: {} {}",
-                String::from_utf8(output.stdout.clone()).unwrap(),
-                String::from_utf8(output.stderr).unwrap()
-            );
             return output.stdout;
         }
         Vec::new()
