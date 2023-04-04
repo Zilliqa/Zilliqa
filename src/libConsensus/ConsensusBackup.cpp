@@ -21,9 +21,13 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
+
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -99,6 +103,10 @@ bool ConsensusBackup::CheckState(Action action) {
 bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
                                              unsigned int offset) {
   LOG_MARKER();
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "Announce",
+      TracedIds::GetInstance().GetConsensusSpanIds());
 
   // Initial checks
   // ==============
@@ -184,6 +192,9 @@ bool ConsensusBackup::ProcessMessageConsensusFailure(const zbytes& announcement,
                                                      unsigned int offset) {
   LOG_MARKER();
 
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "ConsensusFailure",
+      TracedIds::GetInstance().GetConsensusSpanIds());
   if (!Messenger::GetConsensusConsensusFailure(
           announcement, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, GetCommitteeMember(m_leaderID).first)) {
@@ -247,7 +258,8 @@ bool ConsensusBackup::GenerateCommitMessage(zbytes& commit,
 
 bool ConsensusBackup::ProcessMessageChallengeCore(
     const zbytes& challenge, unsigned int offset, Action action,
-    ConsensusMessageType returnmsgtype, State nextstate) {
+    ConsensusMessageType returnmsgtype, State nextstate,
+    std::string_view spanName) {
   LOG_MARKER();
 
   // Initial checks
@@ -270,6 +282,10 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed");
     return false;
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, spanName,
+      TracedIds::GetInstance().GetConsensusSpanIds());
 
   for (unsigned int subsetID = 0; subsetID < challengeSubsetInfo.size();
        subsetID++) {
@@ -344,7 +360,7 @@ bool ConsensusBackup::ProcessMessageChallenge(const zbytes& challenge,
                                               unsigned int offset) {
   LOG_MARKER();
   return ProcessMessageChallengeCore(challenge, offset, PROCESS_CHALLENGE,
-                                     RESPONSE, RESPONSE_DONE);
+                                     RESPONSE, RESPONSE_DONE, "Challenge");
 }
 
 bool ConsensusBackup::GenerateResponseMessage(
@@ -368,7 +384,7 @@ bool ConsensusBackup::GenerateResponseMessage(
 
 bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     const zbytes& collectivesig, unsigned int offset, Action action,
-    State nextstate) {
+    State nextstate, std::string_view spanName) {
   LOG_MARKER();
 
   // Initial checks
@@ -390,6 +406,10 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCollectiveSig failed");
     return false;
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, spanName,
+      TracedIds::GetInstance().GetConsensusSpanIds());
 
   // Aggregate keys
   PubKey aggregated_key = AggregateKeys(m_responseMap);
@@ -478,7 +498,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSig(const zbytes& collectivesig,
                                                   unsigned int offset) {
   LOG_MARKER();
   bool collectiveSigResult = ProcessMessageCollectiveSigCore(
-      collectivesig, offset, PROCESS_COLLECTIVESIG, FINALCOMMIT_DONE);
+      collectivesig, offset, PROCESS_COLLECTIVESIG, FINALCOMMIT_DONE,
+      "CollectiveSig");
   return collectiveSigResult;
 }
 
@@ -486,14 +507,16 @@ bool ConsensusBackup::ProcessMessageFinalChallenge(const zbytes& challenge,
                                                    unsigned int offset) {
   LOG_MARKER();
   return ProcessMessageChallengeCore(challenge, offset, PROCESS_FINALCHALLENGE,
-                                     FINALRESPONSE, FINALRESPONSE_DONE);
+                                     FINALRESPONSE, FINALRESPONSE_DONE,
+                                     "FinalChallenge");
 }
 
 bool ConsensusBackup::ProcessMessageFinalCollectiveSig(
     const zbytes& finalcollectivesig, unsigned int offset) {
   LOG_MARKER();
   return ProcessMessageCollectiveSigCore(finalcollectivesig, offset,
-                                         PROCESS_FINALCOLLECTIVESIG, DONE);
+                                         PROCESS_FINALCOLLECTIVESIG, DONE,
+                                         "FinalCollectiveSig");
 }
 
 ConsensusBackup::ConsensusBackup(
@@ -518,6 +541,16 @@ ConsensusBackup::ConsensusBackup(
   LOG_GENERAL(INFO, "Consensus ID = " << m_consensusID);
   LOG_GENERAL(INFO, "Leader ID    = " << m_leaderID);
   LOG_GENERAL(INFO, "My ID        = " << m_myID);
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "Consensus",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("consensus.role", "backup");
+  span.SetAttribute("consensus.id", static_cast<uint64_t>(m_consensusID));
+  span.SetAttribute("consensus.leader_id", static_cast<uint64_t>(m_leaderID));
+  span.SetAttribute("consensus.node_id", static_cast<uint64_t>(m_myID));
+  span.SetAttribute("consensus.block_number", m_blockNumber);
+  TracedIds::GetInstance().SetConsensusSpanIds(span.GetIds());
 }
 
 ConsensusBackup::~ConsensusBackup() {}
