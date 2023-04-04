@@ -636,6 +636,8 @@ const Json::Value JSONConversion::convertTxtoJson(
   auto const data = twr.GetTransaction().GetData();
 
   // If we detect non ascii characters (i.e evm bytecode) we convert to hex
+  // this should only happen when old style API calls (GetTransaction) are made
+  // that hit on new eth-style TXs
   if (!code.empty()) {
     if(!DataConversion::ContainsAllAscii(code) && twr.GetTransaction().IsEth()) {
       _json["code"] = DataConversion::Uint8VecToHexStrRet(code);
