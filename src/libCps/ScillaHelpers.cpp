@@ -180,9 +180,6 @@ bool ScillaHelpers::ExportCallContractFiles(
     msgObj["_origin"] = prepend + sender.hex();
     msgObj["_amount"] = amount.toQa().convert_to<std::string>();
 
-    auto jsonStr = JSONUtils::GetInstance().convertJsontoStr(msgObj);
-    LOG_GENERAL(WARNING, "SENDING SCILLA CALLCODE: " << jsonStr);
-
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
   } catch (const std::exception &e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
