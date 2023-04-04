@@ -21,13 +21,17 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/RandomGenerator.h"
+
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -315,9 +319,6 @@ bool ConsensusLeader::StartConsensusSubsets() {
     }
   }
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              __FUNCTION__);
-
   // Shuffle the peer list so we don't always send challenges in same sequence
   std::random_device randomDevice;
   std::mt19937 randomEngine(randomDevice());
@@ -389,7 +390,8 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
 bool ConsensusLeader::ProcessMessageCommitCore(
     const zbytes& commit, unsigned int offset, Action action,
     [[gnu::unused]] ConsensusMessageType returnmsgtype,
-    [[gnu::unused]] State nextstate, const Peer& from) {
+    [[gnu::unused]] State nextstate, const Peer& from,
+    std::string_view spanName) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutex);
@@ -466,6 +468,13 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     return false;
   }
 
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, spanName,
+      TracedIds::GetInstance().GetConsensusSpanIds());
+  auto attrBase = boost::to_lower_copy(std::string{spanName});
+  span.SetAttribute(attrBase + ".backup_id", static_cast<uint64_t>(backupID));
+  span.SetAttribute(attrBase + ".from_ip", IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
+
   // 33-byte commit
   m_commitPoints.emplace_back(commitPoints);
   m_commitPointMap.at(backupID) = commitPoints;
@@ -502,7 +511,7 @@ bool ConsensusLeader::ProcessMessageCommit(const zbytes& commit,
                                            unsigned int offset,
                                            const Peer& from) {
   return ProcessMessageCommitCore(commit, offset, PROCESS_COMMIT, CHALLENGE,
-                                  CHALLENGE_DONE, from);
+                                  CHALLENGE_DONE, from, "Commit");
 }
 
 bool ConsensusLeader::ProcessMessageCommitFailure(
@@ -522,6 +531,14 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCommitFailure failed");
     return false;
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "CommitFailure",
+      TracedIds::GetInstance().GetConsensusSpanIds());
+  span.SetAttribute("commit_failure.backup_id",
+                    static_cast<uint64_t>(backupID));
+  span.SetAttribute("commit_failure.block_number", m_blockNumber);
+  span.SetAttribute("commit_failure.from_ip", IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
 
   if (m_commitFailureMap.find(backupID) != m_commitFailureMap.end()) {
     LOG_GENERAL(WARNING, "Backup already sent commit failure message");
@@ -551,9 +568,6 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     for (auto const& i : m_committee) {
       peerInfo.push_back(i.second);
     }
-
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
 
     P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg,
                                        zil::p2p::START_BYTE_NORMAL, true, true);
@@ -624,7 +638,8 @@ bool ConsensusLeader::GenerateChallengeMessage(zbytes& challenge,
 
 bool ConsensusLeader::ProcessMessageResponseCore(
     const zbytes& response, unsigned int offset, Action action,
-    ConsensusMessageType returnmsgtype, State nextstate, const Peer& from) {
+    ConsensusMessageType returnmsgtype, State nextstate, const Peer& from,
+    std::string_view spanName) {
   LOG_MARKER();
   // Initial checks
   // ==============
@@ -645,6 +660,13 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusResponse failed");
     return false;
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, spanName,
+      TracedIds::GetInstance().GetConsensusSpanIds());
+  auto attrBase = boost::to_lower_copy(std::string{spanName});
+  span.SetAttribute(attrBase + ".backup_id", static_cast<uint64_t>(backupID));
+  span.SetAttribute(attrBase + ".from_ip", IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
 
   // Check the IP belongs to the backup with that backupID (check for valid
   // backupID range is already done in Messenger)
@@ -812,9 +834,6 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (BROADCAST_GOSSIP_MODE) {
         P2PComm::GetInstance().SpreadRumor(collectivesig);
       } else {
-        auto span = zil::trace::Tracing::CreateSpan(
-            zil::trace::FilterClass::NODE, __FUNCTION__);
-
         P2PComm::GetInstance().SendMessage(
             peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
       }
@@ -865,7 +884,8 @@ bool ConsensusLeader::ProcessMessageResponse(const zbytes& response,
                                              unsigned int offset,
                                              const Peer& from) {
   return ProcessMessageResponseCore(response, offset, PROCESS_RESPONSE,
-                                    COLLECTIVESIG, COLLECTIVESIG_DONE, from);
+                                    COLLECTIVESIG, COLLECTIVESIG_DONE, from,
+                                    "Response");
 }
 
 bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
@@ -947,7 +967,8 @@ bool ConsensusLeader::ProcessMessageFinalCommit(const zbytes& finalcommit,
                                                 unsigned int offset,
                                                 const Peer& from) {
   return ProcessMessageCommitCore(finalcommit, offset, PROCESS_FINALCOMMIT,
-                                  FINALCHALLENGE, FINALCHALLENGE_DONE, from);
+                                  FINALCHALLENGE, FINALCHALLENGE_DONE, from,
+                                  "FinalCommit");
 }
 
 bool ConsensusLeader::ProcessMessageFinalResponse(const zbytes& finalresponse,
@@ -955,7 +976,7 @@ bool ConsensusLeader::ProcessMessageFinalResponse(const zbytes& finalresponse,
                                                   const Peer& from) {
   return ProcessMessageResponseCore(finalresponse, offset,
                                     PROCESS_FINALRESPONSE, FINALCOLLECTIVESIG,
-                                    DONE, from);
+                                    DONE, from, "FinalResponse");
 }
 
 ConsensusLeader::ConsensusLeader(
@@ -1018,6 +1039,16 @@ ConsensusLeader::ConsensusLeader(
     LOG_GENERAL(INFO,
                 "Needed for subsets = " << m_sufficientCommitsNumForSubsets);
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "Consensus",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("consensus.role", "leader");
+  span.SetAttribute("consensus.id", static_cast<uint64_t>(m_consensusID));
+  span.SetAttribute("consensus.committe_size", committee.size());
+  span.SetAttribute("consensus.node_id", static_cast<uint64_t>(m_myID));
+  span.SetAttribute("consensus.block_number", m_blockNumber);
+  TracedIds::GetInstance().SetConsensusSpanIds(span.GetIds());
 }
 
 ConsensusLeader::~ConsensusLeader() {}
@@ -1068,9 +1099,6 @@ bool ConsensusLeader::StartConsensus(
     for (auto const& i : m_committee) {
       peer.push_back(i.second);
     }
-
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
 
     P2PComm::GetInstance().SendMessage(peer, announcement_message,
                                        zil::p2p::START_BYTE_NORMAL, true, true);

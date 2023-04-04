@@ -63,14 +63,15 @@ class ConsensusBackup : public ConsensusCommon {
   bool ProcessMessageChallengeCore(const zbytes& challenge, unsigned int offset,
                                    Action action,
                                    ConsensusMessageType returnmsgtype,
-                                   State nextstate);
+                                   State nextstate, std::string_view spanName);
   bool ProcessMessageChallenge(const zbytes& challenge, unsigned int offset);
   bool GenerateResponseMessage(
       zbytes& response, unsigned int offset,
       const std::vector<ResponseSubsetInfo>& subsetInfo);
   bool ProcessMessageCollectiveSigCore(const zbytes& collectivesig,
                                        unsigned int offset, Action action,
-                                       State nextstate);
+                                       State nextstate,
+                                       std::string_view spanName);
   bool ProcessMessageCollectiveSig(const zbytes& collectivesig,
                                    unsigned int offset);
   bool ProcessMessageFinalChallenge(const zbytes& challenge,
