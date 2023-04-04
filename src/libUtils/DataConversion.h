@@ -67,6 +67,8 @@ class DataConversion {
 
   static std::string Uint8VecToHexStrRet(const zbytes& hex_vec);
 
+  static bool ContainsAllAscii(const zbytes& vec);
+
   /// Converts fixed-sized byte array to alphanumeric hex string.
   template <size_t SIZE>
   static bool charArrToHexStr(const std::array<uint8_t, SIZE>& hex_arr,
