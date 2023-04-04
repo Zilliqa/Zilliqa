@@ -59,14 +59,6 @@ struct Args {
     /// Zil scaling factor.  How many Zils in one EVM visible Eth.
     #[clap(long, default_value = "1")]
     zil_scaling_factor: u64,
-
-    /// Scilla root directory
-    #[clap(long, default_value = "/scilla")]
-    scilla_root_dir: String,
-
-    /// Scilla libDir path
-    #[clap(long, default_value = "/src/stdlib")]
-    scilla_stdlib_dir: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
