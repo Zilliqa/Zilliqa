@@ -104,7 +104,8 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageCommitCore(const zbytes& commit, unsigned int offset,
                                 Action action,
                                 ConsensusMessageType returnmsgtype,
-                                State nextstate, const Peer& from);
+                                State nextstate, const Peer& from,
+                                std::string_view spanName);
   bool ProcessMessageCommit(const zbytes& commit, unsigned int offset,
                             const Peer& from);
   bool ProcessMessageCommitFailure(const zbytes& commitFailureMsg,
@@ -113,7 +114,8 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageResponseCore(const zbytes& response, unsigned int offset,
                                   Action action,
                                   ConsensusMessageType returnmsgtype,
-                                  State nextstate, const Peer& from);
+                                  State nextstate, const Peer& from,
+                                  std::string_view spanName);
   bool ProcessMessageResponse(const zbytes& response, unsigned int offset,
                               const Peer& from);
   bool GenerateCollectiveSigMessage(zbytes& collectivesig, unsigned int offset,

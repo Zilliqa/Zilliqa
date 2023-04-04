@@ -24,6 +24,7 @@
 #include "libEth/Filters.h"
 #include "libLookup/Lookup.h"
 #include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libNode/Node.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
@@ -195,18 +196,22 @@ void Mediator::IncreaseEpochNum() {
     GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
   }
 
-  LOG_GENERAL(INFO, "Epoch number is now " << m_currentEpochNum);
+  auto span =
+      zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE, "Epoch");
+  span.SetAttribute("epoch.num", m_currentEpochNum);
+  TracedIds::GetInstance().SetCurrentEpochSpanIds(span.GetIds());
 
+  LOG_GENERAL(INFO, "Epoch number is now " << m_currentEpochNum);
   LOG_STATE("Epoch = " << m_currentEpochNum);
 }
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
 
-void Mediator::AddPendingTxn(const Transaction& tx){
+void Mediator::AddPendingTxn(const Transaction& tx) {
   return m_node->AddPendingTxn(tx);
 }
 
-std::vector<Transaction> Mediator::GetPendingTxns(){
+std::vector<Transaction> Mediator::GetPendingTxns() {
   return m_node->GetPendingTxns();
 }
 
