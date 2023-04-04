@@ -25,7 +25,7 @@
 #include "libCps/ScillaHelpersCall.h"
 #include "libCps/ScillaHelpersCreate.h"
 #include "libData/AccountData/TransactionReceipt.h"
-#include "libData/AccountStore/services/scilla/ScillaClient.h"
+#include "libScilla/ScillaClient.h"
 #include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"

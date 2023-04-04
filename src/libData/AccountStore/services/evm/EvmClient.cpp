@@ -48,8 +48,6 @@ bool LaunchEvmDaemon(boost::process::child& child,
                                    std::to_string(EVM_ZIL_SCALING_FACTOR),
                                    "--log4rs",
                                    EVM_LOG_CONFIG};
-  const auto scillaArgs = ScillaUtils::GetContractCheckerCmdLineArgsForEvm();
-  args.insert(std::end(args), std::cbegin(scillaArgs), std::cend(scillaArgs));
 
   boost::filesystem::path bin_path(binaryPath);
   boost::filesystem::path socket_path(socketPath);

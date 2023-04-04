@@ -1,10 +1,5 @@
-use std::env::temp_dir;
-use std::fs;
-use std::fs::File;
-use std::io::Write;
 /// Backend implementation that stores EVM state via the Scilla JSONRPC interface.
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use bytes::Bytes;
@@ -14,7 +9,6 @@ use jsonrpc_core::types::params::Params;
 use jsonrpc_core::{Error, Result, Value};
 use jsonrpc_core_client::RawClient;
 use primitive_types::{H160, H256, U256};
-use rand::Rng;
 
 use log::debug;
 
@@ -30,10 +24,6 @@ pub struct ScillaBackendConfig {
     pub path: PathBuf,
     // Scaling factor of Eth <-> Zil. Should be either 1 or 1_000_000.
     pub zil_scaling_factor: u64,
-    // Scilla root dir
-    pub scilla_root_dir: String,
-    // Scilla stdlib dir
-    pub scilla_stdlib_dir: String,
 }
 
 // Backend relying on Scilla variables and Scilla JSONRPC interface.
@@ -311,55 +301,19 @@ impl Backend for ScillaBackend {
     }
 
     fn code_as_json(&self, address: H160) -> Vec<u8> {
-        let code = self.code(address);
-        let mut rng = rand::thread_rng();
-        let random_file_suffix: u64 = rng.gen();
-        let file_name = format!("{:x}_{}.scilla", address, random_file_suffix);
-        let mut temp_dir = temp_dir();
-        temp_dir.push(file_name);
-        {
-            let Ok(mut file) = File::create(&temp_dir) else {
-                return Vec::new();
-            };
-            let _ = file.write_all(&code);
-        }
-        let scilla_checker_path: String;
-        let scilla_libdir_path: String;
+        let mut query = ScillaMessage::ProtoScillaQuery::new();
+        query.set_name("_code".into());
+        let mut args = serde_json::Map::new();
+        args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
+        args.insert(
+            "query".into(),
+            base64::encode(query.write_to_bytes().unwrap()).into(),
+        );
 
-        if Path::new(&format!("{}/{}", self.config.scilla_root_dir, "0")).exists() {
-            scilla_checker_path = format!(
-                "{}/{}/{}",
-                self.config.scilla_root_dir, "0", "bin/scilla-checker"
-            );
-            scilla_libdir_path = format!(
-                "{}/{}/{}",
-                self.config.scilla_root_dir, "0", self.config.scilla_stdlib_dir
-            )
-        } else {
-            scilla_checker_path =
-                format!("{}/{}", self.config.scilla_root_dir, "bin/scilla-checker");
-            scilla_libdir_path = format!(
-                "{}/{}",
-                self.config.scilla_root_dir, self.config.scilla_stdlib_dir
-            );
-        }
-        let Some(scilla_file) = temp_dir.as_path().to_str() else {
-            return Vec::new();
+        let Ok(result) = self.call_ipc_server_api("fetchCodeJson", args) else {
+            return Vec::new()
         };
-        let output = Command::new(scilla_checker_path)
-            .arg("-gaslimit")
-            .arg("999999999")
-            .arg("-libdir")
-            .arg(&scilla_libdir_path)
-            .arg("-contractinfo")
-            .arg(scilla_file)
-            .output();
-
-        let _ = fs::remove_file(temp_dir);
-        if let Ok(output) = output {
-            return output.stdout;
-        }
-        Vec::new()
+        serde_json::to_vec(&result).unwrap_or_default()
     }
 
     fn susbtate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {

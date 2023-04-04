@@ -674,7 +674,6 @@ dependencies = [
  "primitive-types 0.12.1",
  "protobuf",
  "protoc-rust",
- "rand 0.8.5",
  "ripemd",
  "serde",
  "serde_cbor",

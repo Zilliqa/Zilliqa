@@ -248,8 +248,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let backend_config = ScillaBackendConfig {
         path: PathBuf::from(args.node_socket),
         zil_scaling_factor: args.zil_scaling_factor,
-        scilla_root_dir: args.scilla_root_dir,
-        scilla_stdlib_dir: args.scilla_stdlib_dir,
     };
 
     let evm_server = EvmServer::new(backend_config, args.gas_scaling_factor);
