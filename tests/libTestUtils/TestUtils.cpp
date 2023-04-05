@@ -22,7 +22,6 @@ using namespace std;
 using namespace boost::multiprecision;
 
 namespace TestUtils {
-void Initialize() { rng.seed(std::random_device()()); }
 
 uint8_t DistUint8() {
   return RandomIntInRng<uint8_t>(std::numeric_limits<uint8_t>::min(),
