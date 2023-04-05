@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "hardhat/console.sol";
-
 error FakeError(uint256 value, address sender);
 
 contract Revert {
@@ -10,7 +8,6 @@ contract Revert {
   uint256[] private _array;
 
   constructor() {
-    console.log("Constructing RevertContract from sender:", msg.sender);
     owner = msg.sender; // address that deploys contract will be the owner
   }
 
