@@ -5,8 +5,8 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO open-telemetry/opentelemetry-cpp
-    REF v1.8.2
-    SHA512 5d3efb7c31626acd9655b795da497ef3829a88f1e33532f26d011fda01ec41e08e88539900151224f5c19161d9bc1f76e502f14a358c4e01440d832432cd0c0b
+    REF v1.8.3
+    SHA512 eb7dde38134fd9f51f22a2288a3a1db9eeec3dce3889c02fea82e20738a697449be73d632c3d1889ff159f0274d57bfd066db506149b221fe6ced8f18fdc1237
     HEAD_REF main
     PATCHES
         mac-fix.patch
@@ -52,6 +52,7 @@ vcpkg_cmake_configure(
         -DWITH_STL=ON
         -DWITH_OTLP_GRPC=ON
         -DBUILD_SHARED_LIBS=OFF
+        -DOPENTELEMETRY_INSTALL=ON
         ${FEATURE_OPTIONS}
 )
 
