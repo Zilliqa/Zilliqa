@@ -29,6 +29,7 @@
 #include <opentelemetry/metrics/provider.h>
 
 #include "MetricFilters.h"
+#include "common/Constants.h"
 #include "common/Singleton.h"
 
 #include "Common.h"
@@ -206,7 +207,8 @@ class Metrics : public Singleton<Metrics> {
       const std::string &name, const std::string &desc, std::string unit = "");
 
   /// Called on main() exit explicitly
-  void Init();
+  void Initialize(std::string_view identity = {},
+                  std::string provider = METRIC_ZILLIQA_PROVIDER);
   void Shutdown();
 
   void AddCounterSumView(const std::string &name,

@@ -39,7 +39,6 @@
 #include "opentelemetry/sdk/metrics/metric_reader.h"
 #include "opentelemetry/sdk/resource/resource.h"
 
-#include "common/Constants.h"
 #include "libUtils/Logger.h"
 
 namespace metrics_sdk = opentelemetry::sdk::metrics;
@@ -47,23 +46,29 @@ namespace metrics_exporter = opentelemetry::exporter::metrics;
 namespace metrics_api = opentelemetry::metrics;
 namespace otlp_exporter = opentelemetry::exporter::otlp;
 
-Metrics::Metrics() { zil::metrics::Filter::GetInstance().init(); }
+Metrics::Metrics() {
+  // c-tor
+  zil::metrics::Filter::GetInstance().init();
+}
 
-void Metrics::Init() {
-  std::string cmp(METRIC_ZILLIQA_PROVIDER);
+void Metrics::Initialize(std::string_view identity /*= {}*/,
+                         std::string provider /* = METRIC_ZILLIQA_PROVIDER*/) {
+  if (!IsObservabilityAllowed(identity)) {
+    provider = "NONE";
+  }
 
-  transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
+  boost::algorithm::to_lower(provider);
 
-  if (cmp == "prometheus") {
+  if (provider == "prometheus") {
     LOG_GENERAL(INFO, "initialising prometheus");
     InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT));
 
-  } else if (cmp == "otlphttp") {
+  } else if (provider == "otlphttp") {
     InitOTHTTP();
-  } else if (cmp == "otlpgrpc") {
+  } else if (provider == "otlpgrpc") {
     InitOtlpGrpc();
-  } else if (cmp == "stdout") {
+  } else if (provider == "stdout") {
     InitStdOut();
   } else {
     LOG_GENERAL(WARNING,
