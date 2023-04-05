@@ -4,8 +4,8 @@ import hre, {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
 import {toBech32Address, Zilliqa} from "@zilliqa-js/zilliqa";
 
-xdescribe("Move Zil", function () {
-  const ZIL_AMOUNT = 2_000_000;
+describe("Move Zil", function () {
+  const ZIL_AMOUNT = 3_000_000;
   let contract: ScillaContract;
   let to_be_funded_contract: ScillaContract;
   let zilliqa: Zilliqa;
@@ -40,6 +40,14 @@ xdescribe("Move Zil", function () {
     const account = ethers.Wallet.createRandom();
     await contract.fundUser(account.address, 1_000_000);
 
+    const balanceResponse = await zilliqa.blockchain.getBalance(account.address);
+    const balance = Number.parseInt(balanceResponse.result.balance);
+    expect(balance).to.be.eq(1_000_000);
+  });
+
+  it("Should be possible to fund a user with an AddFunds message", async function () {
+    const account = ethers.Wallet.createRandom();
+    const result = await contract.fundUserWithTag(account.address, 1_000_000);
     const balanceResponse = await zilliqa.blockchain.getBalance(account.address);
     const balance = Number.parseInt(balanceResponse.result.balance);
     expect(balance).to.be.eq(1_000_000);
