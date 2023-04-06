@@ -1,0 +1,21 @@
+scilla_version 0
+import IntUtils
+
+library MutualLib
+
+type T1 =
+| C1 of Uint128 Uint128
+| C2 of Bool
+
+type T2 =
+| C3 of Bool
+
+let convert_if_c1_equal =
+  fun (x: T1) =>
+  match x with
+  | C1 a b => 
+    let res = uint128_eq a b in
+    C3 res
+  | C2 res =>
+    C3 res
+  end

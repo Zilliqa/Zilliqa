@@ -1,0 +1,251 @@
+const {validation} = require("@zilliqa-js/util");
+const {assert, expect} = require("chai");
+import {parallelizer} from "../../helpers";
+
+let additionLibAddress;
+let mutualLibAddress;
+let testContract1Address;
+let testContract2Address;
+let codehashContractAddress;
+let chainIdContractAddress;
+let ecdsaContractAddress;
+
+describe("Scilla library deploy", () => {
+  it("Deploy library - AdditionLib", async () => {
+    const libraryName = "AdditionLib";
+    const library = await parallelizer.deployScillaLibrary(libraryName);
+    additionLibAddress = library.address;
+    assert.isTrue(additionLibAddress !== undefined);
+    expect(library.address).to.be.properAddress;
+    expect(validation.isAddress(additionLibAddress)).to.be.true;
+  });
+
+  it("Deploy library - Addition_Errored.scillib", async () => {
+    const libraryName = "AdditionLibErrored";
+    let library;
+    try {
+      library = await parallelizer.deployScillaLibrary(libraryName);
+    } catch (_) {}
+
+    expect(library).to.be.undefined;
+  });
+
+  it("Deploy library - MutualLib.scillib", async () => {
+    const libraryName = "MutualLib";
+    const library = await parallelizer.deployScillaLibrary(libraryName);
+    mutualLibAddress = library.address;
+    assert.isTrue(mutualLibAddress !== undefined);
+    expect(validation.isAddress(mutualLibAddress)).to.be.true;
+  });
+});
+
+// describe("Scilla contract deploy", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Deploy TestContract1 - Import AdditonLib MutualLib", async () => {
+//         contractName = "TestContract1.scilla"
+//         const [deployedTx, deployedContract] = await deployScillaContractWithTwoLibrary(
+//             accounts.contractOwner.privateKey, contractName, additionLibAddress, mutualLibAddress);
+//         testContract1Address = deployedContract.address;
+//         assert.isTrue(testContract1Address !== undefined);
+//         expect(validation.isAddress(testContract1Address)).to.be.true;
+//     });
+//     test("Deploy TestContract2 - Import MutualLib", async () => {
+//         contractName = "TestContract2.scilla"
+//         const [deployedTx, deployedContract] = await deployScillaContractWithOneLibrary(
+//             accounts.contractOwner.privateKey, contractName, mutualLibAddress);
+//         testContract2Address = deployedContract.address;
+//         assert.isTrue(testContract2Address !== undefined);
+//         expect(validation.isAddress(testContract2Address)).to.be.true;
+//     });
+// });
+
+// describe("Scilla contract execute", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Call TestContract1 - Sending transition", async () => {
+//         const tx = await callContract(accounts.contractOwner.privateKey,
+//             testContract1Address,
+//             "Sending",
+//             [{
+//                 vname: "c2",
+//                 type: "ByStr20",
+//                 value: `${testContract2Address}`
+//             },
+//             ],
+//         )
+//         expect(tx.receipt.success).equal(true);
+//     });
+// });
+
+// describe("Scilla contract execute", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Call TestContract1 - Sending transition", async () => {
+//         const tx = await callContract(accounts.contractOwner.privateKey,
+//             testContract1Address,
+//             "Sending",
+//             [{
+//                 vname: "c2",
+//                 type: "ByStr20",
+//                 value: `${testContract2Address}`
+//             },
+//             ],
+//         )
+//         expect(tx.receipt.success).equal(true);
+//     });
+// });
+
+// describe("Contract deploy and call", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Deploy TestContract3", async () => {
+//         const [deployedTx, deployedContract] = await deployScillaContract(
+//             accounts.contractOwner.privateKey, "TestContract3.scilla");
+//         assert.isTrue(deployedContract.address !== undefined);
+//     });
+//     test("Deploy TestContract4", async () => {
+//         const [deployedTx, deployedContract] = await deployScillaContract(
+//             accounts.contractOwner.privateKey, "TestContract4.scilla"
+//         );
+//         assert.isTrue(deployedContract.address !== undefined);
+//     });
+// });
+
+// describe("Codehash contract", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Deploy codehash contract", async () => {
+//         const [deployedTx, deployedContract] = await deployScillaContract(
+//             accounts.contractOwner.privateKey, "codehash.scilla");
+//         assert.isTrue(deployedContract.address !== undefined);
+//         codehashContractAddress = deployedContract.address;
+//     });
+//     test("Call code hash contract - Foo transition", async () => {
+//         let tx1 = await callContract(accounts.contractOwner.privateKey,
+//             codehashContractAddress.toLowerCase(),
+//             "foo2",
+//             [{
+//                 vname: "addr",
+//                 type: "ByStr20",
+//                 value: `${codehashContractAddress.toLowerCase()}`
+//             },
+//             ],
+//         )
+//         const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
+//         expect(tx1.receipt.success).equal(true);
+//         let tx2 = await callContract(accounts.contractOwner.privateKey,
+//             codehashContractAddress.toLowerCase(),
+//             "foo2",
+//             [{
+//                 vname: "addr",
+//                 type: "ByStr20",
+//                 value: `${codehashContractAddress.toLowerCase()}`
+//             },
+//             ],
+//         )
+//         const codeHash2= tx2.receipt.event_logs[0].params[0].value;
+//         expect(codeHash1 === codeHash2);
+//     })
+// });
+
+// describe("ChainId contract", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Deploy chainId contract", async () => {
+//         const [deployedTx, deployedContract] = await deployScillaContract(
+//             accounts.contractOwner.privateKey, "chainid.scilla");
+//         assert.isTrue(deployedContract.address !== undefined);
+//         chainIdContractAddress = deployedContract.address;
+//     });
+//     test("Call chain id contract -  EventChainId", async () => {
+//         let tx2 = await callContract(accounts.contractOwner.privateKey,
+//             chainIdContractAddress.toLowerCase(),
+//             "EventChainID",
+//             [],
+//         );
+//         const chainId= tx2.receipt.event_logs[0].params[0].value;
+//         expect(chainId === networkChainId);
+//     })
+// });
+
+// describe("Ecdsa contract", () => {
+//     beforeEach(async () => {
+//     });
+//     afterEach(async () => {
+//     });
+//     test("Deploy ecdsa contract", async () => {
+//         const [deployedTx, deployedContract] = await deployScillaContract(
+//             accounts.contractOwner.privateKey, "ecdsa.scilla");
+//         assert.isTrue(deployedContract.address !== undefined);
+//         ecdsaContractAddress = deployedContract.address;
+//     });
+//     test("Call rcdsa contract -  recover invalid input and failed", async () => {
+//         let tx = await callContract(accounts.contractOwner.privateKey,
+//             ecdsaContractAddress.toLowerCase(),
+//             "recover",
+//             [
+//                 {
+//                     vname: "msg",
+//                     type: "ByStr",
+//                     value: "0x1beedbe103d0b0da3f0ff6f8b614569c92174fb82e04c6676f9aa94b994774c5"
+//                 },
+//                 {
+//                     vname: "sig",
+//                     type: "ByStr64",
+//                     value: "0x5f2afac816d9430bce53e081667378790bb5b703ea4a98234649ccac8a358f7a262553d9df46d8417239138bc69db8c458620093b2124937c6a5af2d86f0014e"
+
+//                 },
+//                 {
+//                     vname: "recid",
+//                     type: "Uint32",
+//                     value: "32"
+
+//                 }
+//             ],
+//         );
+//         console.log(JSON.stringify(tx));
+//         expect(tx.receipt.success).equal(false);
+//         assert.include(tx.receipt.exceptions[0].message,"Sign.read_recoverable_exn: recid must be 0, 1, 2 or 3");
+//     })
+//     test("Call rcdsa contract -  recover valid input and failed", async () => {
+//         let tx = await callContract(accounts.contractOwner.privateKey,
+//             ecdsaContractAddress.toLowerCase(),
+//             "recover",
+//             [
+//                 {
+//                     vname: "msg",
+//                     type: "ByStr",
+//                     value: "0x1beedbe103d0b0da3f0ff6f8b614569c92174fb82e04c6676f9aa94b994774c5"
+//                 },
+//                 {
+//                     vname: "sig",
+//                     type: "ByStr64",
+//                     value: "0x5f2afac816d9430bce53e081667378790bb5b703ea4a98234649ccac8a358f7a262553d9df46d8417239138bc69db8c458620093b2124937c6a5af2d86f0014e"
+
+//                 },
+//                 {
+//                     vname: "recid",
+//                     type: "Uint32",
+//                     value: "2"
+
+//                 }
+//             ],
+//         );
+//         console.log(JSON.stringify(tx));
+//         expect(tx.receipt.success).equal(false);
+//         assert.include(tx.receipt.exceptions[0].message,"Sign.recover: pk could not be recovered");
+//     })
+// });

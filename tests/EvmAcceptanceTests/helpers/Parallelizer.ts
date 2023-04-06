@@ -65,6 +65,10 @@ export class Parallelizer {
     return hre.deployScilla(contractName, ...args);
   }
 
+  async deployScillaLibrary(libraryName: string): Promise<ScillaContract> {
+    return hre.deployScillaLibrary(libraryName);
+  }
+
   async sendTransaction(txn: TransactionRequest) {
     const signer = await this.signerPool.takeSigner();
     const response = await signer.sendTransaction(txn);
