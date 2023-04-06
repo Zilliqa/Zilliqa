@@ -1,0 +1,37 @@
+scilla_version 0
+
+import AdditionLib MutualLib
+
+library TestContract1 
+
+let adder =
+    fun (a: Uint128) =>
+    fun (b: Uint128) =>
+    add_if_equal a b
+
+contract TestContract1()
+
+transition addNumWithExtLib(a: Uint128, b: Uint128)
+  result = adder a b;
+  e = {_eventname : "addNumWithExtLib="; a : a; b : b; result : result};
+  event e
+end
+
+transition Sending (c2 : ByStr20)
+  x = Uint128 2;
+  y = Uint128 3;
+  out = C1 x y;
+  msg = { _tag : "Receiving" ; _recipient : c2 ; _amount : Uint128 0;
+		 param : out };
+  no_msg = Nil {Message};
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
+
+transition Receiving (param : T2)
+  match param with
+  | C3 b =>
+	e = {_eventname : "Bool const of T2 type"; b: b};
+	event e
+  end
+end

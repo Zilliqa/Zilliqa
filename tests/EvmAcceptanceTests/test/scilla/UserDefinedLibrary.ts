@@ -2,8 +2,8 @@ const {validation} = require("@zilliqa-js/util");
 const {assert, expect} = require("chai");
 import {parallelizer} from "../../helpers";
 
-let additionLibAddress;
-let mutualLibAddress;
+let additionLibAddress: string;
+let mutualLibAddress: string;
 let testContract1Address;
 let testContract2Address;
 let codehashContractAddress;
@@ -34,33 +34,32 @@ describe("Scilla library deploy", () => {
     const libraryName = "MutualLib";
     const library = await parallelizer.deployScillaLibrary(libraryName);
     mutualLibAddress = library.address;
-    assert.isTrue(mutualLibAddress !== undefined);
+    expect(mutualLibAddress).to.be.properAddress;
     expect(validation.isAddress(mutualLibAddress)).to.be.true;
   });
 });
 
-// describe("Scilla contract deploy", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Deploy TestContract1 - Import AdditonLib MutualLib", async () => {
-//         contractName = "TestContract1.scilla"
-//         const [deployedTx, deployedContract] = await deployScillaContractWithTwoLibrary(
-//             accounts.contractOwner.privateKey, contractName, additionLibAddress, mutualLibAddress);
-//         testContract1Address = deployedContract.address;
-//         assert.isTrue(testContract1Address !== undefined);
-//         expect(validation.isAddress(testContract1Address)).to.be.true;
-//     });
-//     test("Deploy TestContract2 - Import MutualLib", async () => {
-//         contractName = "TestContract2.scilla"
-//         const [deployedTx, deployedContract] = await deployScillaContractWithOneLibrary(
-//             accounts.contractOwner.privateKey, contractName, mutualLibAddress);
-//         testContract2Address = deployedContract.address;
-//         assert.isTrue(testContract2Address !== undefined);
-//         expect(validation.isAddress(testContract2Address)).to.be.true;
-//     });
-// });
+describe("Scilla contract deploy", () => {
+  it("Deploy TestContract1 - Import AdditonLib MutualLib", async () => {
+    const contract = await parallelizer.deployScillaContractWithLibrary("TestContract1",
+      [{name: "AdditionLib", address: additionLibAddress},
+      {name: "MutualLib", address: mutualLibAddress}]
+    );
+  
+    testContract1Address = contract.address;
+    expect(testContract1Address).to.be.properAddress;
+    expect(validation.isAddress(testContract1Address)).to.be.true;
+  });
+
+  it("Deploy TestContract2 - Import MutualLib", async () => {
+    const contract = await parallelizer.deployScillaContractWithLibrary("TestContract2",
+      [{name: "MutualLib", address: mutualLibAddress}]
+    );
+    testContract2Address = contract.address;
+    expect(testContract2Address).to.be.properAddress;
+    expect(validation.isAddress(testContract2Address)).to.be.true;
+  });
+});
 
 // describe("Scilla contract execute", () => {
 //     beforeEach(async () => {
