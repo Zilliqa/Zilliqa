@@ -7,26 +7,21 @@ const FUND = ethers.utils.parseUnits("1", "gwei");
 
 describe("ForwardZil contract functionality", function () {
   before(async function () {
-    await ethers.provider.getBalance("0000000000000000000000000000000000000000");
     this.contract = await parallelizer.deployContract("ForwardZil");
-    await ethers.provider.getBalance("0000000000000000000000000000000000000001");
     this.signer = this.contract.signer;
   });
 
   it("Should return zero as the initial balance of the contract", async function () {
-    console.log("should not happen!!!");
     expect(await ethers.provider.getBalance(this.contract.address)).to.be.eq(0);
   });
 
   it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called`, async function () {
-    console.log("should not happen!!!");
     expect(await this.contract.deposit({value: FUND})).changeEtherBalance(this.contract.address, FUND);
   });
 
   // TODO: Add notPayable contract function test.
 
   it("Should move 1 ether to the owner if withdraw function is called so 1 ether is left for the contract itself [@transactional]", async function () {
-    console.log("should not happen!!!");
     expect(await this.contract.withdraw()).to.changeEtherBalances(
       [this.contract.address, this.signer.address],
       [ethers.utils.parseEther("-1.0"), ethers.utils.parseEther("1.0")],
@@ -37,11 +32,6 @@ describe("ForwardZil contract functionality", function () {
   it("should be possible to transfer ethers to the contract", async function () {
     const prevBalance = await ethers.provider.getBalance(this.contract.address);
 
-    console.log("contract addr: ", this.contract.address);
-    console.log("prev balance: ", prevBalance);
-
-    await ethers.provider.getBalance("0000000000000000000000000000000000000002");
-
     const tx = await parallelizer.sendTransaction({
       to: this.contract.address,
       value: FUND
@@ -50,22 +40,15 @@ describe("ForwardZil contract functionality", function () {
 
     // Get transaction receipt for the tx
     const receipt = await tx.response.wait();
-    console.log(receipt);
-
-    await ethers.provider.getBalance("0000000000000000000000000000000000000003");
 
     const currentBalance = await ethers.provider.getBalance(this.contract.address);
 
-    console.log("current balance: ", currentBalance);
-
     expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
-    await ethers.provider.getBalance("0000000000000000000000000000000000000004");
   });
 });
 
 describe("Transfer ethers", function () {
   it("should be possible to transfer ethers to a user account", async function () {
-    console.log("should not happen!!!");
     const payee = ethers.Wallet.createRandom();
 
     await parallelizer.sendTransaction({
@@ -77,7 +60,6 @@ describe("Transfer ethers", function () {
   });
 
   it("should be possible to batch transfer using a smart contract", async function () {
-    console.log("should not happen!!!");
     const ACCOUNTS_COUNT = 3;
     const ACCOUNT_VALUE = 1_000_000;
 
@@ -96,7 +78,6 @@ describe("Transfer ethers", function () {
   });
 
   it("should be possible to batch transfer using a smart contract and get funds back on self destruct", async function () {
-    console.log("should not happen!!!");
     const ACCOUNTS_COUNT = 3;
     const ACCOUNT_VALUE = 1_000_000_000;
 
@@ -124,7 +105,6 @@ describe("Transfer ethers", function () {
 
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
   xit("should be possible to batch transfer using a smart contract with full precision", async function () {
-    console.log("should not happen!!!");
     const ACCOUNTS_COUNT = 3;
     const ACCOUNT_VALUE = 1_234_567;
 
@@ -143,7 +123,6 @@ describe("Transfer ethers", function () {
   });
 
   it("probably should be possible to use sent funds of smart contract", async function () {
-    console.log("should not happen!!!");
     const TRANSFER_VALUE = 1_000_000;
 
     // Create random account
@@ -174,7 +153,6 @@ describe("Transfer ethers", function () {
   });
 
   it("should return check gas and funds consistency", async function () {
-    console.log("should not happen!!!");
     let rndAccount = ethers.Wallet.createRandom();
 
     const FUND = BigNumber.from(100_000_000_000);
