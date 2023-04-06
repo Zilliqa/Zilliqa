@@ -43,9 +43,9 @@ byteorder = "1.4.3"
 protoc-rust = "2"
 
 [patch.crates-io]
-jsonrpc-ipc-server = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
-jsonrpc-http-server = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
-jsonrpc-server-utils = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
-jsonrpc-core = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
-jsonrpc-core-client = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
-jsonrpc-client-transports = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
+jsonrpc-ipc-server = { git = 'https://github.com/Zilliqa/jsonrpc', branch = "valeryz_fix_stream_eof" }
+jsonrpc-http-server = { git = 'https://github.com/Zilliqa/jsonrpc', branch = "valeryz_fix_stream_eof" }
+jsonrpc-server-utils = { git = 'https://github.com/Zilliqa/jsonrpc', branch = "valeryz_fix_stream_eof" }
+jsonrpc-core = { git = 'https://github.com/Zilliqa/jsonrpc', branch = "valeryz_fix_stream_eof" }
+jsonrpc-core-client = { git = 'https://github.com/Zilliqa/jsonrpc', branch = "valeryz_fix_stream_eof" }
+jsonrpc-client-transports = { git = 'https://github.com/Zilliqa/jsonrpc', branch = "valeryz_fix_stream_eof" }
