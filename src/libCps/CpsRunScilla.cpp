@@ -298,8 +298,6 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   } else {
     const auto& jsonData = std::get<Json::Value>(mArgs.calldata);
-    auto jsonStr = JSONUtils::GetInstance().convertJsontoStr(jsonData);
-    LOG_GENERAL(WARNING, "SENDING SCILLA CALLCODE: " << jsonStr);
     if (!ScillaHelpers::ExportCallContractFiles(mAccountStore, mArgs.dest,
                                                 jsonData, scillaVersion,
                                                 extlibsExports)) {

@@ -247,6 +247,7 @@ void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
   const auto address = Address{request["addr"].asString()};
   const auto vname = request["vname"].asString();
   if (!request["indices"].isArray()) {
+    LOG_GENERAL(WARNING, "Given indices field is not an array!");
     return;
   }
   std::vector<std::string> indicesVector;

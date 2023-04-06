@@ -316,7 +316,7 @@ impl Backend for ScillaBackend {
         serde_json::to_vec(&result).unwrap_or_default()
     }
 
-    fn susbtate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {
+    fn substate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {
         let mut args = serde_json::Map::new();
         args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
         args.insert("vname".to_owned(), vname.into());

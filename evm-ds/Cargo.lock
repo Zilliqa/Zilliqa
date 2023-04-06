@@ -616,7 +616,7 @@ dependencies = [
 [[package]]
 name = "evm"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#bd1f6e7ced6d83558d5ab792100ce7edf982abe8"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -636,7 +636,7 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#bd1f6e7ced6d83558d5ab792100ce7edf982abe8"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "parity-scale-codec",
  "primitive-types 0.12.1",
@@ -688,7 +688,7 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#bd1f6e7ced6d83558d5ab792100ce7edf982abe8"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "environmental",
  "evm-core",
@@ -699,7 +699,7 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#bd1f6e7ced6d83558d5ab792100ce7edf982abe8"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -1215,13 +1215,13 @@ dependencies = [
 
 [[package]]
 name = "io-lifetimes"
-version = "1.0.9"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09270fd4fa1111bc614ed2246c7ef56239a3063d5be0d1ec3b589c505d400aeb"
+checksum = "9c66c74d2ae7e79a5a8f7ac924adbe38ee42a859c6539ad869eb51f0b52dc220"
 dependencies = [
  "hermit-abi 0.3.1",
  "libc",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -3285,6 +3285,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75283be5efb2831d37ea142365f009c02ec203cd29a3ebecbc093d52315b66d0"
 dependencies = [
  "windows-targets 0.42.2",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.48.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
+dependencies = [
+ "windows-targets 0.48.0",
 ]
 
 [[package]]

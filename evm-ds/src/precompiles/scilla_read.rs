@@ -11,6 +11,7 @@ use ethabi::token::Token;
 use ethabi::{decode, encode, Address, Bytes, Uint};
 use serde_json::Value;
 
+// TODO: revisit these consts
 const BASE_COST: u64 = 15;
 const PER_BYTE_COST: u64 = 3;
 
@@ -58,7 +59,7 @@ pub(crate) fn scilla_read(
     let scilla_field = decode_indices(input, &field_type)?;
 
     let substate_json =
-        backend.susbtate_as_json(code_address, &passed_field_name, &scilla_field.indices);
+        backend.substate_as_json(code_address, &passed_field_name, &scilla_field.indices);
 
     let Ok(substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
         return Err(PrecompileFailure::Error {
@@ -114,6 +115,10 @@ fn decode_indices(input: &[u8], input_field_type: &str) -> Result<ScillaField, P
     let input_field_type = input_field_type
         .replace(['(', ')'], "")
         .replace("Option", "");
+
+    // We expect the input to be of the form: [contract_addr, variable_name, idx1, idx2, ..., idxn]
+    // Return value is of type of the last element on the list above
+    // Iterating over maps requires advancing by two since we don't care about map values expect the last one
 
     let chunks = input_field_type.split_whitespace().collect::<Vec<_>>();
     if chunks.len() == 1 {
@@ -204,41 +209,26 @@ fn encode_result_type(
     value: &Value,
     def: &ScillaField,
 ) -> Result<Option<Token>, PrecompileFailure> {
+    if value.is_null() || !value.is_string() {
+        return Ok(None);
+    }
+    let value = value.as_str().unwrap();
+
     if def.ret_type.starts_with("Uint") {
-        if value.is_null() || !value.is_string() {
-            return Ok(Some(Token::Uint(Uint::from(0))));
-        }
-        let value = value.as_str().unwrap();
         return Ok(Some(Token::Uint(
             Uint::from_dec_str(value).unwrap_or_default(),
         )));
     } else if def.ret_type.starts_with("Int") {
-        if value.is_null() || !value.is_string() {
-            return Ok(Some(Token::Int(Uint::from(0))));
-        }
-        let value = value.as_str().unwrap();
         return Ok(Some(Token::Int(
             Uint::from_dec_str(value).unwrap_or_default(),
         )));
     } else if def.ret_type.starts_with("String") {
-        if value.is_null() || !value.is_string() {
-            return Ok(Some(Token::String(String::from(""))));
-        }
-        let value = value.as_str().unwrap();
         return Ok(Some(Token::String(String::from(value))));
     } else if def.ret_type.eq("ByStr20") {
-        if value.is_null() || !value.is_string() {
-            return Ok(Some(Token::String(String::from("0x"))));
-        }
-        let value = value.as_str().unwrap();
         return Ok(Some(Token::Address(Address::from_slice(
             value.replace("0x", "").as_bytes(),
         ))));
     } else if def.ret_type.starts_with("By") {
-        if value.is_null() || !value.is_string() {
-            return Ok(Some(Token::Bytes(Vec::default())));
-        }
-        let value = value.as_str().unwrap();
         return Ok(Some(Token::Bytes(Bytes::from(value.as_bytes()))));
     }
 

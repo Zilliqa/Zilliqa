@@ -11,6 +11,7 @@ use ethabi::token::Token;
 use hex::ToHex;
 use serde_json::{json, Value};
 
+// TODO: revisit these consts
 const BASE_COST: u64 = 15;
 const PER_BYTE_COST: u64 = 3;
 
@@ -37,9 +38,10 @@ pub(crate) fn scilla_call(
     let (code_address, passed_transition_name) = get_contract_addr_and_name(input)?;
 
     let code = backend.code_as_json(code_address);
+    // If there's no code under given address it doesn't make sense to proceed further - transition call will fail at scilla level later
     if code.is_empty() {
         return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("There no code under given address")),
+            exit_status: ExitError::Other(Cow::Borrowed("There's no code under given address")),
         });
     }
     let Ok(code) = serde_json::from_slice::<serde_json::Value>(&code) else {
