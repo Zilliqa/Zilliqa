@@ -1231,7 +1231,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-client-transports"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "derive_more",
  "futures 0.3.28",
@@ -1252,7 +1252,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-core"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "futures 0.3.28",
  "futures-executor",
@@ -1266,7 +1266,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-core-client"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "futures 0.3.28",
  "jsonrpc-client-transports",
@@ -1275,7 +1275,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-http-server"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "futures 0.3.28",
  "hyper 0.14.25",
@@ -1290,7 +1290,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-ipc-server"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "futures 0.3.28",
  "jsonrpc-core",
@@ -1304,7 +1304,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-pubsub"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "futures 0.3.28",
  "jsonrpc-core",
@@ -1318,7 +1318,7 @@ dependencies = [
 [[package]]
 name = "jsonrpc-server-utils"
 version = "18.0.0"
-source = "git+https://github.com/valeryz/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
+source = "git+https://github.com/Zilliqa/jsonrpc?branch=valeryz_fix_stream_eof#c1e7058f33e3e4b3149bd92fb42a5443526d0b7e"
 dependencies = [
  "bytes 1.4.0",
  "futures 0.3.28",
