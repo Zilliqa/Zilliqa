@@ -58,7 +58,8 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS,
+                                          "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
@@ -72,7 +73,7 @@ class DSVariables {
 static DSVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -423,7 +424,6 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
-
   zil::local::variables.SetDSState(int(state));
 
   if (LOOKUP_NODE_MODE) {
@@ -653,6 +653,12 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   }
 
   SetConsensusLeaderID(0);
+
+  LOG_GENERAL(INFO, " m_allPoWConns size = "<<m_allPoWConns.size());
+  for (const auto& node : m_allPoWConns) {
+    LOG_GENERAL(INFO, "m_allPoWConns map entries pubkey = "
+                          << node.first << " peer = " << node.second)
+  }
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   PairOfNode dsLeader;

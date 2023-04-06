@@ -52,8 +52,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH);
 
   CREATE_SPAN(
-      zil::trace::FilterClass::TXN, fromAddress.hex(),
-      contractAddress.hex(), mCpsContext.origSender.hex(),
+      zil::trace::FilterClass::TXN, fromAddress.hex(), contractAddress.hex(),
+      mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
   if (!IsResumable()) {
@@ -192,8 +192,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   const auto& ctx = callData.context();
 
   CREATE_SPAN(
-      zil::trace::FilterClass::TXN,
-      ProtoToAddress(mProtoArgs.origin()).hex(),
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
       ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
@@ -473,8 +472,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 void CpsRunEvm::HandleApply(const evm::EvmResult& result,
                             TransactionReceipt& receipt) {
   CREATE_SPAN(
-      zil::trace::FilterClass::TXN,
-      ProtoToAddress(mProtoArgs.origin()).hex(),
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
       ProtoToAddress(mProtoArgs.address()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 

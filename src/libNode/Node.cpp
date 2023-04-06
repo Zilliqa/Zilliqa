@@ -1528,7 +1528,6 @@ bool GetOneGenesisAddress(Address &oAddr) {
 
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
-
   zil::local::nodeVar.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2013,8 +2012,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
-                                        << " TxnPool size after processing: "
-                                        << m_createdTxns.size());
+                                           << " TxnPool size after processing: "
+                                           << m_createdTxns.size());
 
     zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
@@ -3327,13 +3326,12 @@ void Node::CheckPeers(const vector<Peer> &peers) {
   P2PComm::GetInstance().SendMessage(peers, message);
 }
 
-
-void Node::AddPendingTxn(Transaction const& tx) {
+void Node::AddPendingTxn(Transaction const &tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   // Emergency fail safe to avoid memory issues if the pool isn't getting
   // cleared somehow
-  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+  if (m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
     LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
     m_pendingTxns.clear();
   }
@@ -3346,7 +3344,7 @@ std::vector<Transaction> Node::GetPendingTxns() const {
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 
-  for (const auto &s :m_pendingTxns) {
+  for (const auto &s : m_pendingTxns) {
     ret.push_back(s.second);
   }
 

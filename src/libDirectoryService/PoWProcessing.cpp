@@ -112,6 +112,10 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   }
 
   LOG_GENERAL(INFO, "PoW solutions received in this packet: " << tmp.size());
+  for (const auto& node : m_allPoWConns) {
+    LOG_GENERAL(INFO, "m_allPoWConns process pow map entries pubkey = "
+                          << node.first << " peer = " << node.second)
+  }
   for (auto& sol : tmp) {
     // No point processing the other solutions if DS Block consensus is starting
     if ((m_state == DSBLOCK_CONSENSUS_PREP) || (m_state == DSBLOCK_CONSENSUS)) {
@@ -397,6 +401,8 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice,
                        std::make_pair(govProposalId, govVoteValue));
 
+      LOG_GENERAL(INFO, "m_allPoWConns m_allPoWConns size = "<<m_allPoWConns.size() <<" submitterPubKey = "
+                            << submitterPubKey << " peer = " << submitterPeer);
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;

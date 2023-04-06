@@ -57,8 +57,9 @@ class MicroBlockPreProcessingVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.microblockpre.gauge",
-                                          "Consensus microblock pre", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "consensus.microblockpre.gauge",
+          "Consensus microblock pre", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
@@ -1366,8 +1367,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   {
     lock_guard<mutex> g(m_mutexShardMember);
     LOG_GENERAL(WARNING, "I am shard backup");
-    LOG_GENERAL(WARNING, "Leader IP    = "
-                          << (*m_myShardMembers)[m_consensusLeaderID].second);
+    LOG_GENERAL(
+        WARNING,
+        "Leader IP    = " << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     for (const auto& it : *m_myShardMembers) {
       peerList.emplace_back(it);

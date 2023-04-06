@@ -89,7 +89,7 @@ class LookupVariables {
 static LookupVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 namespace {
 

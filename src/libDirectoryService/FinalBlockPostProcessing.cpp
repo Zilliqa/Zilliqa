@@ -327,9 +327,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   AccountStore::GetInstance().InitRevertibles();
   m_stateDeltaFromShards.clear();
 
+LOG_GENERAL(INFO, "Clearing m_allPoWConns map");
   m_allPoWConns.clear();
-  ClearDSPoWSolns();
-  ResetPoWSubmissionCounter();
+  
+  
   if (isVacuousEpoch) {
     SetState(POW_SUBMISSION);
   } else {

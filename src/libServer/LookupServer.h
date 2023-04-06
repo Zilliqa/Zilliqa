@@ -296,7 +296,7 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetTotalCoinSupplyAsIntI(const Json::Value& request,
-                                          Json::Value& response) {
+                                               Json::Value& response) {
     (void)request;
     response = this->GetTotalCoinSupplyAsInt();
   }

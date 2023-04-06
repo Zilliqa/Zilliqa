@@ -87,7 +87,8 @@ struct CpsAccountStoreInterface {
                                  const Address& destAddress,
                                  uint32_t scillaVersion) = 0;
   virtual void MarkNewLibraryCreated(const Address& address) = 0;
-  virtual CpsAccountStoreInterface::AccountType GetAccountType(const Address& address) = 0;
+  virtual CpsAccountStoreInterface::AccountType GetAccountType(
+      const Address& address) = 0;
 };
 }  // namespace libCps
 

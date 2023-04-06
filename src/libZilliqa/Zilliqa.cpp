@@ -189,7 +189,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       }
 
       if (!result) {
-      // To-do: Error recovery
+        // To-do: Error recovery
 #if 0
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
         span.SetError("dispatch failed");

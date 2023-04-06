@@ -74,9 +74,12 @@ class SendJobsVariables {
                                           "Send Jobs metrics", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
-        result.Set(sendMessageToPeerCount.load(), {{"counter", "SendMessageToPeerCount"}});
-        result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
-        result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
+        result.Set(sendMessageToPeerCount.load(),
+                   {{"counter", "SendMessageToPeerCount"}});
+        result.Set(sendMessageToPeerFailed.load(),
+                   {{"counter", "SendMessageToPeerFailed"}});
+        result.Set(sendMessageToPeerSyncCount.load(),
+                   {{"counter", "SendMessageToPeerSyncCount"}});
         result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
       });
     }
@@ -469,10 +472,10 @@ class SendJobsImpl : public SendJobs,
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-      LOG_GENERAL(INFO,
-                  "Ignoring blacklisted peer " <<
-                  peer.GetPrintableIPAddress()
-                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
+      LOG_GENERAL(INFO, "Ignoring blacklisted peer "
+                            << peer.GetPrintableIPAddress()
+                            << "allow relaxed blacklist "
+                            << allow_relaxed_blacklist);
       return;
     }
 
@@ -486,7 +489,6 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
-
     if (ec) {
       LOG_GENERAL(
           INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()

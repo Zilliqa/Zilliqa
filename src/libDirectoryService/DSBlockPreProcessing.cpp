@@ -293,10 +293,17 @@ void DirectoryService::InjectPoWForDSNode(
 
     // Injecting into Pow Connections information
     if (rit->second == Peer()) {
+      LOG_GENERAL(INFO, "m_allPoWConns pubkey = " << rit->first
+                                                  << " peer = " << rit->second);
+      LOG_GENERAL(INFO, "m_allPoWConns m_mediator pubkey = "
+                            << m_mediator.m_selfKey.second
+                            << " peer = " << m_mediator.m_selfPeer);
       m_allPoWConns.emplace(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
       LOG_GENERAL(INFO,
                   "Injecting into PoW connections " << m_mediator.m_selfPeer);
     } else {
+      LOG_GENERAL(INFO, "m_allPoWConns pubkey = " << rit->first
+                                                  << " peer = " << rit->second);
       m_allPoWConns.emplace(*rit);
       LOG_GENERAL(INFO, "Injecting into PoW connections " << rit->second);
     }
@@ -330,6 +337,9 @@ bool DirectoryService::VerifyPoWWinner(
       }
     } else {
       // I don't know the winner -> store the IP given by the leader
+      LOG_GENERAL(INFO, "m_allPoWConns DSPowWinnder pubkey = "
+                            << DSPowWinner.first
+                            << " peer = " << DSPowWinner.second);
       m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
     }
 
@@ -673,6 +683,8 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
 
   m_allPoWs[pubKey] = powSoln;
 
+  LOG_GENERAL(INFO, "m_allPoWConns PoWVerify pubkey = " << pubKey
+                                                        << " peer = " << peer);
   m_allPoWConns.emplace(pubKey, peer);
 
   auto dsDifficulty =
@@ -1384,6 +1396,9 @@ bool DirectoryService::ProcessShardingStructure(
   for (const auto& shard : shards) {
     totalShardNodes += shard.size();
   }
+  for(const auto& node : m_allPoWConns){
+    LOG_GENERAL(INFO, "m_allPoWConns map entries pubkey = "<<node.first <<" peer = "<<node.second)
+  }
 
   const size_t MAX_DIFF_IP_NODES = std::ceil(
       totalShardNodes * DIFF_IP_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT);
@@ -1407,6 +1422,13 @@ bool DirectoryService::ProcessShardingStructure(
                                    << storedMember->second << " Received"
                                    << std::get<SHARD_NODE_PEER>(shardNode));
           diffIpNodes++;
+          LOG_GENERAL(INFO, "m_allPoWConns stored pubkey = "
+                                << storedMember->first
+                                << " peer = " << storedMember->second);
+          LOG_GENERAL(
+              INFO, "m_allPoWConns received pubkey = "
+                        << std::get<SHARD_NODE_PUBKEY>(shardNode)
+                        << " peer = " << std::get<SHARD_NODE_PEER>(shardNode));
 
           if (diffIpNodes > MAX_DIFF_IP_NODES) {
             LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -1425,6 +1447,11 @@ bool DirectoryService::ProcessShardingStructure(
       }
       // I don't know the member -> store the IP given by the leader
       else {
+        LOG_GENERAL(INFO,
+                    "m_allPoWConns inserting"
+                        << " size = " << m_allPoWConns.size()
+                        << "pubkey = " << std::get<SHARD_NODE_PUBKEY>(shardNode)
+                        << " peer = " << std::get<SHARD_NODE_PEER>(shardNode));
         m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
                               std::get<SHARD_NODE_PEER>(shardNode));
       }

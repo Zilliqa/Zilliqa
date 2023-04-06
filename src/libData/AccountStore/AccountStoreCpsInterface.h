@@ -203,9 +203,9 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return mScillaRootVersion;
   }
 
-
-  virtual CpsAccountStoreInterface::AccountType GetAccountType(const Address& address) override {
-    Account *account = mAccountStore.GetAccountAtomic(address);
+  virtual CpsAccountStoreInterface::AccountType GetAccountType(
+      const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account == nullptr) {
       return CpsAccountStoreInterface::DoesNotExist;
     } else if (account->isContract()) {

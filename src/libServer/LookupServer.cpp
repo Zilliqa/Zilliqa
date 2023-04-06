@@ -1265,8 +1265,7 @@ double LookupServer::GetTransactionRate() {
     refBlockNum = refBlockNum - REF_BLOCK_DIFF;
   }
 
-  mp::cpp_dec_float_50 numTxns(
-      LookupServer::GetNumTransactions(refBlockNum));
+  mp::cpp_dec_float_50 numTxns(LookupServer::GetNumTransactions(refBlockNum));
   LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
   try {

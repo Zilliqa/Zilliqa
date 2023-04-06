@@ -38,12 +38,12 @@
 #include "Blacklist.h"
 #include "P2PComm.h"
 #include "SendJobs.h"
+#include "common/Messages.h"
 #include "libCrypto/Sha2.h"
+#include "libMetrics/Api.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SafeMath.h"
-#include "common/Messages.h"
-#include "libMetrics/Api.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -123,14 +123,19 @@ class P2PVariables {
                                           "P2P metrics", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
-        result.Set(broadcastReceived.load(), {{"counter", "BroadcastReceived"}});
+        result.Set(broadcastReceived.load(),
+                   {{"counter", "BroadcastReceived"}});
         result.Set(gossipReceived.load(), {{"counter", "GossipReceived"}});
         result.Set(normalReceived.load(), {{"counter", "NormalReceived"}});
-        result.Set(gossipReceivedForward.load(), {{"counter", "GossipReceivedForward"}});
+        result.Set(gossipReceivedForward.load(),
+                   {{"counter", "GossipReceivedForward"}});
         result.Set(eventCallback.load(), {{"counter", "EventCallback"}});
-        result.Set(eventCallbackTooFewBytes.load(), {{"counter", "EventCallbackTooFewBytes"}});
-        result.Set(eventCallbackFailure.load(), {{"counter", "EventCallbackFailure"}});
-        result.Set(eventCallbackServerSeed.load(), {{"counter", "EventCallbackServerSeed"}});
+        result.Set(eventCallbackTooFewBytes.load(),
+                   {{"counter", "EventCallbackTooFewBytes"}});
+        result.Set(eventCallbackFailure.load(),
+                   {{"counter", "EventCallbackFailure"}});
+        result.Set(eventCallbackServerSeed.load(),
+                   {{"counter", "EventCallbackServerSeed"}});
         result.Set(newConnections.load(), {{"counter", "NewConnections"}});
       });
     }
@@ -408,7 +413,6 @@ void P2PComm::ClearPeerConnectionCount() {
 
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
-
   zil::local::variables.AddEventCallback(1);
   struct AutoClose {
     ~AutoClose() {
