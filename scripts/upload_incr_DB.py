@@ -151,6 +151,8 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 		bashCommand = awsCli() + " s3 sync --delete temp/persistence "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude 'diagnosticNodes/*' --exclude 'diagnosticCoinb/*' "
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		output, error = process.communicate()
+		logging.info(f"Output from AWS CLI: {output}")
+		logging.info(f"Error from AWS CLI: {error}")
 		if re.match(r'^\s*$', output):
 			logging.warning("No entire persistence diff, interesting...")
 		else:
@@ -167,6 +169,8 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			try:
 				process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 				str_diff_output, error = process.communicate()
+				print(f"Output from AWS CLI: {str_diff_output}")
+				print(f"Error from AWS CLI: {error}")
 				if error:
 					retry = retry -1
 					logging.info("Some error!!")
