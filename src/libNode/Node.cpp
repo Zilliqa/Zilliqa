@@ -1250,7 +1250,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   if (rejoinCondition && !bInShardStructure) {
     LOG_GENERAL(WARNING,
                 "Node " << m_mediator.m_selfKey.second
-                        << " is not in network, apply re-join process instead");
+                        << " is not in network, allow it to sync until next pow");
     m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
     StartSynchronization();
   }
