@@ -161,16 +161,16 @@ def GetAllObjectsFromS3(url, folderName=""):
 		tree = ET.fromstring(response.text)
 		print("[" + str(datetime.datetime.now()) + "] Files to be downloaded:")
 		lastkey = ''
-		for key in tree.findall("Contents"):
-			key_url = key.find("Key").text
+		for key in tree.findall("{*}Contents"):
+			key_url = key.find("{*}Key").text
 			if (not (Exclude_txnBodies and "txEpochs" in key_url) and not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlock" in key_url) and not (Exclude_minerInfo and "minerInfo" in key_url) and not ("diff_persistence" in key_url)):
 				list_of_keyurls.append(url+"/"+key_url)
 				print(key_url)
 			lastkey = key_url
-		istruncated = tree.find('IsTruncated').text
-		if istruncated == 'true':
+		is_truncated = tree.find('{*}IsTruncated').text
+		if is_truncated == 'true':
 			MARKER=lastkey
-			print(istruncated)
+			print(is_truncated)
 		else:
 			break
 
