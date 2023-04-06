@@ -4,6 +4,15 @@ pragma solidity >=0.7.0 <0.9.0;
 
 pragma abicoder v2;
 
+// There are two precompiles allowing to:
+// 1) Call scilla transition - precompile 0x98
+// 2) Read scilla variable - precompile 0x99
+
+// Arguments to these precompiles are constructed with abi.encode(). 
+// There have to be at least two arguments - scilla_contract and transition/variable name. 
+// User is expected to provide big enough output buffer for returned value (otherwise a call may revert)
+// Returned value is encoded via abi so you should call abi.decode() with proper type to obtain underlying value
+
 contract BasicInterop {
 
     function callSimpleMap(address contract_address, string memory tran_name, address recipient, uint128 amount) public {

@@ -1,9 +1,8 @@
-import { expect } from "chai";
-import { Contract } from "ethers";
+import {expect} from "chai";
+import {Contract} from "ethers";
 import hre from "hardhat";
-import { ScillaContract } from "hardhat-scilla-plugin";
-import { parallelizer } from "../helpers";
-
+import {ScillaContract} from "hardhat-scilla-plugin";
+import {parallelizer} from "../helpers";
 
 describe("BasicInterop", function () {
   // Keys used in all tests cases
@@ -47,13 +46,8 @@ describe("BasicInterop", function () {
 
     it("It should return proper integer after invoking set method for nestedMap", async function () {
       const VAL = 2000;
-      await solidityContract.callNestedMap(scillaContractAddress, "setNestedMap", addr1, addr2, 2000);
-      let readRes = await solidityContract.readNestedMap(
-        scillaContractAddress,
-        "nestedMap",
-        addr1,
-        addr2
-      );
+      await solidityContract.callNestedMap(scillaContractAddress, "setNestedMap", addr1, addr2, VAL);
+      let readRes = await solidityContract.readNestedMap(scillaContractAddress, "nestedMap", addr1, addr2);
       expect(readRes.toNumber()).to.be.eq(VAL);
     });
 
@@ -73,22 +67,13 @@ describe("BasicInterop", function () {
 
   it("It should return 0 while reading non-existing key in simpleMap", async function () {
     const VAL = 0;
-    let readRes = await solidityContract.readSimpleMap(
-      scillaContractAddress,
-      "simpleMap",
-      addr2
-    );
+    let readRes = await solidityContract.readSimpleMap(scillaContractAddress, "simpleMap", addr2);
     expect(readRes.toNumber()).to.be.eq(VAL);
   });
-  
+
   it("It should return 0 while reading non-existing key in nestedMap", async function () {
     const VAL = 0;
-    let readRes = await solidityContract.readNestedMap(
-      scillaContractAddress,
-      "nestedMap",
-      addr2,
-      addr1
-    );
+    let readRes = await solidityContract.readNestedMap(scillaContractAddress, "nestedMap", addr2, addr1);
     expect(readRes.toNumber()).to.be.eq(VAL);
   });
 });
