@@ -1112,23 +1112,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);
   }
-
-  if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS) {
-    if (!bInShardStructure) {
-      LOG_GENERAL(
-          WARNING,
-          "Node " << m_mediator.m_selfKey.second
-                  << " is not in network, apply re-join process instead");
+  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
+  LOG_GENERAL(INFO, "rejoinCondition = "<< rejoinCondition);
+  if (rejoinCondition && bIpChanged) {
+    LOG_GENERAL(
+        INFO, "My IP has been changed. So will broadcast my new IP to network");
+    if (!UpdateShardNodeIdentity()) {
       WaitForNextTwoBlocksBeforeRejoin();
       return false;
-    } else if (bIpChanged) {
-      LOG_GENERAL(
-          INFO,
-          "My IP has been changed. So will broadcast my new IP to network");
-      if (!UpdateShardNodeIdentity()) {
-        WaitForNextTwoBlocksBeforeRejoin();
-        return false;
-      }
     }
   }
 
@@ -1255,6 +1246,13 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         break;
       }
     }
+  }
+  if (rejoinCondition && !bInShardStructure) {
+    LOG_GENERAL(WARNING,
+                "Node " << m_mediator.m_selfKey.second
+                        << " is not in network, apply re-join process instead");
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    StartSynchronization();
   }
 
   return res;

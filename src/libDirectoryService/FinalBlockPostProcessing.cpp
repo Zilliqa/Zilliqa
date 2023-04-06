@@ -54,8 +54,9 @@ class FinalBlockPostProcessingVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "finalblockpostproc.gauge",
-                                          "Final block post processing state", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "finalblockpostproc.gauge",
+          "Final block post processing state", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(mbInFinal, {{"counter", "MbInFinal"}});
@@ -327,10 +328,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   AccountStore::GetInstance().InitRevertibles();
   m_stateDeltaFromShards.clear();
 
-LOG_GENERAL(INFO, "Clearing m_allPoWConns map");
+  LOG_GENERAL(INFO, "Clearing m_allPoWConns map");
   m_allPoWConns.clear();
-  
-  
+
   if (isVacuousEpoch) {
     SetState(POW_SUBMISSION);
   } else {

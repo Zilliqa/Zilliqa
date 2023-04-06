@@ -401,7 +401,8 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice,
                        std::make_pair(govProposalId, govVoteValue));
 
-      LOG_GENERAL(INFO, "m_allPoWConns m_allPoWConns size = "<<m_allPoWConns.size() <<" submitterPubKey = "
+      LOG_GENERAL(INFO, "m_allPoWConns m_allPoWConns size = "
+                            << m_allPoWConns.size() << " submitterPubKey = "
                             << submitterPubKey << " peer = " << submitterPeer);
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {

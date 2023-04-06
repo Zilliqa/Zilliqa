@@ -1396,8 +1396,9 @@ bool DirectoryService::ProcessShardingStructure(
   for (const auto& shard : shards) {
     totalShardNodes += shard.size();
   }
-  for(const auto& node : m_allPoWConns){
-    LOG_GENERAL(INFO, "m_allPoWConns map entries pubkey = "<<node.first <<" peer = "<<node.second)
+  for (const auto& node : m_allPoWConns) {
+    LOG_GENERAL(INFO, "m_allPoWConns map entries pubkey = "
+                          << node.first << " peer = " << node.second)
   }
 
   const size_t MAX_DIFF_IP_NODES = std::ceil(

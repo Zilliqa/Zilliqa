@@ -654,7 +654,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
 
   SetConsensusLeaderID(0);
 
-  LOG_GENERAL(INFO, " m_allPoWConns size = "<<m_allPoWConns.size());
+  LOG_GENERAL(INFO, " m_allPoWConns size = " << m_allPoWConns.size());
   for (const auto& node : m_allPoWConns) {
     LOG_GENERAL(INFO, "m_allPoWConns map entries pubkey = "
                           << node.first << " peer = " << node.second)
