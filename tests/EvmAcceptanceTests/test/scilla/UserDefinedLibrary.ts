@@ -7,9 +7,6 @@ let additionLibAddress: string;
 let mutualLibAddress: string;
 let contract1: ScillaContract;
 let contract2: ScillaContract;
-let codehashContractAddress;
-let chainIdContractAddress;
-let ecdsaContractAddress;
 
 describe("Scilla library deploy", () => {
   it("Deploy library - AdditionLib", async () => {
@@ -69,126 +66,47 @@ describe("Scilla contract execute", () => {
   });
 });
 
-// describe("Codehash contract", () => {
-//   beforeEach(async () => {});
-//   afterEach(async () => {});
-//   test("Deploy codehash contract", async () => {
-//     const [deployedTx, deployedContract] = await deployScillaContract(
-//       accounts.contractOwner.privateKey,
-//       "codehash.scilla"
-//     );
-//     assert.isTrue(deployedContract.address !== undefined);
-//     codehashContractAddress = deployedContract.address;
-//   });
-//   test("Call code hash contract - Foo transition", async () => {
-//     let tx1 = await callContract(accounts.contractOwner.privateKey, codehashContractAddress.toLowerCase(), "foo2", [
-//       {
-//         vname: "addr",
-//         type: "ByStr20",
-//         value: `${codehashContractAddress.toLowerCase()}`
-//       }
-//     ]);
-//     const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
-//     expect(tx1.receipt.success).equal(true);
-//     let tx2 = await callContract(accounts.contractOwner.privateKey, codehashContractAddress.toLowerCase(), "foo2", [
-//       {
-//         vname: "addr",
-//         type: "ByStr20",
-//         value: `${codehashContractAddress.toLowerCase()}`
-//       }
-//     ]);
-//     const codeHash2 = tx2.receipt.event_logs[0].params[0].value;
-//     expect(codeHash1 === codeHash2);
-//   });
-// });
+// TODO: Enable this whenever https://github.com/Zilliqa/hardhat-scilla-plugin/issues/22 is fixed
+describe.skip("Codehash contract", () => {
+  let contract: ScillaContract;
+  it("Deploy codehash contract", async () => {
+    contract = await parallelizer.deployScillaContract("codehash.scilla");
+    assert.isTrue(contract.address !== undefined);
+  });
 
-// describe("ChainId contract", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Deploy chainId contract", async () => {
-//         const [deployedTx, deployedContract] = await deployScillaContract(
-//             accounts.contractOwner.privateKey, "chainid.scilla");
-//         assert.isTrue(deployedContract.address !== undefined);
-//         chainIdContractAddress = deployedContract.address;
-//     });
-//     test("Call chain id contract -  EventChainId", async () => {
-//         let tx2 = await callContract(accounts.contractOwner.privateKey,
-//             chainIdContractAddress.toLowerCase(),
-//             "EventChainID",
-//             [],
-//         );
-//         const chainId= tx2.receipt.event_logs[0].params[0].value;
-//         expect(chainId === networkChainId);
-//     })
-// });
+  it("Call code hash contract - Foo transition", async () => {
+    let tx1 = await contract.foo2(contract.toLowerCase());
+    const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
+    expect(tx1.receipt.success).equal(true);
+    let tx2 = await contract.foo2(contract.toLowerCase());
+    const codeHash2 = tx2.receipt.event_logs[0].params[0].value;
+    expect(codeHash1 === codeHash2);
+  });
+});
 
-// describe("Ecdsa contract", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Deploy ecdsa contract", async () => {
-//         const [deployedTx, deployedContract] = await deployScillaContract(
-//             accounts.contractOwner.privateKey, "ecdsa.scilla");
-//         assert.isTrue(deployedContract.address !== undefined);
-//         ecdsaContractAddress = deployedContract.address;
-//     });
-//     test("Call rcdsa contract -  recover invalid input and failed", async () => {
-//         let tx = await callContract(accounts.contractOwner.privateKey,
-//             ecdsaContractAddress.toLowerCase(),
-//             "recover",
-//             [
-//                 {
-//                     vname: "msg",
-//                     type: "ByStr",
-//                     value: "0x1beedbe103d0b0da3f0ff6f8b614569c92174fb82e04c6676f9aa94b994774c5"
-//                 },
-//                 {
-//                     vname: "sig",
-//                     type: "ByStr64",
-//                     value: "0x5f2afac816d9430bce53e081667378790bb5b703ea4a98234649ccac8a358f7a262553d9df46d8417239138bc69db8c458620093b2124937c6a5af2d86f0014e"
+// TODO: Enable this whenever https://github.com/Zilliqa/hardhat-scilla-plugin/issues/22 is fixed
+describe.skip("Ecdsa contract", () => {
+  let contract: ScillaContract;
+  it("Deploy ecdsa contract", async () => {
+    contract = await parallelizer.deployScillaContract("ecdsa.scilla");
+    assert.isTrue(contract.address !== undefined);
+  });
 
-//                 },
-//                 {
-//                     vname: "recid",
-//                     type: "Uint32",
-//                     value: "32"
+  it("Call rcdsa contract -  recover invalid input and failed", async () => {
+    const tx = await contract.recover("0x1beedbe103d0b0da3f0ff6f8b614569c92174fb82e04c6676f9aa94b994774c5",
+      "0x5f2afac816d9430bce53e081667378790bb5b703ea4a98234649ccac8a358f7a262553d9df46d8417239138bc69db8c458620093b2124937c6a5af2d86f0014e",
+      32);
 
-//                 }
-//             ],
-//         );
-//         console.log(JSON.stringify(tx));
-//         expect(tx.receipt.success).equal(false);
-//         assert.include(tx.receipt.exceptions[0].message,"Sign.read_recoverable_exn: recid must be 0, 1, 2 or 3");
-//     })
-//     test("Call rcdsa contract -  recover valid input and failed", async () => {
-//         let tx = await callContract(accounts.contractOwner.privateKey,
-//             ecdsaContractAddress.toLowerCase(),
-//             "recover",
-//             [
-//                 {
-//                     vname: "msg",
-//                     type: "ByStr",
-//                     value: "0x1beedbe103d0b0da3f0ff6f8b614569c92174fb82e04c6676f9aa94b994774c5"
-//                 },
-//                 {
-//                     vname: "sig",
-//                     type: "ByStr64",
-//                     value: "0x5f2afac816d9430bce53e081667378790bb5b703ea4a98234649ccac8a358f7a262553d9df46d8417239138bc69db8c458620093b2124937c6a5af2d86f0014e"
+    expect(tx.receipt.success).equal(false);
+    assert.include(tx.receipt.exceptions[0].message, "Sign.read_recoverable_exn: recid must be 0, 1, 2 or 3");
+  });
 
-//                 },
-//                 {
-//                     vname: "recid",
-//                     type: "Uint32",
-//                     value: "2"
+  it("Call rcdsa contract -  recover valid input and failed", async () => {
+    const tx = await contract.recover("0x1beedbe103d0b0da3f0ff6f8b614569c92174fb82e04c6676f9aa94b994774c5",
+        "0x5f2afac816d9430bce53e081667378790bb5b703ea4a98234649ccac8a358f7a262553d9df46d8417239138bc69db8c458620093b2124937c6a5af2d86f0014e",
+        2);
 
-//                 }
-//             ],
-//         );
-//         console.log(JSON.stringify(tx));
-//         expect(tx.receipt.success).equal(false);
-//         assert.include(tx.receipt.exceptions[0].message,"Sign.recover: pk could not be recovered");
-//     })
-// });
+    expect(tx.receipt.success).equal(false);
+    assert.include(tx.receipt.exceptions[0].message, "Sign.recover: pk could not be recovered");
+  });
+});
