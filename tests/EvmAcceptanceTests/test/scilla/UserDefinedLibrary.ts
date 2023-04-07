@@ -1,11 +1,12 @@
 const {validation} = require("@zilliqa-js/util");
 const {assert, expect} = require("chai");
+import { ScillaContract } from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 
 let additionLibAddress: string;
 let mutualLibAddress: string;
-let testContract1Address;
-let testContract2Address;
+let contract1: ScillaContract;
+let contract2: ScillaContract;
 let codehashContractAddress;
 let chainIdContractAddress;
 let ecdsaContractAddress;
@@ -41,121 +42,64 @@ describe("Scilla library deploy", () => {
 
 describe("Scilla contract deploy", () => {
   it("Deploy TestContract1 - Import AdditonLib MutualLib", async () => {
-    const contract = await parallelizer.deployScillaContractWithLibrary("TestContract1",
+    contract1 = await parallelizer.deployScillaContractWithLibrary("TestContract1",
       [{name: "AdditionLib", address: additionLibAddress},
       {name: "MutualLib", address: mutualLibAddress}]
     );
   
-    testContract1Address = contract.address;
-    expect(testContract1Address).to.be.properAddress;
-    expect(validation.isAddress(testContract1Address)).to.be.true;
+    expect(contract1.address).to.be.properAddress;
+    expect(validation.isAddress(contract1.address)).to.be.true;
   });
 
   it("Deploy TestContract2 - Import MutualLib", async () => {
-    const contract = await parallelizer.deployScillaContractWithLibrary("TestContract2",
+    contract2 = await parallelizer.deployScillaContractWithLibrary("TestContract2",
       [{name: "MutualLib", address: mutualLibAddress}]
     );
-    testContract2Address = contract.address;
-    expect(testContract2Address).to.be.properAddress;
-    expect(validation.isAddress(testContract2Address)).to.be.true;
+
+    expect(contract2.address).to.be.properAddress;
+    expect(validation.isAddress(contract2.address)).to.be.true;
   });
 });
 
-// describe("Scilla contract execute", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Call TestContract1 - Sending transition", async () => {
-//         const tx = await callContract(accounts.contractOwner.privateKey,
-//             testContract1Address,
-//             "Sending",
-//             [{
-//                 vname: "c2",
-//                 type: "ByStr20",
-//                 value: `${testContract2Address}`
-//             },
-//             ],
-//         )
-//         expect(tx.receipt.success).equal(true);
-//     });
-// });
-
-// describe("Scilla contract execute", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Call TestContract1 - Sending transition", async () => {
-//         const tx = await callContract(accounts.contractOwner.privateKey,
-//             testContract1Address,
-//             "Sending",
-//             [{
-//                 vname: "c2",
-//                 type: "ByStr20",
-//                 value: `${testContract2Address}`
-//             },
-//             ],
-//         )
-//         expect(tx.receipt.success).equal(true);
-//     });
-// });
-
-// describe("Contract deploy and call", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Deploy TestContract3", async () => {
-//         const [deployedTx, deployedContract] = await deployScillaContract(
-//             accounts.contractOwner.privateKey, "TestContract3.scilla");
-//         assert.isTrue(deployedContract.address !== undefined);
-//     });
-//     test("Deploy TestContract4", async () => {
-//         const [deployedTx, deployedContract] = await deployScillaContract(
-//             accounts.contractOwner.privateKey, "TestContract4.scilla"
-//         );
-//         assert.isTrue(deployedContract.address !== undefined);
-//     });
-// });
+describe("Scilla contract execute", () => {
+  it("Call TestContract1 - Sending transition", async () => {
+    const tx = await contract1.Sending(contract2.address);
+    expect(tx.receipt.success).equal(true);
+    expect(tx).to.have.eventLog("Bool const of T2 type");
+  });
+});
 
 // describe("Codehash contract", () => {
-//     beforeEach(async () => {
-//     });
-//     afterEach(async () => {
-//     });
-//     test("Deploy codehash contract", async () => {
-//         const [deployedTx, deployedContract] = await deployScillaContract(
-//             accounts.contractOwner.privateKey, "codehash.scilla");
-//         assert.isTrue(deployedContract.address !== undefined);
-//         codehashContractAddress = deployedContract.address;
-//     });
-//     test("Call code hash contract - Foo transition", async () => {
-//         let tx1 = await callContract(accounts.contractOwner.privateKey,
-//             codehashContractAddress.toLowerCase(),
-//             "foo2",
-//             [{
-//                 vname: "addr",
-//                 type: "ByStr20",
-//                 value: `${codehashContractAddress.toLowerCase()}`
-//             },
-//             ],
-//         )
-//         const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
-//         expect(tx1.receipt.success).equal(true);
-//         let tx2 = await callContract(accounts.contractOwner.privateKey,
-//             codehashContractAddress.toLowerCase(),
-//             "foo2",
-//             [{
-//                 vname: "addr",
-//                 type: "ByStr20",
-//                 value: `${codehashContractAddress.toLowerCase()}`
-//             },
-//             ],
-//         )
-//         const codeHash2= tx2.receipt.event_logs[0].params[0].value;
-//         expect(codeHash1 === codeHash2);
-//     })
+//   beforeEach(async () => {});
+//   afterEach(async () => {});
+//   test("Deploy codehash contract", async () => {
+//     const [deployedTx, deployedContract] = await deployScillaContract(
+//       accounts.contractOwner.privateKey,
+//       "codehash.scilla"
+//     );
+//     assert.isTrue(deployedContract.address !== undefined);
+//     codehashContractAddress = deployedContract.address;
+//   });
+//   test("Call code hash contract - Foo transition", async () => {
+//     let tx1 = await callContract(accounts.contractOwner.privateKey, codehashContractAddress.toLowerCase(), "foo2", [
+//       {
+//         vname: "addr",
+//         type: "ByStr20",
+//         value: `${codehashContractAddress.toLowerCase()}`
+//       }
+//     ]);
+//     const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
+//     expect(tx1.receipt.success).equal(true);
+//     let tx2 = await callContract(accounts.contractOwner.privateKey, codehashContractAddress.toLowerCase(), "foo2", [
+//       {
+//         vname: "addr",
+//         type: "ByStr20",
+//         value: `${codehashContractAddress.toLowerCase()}`
+//       }
+//     ]);
+//     const codeHash2 = tx2.receipt.event_logs[0].params[0].value;
+//     expect(codeHash1 === codeHash2);
+//   });
 // });
 
 // describe("ChainId contract", () => {
