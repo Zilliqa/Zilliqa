@@ -217,6 +217,21 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
       LOG_GENERAL(INFO, "LDB Write (microseconds) = " << r_timer_end(tpStart));
     }
 
+    // ZIL-5165: Don't fail if the recipient is a user account.
+    {
+      const CpsAccountStoreInterface::AccountType accountType = acc_store.GetAccountType(recipient);
+      LOG_GENERAL(INFO, "Target is accountType " << accountType);
+      if (accountType == CpsAccountStoreInterface::DoesNotExist ||
+          accountType == CpsAccountStoreInterface::EOA) {
+        LOG_GENERAL(INFO, "Target is EOA: processing.");
+        // Message sent to a non-contract account. Add something to results.entries so that if this
+        // message attempts to transfer funds, it succeeds.
+        results.entries.emplace_back(ScillaCallParseResult::SingleResult{
+            {}, recipient, amount, false});
+        continue;
+      }
+    }
+
     if (scillaArgs.edge > MAX_CONTRACT_EDGES) {
       LOG_GENERAL(
           WARNING,
@@ -228,16 +243,6 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     bool isLibrary;
     std::vector<Address> extlibs;
     uint32_t scillaVersion;
-
-    // ZIL-5165: Don't fail if the recipient is a user account.
-    {
-      const CpsAccountStoreInterface::AccountType accountType = acc_store.GetAccountType(recipient);
-      if (accountType == CpsAccountStoreInterface::DoesNotExist ||
-          accountType == CpsAccountStoreInterface::EOA) {
-        // Message sent to a non-contract account.
-        continue;
-      }
-    }
 
     if (!acc_store.GetContractAuxiliaries(recipient, isLibrary, scillaVersion,
                                           extlibs)) {
