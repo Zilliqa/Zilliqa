@@ -62,6 +62,7 @@ bool Node::GetLatestDSBlock() {
     {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_mutexLatestDSBlockUpdation);
+      // TODO: cv fix
       if (m_mediator.m_lookup->cv_latestDSBlock.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
@@ -162,6 +163,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       const unsigned int fixedDSBlockDistributionDelayTime =
           DELAY_FIRSTXNEPOCH_IN_MS / 1000;
       const unsigned int extraWaitTime = DSBLOCK_EXTRA_WAIT_TIME;
+      // TODO: cv fix
       if (cv_waitDSBlock.wait_for(
               lk, chrono::seconds(fixedDSNodesPoWTime +
                                   fixedDSBlockDistributionDelayTime +
