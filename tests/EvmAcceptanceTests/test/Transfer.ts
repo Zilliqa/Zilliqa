@@ -31,7 +31,6 @@ describe("ForwardZil contract functionality", function () {
 
   it("should be possible to transfer ethers to the contract", async function () {
     const prevBalance = await ethers.provider.getBalance(this.contract.address);
-
     const tx = await parallelizer.sendTransaction({
       to: this.contract.address,
       value: FUND
