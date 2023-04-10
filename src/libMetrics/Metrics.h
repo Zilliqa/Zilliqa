@@ -220,6 +220,7 @@ class Metrics : public Singleton<Metrics> {
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
  private:
+  std::atomic_bool m_noopProvider{false};
   friend class api_test;
 
   void InitPrometheus(const std::string &addr);
