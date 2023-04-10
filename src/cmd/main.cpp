@@ -246,12 +246,7 @@ int main(int argc, const char* argv[]) {
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));
 
-    auto dispatcher = [&zilliqa](Zilliqa::Msg message) mutable -> void {
-      zilliqa.Dispatch(std::move(message));
-    };
-
-    // Only start the incoming message queue
-    P2PComm::GetInstance().StartMessagePump(dispatcher);
+    LOG_EXTRA("my role is " << identity << ", my IP is " << address);
 
     std::optional<evmproj::filters::PendingTxnUpdater> pendingTxnUpdater;
     if (identity.find("seedpub") == 0) {
