@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Common.h"
 #include "Tracing.h"
 
 #include <cassert>
@@ -598,17 +599,12 @@ void TracingStdOutInit(std::string_view identity) {
 
 bool TracingImpl::Initialize(std::string_view identity,
                              std::string_view filters_mask) {
-  std::string_view mask =
-      filters_mask.empty() ? TRACE_ZILLIQA_MASK : filters_mask;
-
-  //
-  // Response to results of rehearsal
-  //
-
-  std::string toTest(identity);
-  if (toTest.find("normal") != std::string::npos) {
-    mask = "NONE";
+  if (!IsObservabilityAllowed(identity)) {
+    return false;
   }
+
+  std::string mask =
+      filters_mask.empty() ? TRACE_ZILLIQA_MASK : std::string{filters_mask};
 
   if (mask.empty() || mask == "NONE") {
     // Tracing disabled
@@ -636,7 +632,7 @@ bool TracingImpl::Initialize(std::string_view identity,
   try {
     std::string cmp{TRACE_ZILLIQA_PROVIDER};
 
-    transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
+    boost::algorithm::to_lower(cmp);
 
     if (cmp == "otlphttp") {
       TracingOtlpHTTPInit(identity);
