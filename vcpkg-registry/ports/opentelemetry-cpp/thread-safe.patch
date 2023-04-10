@@ -1,0 +1,43 @@
+diff --git a/sdk/include/opentelemetry/sdk/metrics/view/view_registry.h b/sdk/include/opentelemetry/sdk/metrics/view/view_registry.h
+index 87773b20..c85ad750 100644
+--- a/sdk/include/opentelemetry/sdk/metrics/view/view_registry.h
++++ b/sdk/include/opentelemetry/sdk/metrics/view/view_registry.h
+@@ -4,6 +4,7 @@
+ #pragma once
+ 
+ #include <unordered_map>
++#include <mutex>
+ #include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
+ #include "opentelemetry/sdk/metrics/view/instrument_selector.h"
+ #include "opentelemetry/sdk/metrics/view/meter_selector.h"
+@@ -40,6 +41,7 @@ class ViewRegistry
+ 
+     auto registered_view = std::unique_ptr<RegisteredView>(new RegisteredView{
+         std::move(instrument_selector), std::move(meter_selector), std::move(view)});
++    std::unique_lock<std::mutex> guard{mutex_};
+     registered_views_.push_back(std::move(registered_view));
+   }
+ 
+@@ -49,6 +51,7 @@ class ViewRegistry
+       nostd::function_ref<bool(const View &)> callback) const
+   {
+     bool found = false;
++    std::unique_lock<std::mutex> guard{mutex_};
+     for (auto const &registered_view : registered_views_)
+     {
+       if (MatchMeter(registered_view->meter_selector_.get(), instrumentation_scope) &&
+@@ -77,6 +80,7 @@ class ViewRegistry
+ 
+ private:
+   std::vector<std::unique_ptr<RegisteredView>> registered_views_;
++  mutable std::mutex mutex_;
+   static bool MatchMeter(
+       opentelemetry::sdk::metrics::MeterSelector *selector,
+       const opentelemetry::sdk::instrumentationscope::InstrumentationScope &instrumentation_scope)
+diff --git a/third_party/prometheus-cpp b/third_party/prometheus-cpp
+index 4ea303fa..c9ffcdda 160000
+--- a/third_party/prometheus-cpp
++++ b/third_party/prometheus-cpp
+@@ -1 +1 @@
+-Subproject commit 4ea303fa66e4c26dc4df67045fa0edf09c2f3077
++Subproject commit c9ffcdda9086ffd9e1283ea7a0276d831f3c8a8d
