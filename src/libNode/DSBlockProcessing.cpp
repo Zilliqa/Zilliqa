@@ -706,6 +706,7 @@ bool Node::ProcessVCDSBlocksMessage(
       // Finally, start as a shard node
       StartFirstTxEpoch();
     }
+    m_allowRecoveryAllSync = false;
   } else {
     // Process sharding structure as a lookup node
     m_mediator.m_lookup->ProcessEntireShardingStructure();

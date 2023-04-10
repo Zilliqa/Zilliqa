@@ -547,6 +547,8 @@ class Node : public Executable {
   mutable std::mutex m_mutexPending;
   std::map<TxnHash, Transaction> m_pendingTxns;
 
+  std::atomic<bool> m_allowRecoveryAllSync{false};
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
