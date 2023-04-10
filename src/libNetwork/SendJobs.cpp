@@ -32,6 +32,7 @@
 
 #include "Blacklist.h"
 #include "Peer.h"
+#include "common/MessageNames.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 
@@ -304,7 +305,13 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-    LOG_GENERAL(DEBUG, "Sending " << msg.size << " bytes to " << m_peer);
+#if LOG_EXTRA_ENABLED
+    if (msg.size >= 2) {
+      auto* p = (const unsigned char*)msg.data.get();
+      LOG_EXTRA(FormatMessageName(p[0], p[1])
+                << " of size " << msg.size << " to " << m_peer);
+    }
+#endif
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),

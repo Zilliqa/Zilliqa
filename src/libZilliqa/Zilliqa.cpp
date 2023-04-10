@@ -83,9 +83,9 @@ const std::string_view StartByteToStr(unsigned char start_byte) {
     MATCH_CASE(START_BYTE_BROADCAST)
     MATCH_CASE(START_BYTE_GOSSIP)
 
-// Removed from the updated protocol
-//    MATCH_CASE(START_BYTE_SEED_TO_SEED_REQUEST)
-//    MATCH_CASE(START_BYTE_SEED_TO_SEED_RESPONSE)
+      // Removed from the updated protocol
+      //    MATCH_CASE(START_BYTE_SEED_TO_SEED_REQUEST)
+      //    MATCH_CASE(START_BYTE_SEED_TO_SEED_RESPONSE)
     default:
       break;
   }
@@ -120,25 +120,6 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey &key, const Peer &peer) {
                                      << peer.m_listenPortHost);
 }
 
-/*static*/ std::string Zilliqa::FormatMessageName(unsigned char msgType,
-                                                  unsigned char instruction) {
-  const std::string InvalidMessageType = "INVALID_MESSAGE";
-  if (msgType >= ARRAY_SIZE(MessageTypeStrings)) {
-    return InvalidMessageType;
-  }
-
-  if (NULL == MessageTypeInstructionStrings[msgType]) {
-    return InvalidMessageType;
-  }
-
-  if (instruction >= MessageTypeInstructionSize[msgType]) {
-    return InvalidMessageType;
-  }
-
-  return MessageTypeStrings[msgType] + "_" +
-         MessageTypeInstructionStrings[msgType][instruction];
-}
-
 void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->msg.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
@@ -170,6 +151,12 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
         tpStart = std::chrono::high_resolution_clock::now();
       }
 
+#if LOG_EXTRA_ENABLED
+      LOG_EXTRA(
+          FormatMessageName(msg_type, message->msg.at(MessageOffset::INST))
+          << " of size " << message->msg.size() << " from " << message->from);
+#endif
+
       // TODO : not this
 #if 0
       auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
@@ -191,7 +178,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       }
 
       if (!result) {
-      // To-do: Error recovery
+        // To-do: Error recovery
 #if 0
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
         span.SetError("dispatch failed");

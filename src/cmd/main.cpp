@@ -247,6 +247,8 @@ int main(int argc, const char* argv[]) {
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));
 
+    LOG_EXTRA("my role is " << identity << ", my IP is " << address);
+
     std::optional<evmproj::filters::PendingTxnUpdater> pendingTxnUpdater;
     if (identity.find("seedpub") == 0) {
       LOG_GENERAL(INFO, "Starting pending txn updater...");
