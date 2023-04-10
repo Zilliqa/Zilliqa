@@ -21,7 +21,7 @@ jobs:
       shell: bash
       run: |
         docker system df
-        docker system prune -a -f --filter "until=336h"
+        docker system prune -a -f --filter "until=168h"
         docker system df
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'
       uses: actions/checkout@v3
