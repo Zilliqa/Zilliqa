@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_COMMON_H_
 #define ZILLIQA_SRC_LIBMETRICS_COMMON_H_
 
+#include <algorithm>
+#include <array>
 #include <string>
 
 namespace zil {
@@ -31,5 +33,16 @@ const std::string METRIC_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
 }  // namespace zil
 
 constexpr double METRICS_VERSION{8.6};
+
+template <typename StringT>
+bool IsObservabilityAllowed(const StringT& identity) {
+  static std::array<std::string_view, 4> allowedIdentities = {
+      "seedprv", "seedpub", "dsguard", "lookup"};
+  return std::any_of(std::begin(allowedIdentities), std::end(allowedIdentities),
+                     [&identity](const auto& allowedIdentity) {
+                       return identity.find(allowedIdentity) !=
+                              std::string::npos;
+                     });
+}
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_COMMON_H_

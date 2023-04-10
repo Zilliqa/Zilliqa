@@ -32,15 +32,19 @@
 #include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
 
-static std::mt19937 rng;
-
 namespace TestUtils {
-void Initialize();
+inline void Initialize() {}
 
 // Data Generation Functions
 
 template <typename T>
 T RandomIntInRng(T n, T m) {
+  thread_local std::mt19937 rng;
+  thread_local bool seeded = false;
+  if (!seeded) {
+    rng.seed(std::random_device()());
+    seeded = true;
+  }
   return std::uniform_int_distribution<T>{n, m}(rng);
 }
 

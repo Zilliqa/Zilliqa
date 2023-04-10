@@ -11,6 +11,7 @@ vcpkg_from_github(
     PATCHES
         mac-fix.patch
         proto-shared.patch
+        thread-safe.patch
 )
 
 vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
