@@ -1112,23 +1112,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);
   }
+  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
+  LOG_GENERAL(INFO, "rejoinCondition = "<< rejoinCondition); //TODO: remove this log before merge
 
-  if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS) {
-    if (!bInShardStructure) {
-      LOG_GENERAL(
-          WARNING,
-          "Node " << m_mediator.m_selfKey.second
-                  << " is not in network, apply re-join process instead");
+  if (rejoinCondition && bIpChanged) {
+    LOG_GENERAL(
+        INFO, "My IP has been changed. So will broadcast my new IP to network");
+    if (!UpdateShardNodeIdentity()) {
       WaitForNextTwoBlocksBeforeRejoin();
       return false;
-    } else if (bIpChanged) {
-      LOG_GENERAL(
-          INFO,
-          "My IP has been changed. So will broadcast my new IP to network");
-      if (!UpdateShardNodeIdentity()) {
-        WaitForNextTwoBlocksBeforeRejoin();
-        return false;
-      }
     }
   }
 
@@ -1256,7 +1248,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       }
     }
   }
-
+  if (rejoinCondition && !bInShardStructure) {
+    LOG_GENERAL(WARNING, "Node "
+                             << m_mediator.m_selfKey.second
+                             << " is not in network, allow the node to sync");
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    m_allowRecoveryAllSync = true;
+    StartSynchronization();
+  }
   return res;
 }
 
@@ -1301,6 +1300,8 @@ void Node::WakeupAtTxEpoch() {
   if (LOOKUP_NODE_MODE) {
     return;
   }
+  //For shard node , do not wait for final block when node is not part of shard and is syncing with network
+  if (m_allowRecoveryAllSync) return;
 
   lock_guard<mutex> g(m_mutexShardMember);
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
