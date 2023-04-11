@@ -294,8 +294,10 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
     }
 #endif
 
+  bool allowRecoveryAllSync{false};
   if (toRetrieveHistory) {
-    if (!StartRetrieveHistory(syncType, rejoiningAfterRecover)) {
+    if (!StartRetrieveHistory(syncType, allowRecoveryAllSync,
+                              rejoiningAfterRecover)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
@@ -313,10 +315,12 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
 
     runInitializeGenesisBlocks = false;
 
-    /// When non-rejoin mode, call wake-up or recovery
+    /// When non-rejoin mode, call wake-up for consensus when
+    // 1. Node is synced already
+    // 2. recovered node and is part of shard
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
-      WakeupAtTxEpoch();
+      if (!allowRecoveryAllSync) WakeupAtTxEpoch();
       return true;
     }
   }
@@ -780,7 +784,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
   m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType,
+bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllSync,
                                 bool rejoiningAfterRecover) {
   LOG_MARKER();
 
@@ -1112,23 +1116,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);
   }
+  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
 
-  if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS) {
-    if (!bInShardStructure) {
-      LOG_GENERAL(
-          WARNING,
-          "Node " << m_mediator.m_selfKey.second
-                  << " is not in network, apply re-join process instead");
+  if (rejoinCondition && bIpChanged) {
+    LOG_GENERAL(
+        INFO, "My IP has been changed. So will broadcast my new IP to network");
+    if (!UpdateShardNodeIdentity()) {
       WaitForNextTwoBlocksBeforeRejoin();
       return false;
-    } else if (bIpChanged) {
-      LOG_GENERAL(
-          INFO,
-          "My IP has been changed. So will broadcast my new IP to network");
-      if (!UpdateShardNodeIdentity()) {
-        WaitForNextTwoBlocksBeforeRejoin();
-        return false;
-      }
     }
   }
 
@@ -1256,7 +1251,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       }
     }
   }
-
+  if (rejoinCondition && !bInShardStructure) {
+    LOG_GENERAL(WARNING, "Node "
+                             << m_mediator.m_selfKey.second
+                             << " is not in network, allow the node to sync");
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    allowRecoveryAllSync = true;
+    StartSynchronization();
+  }
   return res;
 }
 

@@ -590,7 +590,7 @@ class Node : public Executable {
   bool DownloadPersistenceFromS3();
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType,
+  bool StartRetrieveHistory(const SyncType syncType, bool &allowRecoverAllSync,
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(const bool fromValidateDBBinary = false);
