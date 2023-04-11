@@ -31,18 +31,12 @@ describe("ForwardZil contract functionality", function () {
 
   it("should be possible to transfer ethers to the contract", async function () {
     const prevBalance = await ethers.provider.getBalance(this.contract.address);
-
-    const tx = await parallelizer.sendTransaction({
+    await parallelizer.sendTransaction({
       to: this.contract.address,
       value: FUND
     });
 
-
-    // Get transaction receipt for the tx
-    const receipt = await tx.response.wait();
-
     const currentBalance = await ethers.provider.getBalance(this.contract.address);
-
     expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
   });
 });
@@ -51,12 +45,10 @@ describe("Transfer ethers", function () {
   it("should be possible to transfer ethers to a user account", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    const tx = await parallelizer.sendTransaction({
+    await parallelizer.sendTransaction({
       to: payee.address,
       value: FUND
     });
-
-    const receipt = await tx.response.wait();
 
     expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
@@ -92,13 +84,9 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    console.log("deploying...");
     const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
-    console.log("deploying...1");
     const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE});
-    console.log("deploying...2");
     await batchTrans.deployed();
-    console.log("deploying...3");
 
     async function getFee(hash: string) {
       const res = await ethers.provider.getTransactionReceipt(hash);
@@ -110,39 +98,9 @@ describe("Transfer ethers", function () {
 
     const fee1 = await getFee(batchTrans.deployTransaction.hash);
 
-    console.log("fee1: ", fee1.toString());
-
-    //const contract = ethers.getContractFactory(...);
-    //const estimatedGas = await ethers.provider.estimateGas(contract.getDeployTransaction(...).data)
-
-    //console.log("pre deploy");
-    //const tx = await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-    //  value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
-    //});
-
-    //// determine the amount of gas that was used
-    //console.log("here we are");
-    //console.log("here we are", tx);
-    //console.log("here we are", tx.response);
-    //const receipt = await tx.deployed();
-    //console.log("the receipt: ", receipt);
-
-    //const xx = await receipt.deployed();
-
-    //console.log("the xx: ", xx);
-    //console.log("the xx: ", xx.);
-
-    //const gasUsed = receipt.gasUsed;
-
-    //console.log("post deploy, gas used: ", gasUsed);
-    //console.log("post deploy");
-
+    // Make sure to remove gas accounting from the calculation
     let finalOwnerBal = await ethers.provider.getBalance(owner.address);
     let diff = initialOwnerBal - finalOwnerBal - fee1;
-
-    console.log("initial owner balance: " + initialOwnerBal);
-    console.log("final owner balance: " + finalOwnerBal);
-    console.log("diff " + diff);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
     if (diff > (ACCOUNT_VALUE * 4)) {
@@ -207,12 +165,10 @@ describe("Transfer ethers", function () {
 
     const FUND = BigNumber.from(100_000_000_000);
 
-    const tx = await parallelizer.sendTransaction({
+    await parallelizer.sendTransaction({
       to: rndAccount.address,
       value: FUND
     });
-
-    const receipt = await tx.response.wait();
 
     rndAccount = rndAccount.connect(ethers.provider);
 
