@@ -61,11 +61,15 @@ class Config:
             self.using_local_registry = True
             self.docker_binary = "podman"
             self.is_osx = True
+            self.minikube_driver = "hyperkit"
+            self.build_lite = False
         else:
             self.using_podman = True
             self.using_local_registry = True
             self.docker_binary = "podman"
             self.is_osx = False
+            self.minikube_driver = "kvm2"
+            self.build_lite = True
         self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
         self.testnet_name = "localdev"
         self.strip_binaries = False
@@ -150,26 +154,50 @@ def run_or_die(config, cmd, in_dir = None, env = None, in_background = False, pi
 
 @click.command("setup-podman")
 @click.pass_context
-def setup_podman(ctx):
+def setup_podman_cmd(ctx):
     """
     Set up podman on OS X machines.
     """
     config = get_config(ctx)
+    setup_podman(config)
+
+def setup_podman(config):
     if config.is_osx:
-        run_or_die(config, ["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
-        # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
-        run_or_die(config, ["podman", "machine", "set", "--rootful" ])
-        run_or_die(config, ["podman", "machine", "start"])
+        state = podman_machine_state(config)
+        if state is None:
+            run_or_die(config, ["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
+            # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
+            run_or_die(config, ["podman", "machine", "set", "--rootful" ])
+        if state != "running":
+            run_or_die(config, ["podman", "machine", "start"])
     else:
         print("No need to setup podman on non-OS X machines")
 
+def podman_machine_state(config):
+    data = run_or_die(config, ["podman", "machine", "inspect"], capture_output = True)
+    parsed = json.loads(data)
+    for machine in parsed:
+        state = machine["State"]
+        if ( state == "running" ):
+            print("A podman machine is running")
+            return "running"
+    if len(parsed) > 0:
+        print("A machine exists but is not running")
+        return "exists"
+    else:
+        print("Could not find running podman machines")
+        return None
+        
 @click.command("teardown-podman")
 @click.pass_context
-def teardown_podman(ctx):
+def teardown_podman_cmd(ctx):
     """
     Tear down podman (on OS X only)
     """
     config = get_config(ctx)
+    teardown_podman(config)
+
+def teardown_podman(config):
     if config.is_osx:
         run_or_die(config, ["podman", "machine", "stop"])
         run_or_die(config, ["podman", "machine", "rm", "-f"])
@@ -192,12 +220,12 @@ def print_config_advice(config):
     host_names = sanitise_output(host_names).split()
     # May have to be hardcoded, since the net isn't running at this point...
     if len(host_names) == 0:
-        host_names = [  "localdev-api.localdomain",
-                        "localdev-explorer.localdomain",
-                        "localdev-l2api.localdomain",
-                        "localdev-newapi.localdomain",
-                        "localdev-origin.localdomain",
-                        "localdev-origin-internal.localdomain" ]
+        host_names = [  "localdev-api",
+                        "localdev-explorer",
+                        "localdev-l2api",
+                        "localdev-newapi",
+                        "localdev-origin",
+                        "localdev-origin-internal" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
     print("Minikube is at {ip}")
     print(f"""Please add
@@ -235,14 +263,17 @@ def start_k8s_cmd(ctx):
 
 @click.command("setup-k8s")
 @click.pass_context
-def setup_k8s(ctx):
+def setup_k8s_cmd(ctx):
     """
     Set up a minikube cluster with appropriate containers and add-ons to run a local development version of Zilliqa
     """
     config = get_config(ctx)
+    setup_k8s(config)
+
+def setup_k8s(config):
     print("Creating minikube cluster .. ")
-    run_or_die(config, ["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
-                "--insecure-registry", "192.168.39.0/24", "--container-runtime", "cri-o"])
+    run_or_die(config, ["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", config.minikube_driver,
+                "--insecure-registry", "192.168.0.0/16", "--container-runtime", "cri-o"])
     run_or_die(config, ["minikube", "addons", "enable", "registry"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
@@ -328,9 +359,12 @@ def push_to_local_registry(config, tag):
 
 @click.command("teardown-k8s")
 @click.pass_context
-def teardown_k8s(ctx):
+def teardown_k8s_cmd(ctx):
     """ Tear down k8s cluster; when you restart it you will need to rewrite your host lookups """
     config = get_config(ctx)
+    teardown_k8s(config)
+
+def teardown_k8s(config):
     print("Destroying minikube cluster .. ")
     run_or_die(config, ["minikube", "delete"])
 
@@ -350,7 +384,10 @@ def up(config):
     tag = gen_tag()
     #tag = "w5fnelo8"
     tag_name = f"{minikube}:5000/zilliqa:{tag}"
-    build_lite(config, tag_name)
+    if config.build_lite:
+        build_lite(config, tag_name)
+    else:
+        build(config, tag_name)
     write_testnet_configuration(config, tag_name, config.testnet_name)
     start_testnet(config, config.testnet_name)
     start_proxy(config, config.testnet_name)
@@ -513,7 +550,7 @@ def show_proxy(config, testnet_name):
 @click.pass_context
 def build_lite_cmd(ctx, tag):
     """
-    Builds a Zilliqa container using docker/Dockerfile.lite
+    Builds a Zilliqa container using docker/Dockerfile.lite 
     This uses your local compiler and OS, so you need to set that up as described in README.md and have vcpkg available.
     It copies in (but does not build) scilla, so if you are making changes to Scilla you will need to rebuild it yourself.
     Dockerfile.lite contains just enough mechanism to let Zilliqa run.
@@ -523,7 +560,30 @@ def build_lite_cmd(ctx, tag):
     config = get_config(ctx)
     build_lite(config, tag)
 
+@click.command("build")
+@click.argument("tag")
+@click.pass_context
+def build_cmd(ctx, tag):
+    """
+    Builds a Zilliqa container using docker/Dockerfile.
+    Necessary on OS X and other non-native systems to make sure we get the right executable format and libs
+
+    TAG is the container tag to build - eg. 'zilliqa:v1'
+    """
+    config = get_config(ctx)
+    build(config, tag)
+
+
+def build(config, tag):
+    print("> Performing full in-container build .. ")
+    new_env = os.environ.copy()
+    new_env["DOCKER_BUILDKIT"] = "1"
+    run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = new_env,
+               capture_output = False)
+    push_to_local_registry(config, tag)
+
 def build_lite(config, tag):
+    print("> Performing lite build .. ")
     workspace = os.path.join(ZILLIQA_DIR, "_localdev")
     print(f"> Using workspace {workspace}")
     print(f"> Startup: removing workspace to avoid pollution ...")
@@ -839,18 +899,33 @@ def cli(ctx):
     There are also commands to collect logs, and one to restart the
     ingress, since it sometimes sticks.
 
+    Prerequisites on OS X:
+
+    brew install hyperkit dune gmp
+
+    In scilla you will need to do:
+  
+    opam install ./scilla.opam
+    
+
+    In testnet:
+   
+     export CFLAGS='-I/usr/local/include -L/usr/local/lib'
+     pip3 install -r requirements.txt
+
     WARNING: Only tested so far on Ubuntu 22.04 . OS X MAY NOT WORK.
 
     """
     ctx.obj = Config()
     ctx.obj.setup()
 
+cli.add_command(build_cmd)
 cli.add_command(build_lite_cmd)
-cli.add_command(setup_podman)
-cli.add_command(teardown_podman)
-cli.add_command(setup_k8s)
+cli.add_command(setup_podman_cmd)
+cli.add_command(teardown_podman_cmd)
+cli.add_command(setup_k8s_cmd)
 cli.add_command(start_k8s_cmd)
-cli.add_command(teardown_k8s)
+cli.add_command(teardown_k8s_cmd)
 cli.add_command(up_cmd)
 cli.add_command(down_cmd)
 cli.add_command(show_proxy_cmd)
