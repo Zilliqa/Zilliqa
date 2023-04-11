@@ -1113,7 +1113,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         m_mediator.m_ds->m_mapNodeReputation);
   }
   bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
-  LOG_GENERAL(INFO, "rejoinCondition = "<< rejoinCondition); //TODO: remove this log before merge
 
   if (rejoinCondition && bIpChanged) {
     LOG_GENERAL(
