@@ -126,4 +126,23 @@ static_assert(
 static const std::string MessageSizeKeyword = "Size of message ";
 static const std::string MessgeTimeKeyword = "Time to process message ";
 
+inline std::string FormatMessageName(unsigned char msgType,
+                              unsigned char instruction) {
+  const std::string InvalidMessageType = "INVALID_MESSAGE";
+  if (msgType >= ARRAY_SIZE(MessageTypeStrings)) {
+    return InvalidMessageType;
+  }
+
+  if (NULL == MessageTypeInstructionStrings[msgType]) {
+    return InvalidMessageType;
+  }
+
+  if (instruction >= MessageTypeInstructionSize[msgType]) {
+    return InvalidMessageType;
+  }
+
+  return MessageTypeStrings[msgType] + "_" +
+         MessageTypeInstructionStrings[msgType][instruction];
+}
+
 #endif  // ZILLIQA_SRC_COMMON_MESSAGENAMES_H_

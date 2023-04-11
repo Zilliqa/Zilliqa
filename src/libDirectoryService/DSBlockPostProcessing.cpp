@@ -325,9 +325,12 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   LOG_MARKER();
   std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
+  auto old_size = m_mediator.m_DSCommittee->size();
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second,
                                    *m_mediator.m_DSCommittee,
                                    m_mediator.m_dsBlockChain.GetLastBlock());
+  LOG_EXTRA("m_DSCommittee updated " << old_size << "->"
+                                     << m_mediator.m_DSCommittee->size());
 }
 
 void DirectoryService::StartNextTxEpoch() {
@@ -453,6 +456,7 @@ void DirectoryService::StartNextTxEpoch() {
           (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
               ? 0
               : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
+      // TODO: cv fix
       if (cv_scheduleDSMicroBlockConsensus.wait_for(
               cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
           std::cv_status::timeout) {
@@ -608,6 +612,7 @@ void DirectoryService::StartFirstTxEpoch() {
             (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
                 ? 0
                 : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
+        // TODO: cv fix
         if (cv_scheduleDSMicroBlockConsensus.wait_for(
                 cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
             std::cv_status::timeout) {
@@ -743,6 +748,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
     if (m_mode == BACKUP_DS) {
+      LOG_EXTRA("Shards updated " << m_shards.size() << "->"
+                                  << m_tempShards.size());
       m_shards = std::move(m_tempShards);
       m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
       m_mapNodeReputation = std::move(m_tempMapNodeReputation);
@@ -887,6 +894,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
       std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
 
+      // TODO: cv fix
       if (cv_DSBlockConsensusObject.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT)) ==
           std::cv_status::timeout) {
