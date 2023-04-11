@@ -51,10 +51,12 @@ describe("Transfer ethers", function () {
   it("should be possible to transfer ethers to a user account", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    await parallelizer.sendTransaction({
+    const tx = await parallelizer.sendTransaction({
       to: payee.address,
       value: FUND
     });
+
+    const receipt = await tx.response.wait();
 
     expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
@@ -90,17 +92,65 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
-    });
+    console.log("deploying...");
+    const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
+    console.log("deploying...1");
+    const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE});
+    console.log("deploying...2");
+    await batchTrans.deployed();
+    console.log("deploying...3");
+
+    async function getFee(hash: string) {
+      const res = await ethers.provider.getTransactionReceipt(hash);
+      const NORM_TXN_GAS = 50;
+      const MIN_ETH_GAS = 21000;
+      // Result should be scaled by (50/21000)
+      return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
+    }
+
+    const fee1 = await getFee(batchTrans.deployTransaction.hash);
+
+    console.log("fee1: ", fee1.toString());
+
+    //const contract = ethers.getContractFactory(...);
+    //const estimatedGas = await ethers.provider.estimateGas(contract.getDeployTransaction(...).data)
+
+    //console.log("pre deploy");
+    //const tx = await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
+    //  value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
+    //});
+
+    //// determine the amount of gas that was used
+    //console.log("here we are");
+    //console.log("here we are", tx);
+    //console.log("here we are", tx.response);
+    //const receipt = await tx.deployed();
+    //console.log("the receipt: ", receipt);
+
+    //const xx = await receipt.deployed();
+
+    //console.log("the xx: ", xx);
+    //console.log("the xx: ", xx.);
+
+    //const gasUsed = receipt.gasUsed;
+
+    //console.log("post deploy, gas used: ", gasUsed);
+    //console.log("post deploy");
 
     let finalOwnerBal = await ethers.provider.getBalance(owner.address);
-    let diff = initialOwnerBal - finalOwnerBal;
+    let diff = initialOwnerBal - finalOwnerBal - fee1;
+
+    console.log("initial owner balance: " + initialOwnerBal);
+    console.log("final owner balance: " + finalOwnerBal);
+    console.log("diff " + diff);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
     if (diff > (ACCOUNT_VALUE * 4)) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
+
+    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
+    balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
   });
 
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
@@ -157,10 +207,12 @@ describe("Transfer ethers", function () {
 
     const FUND = BigNumber.from(100_000_000_000);
 
-    await parallelizer.sendTransaction({
+    const tx = await parallelizer.sendTransaction({
       to: rndAccount.address,
       value: FUND
     });
+
+    const receipt = await tx.response.wait();
 
     rndAccount = rndAccount.connect(ethers.provider);
 
