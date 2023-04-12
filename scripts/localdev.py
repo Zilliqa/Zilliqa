@@ -35,6 +35,7 @@ import time
 import string
 import click
 import datetime
+import xml.dom.minidom
 
 ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
@@ -363,6 +364,84 @@ def up(config):
     restart_ingress(config);
     print("Ingress restarted; you should be ready to go...");
 
+@click.command("isolated")
+@click.pass_context
+def isolated_cmd(ctx):
+    """
+    Run an isolated server
+    """
+    config = get_config(ctx)
+    isolated(config)
+
+def xml_get_element(doc, parent, name):
+    elems = parent.getElementsByTagName(name)
+    if elems is None or len(elems) < 1:
+        raise GiveUp(f"XML: Cannot find element {name} in {parent}")
+    elif len(elems) > 1:
+        raise GiveUp(f"XML: More than one child named {name} in {parent}")
+    return elems[0]
+
+def xml_replace_element(doc, parent, name, new_value):
+    elem = xml_get_element(doc, parent, name)
+    # Remove all the nodes
+    while elem.firstChild is not None:
+        elem.removeChild(elem.firstChild)
+    elem.appendChild(doc.createTextNode(new_value))
+
+def copy_everything_in_dir(src, dest):
+    """ Copy all files in src to dest """
+    the_files = os.listdir(src)
+    for f in the_files:
+        full_src = os.path.join(src, f)
+        if os.path.isfile(full_src):
+            shutil.copy(full_src, os.path.join(dest, f))
+
+def isolated(config):
+    build_native_to_workspace(config)
+    #workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
+    config_file = xml.dom.minidom.parse(os.path.join(ZILLIQA_DIR, "constants.xml"))
+    xml_replace_element(config_file, config_file.documentElement, "LOOKUP_NODE_MODE", "true")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SC", "true")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_ROOT", "scilla")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_LIB", "stdlib")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_EVM", "true")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_BINARY", "evm-ds/evm-ds")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_SOCKET_PATH", "/tmp/evm-server.sock")
+    # Now assemble an isolated server release.
+    target_workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
+    src_workspace = os.path.join(ZILLIQA_DIR, "_localdev")
+    subdirs = [ "lib", "scilla", "bin" ]
+    for s in subdirs:
+        try:
+            os.makedirs(os.path.join(target_workspace,s), 0o755)
+        except:
+            pass
+    # Copy scilla recursively
+    shutil.copytree(os.path.join(src_workspace, "scilla"), os.path.join(target_workspace, "scilla"), dirs_exist_ok = True)
+    shutil.copytree(os.path.join(src_workspace, "zilliqa", "evm-ds"), os.path.join(target_workspace, "evm-ds"), dirs_exist_ok = True)
+    # Copy zilliqa in...
+    copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "lib"), os.path.join(target_workspace, "lib"))
+    copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "build", "bin"),
+                           os.path.join(target_workspace, "bin"))
+    copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "build", "lib"),
+                           os.path.join(target_workspace, "lib"))
+    shutil.copy(os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
+                os.path.join(target_workspace, "isolated-server-accounts.json"))
+    output_config = config_file.toprettyxml(newl='')
+    with open(os.path.join(target_workspace, 'constants.xml'), 'w') as f:
+        f.write(output_config)
+    cmd = [ "./bin/isolatedServer", "-f", "isolated-server-accounts.json", "-u", "999" ]
+    print(f"Running isolated server in {target_workspace} .. ")
+    run_or_die(config, cmd, in_dir = target_workspace)
+
+    # print(f"> Using workspace {workspace}")
+    # try:
+    #     shutil.rmtree(workspace)
+    # except:
+    #     pass
+
 def start_testnet(config, testnet_name):
     run_or_die(config, ["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
     if config.persistence is not None:
@@ -555,7 +634,7 @@ def build_lite_cmd(ctx, tag):
     config = get_config(ctx)
     build_lite(config, tag)
 
-def build_lite(config, tag):
+def build_native_to_workspace(config):
     workspace = os.path.join(ZILLIQA_DIR, "_localdev")
     print(f"> Using workspace {workspace}")
     print(f"> Startup: removing workspace to avoid pollution ...")
@@ -625,6 +704,9 @@ def build_lite(config, tag):
     shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "log4rs.yml"),
                     os.path.join(workspace, "zilliqa", "evm-ds", "log4rs.yml"))
 
+
+def build_lite(config, tag):
+    build_native_to_workspace(config)
     new_env = os.environ.copy()
     new_env["DOCKER_BUILDKIT"] = "1"
     run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.lite")], in_dir = ZILLIQA_DIR, env = new_env,
@@ -892,6 +974,7 @@ cli.add_command(pull_containers_cmd)
 cli.add_command(reup_cmd)
 cli.add_command(log_snapshot_cmd)
 cli.add_command(restart_ingress_cmd)
+cli.add_command(isolated_cmd)
 
 if __name__ == "__main__":
     cli()
