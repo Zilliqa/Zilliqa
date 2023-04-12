@@ -408,6 +408,7 @@ def isolated(config):
     xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
     xml_replace_element(config_file, config_file.documentElement, "ENABLE_EVM", "true")
     xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_BINARY", "evm-ds/evm-ds")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_LOG_CONFIG", "evm-ds/log4rs.yml")
     xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_SOCKET_PATH", "/tmp/evm-server.sock")
     # Now assemble an isolated server release.
     target_workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
