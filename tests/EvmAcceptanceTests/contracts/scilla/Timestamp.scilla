@@ -11,8 +11,3 @@ ts <-& TIMESTAMP(bnum);
 e = { _eventname : "TS"; timestamp : ts };
 event e
 end
-
-transition fake ()
-  ev = {_eventname: "fake"};
-  event ev
-end
