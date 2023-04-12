@@ -15,6 +15,7 @@ use serde_json::{json, Value};
 const BASE_COST: u64 = 15;
 const PER_BYTE_COST: u64 = 3;
 
+// input should be formed of: scilla_contract_addr, transition_name, arg1, arg2, arg3, ..., argn
 pub(crate) fn scilla_call(
     input: &[u8],
     gas_limit: Option<u64>,

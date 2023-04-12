@@ -367,6 +367,7 @@ impl<'a> Handler for CpsExecutor<'a> {
                             Capture::Trap(Self::CallInterrupt {
                                 code_address,
                                 transfer,
+                                // Output from precompile which is an input to c++ handling routine
                                 input: output,
                                 target_gas,
                                 is_static,

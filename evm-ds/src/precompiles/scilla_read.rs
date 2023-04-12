@@ -19,11 +19,11 @@ struct ScillaField {
     indices: Vec<String>,
     ret_type: String,
 }
-
+// input should be formed of: scilla_contract_addr, field_name, key1, key2, ..., keyn
 pub(crate) fn scilla_read(
     input: &[u8],
     gas_limit: Option<u64>,
-    _contex: &Context,
+    _context: &Context,
     backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
