@@ -339,7 +339,7 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
   }
 
   jsonData["_origin"] = "0x" + mCpsContext.origSender.hex();
-  jsonData["_sender"] = "0x" + mCpsContext.origSender.hex();
+  jsonData["_sender"] = "0x" + ProtoToAddress(mProtoArgs.address()).hex();
   jsonData["_amount"] = "0";
 
   CREATE_SPAN(
