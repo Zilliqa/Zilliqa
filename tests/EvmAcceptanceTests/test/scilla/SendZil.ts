@@ -26,14 +26,14 @@ describe("Move Zil", function () {
 
   it("Should have updated balance if accept is called", async function () {
     const tx = await contract.acceptZil({amount: ZIL_AMOUNT});
-    expect(tx).to.have.eventLogWithParams("currentBalance", {value: ZIL_AMOUNT.toString()});
+    expect(tx).to.have.eventLogWithParams("currentBalance", {value: ethers.BigNumber.from(ZIL_AMOUNT)});
   });
 
   it("Should have untouched balance if accept is NOT called", async function () {
     const tx = await contract.dontAcceptZil({amount: 1_000_000});
 
     // Exactly equal to what is has from previous transition
-    expect(tx).to.have.eventLogWithParams("currentBalance", {value: ZIL_AMOUNT.toString()});
+    expect(tx).to.have.eventLogWithParams("currentBalance", {value: ethers.BigNumber.from(ZIL_AMOUNT.toString())});
   });
 
   it("Should be possible to fund a user", async function () {

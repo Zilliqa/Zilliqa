@@ -36,7 +36,6 @@ describe("ForwardZil contract functionality", function () {
       value: FUND
     });
 
-
     // Get transaction receipt for the tx
     const receipt = await tx.response.wait();
 
