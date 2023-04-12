@@ -2,7 +2,7 @@ import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
 import hre, {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
-import {toBech32Address, Zilliqa} from "@zilliqa-js/zilliqa";
+import {Zilliqa} from "@zilliqa-js/zilliqa";
 
 describe("Move Zil", function () {
   const ZIL_AMOUNT = 3_000_000;

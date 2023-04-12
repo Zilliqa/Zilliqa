@@ -59,6 +59,7 @@ scope=$(find . -type f \( \
             ! -path "./scilla/_build/*" \
             ! -path "./.local/*" \
             ! -path "./.husky/*" \
+            ! -path "./_localdev/*" \
 	          ! -path "./vcpkg/*" \
             ! -path "./scripts/depends/*")
 
