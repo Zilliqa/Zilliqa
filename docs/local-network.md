@@ -1,5 +1,10 @@
 # Running a local network
 
+(NB: this is one way to run a local network - the other is run by the
+`scripts/localdev` script, which builds a minikube cluster based on 
+real testnet deployments - run `scripts/localdev --help` for help -
+richard@zilliqa.com 2023-03-27)
+
 
 Install [kind](https://kind.sigs.k8s.io/#installation-and-usage) or `brew`.
 Install [tilt](https://docs.tilt.dev/install.html) or `brew`.
@@ -14,7 +19,7 @@ assignments.
 Delete any previous dev cluster, just in case:
 
     ```
-   kind delete cluster zqdev
+   kind delete cluster -n zqdev
     ```
 
 
@@ -47,7 +52,7 @@ Delete any previous dev cluster, just in case:
 Note that `mitmweb` invokes your browser on launch. If you're running
 `brave`, `brave` won't go into the background when this happens, so
 `mitmweb` won't start. To "fix" this, start `mitmweb` with `--no-web-open-browser`.
-You can then navigate manually to `localhost:8081` to see the UI.
+You can then navigate manually to `localhost:8082` to see the UI.
 
 
 1. Check on the state of your cluster in the usual ways (`kubectl`, `k9s`, etc.).

@@ -104,6 +104,7 @@ RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
 ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
                          ReadMessageResult& result) {
   if (!buf || buf_size < HDR_LEN) {
+    LOG_GENERAL(WARNING, "Not enough data to read message header");
     return ReadState::NOT_ENOUGH_DATA;
   }
 

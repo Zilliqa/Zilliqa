@@ -31,6 +31,8 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 
@@ -92,10 +94,23 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const zbytes& body,
 
 bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const zbytes& body) {
   LOG_GENERAL(INFO, "Stored Block " << blockNum);
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "Block",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("block.type", "DS");
+  span.SetAttribute("block.num", blockNum);
+
   return PutBlock(blockNum, body, BlockType::DS);
 }
 
 bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const zbytes& body) {
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "Block",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("block.type", "VC");
+  span.SetAttribute("block.hash", blockhash.hex());
+
   int ret = -1;
   unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
   ret = m_VCBlockDB->Insert(blockhash, body);
@@ -103,6 +118,12 @@ bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const zbytes& body) {
 }
 
 bool BlockStorage::PutBlockLink(const uint64_t& index, const zbytes& body) {
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "Block",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("block.type", "BlockLink");
+  span.SetAttribute("block.index", index);
+
   int ret = -1;
   unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
   ret = m_blockLinkDB->Insert(index, body);
@@ -111,6 +132,12 @@ bool BlockStorage::PutBlockLink(const uint64_t& index, const zbytes& body) {
 
 bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
                               const zbytes& body) {
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "Block",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("block.type", "Tx");
+  span.SetAttribute("block.num", blockHeader.GetBlockNum());
+
   const auto status = PutBlock(blockHeader.GetBlockNum(), body, BlockType::Tx);
   if (status) {
     unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -183,6 +210,12 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
     return false;
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "Block",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("block.type", "MicroBlock");
+  span.SetAttribute("block.hash", blockHash.hex());
 
   lock_guard<mutex> g(m_mutexMicroBlock);
 

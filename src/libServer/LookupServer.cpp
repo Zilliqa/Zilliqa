@@ -2391,7 +2391,9 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   if (!tx.IsEth() && scType == Transaction::CONTRACT_CREATION) {
     // Scilla smart CONTRACT_CREATION call should be executed in shard rather
     // than DS.
-    mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    if (ARCHIVAL_LOOKUP) {
+      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    }
     resultStr = "Contract Creation txn, sent to shard";
   } else {
     // CONTRACT_CALL - scilla and EVM , CONTRACT_CREATION - EVM

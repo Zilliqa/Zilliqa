@@ -20,12 +20,16 @@ describe("Scilla Contract Deployment", function () {
 
     it("Should be possible to get initial string passed as an argument to the contract", async function () {
       const tx = await contract.getString();
-      expect(tx).to.have.eventLogWithParams("getString()", { value: "TEST", vname: "msg", type: "String" });
+      expect(tx).to.have.eventLogWithParams("getString()", {value: "TEST", vname: "msg", type: "String"});
     });
 
     it("Should be possible to get contract address using implicit _this_address variable", async function () {
       const tx = await contract.getContractAddress();
-      expect(tx).to.have.eventLogWithParams("getContractAddress()", { value: contract.address?.toLowerCase(), vname: "address", type: "ByStr20" });
+      expect(tx).to.have.eventLogWithParams("getContractAddress()", {
+        value: contract.address?.toLowerCase(),
+        vname: "address",
+        type: "ByStr20"
+      });
     });
   });
 });

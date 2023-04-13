@@ -26,6 +26,14 @@ class SendJobs {
  public:
   static std::shared_ptr<SendJobs> Create();
 
+  //std::mutex m_mutexTemp;
+  //struct Connections {
+  //  int failures = 0;
+  //  int successes = 0;
+  //};
+  //int iterations = 0;
+  //std::map<std::string, Connections> sendJobsConnectionList;
+
   virtual ~SendJobs() = default;
 
   /// Enqueues message to be sent to peer

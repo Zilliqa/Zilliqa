@@ -20,6 +20,6 @@ else()
 endif()
 
 vcpkg_cmake_install()
-
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
 file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/debug/include)
 

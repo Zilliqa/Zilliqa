@@ -21,15 +21,58 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2P.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libUtils/RandomGenerator.h"
 
+#include <boost/algorithm/string.hpp>
+
 using namespace std;
+
+namespace zil {
+namespace local {
+
+class LeaderVariables {
+  int consensusState = -1;
+  int consensusError = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetConsensusState(int state) {
+    Init();
+    consensusState = state;
+  }
+
+  void AddConsensusError(int count) {
+    Init();
+    consensusError += count;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "consensus.leader.other.gauge",
+          "Consensus leader state", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(consensusState, {{"counter", "ConsensusState"}});
+        result.Set(consensusError, {{"counter", "ConsensusError"}});
+      });
+    }
+  }
+};
+
+static LeaderVariables variables{};
+
+}  // namespace local
+}  // namespace zil
 
 bool ConsensusLeader::CheckState(Action action) {
   static const std::multimap<ConsensusCommon::State, Action> ACTIONS_FOR_STATE =
@@ -137,6 +180,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     subset.responseData.clear();
 
     subset.state = m_state;
+
     // add myself to subset commit map always
     subset.commitPointMap.at(m_myID) = m_commitPointMap.at(m_myID).at(i);
     subset.commitPoints.emplace_back(m_commitPointMap.at(m_myID).at(i));
@@ -237,6 +281,8 @@ bool ConsensusLeader::StartConsensusSubsets() {
     return false;
   }
 
+  zil::local::variables.SetConsensusState(int(m_state));
+
   m_numSubsetsRunning = m_consensusSubsets.size();
 
   zbytes challenge = {m_classByte, m_insByte, static_cast<uint8_t>(type)};
@@ -244,6 +290,8 @@ bool ConsensusLeader::StartConsensusSubsets() {
                                 MessageOffset::BODY + sizeof(uint8_t))) {
     LOG_GENERAL(WARNING, "GenerateChallengeMessage failed");
     m_state = ERROR;
+    zil::local::variables.SetConsensusState(int(m_state));
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -271,9 +319,6 @@ bool ConsensusLeader::StartConsensusSubsets() {
       }
     }
   }
-
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              __FUNCTION__);
 
   // Shuffle the peer list so we don't always send challenges in same sequence
   std::random_device randomDevice;
@@ -326,6 +371,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
     }
     // Set overall state to that of subset i.e. COLLECTIVESIG_DONE OR DONE
     m_state = subset.state;
+    zil::local::variables.SetConsensusState(int(m_state));
   } else if (--m_numSubsetsRunning == 0) {
     // All subsets have ended and not one reached consensus!
     LOG_GENERAL(
@@ -334,6 +380,8 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
                    << "] Last remaining subset failed to reach consensus!");
     // Set overall state to ERROR
     m_state = ERROR;
+    zil::local::variables.SetConsensusState(int(m_state));
+    zil::local::variables.AddConsensusError(1);
   } else {
     LOG_GENERAL(
         INFO, "[Subset " << subsetID << "] Subset failed to reach consensus!");
@@ -343,7 +391,8 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
 bool ConsensusLeader::ProcessMessageCommitCore(
     const zbytes& commit, unsigned int offset, Action action,
     [[gnu::unused]] ConsensusMessageType returnmsgtype,
-    [[gnu::unused]] State nextstate, const Peer& from) {
+    [[gnu::unused]] State nextstate, const Peer& from,
+    std::string_view spanName) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutex);
@@ -420,6 +469,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     return false;
   }
 
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, spanName,
+      TracedIds::GetInstance().GetConsensusSpanIds());
+  auto attrBase = boost::to_lower_copy(std::string{spanName});
+  span.SetAttribute(attrBase + ".backup_id", static_cast<uint64_t>(backupID));
+  span.SetAttribute(attrBase + ".from_ip",
+                    IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
+
   // 33-byte commit
   m_commitPoints.emplace_back(commitPoints);
   m_commitPointMap.at(backupID) = commitPoints;
@@ -456,7 +513,7 @@ bool ConsensusLeader::ProcessMessageCommit(const zbytes& commit,
                                            unsigned int offset,
                                            const Peer& from) {
   return ProcessMessageCommitCore(commit, offset, PROCESS_COMMIT, CHALLENGE,
-                                  CHALLENGE_DONE, from);
+                                  CHALLENGE_DONE, from, "Commit");
 }
 
 bool ConsensusLeader::ProcessMessageCommitFailure(
@@ -477,6 +534,15 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     return false;
   }
 
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "CommitFailure",
+      TracedIds::GetInstance().GetConsensusSpanIds());
+  span.SetAttribute("commit_failure.backup_id",
+                    static_cast<uint64_t>(backupID));
+  span.SetAttribute("commit_failure.block_number", m_blockNumber);
+  span.SetAttribute("commit_failure.from_ip",
+                    IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
+
   if (m_commitFailureMap.find(backupID) != m_commitFailureMap.end()) {
     LOG_GENERAL(WARNING, "Backup already sent commit failure message");
     return false;
@@ -488,6 +554,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
 
   if (m_commitFailureCounter == (m_numForConsensusFailure + 1)) {
     m_state = INITIAL;
+    zil::local::variables.SetConsensusState(int(m_state));
 
     zbytes consensusFailureMsg = {m_classByte, m_insByte, CONSENSUSFAILURE};
 
@@ -504,9 +571,6 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     for (auto const& i : m_committee) {
       peerInfo.push_back(i.second);
     }
-
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
 
     zil::p2p::GetInstance().SendMessage(
         peerInfo, consensusFailureMsg, zil::p2p::START_BYTE_NORMAL, true, true);
@@ -577,7 +641,8 @@ bool ConsensusLeader::GenerateChallengeMessage(zbytes& challenge,
 
 bool ConsensusLeader::ProcessMessageResponseCore(
     const zbytes& response, unsigned int offset, Action action,
-    ConsensusMessageType returnmsgtype, State nextstate, const Peer& from) {
+    ConsensusMessageType returnmsgtype, State nextstate, const Peer& from,
+    std::string_view spanName) {
   LOG_MARKER();
   // Initial checks
   // ==============
@@ -598,6 +663,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusResponse failed");
     return false;
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, spanName,
+      TracedIds::GetInstance().GetConsensusSpanIds());
+  auto attrBase = boost::to_lower_copy(std::string{spanName});
+  span.SetAttribute(attrBase + ".backup_id", static_cast<uint64_t>(backupID));
+  span.SetAttribute(attrBase + ".from_ip",
+                    IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
 
   // Check the IP belongs to the backup with that backupID (check for valid
   // backupID range is already done in Messenger)
@@ -713,6 +786,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       // Update subset's internal state
       SetStateSubset(subsetID, nextstate);
       m_state = nextstate;
+      zil::local::variables.SetConsensusState(int(m_state));
       if (action == PROCESS_RESPONSE) {
         // First round: consensus over part of message (e.g., DS block header)
         // Second round: consensus over part of message + CS1 + B1
@@ -764,9 +838,6 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (BROADCAST_GOSSIP_MODE) {
         zil::p2p::GetInstance().SpreadRumor(collectivesig);
       } else {
-        auto span = zil::trace::Tracing::CreateSpan(
-            zil::trace::FilterClass::NODE, __FUNCTION__);
-
         zil::p2p::GetInstance().SendMessage(
             peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
       }
@@ -790,6 +861,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                         "= " << m_numForConsensus
                              << " Actual = " << m_commitCounter);
             m_state = ERROR;
+            zil::local::variables.SetConsensusState(int(m_state));
+            zil::local::variables.AddConsensusError(1);
           } else {
             LOG_GENERAL(INFO, "Sufficient final commits. Required = "
                                   << m_numForConsensus
@@ -815,7 +888,8 @@ bool ConsensusLeader::ProcessMessageResponse(const zbytes& response,
                                              unsigned int offset,
                                              const Peer& from) {
   return ProcessMessageResponseCore(response, offset, PROCESS_RESPONSE,
-                                    COLLECTIVESIG, COLLECTIVESIG_DONE, from);
+                                    COLLECTIVESIG, COLLECTIVESIG_DONE, from,
+                                    "Response");
 }
 
 bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
@@ -833,6 +907,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
   if (!aggregated_response.Initialized()) {
     LOG_GENERAL(WARNING, "AggregateCommits failed");
     SetStateSubset(subsetID, ERROR);
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -847,6 +922,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
                                 aggregated_key)) {
     LOG_GENERAL(WARNING, "MultiSigVerify failed");
     SetStateSubset(subsetID, ERROR);
+    zil::local::variables.AddConsensusError(1);
     return false;
   }
 
@@ -895,7 +971,8 @@ bool ConsensusLeader::ProcessMessageFinalCommit(const zbytes& finalcommit,
                                                 unsigned int offset,
                                                 const Peer& from) {
   return ProcessMessageCommitCore(finalcommit, offset, PROCESS_FINALCOMMIT,
-                                  FINALCHALLENGE, FINALCHALLENGE_DONE, from);
+                                  FINALCHALLENGE, FINALCHALLENGE_DONE, from,
+                                  "FinalCommit");
 }
 
 bool ConsensusLeader::ProcessMessageFinalResponse(const zbytes& finalresponse,
@@ -903,7 +980,7 @@ bool ConsensusLeader::ProcessMessageFinalResponse(const zbytes& finalresponse,
                                                   const Peer& from) {
   return ProcessMessageResponseCore(finalresponse, offset,
                                     PROCESS_FINALRESPONSE, FINALCOLLECTIVESIG,
-                                    DONE, from);
+                                    DONE, from, "FinalResponse");
 }
 
 ConsensusLeader::ConsensusLeader(
@@ -919,7 +996,16 @@ ConsensusLeader::ConsensusLeader(
                        vector<CommitPoint>(m_numOfSubsets, CommitPoint())) {
   LOG_MARKER();
 
+  m_gaugeNumForConsensus =
+      std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.leader.gauge",
+                                   "Consensus leader", "calls", true);
+
+  m_gaugeNumForConsensus->SetCallback([this](auto&& result) {
+    result.Set(int(m_state), {{"counter", "ConsensusLeaderState"}});
+  });
+
   m_state = INITIAL;
+  zil::local::variables.SetConsensusState(int(m_state));
   // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
   m_numForConsensus = ConsensusCommon::NumForConsensus(committee.size());
   m_numForConsensusFailure = committee.size() - m_numForConsensus;
@@ -958,6 +1044,16 @@ ConsensusLeader::ConsensusLeader(
     LOG_GENERAL(INFO,
                 "Needed for subsets = " << m_sufficientCommitsNumForSubsets);
   }
+
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "Consensus",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("consensus.role", "leader");
+  span.SetAttribute("consensus.id", static_cast<uint64_t>(m_consensusID));
+  span.SetAttribute("consensus.committe_size", committee.size());
+  span.SetAttribute("consensus.node_id", static_cast<uint64_t>(m_myID));
+  span.SetAttribute("consensus.block_number", m_blockNumber);
+  TracedIds::GetInstance().SetConsensusSpanIds(span.GetIds());
 }
 
 ConsensusLeader::~ConsensusLeader() {}
@@ -1009,9 +1105,6 @@ bool ConsensusLeader::StartConsensus(
       peer.push_back(i.second);
     }
 
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
-
     zil::p2p::GetInstance().SendMessage(
         peer, announcement_message, zil::p2p::START_BYTE_NORMAL, true, true);
   }
@@ -1035,6 +1128,8 @@ bool ConsensusLeader::StartConsensus(
                                  << m_numForConsensus
                                  << " Actual = " << m_commitCounter);
         m_state = ERROR;
+        zil::local::variables.SetConsensusState(int(m_state));
+        zil::local::variables.AddConsensusError(1);
       } else {
         LOG_GENERAL(INFO, "Sufficient commits. Required = " << m_numForConsensus
                                                             << " Actual = "

@@ -32,6 +32,7 @@ pub async fn run_evm_impl(
     data: Vec<u8>,
     apparent_value: U256,
     gas_limit: u64,
+    caller: H160,
     backend: ScillaBackend,
     gas_scaling_factor: u64,
     estimate: bool,
@@ -58,7 +59,7 @@ pub async fn run_evm_impl(
         let config = evm::Config { estimate, call_l64_after_gas: false, ..evm::Config::london()};
         let context = evm::Context {
             address,
-            caller: backend.origin,
+            caller,
             apparent_value,
         };
         let gas_limit = gas_limit * gas_scaling_factor;

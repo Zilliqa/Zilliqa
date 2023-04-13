@@ -82,6 +82,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
   *m_protoData.mutable_address() = AddressToProto(txn.GetToAddr());
 
   *m_protoData.mutable_origin() = AddressToProto(txn.GetSenderAddr());
+  *m_protoData.mutable_caller() = AddressToProto(txn.GetSenderAddr());
   *m_protoData.mutable_code() =
       DataConversion::CharArrayToString(StripEVM(txn.GetCode()));
   *m_protoData.mutable_data() =
@@ -121,6 +122,7 @@ EvmProcessContext::EvmProcessContext(
       m_blockNumber(blkNum) {
   *m_protoData.mutable_address() = AddressToProto(contract);
   *m_protoData.mutable_origin() = AddressToProto(caller);
+  *m_protoData.mutable_caller() = AddressToProto(caller);
   *m_protoData.mutable_code() =
       DataConversion::CharArrayToString(StripEVM(code));
   *m_protoData.mutable_data() = DataConversion::CharArrayToString(data);

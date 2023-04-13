@@ -23,10 +23,10 @@
 #include <string>
 #include <thread>
 
-// XXX #include "P2PComm.h"
 #include "P2P.h"
 #include "common/Messages.h"
 #include "libCrypto/Sha2.h"
+#include "libMetrics/Api.h"
 #include "libUtils/DataConversion.h"
 
 namespace {
@@ -39,6 +39,91 @@ RRS::Message::Type convertType(uint8_t type) {
 }
 
 }  // anonymous namespace
+
+namespace zil {
+namespace local {
+
+class RumourManagerVariables {
+  int rumoursReceived = 0;
+  int rumoursSendMessage = 0;
+  int rumoursSendMessages = 0;
+  int rumourLengthTwoOrMore = 0;
+  int rumourLengthSize = 0;
+  std::map<int, int> rumourTypes;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  RumourManagerVariables() {
+    rumourTypes[0] = 0;
+    rumourTypes[1] = 0;
+    rumourTypes[2] = 0;
+    rumourTypes[3] = 0;
+    rumourTypes[4] = 0;
+    rumourTypes[5] = 0;
+    rumourTypes[6] = 0;
+    rumourTypes[7] = 0;
+  }
+
+  void AddRumoursReceived(int rum) {
+    Init();
+    rumoursReceived += rum;
+  }
+
+  void AddSendMessage(int rum) {
+    Init();
+    rumoursSendMessage += rum;
+  }
+
+  void AddSendMessages(int rum) {
+    Init();
+    rumoursSendMessages += rum;
+  }
+
+  void AddRumoursLengthTwoOrMore(int rum) {
+    Init();
+    rumourLengthTwoOrMore += rum;
+  }
+
+  void SetRumoursLength(int rum) {
+    Init();
+    rumourLengthSize = rum;
+  }
+
+  void AddRumourType(int rum) {
+    Init();
+    rumourTypes[rum] += 1;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "rumours.gauge",
+                                          "Rumours", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(rumoursReceived, {{"counter", "RumoursReceived"}});
+        result.Set(rumoursSendMessage, {{"counter", "RumoursSendMessage"}});
+        result.Set(rumoursSendMessages, {{"counter", "RumoursSendMessages"}});
+        result.Set(rumourLengthTwoOrMore,
+                   {{"counter", "RumoursLengthTwoOrMore"}});
+        result.Set(rumourTypes[0], {{"counter", "Undefined"}});
+        result.Set(rumourTypes[1], {{"counter", "Push"}});
+        result.Set(rumourTypes[2], {{"counter", "Pull"}});
+        result.Set(rumourTypes[3], {{"counter", "EmptyPush"}});
+        result.Set(rumourTypes[4], {{"counter", "EmptyPull"}});
+        result.Set(rumourTypes[5], {{"counter", "Forward"}});
+        result.Set(rumourTypes[6], {{"counter", "LazyPush"}});
+        result.Set(rumourTypes[7], {{"counter", "LazyPull"}});
+        result.Set(rumourTypes[8], {{"counter", "NumTypes"}});
+      });
+    }
+  }
+};
+
+static RumourManagerVariables variables{};
+
+}  // namespace local
+}  // namespace zil
 
 // CONSTRUCTORS
 RumorManager::RumorManager()
@@ -60,8 +145,6 @@ RumorManager::~RumorManager() {}
 // PRIVATE METHODS
 
 void RumorManager::StartRounds() {
-  LOG_MARKER();
-
   // To make sure we always have m_continueRound set at start of round.
   {
     std::unique_lock<std::mutex> guard(m_continueRoundMutex);
@@ -105,7 +188,6 @@ void RumorManager::StartRounds() {
 }
 
 void RumorManager::StopRounds() {
-  LOG_MARKER();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     m_continueRound = false;
@@ -117,7 +199,6 @@ void RumorManager::StopRounds() {
 bool RumorManager::Initialize(const VectorOfNode& peers, const Peer& myself,
                               const PairOfKey& myKeys,
                               const std::vector<PubKey>& fullNetworkKeys) {
-  LOG_MARKER();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (m_continueRound) {
@@ -191,6 +272,7 @@ void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
       m_peerIdPeerBimap.right.modify_key(it2,
                                          boost::bimaps::_key = newPeerInfo);
       LOG_GENERAL(INFO, "Updated peer info successfully!");
+
       return;
     }
   }
@@ -198,7 +280,6 @@ void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
 }
 
 void RumorManager::SpreadBufferedRumors() {
-  LOG_MARKER();
   if (m_continueRound) {
     for (const auto& i : m_bufferRawMsg) {
       AddRumor(i);
@@ -247,7 +328,6 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
 }
 
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
-  LOG_MARKER();
   if (message.size() > 0 && message.size() <= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
     RawBytes hash = SHA256Calculator::FromBytes(message);
     std::string output;
@@ -347,7 +427,6 @@ RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
 
 void RumorManager::SendRumorToForeignPeers(
     const std::deque<Peer>& toForeignPeers, const RawBytes& message) {
-  LOG_MARKER();
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
@@ -359,12 +438,11 @@ void RumorManager::SendRumorToForeignPeers(
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
   zil::p2p::GetInstance().SendMessage(toForeignPeers, cmd,
-                                     zil::p2p::START_BYTE_GOSSIP);
+                                      zil::p2p::START_BYTE_GOSSIP);
 }
 
 void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
                                            const RawBytes& message) {
-  LOG_MARKER();
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
@@ -376,12 +454,11 @@ void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
   zil::p2p::GetInstance().SendMessage(toForeignPeers, cmd,
-                                     zil::p2p::START_BYTE_GOSSIP);
+                                      zil::p2p::START_BYTE_GOSSIP);
 }
 
 void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
                                           const RawBytes& message) {
-  LOG_MARKER();
   LOG_PAYLOAD(INFO,
               "New message to be gossiped forwarded to Foreign Peer:"
                   << toForeignPeer << "by me:" << m_selfPeer,
@@ -390,7 +467,7 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
   zil::p2p::GetInstance().SendMessage(toForeignPeer, cmd,
-                                     zil::p2p::START_BYTE_GOSSIP);
+                                      zil::p2p::START_BYTE_GOSSIP);
 }
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
@@ -460,6 +537,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
+  zil::local::variables.AddRumoursReceived(1);
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
@@ -488,8 +566,9 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
   }
   zbytes message_wo_keysig(result.second);
 
-  // All checks passed. Good to accept this rumor
+  zil::local::variables.AddRumourType(int(t));
 
+  // All checks passed. Good to accept this rumor
   if (RRS::Message::Type::EMPTY_PUSH == t ||
       RRS::Message::Type::EMPTY_PULL == t) {
     /* Don't add it to local RumorMap because it's not the rumor itself */
@@ -617,6 +696,11 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
   LOG_GENERAL(DEBUG, "Sending " << pullMsgs.second.size()
                                 << " EMPTY_PULL or LAZY_PULL Messages");
 
+  zil::local::variables.SetRumoursLength(pullMsgs.second.size());
+  if (pullMsgs.second.size() > 1) {
+    zil::local::variables.AddRumoursLengthTwoOrMore(1);
+  }
+
   SendMessages(from, pullMsgs.second);
 
   return {toBeDispatched, message_wo_keysig};
@@ -645,6 +729,8 @@ void RumorManager::AppendKeyAndSignature(RawBytes& result,
 
 void RumorManager::SendMessage(const Peer& toPeer,
                                const RRS::Message& message) {
+  zil::local::variables.AddSendMessage(1);
+
   // Add round and type to outgoing message
   RRS::Message::Type t = message.type();
   RawBytes cmd = {(unsigned char)t};
@@ -721,6 +807,7 @@ void RumorManager::SendMessage(const Peer& toPeer,
 
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages) {
+  zil::local::variables.AddSendMessage(1);
   for (auto& k : messages) {
     SendMessage(toPeer, k);
   }
@@ -732,7 +819,6 @@ const RumorManager::RumorIdRumorBimap& RumorManager::rumors() const {
 }
 
 void RumorManager::PrintStatistics() {
-  LOG_MARKER();
   // we use hash of message to uniquely identify message across different nodes
   // in network.
   for (const auto& i : m_rumorHolder->rumorsMap()) {

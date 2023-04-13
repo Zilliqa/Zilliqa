@@ -38,6 +38,37 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+namespace zil {
+namespace local {
+
+class FinalBlockPostProcessingVariables {
+  int mbInFinal = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetMbInFinal(int count) {
+    Init();
+    mbInFinal = count;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "finalblockpostproc.gauge",
+                                          "Final block post processing state", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(mbInFinal, {{"counter", "MbInFinal"}});
+      });
+    }
+  }
+};
+
+static FinalBlockPostProcessingVariables variables{};
+
+}  // namespace local
+}  // namespace zil
+
 bool DirectoryService::StoreFinalBlockToDisk() {
   LOG_MARKER();
 
@@ -85,6 +116,7 @@ bool DirectoryService::StoreFinalBlockToDisk() {
             "Storing Tx Block" << endl
                                << *m_finalBlock);
 
+  zil::local::variables.SetMbInFinal(m_finalBlock->GetMicroBlockInfos().size());
   zbytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(m_finalBlock->GetHeader(),

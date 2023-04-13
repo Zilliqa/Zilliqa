@@ -13,7 +13,6 @@ describe("Static Contract Calls Functionality", function () {
   });
 
   describe("Static calls to contracts should not modify their value", function () {
-
     it("The value of the called contract should not change", async function () {
       let calledAddress = called.address.toLowerCase();
 
@@ -25,7 +24,6 @@ describe("Static Contract Calls Functionality", function () {
       let res = await caller.callCalled(calledAddress);
       contractNum = await called.getNumber();
       assert.equal(contractNum, 0);
-      });
-
+    });
   });
 });
