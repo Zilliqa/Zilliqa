@@ -279,7 +279,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 }
 
 CpsExecuteResult CpsExecutor::processLoop(const CpsContext& context) {
-  LOG_MARKER():
+  LOG_MARKER();
   mAccountStore.BufferCurrentContractStorageState();
 
   CpsExecuteResult runResult;
