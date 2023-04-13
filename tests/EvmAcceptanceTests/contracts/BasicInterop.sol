@@ -5,8 +5,8 @@ pragma solidity >=0.7.0 <0.9.0;
 pragma abicoder v2;
 
 // There are two precompiles allowing to:
-// 1) Call scilla transition - precompile 0x98
-// 2) Read scilla variable - precompile 0x99
+// 1) Call scilla transition - precompile 5a494c51
+// 2) Read scilla variable - precompile 5a494c52
 
 // Arguments to these precompiles are constructed with abi.encode(). 
 // There have to be at least two arguments - scilla_contract and transition/variable name. 
@@ -20,7 +20,7 @@ contract BasicInterop {
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x98, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -31,7 +31,7 @@ contract BasicInterop {
         bool success;
         bytes memory output = new bytes(36);
         assembly {
-            success := staticcall(21000, 0x99, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
+            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
         }
         require(success);
         (funds) = abi.decode(output, (uint128));
@@ -45,7 +45,7 @@ contract BasicInterop {
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x98, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -56,7 +56,7 @@ contract BasicInterop {
         bool success;
         bytes memory output = new bytes(36);
         assembly {
-            success := staticcall(21000, 0x99, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
+            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
         }
         require(success);
         (funds) = abi.decode(output, (uint128));
@@ -70,7 +70,7 @@ contract BasicInterop {
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x98, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -81,7 +81,7 @@ contract BasicInterop {
         bool success;
         bytes memory output = new bytes(36);
         assembly {
-            success := staticcall(21000, 0x99, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
+            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
         }
         require(success);
         uint128 funds;
@@ -96,7 +96,7 @@ contract BasicInterop {
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x98, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -108,7 +108,7 @@ contract BasicInterop {
         bytes memory output = new bytes(128);
         uint256 output_len = output.length - 4;
         assembly {
-            success := staticcall(21000, 0x99, add(encodedArgs, 0x20), argsLength, add(output, 0x20), output_len)
+            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), output_len)
         }
         require(success);
 

@@ -56,11 +56,11 @@ pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
             blake2::blake2 as PrecompileFn,
         ),
         (
-            H160::from_str("0000000000000000000000000000000000000098").unwrap(),
+            H160::from_str("000000000000000000000000000000005a494c51").unwrap(),
             scilla_call::scilla_call as PrecompileFn,
         ),
         (
-            H160::from_str("0000000000000000000000000000000000000099").unwrap(),
+            H160::from_str("000000000000000000000000000000005a494c52").unwrap(),
             scilla_read::scilla_read as PrecompileFn,
         ),
     ])
