@@ -5,6 +5,15 @@ import {parallelizer} from "../helpers";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
+async function getFee(hash: string) {
+  const res = await ethers.provider.getTransactionReceipt(hash);
+  const NORM_TXN_GAS = 50;
+  const MIN_ETH_GAS = 21000;
+  // Result should be scaled by (50/21000)
+  return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
+}
+
+
 describe("ForwardZil contract functionality", function () {
   before(async function () {
     this.contract = await parallelizer.deployContract("ForwardZil");
@@ -88,17 +97,23 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
-    });
+    const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
+    const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE});
+    await batchTrans.deployed();
 
+    const fee1 = await getFee(batchTrans.deployTransaction.hash);
+
+    // Make sure to remove gas accounting from the calculation
     let finalOwnerBal = await ethers.provider.getBalance(owner.address);
-    let diff = initialOwnerBal.sub(finalOwnerBal);
+    const diff = initialOwnerBal.sub(finalOwnerBal).sub(fee1);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
     if (diff.toNumber() > ACCOUNT_VALUE * 4) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
+
+    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
+    balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
   });
 
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
@@ -168,14 +183,6 @@ describe("Transfer ethers", function () {
     const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
     const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE});
     await singleTransfer.deployed();
-
-    async function getFee(hash: string) {
-      const res = await ethers.provider.getTransactionReceipt(hash);
-      const NORM_TXN_GAS = 50;
-      const MIN_ETH_GAS = 21000;
-      // Result should be scaled by (50/21000)
-      return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
-    }
 
     const fee1 = await getFee(singleTransfer.deployTransaction.hash);
 
