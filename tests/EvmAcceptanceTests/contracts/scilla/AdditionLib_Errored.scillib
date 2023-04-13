@@ -1,0 +1,14 @@
+scilla_version 0
+import IntUtils
+
+library AdditionLibErrored
+
+let add_if_equal =
+  fun (a: Uint128) =>
+  fun (b: Uint128) =>
+  let eq = uint128_eq a b in
+  match eq with
+  | True => builtin add a b
+  | False => Uint128 0
+
+(* end is removed intentionally, don't add it *)

@@ -40,8 +40,8 @@ describe("Scilla library deploy", () => {
 describe("Scilla contract deploy", () => {
   it("Deploy TestContract1 - Import AdditonLib MutualLib", async () => {
     contract1 = await parallelizer.deployScillaContractWithLibrary("TestContract1", [
-      {name: "AdditionLib", address: additionLibAddress},
-      {name: "MutualLib", address: mutualLibAddress}
+      {name: "AdditionLib", address: additionLibAddress!},
+      {name: "MutualLib", address: mutualLibAddress!}
     ]);
 
     expect(contract1.address).to.be.properAddress;
@@ -50,7 +50,7 @@ describe("Scilla contract deploy", () => {
 
   it("Deploy TestContract2 - Import MutualLib", async () => {
     contract2 = await parallelizer.deployScillaContractWithLibrary("TestContract2", [
-      {name: "MutualLib", address: mutualLibAddress}
+      {name: "MutualLib", address: mutualLibAddress!}
     ]);
 
     expect(contract2.address).to.be.properAddress;
