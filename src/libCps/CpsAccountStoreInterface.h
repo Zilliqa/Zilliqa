@@ -30,6 +30,7 @@ class EvmProcessContext;
 
 namespace libCps {
 struct CpsAccountStoreInterface {
+  enum AccountType { DoesNotExist = 0, EOA, Contract, Library, Unknown };
   using Address = dev::h160;
   virtual ~CpsAccountStoreInterface() = default;
   virtual Amount GetBalanceForAccountAtomic(const Address& account) = 0;
@@ -59,6 +60,7 @@ struct CpsAccountStoreInterface {
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;
   virtual void IncreaseNonceForAccountAtomic(const Address& account) = 0;
+  virtual void IncreaseNonceForAccount(const Address& address) = 0;
   virtual uint64_t GetNonceForAccountAtomic(const Address& account) = 0;
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
@@ -85,6 +87,7 @@ struct CpsAccountStoreInterface {
                                  const Address& destAddress,
                                  uint32_t scillaVersion) = 0;
   virtual void MarkNewLibraryCreated(const Address& address) = 0;
+  virtual CpsAccountStoreInterface::AccountType GetAccountType(const Address& address) = 0;
 };
 }  // namespace libCps
 

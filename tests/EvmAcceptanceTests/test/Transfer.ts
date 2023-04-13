@@ -40,12 +40,16 @@ describe("ForwardZil contract functionality", function () {
 
   it("should be possible to transfer ethers to the contract", async function () {
     const prevBalance = await ethers.provider.getBalance(this.contract.address);
-    await parallelizer.sendTransaction({
+    const tx = await parallelizer.sendTransaction({
       to: this.contract.address,
       value: FUND
     });
 
+    // Get transaction receipt for the tx
+    const receipt = await tx.response.wait();
+
     const currentBalance = await ethers.provider.getBalance(this.contract.address);
+
     expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
   });
 });
@@ -101,10 +105,10 @@ describe("Transfer ethers", function () {
 
     // Make sure to remove gas accounting from the calculation
     let finalOwnerBal = await ethers.provider.getBalance(owner.address);
-    const diff = initialOwnerBal - finalOwnerBal - fee1;
+    const diff = initialOwnerBal.sub(finalOwnerBal).sub(fee1);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
-    if (diff > (ACCOUNT_VALUE * 4)) {
+    if (diff.toNumber() > ACCOUNT_VALUE * 4) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
 

@@ -21,7 +21,7 @@
 
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
-#include "libData/AccountStore/services/scilla/ScillaClient.h"
+#include "libScilla/ScillaClient.h"
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
@@ -173,15 +173,10 @@ void AccountStore::InitSoft() {
 }
 
 Account *AccountStore::GetAccount(const Address &address) {
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
-                                              __FUNCTION__);
   return this->GetAccount(address, false);
 }
 
 Account *AccountStore::GetAccount(const Address &address, bool resetRoot) {
-  // LOG_MARKER();
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
-                                              __FUNCTION__);
   using namespace boost::multiprecision;
 
   Account *account = AccountStoreBase::GetAccount(address);

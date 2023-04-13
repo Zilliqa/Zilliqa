@@ -58,13 +58,15 @@ class CpsRunScilla final : public CpsRun {
   using Address = dev::h160;
 
  public:
-  CpsRunScilla(ScillaArgs args, CpsExecutor& executor, CpsContext& ctx,
+  CpsRunScilla(ScillaArgs args, CpsExecutor& executor, const CpsContext& ctx,
                CpsRun::Type type);
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   void ProvideFeedback(const CpsRun& /* previousRun */,
                        const CpsExecuteResult& /* results */) override {}
   bool IsResumable() const override { return false; }
-  bool HasFeedback() const override { return false; }
+  bool HasFeedback() const override {
+    return GetType() == CpsRun::TrapScillaCall;
+  }
 
  private:
   enum class INVOKE_TYPE {
@@ -81,7 +83,7 @@ class CpsRunScilla final : public CpsRun {
  private:
   ScillaArgs mArgs;
   CpsExecutor& mExecutor;
-  CpsContext& mCpsContext;
+  const CpsContext& mCpsContext;
 };
 
 }  // namespace libCps

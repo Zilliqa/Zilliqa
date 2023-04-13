@@ -1,3 +1,4 @@
+use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
@@ -11,6 +12,7 @@ pub(crate) fn identity(
     input: &[u8],
     gas_limit: Option<u64>,
     _contex: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let gas_needed = match required_gas(input) {

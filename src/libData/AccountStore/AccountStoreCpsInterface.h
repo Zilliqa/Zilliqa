@@ -148,6 +148,13 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     }
   };
 
+  virtual void IncreaseNonceForAccount(const Address& address) override {
+    Account* account = mAccountStore.GetAccount(address);
+    if (account != nullptr) {
+      account->IncreaseNonce();
+    }
+  };
+
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
       const std::string& vname, const std::vector<std::string>& indices,
@@ -194,6 +201,20 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
 
   virtual std::string& GetScillaRootVersion() override {
     return mScillaRootVersion;
+  }
+
+
+  virtual CpsAccountStoreInterface::AccountType GetAccountType(const Address& address) override {
+    Account *account = mAccountStore.GetAccountAtomic(address);
+    if (account == nullptr) {
+      return CpsAccountStoreInterface::DoesNotExist;
+    } else if (account->isContract()) {
+      return CpsAccountStoreInterface::Contract;
+    } else if (account->IsLibrary()) {
+      return CpsAccountStoreInterface::Library;
+    } else {
+      return CpsAccountStoreInterface::EOA;
+    }
   }
 
   virtual bool IsAccountALibrary(const Address& address) override {

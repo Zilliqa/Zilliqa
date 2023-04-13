@@ -18,14 +18,20 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_LOGGING_H_
 #define ZILLIQA_SRC_LIBMETRICS_LOGGING_H_
 
+#include "common/Constants.h"
 #include "common/Singleton.h"
+
+#include <string>
 
 /**
  * @brief Wrapper around OTel Logging.
  */
 class Logging : public Singleton<Logging> {
  public:
-  Logging();
+  Logging() = default;
+
+  void Initialize(std::string_view identity = {},
+                  std::string provider = LOGGING_ZILLIQA_PROVIDER);
 
   /// Called on main() exit explicitly
   void Shutdown();

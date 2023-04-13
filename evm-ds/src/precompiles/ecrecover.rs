@@ -1,3 +1,4 @@
+use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use primitive_types::{H160, H256};
@@ -12,6 +13,7 @@ pub(crate) fn ecrecover(
     input: &[u8],
     gas_limit: Option<u64>,
     _contex: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = ECRECOVER_BASE;

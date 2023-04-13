@@ -3,7 +3,7 @@ import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import BN from "bn.js";
 import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
-import {initZilliqa, ScillaContract} from "hardhat-scilla-plugin";
+import {initZilliqa, ScillaContract, Setup, UserDefinedLibrary} from "hardhat-scilla-plugin";
 import SignerPool from "./SignerPool";
 
 export type DeployOptions = {
@@ -16,7 +16,7 @@ export class Parallelizer {
   constructor() {
     const privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
-    initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey]);
+    this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey], 30);
   }
 
   async deployContract(contractName: string, ...args: any[]) {
@@ -65,6 +65,18 @@ export class Parallelizer {
     return hre.deployScilla(contractName, ...args);
   }
 
+  async deployScillaLibrary(libraryName: string): Promise<ScillaContract> {
+    return hre.deployScillaLibrary(libraryName);
+  }
+
+  async deployScillaContractWithLibrary(
+    libraryName: string,
+    userDefinedLibraries: UserDefinedLibrary[],
+    ...args: any[]
+  ): Promise<ScillaContract> {
+    return hre.deployScillaWithLib(libraryName, userDefinedLibraries, ...args);
+  }
+
   async sendTransaction(txn: TransactionRequest) {
     const signer = await this.signerPool.takeSigner();
     const response = await signer.sendTransaction(txn);
@@ -81,6 +93,7 @@ export class Parallelizer {
   }
 
   zilliqaAccountAddress: string;
+  zilliqaSetup: Setup;
   private signerPool: SignerPool = new SignerPool();
 }
 
