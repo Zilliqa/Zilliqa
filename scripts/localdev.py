@@ -61,15 +61,23 @@ class Config:
             self.using_local_registry = True
             self.docker_binary = "podman"
             self.is_osx = True
+            self.minikube_driver = "podman"
         else:
             self.using_podman = True
             self.using_local_registry = True
             self.docker_binary = "podman"
             self.is_osx = False
+            self.minikube_driver = "kvm2"
         self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
         self.testnet_name = "localdev"
         self.strip_binaries = False
 
+    def get_registry_hostport(config):
+        if self.is_osx:
+            return "localhost:5000"
+        else:
+            return f"{get_minikube_ip(config)}:5000"
+        
     def setup(self):
         """
         State modifying initialisation for the configuration structure.
@@ -150,11 +158,14 @@ def run_or_die(config, cmd, in_dir = None, env = None, in_background = False, pi
 
 @click.command("setup-podman")
 @click.pass_context
-def setup_podman(ctx):
+def setup_podman_cmd(ctx):
     """
     Set up podman on OS X machines.
     """
     config = get_config(ctx)
+    setup_podman(config)
+
+def setup_podman(config):
     if config.is_osx:
         run_or_die(config, ["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
         # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
@@ -165,11 +176,14 @@ def setup_podman(ctx):
 
 @click.command("teardown-podman")
 @click.pass_context
-def teardown_podman(ctx):
+def teardown_podman_cmd(ctx):
     """
     Tear down podman (on OS X only)
     """
     config = get_config(ctx)
+    teardown_podman(config)
+
+def teardown_podman(config):
     if config.is_osx:
         run_or_die(config, ["podman", "machine", "stop"])
         run_or_die(config, ["podman", "machine", "rm", "-f"])
@@ -221,7 +235,7 @@ systemctl restart systemd-resolved
 
 def start_k8s(config):
     print("Starting minikube .. ")
-    run_or_die(config, ["minikube", "start", "--driver", "kvm2"])
+    run_or_die(config, ["minikube", "start", "--driver", config.minikube_driver])
 
 @click.command("start-k8s")
 @click.pass_context
@@ -235,18 +249,28 @@ def start_k8s_cmd(ctx):
 
 @click.command("setup-k8s")
 @click.pass_context
-def setup_k8s(ctx):
+def setup_k8s_cmd(ctx):
     """
     Set up a minikube cluster with appropriate containers and add-ons to run a local development version of Zilliqa
     """
     config = get_config(ctx)
+    setup_k8s(config)
+
+def setup_k8s(config):
     print("Creating minikube cluster .. ")
-    run_or_die(config, ["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
+    run_or_die(config, ["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", config.minikube_driver,
                 "--insecure-registry", "192.168.39.0/24", "--container-runtime", "cri-o"])
     run_or_die(config, ["minikube", "addons", "enable", "registry"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
     run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
+    # if we are on OS X, we need to forward localhost:5000 ...
+    if config.is_osx:
+        # Quite possible that bridging networks would make this easier, but this is the official advice, so trying this first - rrw 2023-04-06
+        minikube_ip =get_minikube_ip()
+        proxy_cmd = [  "docker","run","--rm","-it","--network=host","alpine","ash","-c",f"apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:${minikube_ip}:5000" ]
+        run_or_die(config, proxy_cmd, in_background = True, pid_name = f"reg_proxy");
+
     wait_for_running_pod(config, "registry", "kube-system")
     wait_for_running_pod(config, "registry-proxy", "kube-system")
     wait_for_local_registry(config)
@@ -259,10 +283,11 @@ def wait_for_local_registry(config):
     Wait for the local registry to be up
     """
     ip = get_minikube_ip(config)
-    print(f"Waiting for http://{ip}:5000/v2 .. ")
+    url = f"http://{get_registry_hostport(config)}/v2"
+    print(f"Waiting for {url} .. ")
     while True:
         try:
-            run_or_die(config, [ "curl", f"http://{ip}:5000/v2" ] )
+            run_or_die(config, [ "curl", url ])
             print(".. OK")
             break
         except:
@@ -328,9 +353,15 @@ def push_to_local_registry(config, tag):
 
 @click.command("teardown-k8s")
 @click.pass_context
-def teardown_k8s(ctx):
+def teardown_k8s_cmd(ctx):
     """ Tear down k8s cluster; when you restart it you will need to rewrite your host lookups """
     config = get_config(ctx)
+    teardown_k8s(config)
+
+def teardown_k8s(config):
+    if config.is_osx:
+        print("Killing registry proxy")
+        kill_pid(config, "reg_proxy")
     print("Destroying minikube cluster .. ")
     run_or_die(config, ["minikube", "delete"])
 
@@ -349,7 +380,7 @@ def up(config):
     minikube = get_minikube_ip(config)
     tag = gen_tag()
     #tag = "w5fnelo8"
-    tag_name = f"{minikube}:5000/zilliqa:{tag}"
+    tag_name = f"{config.get_registry_hostport(config)}:5000/zilliqa:{tag}"
     build_lite(config, tag_name)
     write_testnet_configuration(config, tag_name, config.testnet_name)
     start_testnet(config, config.testnet_name)
@@ -426,7 +457,7 @@ def write_testnet_configuration(config, tag_name, testnet_name):
                 "-f", "--bucket", "none"],
                in_dir = TESTNET_DIR)
 
-def kill_mitmweb(config, pidfile_name):
+def kill_pid(config, pidfile_name):
     pidfile = Pidfile(config, pidfile_name)
     pid = pidfile.get()
     if pid is not None:
@@ -460,7 +491,7 @@ def get_mitm_instances(testnet_name):
 def stop_proxy(config, testnet_name):
     mitm_instances = get_mitm_instances(testnet_name)
     for m in mitm_instances.keys():
-        kill_mitmweb(config, f"mitmweb_{m}")
+        kill_pid(config, f"mitmweb_{m}")
 
 def start_proxy(config, testnet_name):
     print(f"> Wait for loadbalancer .. ")
@@ -839,6 +870,10 @@ def cli(ctx):
     There are also commands to collect logs, and one to restart the
     ingress, since it sometimes sticks.
 
+    On OS X, you'll need:
+
+    brew install podman minikube
+
     WARNING: Only tested so far on Ubuntu 22.04 . OS X MAY NOT WORK.
 
     """
@@ -846,11 +881,11 @@ def cli(ctx):
     ctx.obj.setup()
 
 cli.add_command(build_lite_cmd)
-cli.add_command(setup_podman)
-cli.add_command(teardown_podman)
-cli.add_command(setup_k8s)
+cli.add_command(setup_podman_cmd)
+cli.add_command(teardown_podman_cmd)
+cli.add_command(setup_k8s_cmd)
 cli.add_command(start_k8s_cmd)
-cli.add_command(teardown_k8s)
+cli.add_command(teardown_k8s_cmd)
 cli.add_command(up_cmd)
 cli.add_command(down_cmd)
 cli.add_command(show_proxy_cmd)
