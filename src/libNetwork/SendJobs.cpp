@@ -44,6 +44,7 @@ class SendJobsVariables {
   std::atomic<int> sendMessageToPeerFailed = 0;
   std::atomic<int> sendMessageToPeerSyncCount = 0;
   std::atomic<int> activePeersSize = 0;
+  std::atomic<int> activeQueueSize = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -63,6 +64,11 @@ class SendJobsVariables {
     sendMessageToPeerSyncCount += count;
   }
 
+  void SetActiveQueueSize(int amount) {
+    Init();
+    activeQueueSize = amount;
+  }
+
   void SetActivePeersSize(int amount) {
     Init();
     activePeersSize = amount;
@@ -78,6 +84,7 @@ class SendJobsVariables {
         result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
         result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
         result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
+        result.Set(activeQueueSize.load(), {{"counter", "ActiveQueueSize"}});
       });
     }
   }
@@ -225,6 +232,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (m_queue.size() == 1) {
       Connect();
     }
+
+    zil::local::variables.SetActiveQueueSize(m_queue.size());
     LOG_GENERAL(INFO, "X0001: Message queued to " << m_peer << " len= " << m_queue.size());
   }
 
