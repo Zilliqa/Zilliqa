@@ -61,39 +61,39 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
-#[derive(Debug,Serialize,Deserialize,Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct CallContext {
     #[serde(rename = "type")]
-    pub call_type : String, // only 'call' (not create, delegate, static)
-    pub from : String,
-    pub to : String,
-    pub value : String,
-    pub gas : String,
+    pub call_type: String, // only 'call' (not create, delegate, static)
+    pub from: String,
+    pub to: String,
+    pub value: String,
+    pub gas: String,
     #[serde(rename = "gasUsed")]
-    pub gas_used : String,
-    pub input : String,
-    pub output : String,
+    pub gas_used: String,
+    pub input: String,
+    pub output: String,
 
     calls: Vec<CallContext>,
 }
 
 impl CallContext {
     fn new() -> Self {
-        CallContext{
-            call_type : Default::default(),
-            from : Default::default(),
-            to : Default::default(),
-            value : Default::default(),
-            gas : "0x0".to_string(),
-            gas_used : "0x0".to_string(),
-            input : Default::default(),
-            output : Default::default(),
+        CallContext {
+            call_type: Default::default(),
+            from: Default::default(),
+            to: Default::default(),
+            value: Default::default(),
+            gas: "0x0".to_string(),
+            gas_used: "0x0".to_string(),
+            input: Default::default(),
+            output: Default::default(),
             calls: Default::default(),
         }
     }
 }
 
-#[derive(Debug,Serialize,Deserialize,Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct StructLog {
     pub depth: usize,
     pub error: String,
@@ -110,14 +110,14 @@ struct StructLog {
 // Created in this way.
 // Each new call gets added to the end of the stack and becomes the current context.
 // On returning from a call, the end of the stack gets put into the item above's calls
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct LoggingEventListener {
     call_tracer: Vec<CallContext>,
     raw_tracer: StructLogTopLevel,
     enabled: bool,
 }
 
-#[derive(Debug,Serialize,Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct StructLogTopLevel {
     pub gas: u64,
     #[serde(rename = "returnValue")]
@@ -138,15 +138,23 @@ impl LoggingEventListener {
 
 impl evm::runtime::tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: evm::runtime::tracing::Event) {
-
         if !self.enabled {
             return;
         }
 
-        let mut struct_log = StructLog { depth: self.call_tracer.len() - 1, ..Default::default() };
+        let mut struct_log = StructLog {
+            depth: self.call_tracer.len() - 1,
+            ..Default::default()
+        };
 
         match event {
-            evm::runtime::tracing::Event::Step{context: _, opcode, position, stack, memory: _} => {
+            evm::runtime::tracing::Event::Step {
+                context: _,
+                opcode,
+                position,
+                stack,
+                memory: _,
+            } => {
                 struct_log.op = format!("{opcode}");
                 struct_log.pc = position.clone().unwrap_or(0);
 
@@ -154,14 +162,25 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                     struct_log.stack.push(format!("{sta:?}"));
                 }
             }
-            evm::runtime::tracing::Event::StepResult{result, return_value: _} => {
+            evm::runtime::tracing::Event::StepResult {
+                result,
+                return_value: _,
+            } => {
                 struct_log.op = "StepResult".to_string();
                 struct_log.error = format!("{:?}", result.clone());
             }
-            evm::runtime::tracing::Event::SLoad{address: _, index: _, value: _} => {
+            evm::runtime::tracing::Event::SLoad {
+                address: _,
+                index: _,
+                value: _,
+            } => {
                 struct_log.op = "Sload".to_string();
             }
-            evm::runtime::tracing::Event::SStore{address: _, index: _, value: _} => {
+            evm::runtime::tracing::Event::SStore {
+                address: _,
+                index: _,
+                value: _,
+            } => {
                 struct_log.op = "SStore".to_string();
             }
         }
@@ -173,7 +192,6 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
 }
 
 impl LoggingEventListener {
-
     #[allow(dead_code)]
     fn as_string(&self) -> String {
         serde_json::to_string(self).unwrap()
@@ -193,7 +211,7 @@ impl LoggingEventListener {
         }
     }
 
-    fn push_call(&mut self, context: CallContext ) {
+    fn push_call(&mut self, context: CallContext) {
         // Now we have constructed our new call context, it gets added to the end of
         // the stack (if we want to do tracing)
         if self.enabled {

@@ -32,7 +32,14 @@ struct CpsAccountStoreInterface;
 struct CpsExecuteResult;
 class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
-  enum Type { Call = 0, Create, Transfer, TrapCreate, TrapCall };
+  enum Type {
+    Call = 0,
+    Create,
+    Transfer,
+    TrapCreate,
+    TrapCall,
+    TrapScillaCall
+  };
   enum Domain { Evm = 0, Scilla, None };
   CpsRun(CpsAccountStoreInterface& accountStore, Domain domain, Type type)
       : mAccountStore(accountStore), mDomain(domain), mType(type) {}

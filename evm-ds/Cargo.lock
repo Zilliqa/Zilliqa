@@ -500,6 +500,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethabi"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7413c5f74cc903ea37386a8965a936cbeb334bd270862fdece542c1b2dcbc898"
+dependencies = [
+ "ethereum-types 0.14.1",
+ "hex",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha3",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
 name = "ethbloom"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -523,6 +540,7 @@ dependencies = [
  "fixed-hash 0.8.0",
  "impl-codec",
  "impl-rlp",
+ "impl-serde",
  "scale-info",
  "tiny-keccak",
 ]
@@ -589,6 +607,7 @@ dependencies = [
  "fixed-hash 0.8.0",
  "impl-codec",
  "impl-rlp",
+ "impl-serde",
  "primitive-types 0.12.1",
  "scale-info",
  "uint",
@@ -597,7 +616,7 @@ dependencies = [
 [[package]]
 name = "evm"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?rev=6876b5b#6876b5b275cc972a6594d3e4d6ff4179540470dc"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -617,7 +636,7 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?rev=6876b5b#6876b5b275cc972a6594d3e4d6ff4179540470dc"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "parity-scale-codec",
  "primitive-types 0.12.1",
@@ -635,6 +654,7 @@ dependencies = [
  "byteorder",
  "bytes 1.4.0",
  "clap",
+ "ethabi",
  "ethereum 0.12.0",
  "evm",
  "futures 0.3.28",
@@ -668,7 +688,7 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?rev=6876b5b#6876b5b275cc972a6594d3e4d6ff4179540470dc"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "environmental",
  "evm-core",
@@ -679,7 +699,7 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?rev=6876b5b#6876b5b275cc972a6594d3e4d6ff4179540470dc"
+source = "git+https://github.com/Zilliqa/evm?branch=precompile-access-backend#53485a9e76a3b6dc80d7a3dadf47a9784af8e4b0"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -1195,13 +1215,13 @@ dependencies = [
 
 [[package]]
 name = "io-lifetimes"
-version = "1.0.9"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09270fd4fa1111bc614ed2246c7ef56239a3063d5be0d1ec3b589c505d400aeb"
+checksum = "9c66c74d2ae7e79a5a8f7ac924adbe38ee42a859c6539ad869eb51f0b52dc220"
 dependencies = [
  "hermit-abi 0.3.1",
  "libc",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1368,9 +1388,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.140"
+version = "0.2.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
+checksum = "3304a64d199bb964be99741b7a14d26972741915b3649639149b2479bb46f4b5"
 
 [[package]]
 name = "libsecp256k1"
@@ -2310,9 +2330,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.37.6"
+version = "0.37.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d097081ed288dfe45699b72f5b5d648e5f15d64d900c7080273baa20c16a6849"
+checksum = "2aae838e49b3d63e9274e1c01833cc8139d3fec468c3b84688c628f44b1ae11d"
 dependencies = [
  "bitflags",
  "errno",
@@ -3265,6 +3285,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75283be5efb2831d37ea142365f009c02ec203cd29a3ebecbc093d52315b66d0"
 dependencies = [
  "windows-targets 0.42.2",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.48.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
+dependencies = [
+ "windows-targets 0.48.0",
 ]
 
 [[package]]
