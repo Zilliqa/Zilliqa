@@ -25,11 +25,13 @@
 #include "libCps/ScillaHelpersCall.h"
 #include "libCps/ScillaHelpersCreate.h"
 #include "libData/AccountData/TransactionReceipt.h"
-#include "libData/AccountStore/services/scilla/ScillaClient.h"
+#include "libScilla/ScillaClient.h"
 #include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/TimeUtils.h"
+
+#include "libUtils/JsonUtils.h"
 
 #include <future>
 #include <ranges>
@@ -37,14 +39,15 @@
 namespace libCps {
 
 CpsRunScilla::CpsRunScilla(ScillaArgs args, CpsExecutor& executor,
-                           CpsContext& ctx, CpsRun::Type type)
+                           const CpsContext& ctx, CpsRun::Type type)
     : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::Scilla, type),
       mArgs(std::move(args)),
       mExecutor(executor),
       mCpsContext(ctx) {}
 
 CpsExecuteResult CpsRunScilla::Run(TransactionReceipt& receipt) {
-  if (GetType() != CpsRun::Call && GetType() != CpsRun::Create) {
+  if (GetType() != CpsRun::Call && GetType() != CpsRun::Create &&
+      GetType() != CpsRun::TrapScillaCall) {
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
   const auto gasCheckRes = checkGas();
@@ -322,6 +325,10 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
       mAccountStore, mArgs, runnerResult.returnVal, receipt, scillaVersion);
 
   if (!parseCallResults.success) {
+    // Allow TrapScilla call to fail and let EVM handle errored run accordingly
+    if (GetType() == CpsRun::TrapScillaCall) {
+      return {TxnStatus::NOT_PRESENT, true, retScillaVal};
+    }
     span.SetError("Parsing call result failed");
     return {TxnStatus::NOT_PRESENT, false, retScillaVal};
   }
@@ -392,6 +399,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
   LOG_GENERAL(WARNING,
               "GAS, left: " << mCpsContext.scillaExtras.gasLimit - callPenalty
                             << ", margs.gasLimit: " << mArgs.gasLimit);
+  retScillaVal.isSuccess = true;
   return {TxnStatus::NOT_PRESENT, true, retScillaVal};
 }
 
@@ -466,18 +474,19 @@ ScillaInvokeResult CpsRunScilla::InvokeScillaInterpreter(INVOKE_TYPE type) {
         break;
       }
     }
-    callAlreadyFinished = true;
+    {
+      std::lock_guard lock{mAccountStore.GetScillaMutex()};
+      callAlreadyFinished = true;
+    }
     mAccountStore.GetScillaCondVariable().notify_all();
   };
   DetachedFunction(1, func2);
 
   {
-    std::unique_lock<std::mutex> lk(mAccountStore.GetScillaMutex());
-    if (!callAlreadyFinished) {
-      mAccountStore.GetScillaCondVariable().wait(lk);
-    } else {
-      LOG_GENERAL(INFO, "Call functions already finished!");
-    }
+    std::unique_lock<std::mutex> lock(mAccountStore.GetScillaMutex());
+    mAccountStore.GetScillaCondVariable().wait(
+        lock, [&callAlreadyFinished] { return callAlreadyFinished; });
+    LOG_GENERAL(INFO, "Call functions already finished!");
   }
 
   if (mAccountStore.GetProcessTimeout()) {

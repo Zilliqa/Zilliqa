@@ -21,6 +21,7 @@
 #include <boost/process/child.hpp>
 #include <thread>
 #include "libMetrics/Api.h"
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
