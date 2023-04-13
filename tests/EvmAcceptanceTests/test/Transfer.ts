@@ -40,7 +40,6 @@ describe("ForwardZil contract functionality", function () {
     const receipt = await tx.response.wait();
 
     const currentBalance = await ethers.provider.getBalance(this.contract.address);
-
     expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
   });
 });
@@ -88,17 +87,31 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
-    });
+    const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
+    const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE});
+    await batchTrans.deployed();
 
+    async function getFee(hash: string) {
+      const res = await ethers.provider.getTransactionReceipt(hash);
+      const NORM_TXN_GAS = 50;
+      const MIN_ETH_GAS = 21000;
+      // Result should be scaled by (50/21000)
+      return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
+    }
+
+    const fee1 = await getFee(batchTrans.deployTransaction.hash);
+
+    // Make sure to remove gas accounting from the calculation
     let finalOwnerBal = await ethers.provider.getBalance(owner.address);
-    let diff = initialOwnerBal - finalOwnerBal;
+    let diff = initialOwnerBal - finalOwnerBal - fee1;
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
-    if (diff > ACCOUNT_VALUE * 4) {
+    if (diff > (ACCOUNT_VALUE * 4)) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
+
+    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
+    balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
   });
 
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
@@ -153,12 +166,15 @@ describe("Transfer ethers", function () {
   it("should return check gas and funds consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
-    const FUND = BigNumber.from(100_000_000_000);
+    const FUND = BigNumber.from(200_000_000_000_000_000n);
 
-    await parallelizer.sendTransaction({
+    const tx = await parallelizer.sendTransaction({
       to: rndAccount.address,
       value: FUND
     });
+
+    // Get transaction receipt for the tx
+    const receipt = await tx.response.wait();
 
     rndAccount = rndAccount.connect(ethers.provider);
 
@@ -166,7 +182,9 @@ describe("Transfer ethers", function () {
 
     // We can't use parallizer here since we need a hash of the receipt to inspect gas usage later
     const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
+
     const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE});
+
     await singleTransfer.deployed();
 
     async function getFee(hash: string) {
@@ -179,9 +197,13 @@ describe("Transfer ethers", function () {
 
     const fee1 = await getFee(singleTransfer.deployTransaction.hash);
 
-    const newBal = await ethers.provider.getBalance(rndAccount.address);
+    // Need to scale down to ignore miniscule rounding differences from getFee
+    const scaleDown = 10000000;
 
-    const expectedNewBalance = FUND.sub(TRANSFER_VALUE).sub(fee1);
+    let newBal = await ethers.provider.getBalance(rndAccount.address);
+
+    const expectedNewBalance = FUND.sub(TRANSFER_VALUE).sub(fee1).div(scaleDown);
+    newBal = newBal.div(scaleDown);
 
     expect(expectedNewBalance).to.be.eq(newBal);
   });
