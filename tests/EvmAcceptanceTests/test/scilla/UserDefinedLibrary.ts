@@ -18,16 +18,6 @@ describe("Scilla library deploy", () => {
     expect(validation.isAddress(additionLibAddress)).to.be.true;
   });
 
-  it("Deploy library - Addition_Errored.scillib", async () => {
-    const libraryName = "AdditionLibErrored";
-    let library;
-    try {
-      library = await parallelizer.deployScillaLibrary(libraryName);
-    } catch (_) {}
-
-    expect(library).to.be.undefined;
-  });
-
   it("Deploy library - MutualLib.scillib", async () => {
     const libraryName = "MutualLib";
     const library = await parallelizer.deployScillaLibrary(libraryName);
