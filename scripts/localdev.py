@@ -421,6 +421,19 @@ def isolated(config):
             pass
     # Copy scilla recursively
     shutil.copytree(os.path.join(src_workspace, "scilla"), os.path.join(target_workspace, "scilla"), dirs_exist_ok = True)
+    # Now, on OS X we need to patch rpath for the scilla executables ..
+    if config.is_osx:
+        print("> On OS X, patching rpath for Scilla .. ")
+        tgt_bin = os.path.join(target_workspace, "scilla", "bin")
+        tgt_lib = os.path.join(target_workspace,  "lib")
+        bins = os.listdir(tgt_bin)
+        for binary in bins:
+            full_path = os.path.join(tgt_bin, binary)
+            if os.path.isfile(full_path):
+                print(f".. patching rpath for {binary}")
+                run_or_die(config, ["chmod", "u+w",  full_path])
+                run_or_die(config, ["install_name_tool", "-add_rpath", tgt_lib, full_path])
+
     shutil.copytree(os.path.join(src_workspace, "zilliqa", "evm-ds"), os.path.join(target_workspace, "evm-ds"), dirs_exist_ok = True)
     # Copy zilliqa in...
     copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "lib"), os.path.join(target_workspace, "lib"))
@@ -433,9 +446,12 @@ def isolated(config):
     output_config = config_file.toprettyxml(newl='')
     with open(os.path.join(target_workspace, 'constants.xml'), 'w') as f:
         f.write(output_config)
+    new_env = os.environ.copy()
+    #old_path = new_env.get("DYLD_LIBRARY_PATH", "")
+    #new_env["DYLD_LIBRARY_PATH"] = f"{target_workspace}/lib:{old_path}"
     cmd = [ "./bin/isolatedServer", "-f", "isolated-server-accounts.json", "-u", "999" ]
-    print(f"Running isolated server in {target_workspace} .. ")
-    run_or_die(config, cmd, in_dir = target_workspace)
+    print(f"Running isolated server in {target_workspace} with ${new_env}.. ")
+    run_or_die(config, cmd, in_dir = target_workspace, env = new_env)
 
     # print(f"> Using workspace {workspace}")
     # try:
@@ -649,10 +665,19 @@ def build_native_to_workspace(config):
     run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
     # OK. That worked. Now copy the relevant bits to our workspace
-    try:
-        os.makedirs(os.path.join(workspace, "scilla"), 0o755)
-    except:
-        pass
+    tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
+    tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
+    for the_dir in [ tgt_bin_dir, tgt_lib_dir ]:
+        try:
+            os.makedirs(the_dir, 0o755)
+        except:
+            pass
+
+    # Scilla is horrid - we need to copy out the dynlibs.
+    triplet_script = os.path.join(SCILLA_DIR, "scripts", "vcpkg_triplet.sh")
+    triplet = sanitise_output(run_or_die(config, [ triplet_script ], capture_output = True))
+    copy_everything_in_dir( os.path.join(SCILLA_DIR, "vcpkg_installed", triplet, "lib"),
+                            tgt_lib_dir )
     shutil.copytree(os.path.join(SCILLA_DIR, "bin"),
                     os.path.join(workspace, "scilla", "bin"), dirs_exist_ok = True)
     shutil.copytree(os.path.join(SCILLA_DIR, "_build", "install", "default", "lib", "scilla", "stdlib"),
@@ -663,8 +688,6 @@ def build_native_to_workspace(config):
                     os.path.join(workspace, "zilliqa", "build", "bin"), dirs_exist_ok = True)
     shutil.copytree(os.path.join(ZILLIQA_DIR, "build","lib"),
                     os.path.join(workspace, "zilliqa", "build", "lib"), dirs_exist_ok = True)
-    tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
-    tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
     if config.strip_binaries:
         print("Stripping binaries for a smaller container .. ")
         for strip_dir in [ tgt_bin_dir, tgt_lib_dir ]:
