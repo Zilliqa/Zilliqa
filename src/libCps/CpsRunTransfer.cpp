@@ -36,6 +36,7 @@ CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, const CpsContext& ctx,
       mAmount(amount) {}
 
 CpsExecuteResult CpsRunTransfer::Run(TransactionReceipt& /*receipt*/) {
+  LOG_MARKER();
   if (mCpsContext.isStatic) {
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }

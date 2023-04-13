@@ -66,6 +66,7 @@ CpsExecuteResult CpsExecutor::PreValidateScillaRun(
   CREATE_SPAN(zil::trace::FilterClass::TXN, context.origin.hex(),
               context.recipient.hex(), context.origin.hex(),
               context.amount.convert_to<std::string>())
+  LOG_MARKER();
 
   if (!mAccountStore.AccountExistsAtomic(context.origin)) {
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
@@ -89,6 +90,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
               clientContext.recipient.hex(), clientContext.origin.hex(),
               clientContext.amount.convert_to<std::string>())
 
+  LOG_MARKER();
   InitRun();
   const auto preValidateResult = PreValidateScillaRun(clientContext);
   if (!preValidateResult.isSuccess) {
@@ -143,11 +145,14 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   auto scillaRun =
       std::make_shared<CpsRunScilla>(std::move(args), *this, cpsCtx, type);
 
+  LOG_GENERAL(INFO,"scilla m_queue.size = "<< m_queue.size());
   m_queue.push_back(std::move(scillaRun));
 
   const auto execResult = processLoop(cpsCtx);
 
   TRACE_EVENT("ScillaCpsRun", "processLoop", "completed");
+
+  LOG_GENERAL(INFO,"processing done");
 
   const auto gasRemainedCore = GetRemainedGasCore(execResult);
 
@@ -274,6 +279,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 }
 
 CpsExecuteResult CpsExecutor::processLoop(const CpsContext& context) {
+  LOG_MARKER():
   mAccountStore.BufferCurrentContractStorageState();
 
   CpsExecuteResult runResult;
