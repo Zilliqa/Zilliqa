@@ -10,7 +10,8 @@ add_library(Network
     SendJobs.cpp
     P2PMessage.cpp
     P2PServer.cpp
-    P2P.cpp)
+    P2P.cpp
+    PeerDiscovery.cpp)
 
 target_include_directories(Network PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Network PUBLIC

@@ -29,6 +29,11 @@ enum MessageType : unsigned char {
   LOOKUP = 0x04
 };
 
+enum PeerDiscoveryInstructionType : unsigned char {
+  HELLO = 0x00,
+  SNAPSHOT = 0x01
+};
+
 enum DSInstructionType : unsigned char {
   SETPRIMARY = 0x00,
   POWSUBMISSION = 0x01,
