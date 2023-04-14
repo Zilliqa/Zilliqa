@@ -1,7 +1,7 @@
 {
   "name": "g3log",
   "version": "1.3.4",
-  "port-version": 5,
+  "port-version": 6,
   "description": "Asynchronous logger with Dynamic Sinks (with dynamic log levels)",
   "homepage": "https://github.com/KjellKod/g3log",
   "supports": "!(uwp)"
