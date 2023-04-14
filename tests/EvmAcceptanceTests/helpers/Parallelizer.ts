@@ -71,7 +71,7 @@ export class Parallelizer {
   }
 
   async deployScillaContract(contractName: string, ...args: any[]): Promise<ScillaContract> {
-    return hre.deployScilla(contractName, ...args);
+    return hre.deployScillaContract(contractName, ...args);
   }
 
   async deployScillaLibrary(libraryName: string): Promise<ScillaContract> {
@@ -83,7 +83,7 @@ export class Parallelizer {
     userDefinedLibraries: UserDefinedLibrary[],
     ...args: any[]
   ): Promise<ScillaContract> {
-    return hre.deployScillaWithLib(libraryName, userDefinedLibraries, ...args);
+    return hre.deployScillaContractWithLib(libraryName, userDefinedLibraries, ...args);
   }
 
   async sendTransaction(txn: TransactionRequest) {

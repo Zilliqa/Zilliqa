@@ -1,5 +1,4 @@
-const {validation} = require("@zilliqa-js/util");
-const {assert, expect} = require("chai");
+import {expect} from "chai";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 import hre, {ethers} from "hardhat";
