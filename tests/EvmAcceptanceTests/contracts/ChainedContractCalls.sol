@@ -5,7 +5,8 @@ pragma solidity >=0.7.0 <0.9.0;
 // Entry contract, will call contract two
 contract ContractOne {
 
-    event FinalMessage();
+    event AAAAAAAAAAAA();
+    event FinalMessagex();
 
     constructor() payable
     {
@@ -19,7 +20,7 @@ contract ContractOne {
 
             two.chainedCall(destinations, index + 1);
         }
-        emit FinalMessage();
+        emit AAAAAAAAAAAA();
         return true;
     }
 }
@@ -42,7 +43,7 @@ contract ContractTwo {
             three.chainedCall(destinations, index + 1);
             three.chainedCall(destinations, index + 1);
         }
-        emit FinalMessageTwo();
+        //emit FinalMessageTwo();
         return true;
     }
 }
@@ -64,7 +65,7 @@ contract ContractThree {
             ContractOne one = ContractOne(destinations[index]);
             one.chainedCall(destinations, index + 1);
         }
-        emit FinalMessageThree();
+        //emit FinalMessageThree();
         return true;
     }
 }

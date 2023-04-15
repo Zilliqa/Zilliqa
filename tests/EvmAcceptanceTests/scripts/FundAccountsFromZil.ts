@@ -58,6 +58,7 @@ async function main() {
       console.log("Skipping account with 0 balance");
       continue;
     }
+    continue;
 
     const gasp = await web3.eth.getGasPrice();
     const gasPrice = new BN(gasp);

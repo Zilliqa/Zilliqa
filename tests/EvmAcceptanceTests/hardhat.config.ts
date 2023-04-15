@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
     disableTrace: false, // If set to true, plugin won't trace transaction
     uploadAst: true // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
   },
-  defaultNetwork: "isolated_server",
+  defaultNetwork: "rehearsal",
   networks: {
     isolated_server: {
       url: "http://localhost:5555/",
@@ -126,6 +126,19 @@ const config: HardhatUserConfig = {
       zilliqaNetwork: true,
       miningState: false
     },
+    rehearsal: {
+      url: "https://v890rc6-debug-v2-l2api.mainnet.aws.zilliqa.com",
+      websocketUrl: "ws://localhost:8080",
+      accounts: [
+        "30769C8A8B115724E24C5E8851A7CB0BB2A6082496451E7ED6EB045E1E021233",
+      ],
+      chainId: 0x8001,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
+
     localdev: {
       url: "http://localhost:5301",
       websocketUrl: "ws://localhost:5301",
