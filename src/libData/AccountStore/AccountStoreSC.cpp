@@ -88,6 +88,38 @@ Z_I64GAUGE &GetProcessorDSBNCounters() {
                             "Ds Block number seen by processor", "count", true};
   return counter;
 }
+
+class AccountStoreSC {
+  int maxScillaExecutionTime = 0;
+  int lastScillaExecutionTime = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetScillaExecutionTime(int count) {
+    Init();
+    lastScillaExecutionTime = count;
+
+    if(count > maxScillaExecutionTime) {
+      maxScillaExecutionTime = count;
+    }
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "scillaexecution.gauge",
+                                          "Scilla execution metrics", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(lastScillaExecutionTime, {{"counter", "LastScillaExecutionTime"}});
+        result.Set(maxScillaExecutionTime, {{"counter", "MaxScillaExecutionTime"}});
+      });
+    }
+  }
+};
+
+static AccountStoreSC variables{};
+
 }  // namespace local
 }  // namespace zil
 
@@ -229,6 +261,9 @@ bool AccountStoreSC::UpdateAccounts(
 
   if (ENABLE_CPS) {
     LOG_GENERAL(WARNING, "Running Scilla in CPS mode");
+    auto start = std::chrono::high_resolution_clock::now();
+    //< run your function or code here >
+
     m_originAddr = transaction.GetSenderAddr();
     m_curGasLimit = transaction.GetGasLimitZil();
     m_curGasPrice = transaction.GetGasPriceQa();
@@ -261,6 +296,16 @@ bool AccountStoreSC::UpdateAccounts(
       cpsRunResult.isSuccess = true;
     }
     error_code = cpsRunResult.txnStatus;
+
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = finish - start;
+
+    if(elapsed.count() > 1000) {
+      LOG_GENERAL(WARNING, "Scilla execution took too long: " << elapsed.count() << " s");
+    }
+
+    zil::local::variables.SetScillaExecutionTime(elapsed.count());
+
     return cpsRunResult.isSuccess;
   }
 
