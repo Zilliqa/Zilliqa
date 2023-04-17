@@ -32,6 +32,7 @@ Blacklist& Blacklist::GetInstance() {
 
 /// P2PComm may use this function
 bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
+  return false;
   if (!m_enabled) {
     return false;
   }
