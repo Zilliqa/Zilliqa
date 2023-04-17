@@ -175,12 +175,12 @@ class GracefulCloseImpl
 
 void CloseGracefully(Socket socket) {
   ErrorCode ec;
-  //LOG_GENERAL(INFO, "X0003");
+  LOG_GENERAL(INFO, "X0003");
   if (!socket.is_open()) {
     return;
   }
   socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
-  //LOG_GENERAL(INFO, "X0004");
+  LOG_GENERAL(INFO, "X0004");
   if (ec) {
     return;
   }
@@ -188,17 +188,17 @@ void CloseGracefully(Socket socket) {
   if (ec) {
     return;
   }
-  //LOG_GENERAL(INFO, "X0005");
+  LOG_GENERAL(INFO, "X0005");
   if (unread > 0) {
     boost::container::small_vector<uint8_t, 4096> buf;
     buf.resize(unread);
     socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
   }
-  //LOG_GENERAL(INFO, "X0006");
+  LOG_GENERAL(INFO, "X0006");
   if (!ec) {
     std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
   }
-  //LOG_GENERAL(INFO, "X0007");
+  LOG_GENERAL(INFO, "X0007");
 }
 
 }  // namespace
@@ -234,11 +234,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     zil::local::variables.SetActiveQueueSize(m_queue.size());
-    //LOG_GENERAL(INFO, "X0001: Message queued to " << m_peer << " len= " << m_queue.size());
+    LOG_GENERAL(INFO, "X0001: Message queued to " << m_peer << " len= " << m_queue.size());
   }
 
   void Close() {
-    //LOG_GENERAL(INFO, "X0002: Close() m_closed " << m_closed);
+    LOG_GENERAL(INFO, "X0002: Close() m_closed " << m_closed);
     if (!m_closed) {
       m_closed = true;
       CloseGracefully(std::move(m_socket));
@@ -249,7 +249,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   void Connect() {
     ErrorCode ec;
 
-    //LOG_GENERAL(INFO, "X0008:" << m_peer);
+    LOG_GENERAL(INFO, "X0008:" << m_peer);
   if (m_endpoint.port() == 0) {
       auto address =
           boost::asio::ip::make_address(m_peer.GetPrintableIPAddress(), ec);
@@ -260,7 +260,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         Done(ec);
         return;
       }
-      //LOG_GENERAL(INFO, "X0009" << m_peer);
+      LOG_GENERAL(INFO, "X0009" << m_peer);
       m_endpoint = Endpoint(std::move(address), m_peer.GetListenPortHost());
     }
 
@@ -268,10 +268,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
 
-    //LOG_GENERAL(INFO, "X0010" << m_peer);
+    LOG_GENERAL(INFO, "X0010" << m_peer);
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
-                           //LOG_GENERAL(INFO, "X0011" << self->m_peer << " ec " << ec);
+                           LOG_GENERAL(INFO, "X0011" << self->m_peer << " ec " << ec);
                            if (ec != OPERATION_ABORTED) {
                                self->OnConnected(ec);
                              }
@@ -279,7 +279,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void OnConnected(const ErrorCode& ec) {
-    //LOG_GENERAL(INFO, "X0012" << this->m_peer << " ec " << ec);
+    LOG_GENERAL(INFO, "X0012" << this->m_peer << " ec " << ec);
     if (m_closed) {
       return;
     }
@@ -302,7 +302,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
         [self = shared_from_this()](const ErrorCode& ec, size_t) {
-        //LOG_GENERAL(INFO, "X0013" << self->m_peer << " ec " << ec);
+        LOG_GENERAL(INFO, "X0013" << self->m_peer << " ec " << ec);
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
           }
@@ -341,7 +341,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void OnWritten(const ErrorCode& ec) {
-    //LOG_GENERAL(INFO, "X0014" << this->m_peer << " ec " << ec);
+    LOG_GENERAL(INFO, "X0014" << this->m_peer << " ec " << ec);
     if (m_closed) {
       return;
     }
@@ -363,23 +363,23 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_queue.pop_front();
 
-    //LOG_GENERAL(INFO, "X0015" << this->m_peer << " ec " << ec);
+    LOG_GENERAL(INFO, "X0015" << this->m_peer << " ec " << ec);
     Reconnect();
   }
 
   bool ExpiredOrDone(const ErrorCode& ec = ErrorCode{}) {
-    //LOG_GENERAL(INFO, "X0016" << this->m_peer << " ec " << ec << " q " << m_queue.size());
+    LOG_GENERAL(INFO, "X0016" << this->m_peer << " ec " << ec << " q " << m_queue.size());
     if (m_queue.empty()) {
       Done();
       return true;
     }
 
     if (m_queue.front().expires_at < Clock()) {
-      //LOG_GENERAL(INFO, "X0017 " << this->m_peer);
+      LOG_GENERAL(INFO, "X0017 " << this->m_peer);
       Done(ec ? ec : TIMED_OUT);
       return true;
     }
-    //LOG_GENERAL(INFO, "X0018" << this->m_peer);
+    LOG_GENERAL(INFO, "X0018" << this->m_peer);
     return false;
   }
 
@@ -389,17 +389,17 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     assert(ec);
-    //LOG_GENERAL(INFO, "X0019" << this->m_peer);
+    LOG_GENERAL(INFO, "X0019" << this->m_peer);
     WaitTimer(m_timer, Milliseconds(1000), this, &PeerSendQueue::Reconnect);
   }
 
   void Reconnect() {
-    //LOG_GENERAL(INFO, "X0020 " << this->m_peer);
+    LOG_GENERAL(INFO, "X0020 " << this->m_peer);
     if (!CheckAgainstBlacklist() || ExpiredOrDone()) {
       return;
     }
 
-    //LOG_GENERAL(INFO, "X0021 " << this->m_peer);
+    LOG_GENERAL(INFO, "X0021 " << this->m_peer);
     // TODO the current protocol is weird and it assumes reconnecting every
     // time. This should be changed!!!
     CloseGracefully(std::move(m_socket));
@@ -408,7 +408,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Done(const ErrorCode& ec = ErrorCode{}) {
-    //LOG_GENERAL(INFO, "X0022 " << this->m_peer << " ec " << ec);
+    LOG_GENERAL(INFO, "X0022 " << this->m_peer << " ec " << ec);
     if (!m_closed) {
       m_doneCallback(m_peer, ec);
     }
@@ -505,7 +505,7 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    //LOG_GENERAL(INFO, "X0100: Send to " << peer << " for " << msg.size);
+    LOG_GENERAL(INFO, "X0100: Send to " << peer << " for " << msg.size);
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
       ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback,
@@ -513,7 +513,7 @@ class SendJobsImpl : public SendJobs,
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
-    //LOG_GENERAL(INFO, "X0101: done Send to " << peer << " for " << msg.size);
+    LOG_GENERAL(INFO, "X0101: done Send to " << peer << " for " << msg.size);
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
@@ -524,14 +524,14 @@ class SendJobsImpl : public SendJobs,
                                              << ":" << peer.GetListenPortHost()
                                              << " ec=" << ec.message());
     } else {
-      //LOG_GENERAL(INFO, "X0102: OnPeerQueueFinished with ec = 0");
+      LOG_GENERAL(INFO, "X0102: OnPeerQueueFinished with ec = 0");
     }
 
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
       zil::local::variables.AddSendMessageToPeerFailed(1);
-      //LOG_GENERAL(INFO, "X0103: SendMessageToPeer failed");
+      LOG_GENERAL(INFO, "X0103: SendMessageToPeer failed");
       return;
     }
 
@@ -564,7 +564,7 @@ class SendJobsImpl : public SendJobs,
     // explicit Close() because shared_ptr may be reused in async operation
     it->second->Close();
     m_activePeers.erase(it);
-    //LOG_GENERAL(INFO, "X0104: done OnPeerQueueFinished()");
+    LOG_GENERAL(INFO, "X0104: done OnPeerQueueFinished()");
   }
 
   void WorkerThread() {
