@@ -89,58 +89,6 @@ namespace {
 }  // namespace
 #endif
 
-namespace zil {
-
-namespace local {
-
-class VariablesNode {
-  int nodeState = 0;
-  int txnPool = 0;
-  int txsInserted = 0;
-  int missingForwardedTx = 0;
-
- public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
-  void SetNodeState(int state) {
-    Init();
-    nodeState = state;
-  }
-
-  void AddForwardedMissingTx(int number) {
-    Init();
-    missingForwardedTx = number;
-  }
-
-  void AddTxnInserted(int inserted) {
-    Init();
-    txsInserted += inserted;
-  }
-
-  void SetTxnPool(int size) {
-    Init();
-    txnPool = size;
-  }
-
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge",
-                                          "Node gague", "calls", true);
-
-      temp->SetCallback([this](auto &&result) {
-        result.Set(nodeState, {{"counter", "NodeState"}});
-        result.Set(txsInserted, {{"counter", "TXsInserted"}});
-        result.Set(txnPool, {{"counter", "txnPool"}});
-        result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
-      });
-    }
-  }
-};
-
-static VariablesNode nodeVar{};
-}  // namespace local
-}  // namespace zil
-
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
                                 unsigned int factor = 0,
@@ -251,7 +199,29 @@ void Node::AddBalanceToGenesisAccount() {
 
 Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
            [[gnu::unused]] bool toRetrieveHistory)
-    : m_mediator(mediator) {}
+    : m_mediator(mediator) {
+
+  metrics = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge",
+                                      "Node gague", "calls", true);
+
+  metrics->SetCallback([this](auto &&result) {
+    result.Set(int(m_state), {{"counter", "NodeState"}});
+    result.Set(txsInserted, {{"counter", "TXsInserted"}});
+    result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
+
+    {
+      lock_guard<mutex> g(m_mutexCreatedTransactions);
+      result.Set(m_createdTxns.size(), {{"counter", "txnPool"}});
+      result.Set(t_createdTxns.size(), {{"counter", "txnPoolt"}});
+    }
+
+    {
+      unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+      result.Set(m_unconfirmedTxns.size(), {{"counter", "txnPoolUnconfirmed"}});
+    }
+  });
+
+}
 
 Node::~Node() {}
 
@@ -1531,86 +1501,7 @@ bool GetOneGenesisAddress(Address &oAddr) {
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
 
-  zil::local::nodeVar.AddForwardedMissingTx(1);
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ProcessSubmitMissingTxn not expected to be called "
-                "from LookUp node.");
-    return true;
-  }
-
-  if (offset >= message.size()) {
-    LOG_GENERAL(WARNING, "Invalid txn message, message size: "
-                             << message.size()
-                             << ", txn data offset: " << offset);
-    // TODO: Punish the node send invalid message
-    return true;
-  }
-
-  unsigned int cur_offset = offset;
-
-  auto msgBlockNum =
-      Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
-  cur_offset += sizeof(uint64_t);
-
-  if (msgBlockNum != m_mediator.m_currentEpochNum) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "untimely delivery of "
-                  << "missing txns. received: " << msgBlockNum
-                  << " , local: " << m_mediator.m_currentEpochNum);
-  }
-
-  if (CommonUtils::IsVacuousEpoch(msgBlockNum)) {
-    LOG_GENERAL(WARNING, "Get missing txn from vacuous epoch, why?");
-    return false;
-  }
-
-  std::vector<Transaction> txns;
-  if (!Messenger::GetTransactionArray(message, cur_offset, txns)) {
-    LOG_GENERAL(WARNING, "Messenger::GetTransactionArray failed.");
-    return false;
-  }
-
-  if (m_prePrepRunning) {
-    lock_guard<mutex> g(m_mutexPrePrepMissingTxnhashes);
-    if (txns.size() != m_prePrepMissingTxnhashes.size()) {
-      LOG_GENERAL(WARNING,
-                  "Expected and received number of missing txns mismatched!");
-      return false;
-    }
-
-    std::sort(m_prePrepMissingTxnhashes.begin(),
-              m_prePrepMissingTxnhashes.end());
-    std::sort(txns.begin(), txns.end(), [](const auto &l, const auto &r) {
-      return l.GetTranID() < r.GetTranID();
-    });
-    vector<TxnHash> receivedTxnHashes;
-    receivedTxnHashes.reserve(txns.size());
-    for (auto &h : txns) {
-      receivedTxnHashes.emplace_back(h.GetTranID());
-    }
-
-    if (!std::equal(m_prePrepMissingTxnhashes.begin(),
-                    m_prePrepMissingTxnhashes.end(),
-                    receivedTxnHashes.begin())) {
-      LOG_GENERAL(WARNING, "Didn't received all missing txns!");
-      return false;
-    }
-
-    m_prePrepMissingTxnhashes.clear();
-  } else {
-    LOG_GENERAL(WARNING,
-                "Submission of missing txns expected only in preprepare phase "
-                "- Rejecting submission");
-    return false;
-  }
-
-  lock_guard<mutex> g(m_mutexCreatedTransactions);
-  for (const auto &submittedTxn : txns) {
-    MempoolInsertionStatus status;
-    m_createdTxns.insert(submittedTxn, status);
-  }
-  zil::local::nodeVar.AddTxnInserted(txns.size());
+  txsInserted++;
 
   cv_MicroBlockMissingTxn.notify_all();
   return true;
@@ -2018,8 +1909,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
 
-    zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
-    zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
+    txsInserted++;
   }
 
   {
@@ -2147,8 +2037,6 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
 
 void Node::SetState(NodeState state) {
   m_state = state;
-
-  zil::local::nodeVar.SetNodeState(int(state));
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Node State = " << GetStateString());

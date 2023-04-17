@@ -143,6 +143,11 @@ class Node : public Executable {
   mutable std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
+  // Metrics
+  int txsInserted = 0;
+  int missingForwardedTx = 0;
+  std::unique_ptr<Z_I64GAUGE> metrics;
+
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,

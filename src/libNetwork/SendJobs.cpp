@@ -505,7 +505,7 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(INFO, "X0100: Send to " << peer << " for " << msg.size);
+    //LOG_GENERAL(INFO, "X0100: Send to " << peer << " for " << msg.size);
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
       ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback,
@@ -513,7 +513,7 @@ class SendJobsImpl : public SendJobs,
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
-    LOG_GENERAL(INFO, "X0101: done Send to " << peer << " for " << msg.size);
+    //LOG_GENERAL(INFO, "X0101: done Send to " << peer << " for " << msg.size);
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
@@ -524,14 +524,14 @@ class SendJobsImpl : public SendJobs,
                                              << ":" << peer.GetListenPortHost()
                                              << " ec=" << ec.message());
     } else {
-      LOG_GENERAL(INFO, "X0102: OnPeerQueueFinished with ec = 0");
+      //LOG_GENERAL(INFO, "X0102: OnPeerQueueFinished with ec = 0");
     }
 
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
       zil::local::variables.AddSendMessageToPeerFailed(1);
-      LOG_GENERAL(INFO, "X0103: SendMessageToPeer failed");
+      //LOG_GENERAL(INFO, "X0103: SendMessageToPeer failed");
       return;
     }
 
@@ -564,7 +564,7 @@ class SendJobsImpl : public SendJobs,
     // explicit Close() because shared_ptr may be reused in async operation
     it->second->Close();
     m_activePeers.erase(it);
-    LOG_GENERAL(INFO, "X0104: done OnPeerQueueFinished()");
+    //LOG_GENERAL(INFO, "X0104: done OnPeerQueueFinished()");
   }
 
   void WorkerThread() {
