@@ -210,14 +210,14 @@ Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
     result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
 
     {
-      lock_guard<mutex> g(m_mutexCreatedTransactions);
-      result.Set(m_createdTxns.size(), {{"counter", "txnPool"}});
-      result.Set(t_createdTxns.size(), {{"counter", "txnPoolt"}});
+      //lock_guard<mutex> g(m_mutexCreatedTransactions);
+      //result.Set(m_createdTxns.size(), {{"counter", "txnPool"}});
+      //result.Set(t_createdTxns.size(), {{"counter", "txnPoolt"}});
     }
 
     {
-      unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-      result.Set(m_unconfirmedTxns.size(), {{"counter", "txnPoolUnconfirmed"}});
+      //unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+      //result.Set(m_unconfirmedTxns.size(), {{"counter", "txnPoolUnconfirmed"}});
     }
   });
 
