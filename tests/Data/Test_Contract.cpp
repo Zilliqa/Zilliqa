@@ -87,7 +87,11 @@ TxBlock constructDummyTxBlock(int instanceNum) {
 }
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() }
+  Fixture() {
+    INIT_STDOUT_LOGGER();
+    Metrics::GetInstance().Initialize();
+    zil::trace::Tracing::Initialize();
+  }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);

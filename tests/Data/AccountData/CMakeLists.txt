@@ -24,7 +24,7 @@ add_test(NAME Test_TransactionReceipt COMMAND Test_TransactionReceipt)
 
 add_executable(Test_Transaction Test_Transaction.cpp)
 target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_Transaction PUBLIC Validator TestUtils)
+target_link_libraries(Test_Transaction PUBLIC AccountData TestUtils)
 add_test(NAME Test_Transaction COMMAND Test_Transaction)
 
 add_executable(Test_TxnPool Test_TxnPool.cpp)

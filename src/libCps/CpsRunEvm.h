@@ -48,6 +48,7 @@ class CpsRunEvm final : public CpsRun {
 
   CpsExecuteResult HandleTrap(const evm::EvmResult& evm_result);
   CpsExecuteResult HandleCallTrap(const evm::EvmResult& evm_result);
+  CpsExecuteResult HandlePrecompileTrap(const evm::EvmResult& evm_result);
 
   CpsExecuteResult HandleCreateTrap(const evm::EvmResult& evm_result);
   void InstallCode(const Address& address, const std::string& code);

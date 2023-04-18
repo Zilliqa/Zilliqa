@@ -1,0 +1,13 @@
+scilla_version 0
+
+(***************************************************)
+(*             The contract definition             *)
+(***************************************************)
+contract Timestamp ()
+
+
+transition EventTimestamp (bnum: BNum)
+ts <-& TIMESTAMP(bnum);
+e = { _eventname : "TS"; timestamp : ts };
+event e
+end

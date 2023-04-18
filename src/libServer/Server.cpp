@@ -22,6 +22,7 @@
 #include "libNode/Node.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/SWInfo.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -65,4 +66,22 @@ uint8_t Server::GetPrevDSDifficulty() {
 
 uint8_t Server::GetPrevDifficulty() {
   return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
+}
+
+Json::Value Server::GetVersion() {
+  LOG_MARKER();
+  // GetVersion can be sent to any kind of node.
+  try {
+    Json::Value _json;
+    _json["Version"] = VERSION_TAG;
+#if defined(COMMIT_ID)
+    _json["Commit"] = COMMIT_ID;
+#endif
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
 }

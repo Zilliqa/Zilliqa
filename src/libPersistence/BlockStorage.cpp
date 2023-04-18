@@ -651,7 +651,7 @@ void UpdateTraceStruct(BlockStorage& blockStorage,
   }
 
   auto setme = txTraces.mutable_items(index);
-  setme->set_data(reinterpret_cast<const char*>(key.data()));
+  *setme->mutable_data() = {key.begin(), key.end()};
   auto const newIndex = (index + 1) % TX_TRACES_TO_STORE;
   txTraces.set_index(newIndex);
 

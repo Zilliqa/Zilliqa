@@ -435,7 +435,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     bool toAccountIsContract;
 
     {
-      shared_lock<shared_timed_mutex> lock(
+      unique_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
 
       const Account *sender =
@@ -593,7 +593,7 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
 
   try {
     Address addr{ToBase16AddrHelper(address)};
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
@@ -754,7 +754,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   uint256_t accountFunds{};
   bool contractCreation = false;
   {
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account *sender =
@@ -926,7 +926,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
   zbytes code{};
   auto success{false};
   {
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
     Account *contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
@@ -1172,7 +1172,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
 
   try {
     Address addr{ToBase16AddrHelper(address)};
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
@@ -1252,7 +1252,7 @@ Json::Value EthRpcMethods::GetEthCode(std::string const &address,
   zbytes code;
   try {
     Address addr{address, Address::FromHex};
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
     AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
       return AccountStore::GetInstance().GetPrimaryWriteAccess();

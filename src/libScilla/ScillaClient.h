@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLACLIENT_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLACLIENT_H_
+#ifndef ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_
+#define ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_
 
 #include <map>
 #include <memory>
@@ -54,4 +54,4 @@ class ScillaClient {
                         std::string& result, uint32_t counter = MAXRETRYCONN);
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLACLIENT_H_
+#endif  // ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_

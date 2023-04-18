@@ -79,6 +79,14 @@ build_type="RelWithDebInfo"
 ./scripts/ci_xml_checker.sh constants_local.xml
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
 
+# Find the git tag if we can and include it so we can report it in our GetVersion call
+commit_id=`git rev-parse HEAD | cut -c -8`
+is_modified=`git status --porcelain=v1 2>/dev/null | wc -l`
+if [ $is_modified != 0 ]; then
+    commit_id="${commit_id}+"
+fi
+CMAKE_EXTRA_OPTIONS="-DCOMMIT_ID=\"${commit_id}\" ${CMAKE_EXTRA_OPTIONS}"
+
 for option in "$@"
 do
     case $option in

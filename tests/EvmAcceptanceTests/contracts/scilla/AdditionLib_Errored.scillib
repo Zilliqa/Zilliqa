@@ -10,3 +10,5 @@ let add_if_equal =
   match eq with
   | True => builtin add a b
   | False => Uint128 0
+
+(* end is removed intentionally, don't add it *)

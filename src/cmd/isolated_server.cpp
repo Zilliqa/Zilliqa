@@ -167,7 +167,7 @@ int main(int argc, const char* argv[]) {
     zil::trace::Tracing::Initialize("isolated");
     auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
                                                 __FUNCTION__);
-    Metrics::GetInstance().Init();
+    Metrics::GetInstance().Initialize("isolated");
 
     createConfigFile();
 
