@@ -33,6 +33,8 @@ import random
 import time
 import string
 import click
+import datetime
+import xml.dom.minidom
 
 ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
@@ -217,6 +219,21 @@ systemctl restart systemd-resolved
     to your /etc/hosts.
 """)
 
+
+def start_k8s(config):
+    print("Starting minikube .. ")
+    run_or_die(config, ["minikube", "start", "--driver", "kvm2"])
+
+@click.command("start-k8s")
+@click.pass_context
+def start_k8s_cmd(ctx):
+    """
+    Restart minikube after a reboot or after you've stopped it for some other reason
+    """
+    config = get_config(ctx)
+    start_k8s(config)
+    pull_containers(config)
+
 @click.command("setup-k8s")
 @click.pass_context
 def setup_k8s(ctx):
@@ -327,6 +344,9 @@ def up_cmd(ctx):
     on the API ports.
     """
     config = get_config(ctx)
+    up(config)
+
+def up(config):
     minikube = get_minikube_ip(config)
     tag = gen_tag()
     #tag = "w5fnelo8"
@@ -338,6 +358,101 @@ def up_cmd(ctx):
     show_proxy(config, config.testnet_name)
     restart_ingress(config);
     print("Ingress restarted; you should be ready to go...");
+
+@click.command("isolated")
+@click.pass_context
+def isolated_cmd(ctx):
+    """
+    Run an isolated server
+    """
+    config = get_config(ctx)
+    isolated(config)
+
+def xml_get_element(doc, parent, name):
+    elems = parent.getElementsByTagName(name)
+    if elems is None or len(elems) < 1:
+        raise GiveUp(f"XML: Cannot find element {name} in {parent}")
+    elif len(elems) > 1:
+        raise GiveUp(f"XML: More than one child named {name} in {parent}")
+    return elems[0]
+
+def xml_replace_element(doc, parent, name, new_value):
+    elem = xml_get_element(doc, parent, name)
+    # Remove all the nodes
+    while elem.firstChild is not None:
+        elem.removeChild(elem.firstChild)
+    elem.appendChild(doc.createTextNode(new_value))
+
+def copy_everything_in_dir(src, dest):
+    """ Copy all files in src to dest """
+    the_files = os.listdir(src)
+    for f in the_files:
+        full_src = os.path.join(src, f)
+        if os.path.isfile(full_src):
+            shutil.copy(full_src, os.path.join(dest, f))
+
+def isolated(config):
+    build_native_to_workspace(config)
+    #workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
+    config_file = xml.dom.minidom.parse(os.path.join(ZILLIQA_DIR, "constants.xml"))
+    xml_replace_element(config_file, config_file.documentElement, "LOOKUP_NODE_MODE", "true")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SC", "true")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_ROOT", "scilla")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_LIB", "stdlib")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_EVM", "true")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_BINARY", "evm-ds/evm-ds")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_LOG_CONFIG", "evm-ds/log4rs.yml")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_SOCKET_PATH", "/tmp/evm-server.sock")
+    # Now assemble an isolated server release.
+    target_workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
+    src_workspace = os.path.join(ZILLIQA_DIR, "_localdev")
+    subdirs = [ "lib", "scilla", "bin" ]
+    for s in subdirs:
+        try:
+            os.makedirs(os.path.join(target_workspace,s), 0o755)
+        except:
+            pass
+    # Copy scilla recursively
+    shutil.copytree(os.path.join(src_workspace, "scilla"), os.path.join(target_workspace, "scilla"), dirs_exist_ok = True)
+    # Now, on OS X we need to patch rpath for the scilla executables ..
+    if config.is_osx:
+        print("> On OS X, patching rpath for Scilla .. ")
+        tgt_bin = os.path.join(target_workspace, "scilla", "bin")
+        tgt_lib = os.path.join(target_workspace,  "lib")
+        bins = os.listdir(tgt_bin)
+        for binary in bins:
+            full_path = os.path.join(tgt_bin, binary)
+            if os.path.isfile(full_path):
+                print(f".. patching rpath for {binary}")
+                run_or_die(config, ["chmod", "u+w",  full_path])
+                run_or_die(config, ["install_name_tool", "-add_rpath", tgt_lib, full_path])
+
+    shutil.copytree(os.path.join(src_workspace, "zilliqa", "evm-ds"), os.path.join(target_workspace, "evm-ds"), dirs_exist_ok = True)
+    # Copy zilliqa in...
+    copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "lib"), os.path.join(target_workspace, "lib"))
+    copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "build", "bin"),
+                           os.path.join(target_workspace, "bin"))
+    copy_everything_in_dir(os.path.join(src_workspace, "zilliqa", "build", "lib"),
+                           os.path.join(target_workspace, "lib"))
+    shutil.copy(os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
+                os.path.join(target_workspace, "isolated-server-accounts.json"))
+    output_config = config_file.toprettyxml(newl='')
+    with open(os.path.join(target_workspace, 'constants.xml'), 'w') as f:
+        f.write(output_config)
+    new_env = os.environ.copy()
+    #old_path = new_env.get("DYLD_LIBRARY_PATH", "")
+    #new_env["DYLD_LIBRARY_PATH"] = f"{target_workspace}/lib:{old_path}"
+    cmd = [ "./bin/isolatedServer", "-f", "isolated-server-accounts.json", "-u", "999" ]
+    print(f"Running isolated server in {target_workspace} with ${new_env}.. ")
+    run_or_die(config, cmd, in_dir = target_workspace, env = new_env)
+
+    # print(f"> Using workspace {workspace}")
+    # try:
+    #     shutil.rmtree(workspace)
+    # except:
+    #     pass
 
 def start_testnet(config, testnet_name):
     run_or_die(config, ["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
@@ -365,6 +480,9 @@ def wait_for_termination(config):
 def down_cmd(ctx):
     """ Bring the testnet down and stop the proxies """
     config = get_config(ctx)
+    down(config)
+
+def down(config):
     stop_testnet(config, config.testnet_name)
     stop_proxy(config, config.testnet_name)
     wait_for_termination(config)
@@ -391,6 +509,7 @@ def write_testnet_configuration(config, tag_name, testnet_name):
                 "--k8s-logs", "true",
                 "--local-repo", f"{minikube_ip}:5000",
                 "--localdev", "true",
+                "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
                 "-n", "20",
                 "-d", "5",
                 "-l", "1",
@@ -500,7 +619,7 @@ def build_lite_cmd(ctx, tag):
     config = get_config(ctx)
     build_lite(config, tag)
 
-def build_lite(config, tag):
+def build_native_to_workspace(config):
     workspace = os.path.join(ZILLIQA_DIR, "_localdev")
     print(f"> Using workspace {workspace}")
     print(f"> Startup: removing workspace to avoid pollution ...")
@@ -514,10 +633,19 @@ def build_lite(config, tag):
     run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
     # OK. That worked. Now copy the relevant bits to our workspace
-    try:
-        os.makedirs(os.path.join(workspace, "scilla"), 0o755)
-    except:
-        pass
+    tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
+    tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
+    for the_dir in [ tgt_bin_dir, tgt_lib_dir ]:
+        try:
+            os.makedirs(the_dir, 0o755)
+        except:
+            pass
+
+    # Scilla is horrid - we need to copy out the dynlibs.
+    triplet_script = os.path.join(SCILLA_DIR, "scripts", "vcpkg_triplet.sh")
+    triplet = sanitise_output(run_or_die(config, [ triplet_script ], capture_output = True))
+    copy_everything_in_dir( os.path.join(SCILLA_DIR, "vcpkg_installed", triplet, "lib"),
+                            tgt_lib_dir )
     shutil.copytree(os.path.join(SCILLA_DIR, "bin"),
                     os.path.join(workspace, "scilla", "bin"), dirs_exist_ok = True)
     shutil.copytree(os.path.join(SCILLA_DIR, "_build", "install", "default", "lib", "scilla", "stdlib"),
@@ -528,8 +656,6 @@ def build_lite(config, tag):
                     os.path.join(workspace, "zilliqa", "build", "bin"), dirs_exist_ok = True)
     shutil.copytree(os.path.join(ZILLIQA_DIR, "build","lib"),
                     os.path.join(workspace, "zilliqa", "build", "lib"), dirs_exist_ok = True)
-    tgt_bin_dir = os.path.join(workspace, "zilliqa", "build", "bin")
-    tgt_lib_dir = os.path.join(workspace, "zilliqa", "build", "lib")
     if config.strip_binaries:
         print("Stripping binaries for a smaller container .. ")
         for strip_dir in [ tgt_bin_dir, tgt_lib_dir ]:
@@ -544,6 +670,7 @@ def build_lite(config, tag):
         pass
     src_name = os.path.join(ZILLIQA_DIR, "build", "vcpkg_installed", "x64-linux-dynamic", "lib")
     in_files = glob.glob(src_name + r'/*.so*')
+    print("Copying libraries .. ")
     for f in in_files:
         file_name = os.path.split(f)[1]
         full_tgt = os.path.join(lib_tgt, file_name)
@@ -552,7 +679,8 @@ def build_lite(config, tag):
             shutil.copyfile(f, full_tgt)
             if config.strip_binaries and os.path.isfile(full_tgt):
                 run_or_die(config, ["strip", full_tgt])
-            print(file_name)
+            # Avoid printing too much to stdout - rrw 2023-03-28
+            #print(file_name)
 
     evm_ds_tgt = os.path.join(workspace, "zilliqa", "evm-ds")
     try:
@@ -568,6 +696,55 @@ def build_lite(config, tag):
     shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "log4rs.yml"),
                     os.path.join(workspace, "zilliqa", "evm-ds", "log4rs.yml"))
 
+def get_pod_names(config, node_type = None):
+    cmd =  ["kubectl",
+            "get",
+            "pod",
+            "-o", "jsonpath={.items[*].metadata.name}" ]
+    if node_type is not None:
+        cmd.append(f"-l type={node_type}")
+    pod_op = run_or_die(config,cmd, capture_output = True)
+    pod_names = sanitise_output(pod_op).split()
+    return pod_names
+
+def get_rfc3339_recency(config,recency):
+    recency_num = int(recency)
+    from_date = datetime.datetime.now() - datetime.timedelta(seconds=recency_num)
+    utc_time = from_date.astimezone(datetime.timezone.utc)
+    rfc_time = utc_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    return rfc_time
+
+def log_snapshot(config, recency):
+    pod_names = get_pod_names(config)
+    log_name = "/tmp/" + "".join([random.choice(string.digits) for _ in range(0,10) ])
+    os.makedirs(log_name, 0o755)
+    rfc_time = get_rfc3339_recency(config, recency)
+    # Get a lookup table in case we want it (just because I wrote the command line .. )
+    lookup_file = os.path.join(log_name, "_ips.json")
+    ip_table = run_or_die(config, ["kubectl", "get", "pod","-o",
+                                   'jsonpath={ range .items[*]}{@.metadata.name}{" "}{@.status.podIP}{"\\n"}{end}'],
+                          capture_output = True)
+    ip_table = sanitise_output(ip_table)
+    ips = { }
+    for line in ip_table.split('\n'):
+        (name,value) = line.split(' ')
+        ips[name] = value
+    with open(lookup_file, 'w') as f:
+        f.write(json.dumps(ips, indent=2))
+
+    for n in pod_names:
+        print(f"..{n}")
+        logs = run_or_die(config, ["kubectl", "logs", f"--since-time={rfc_time}", n],
+                          capture_output = True)
+        logs = sanitise_output(logs)
+        ip = ips.get(n, "unknown")
+        output_file = os.path.join(log_name, f"{n}_{ip}")
+        with open(output_file, 'w') as f:
+            f.write(logs)
+    print(f"Logs in {log_name}")
+
+def build_lite(config, tag):
+    workspace = build_native_to_workspace(config)
     new_env = os.environ.copy()
     new_env["DOCKER_BUILDKIT"] = "1"
     run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.lite")], in_dir = ZILLIQA_DIR, env = new_env,
@@ -579,19 +756,33 @@ def build_lite(config, tag):
         shutil.rmtree(workspace)
 
 
-def which_pod_said(config, node_type, recency, what):
-    pod_op = run_or_die(config, ["kubectl",
-                            "get",
-                            "pod",
-                            f"-l type={node_type}",
-                            "-o", "jsonpath={.items[*].metadata.name}" ], capture_output = True)
+def get_pod_names(config, node_type = None):
+    cmd =  ["kubectl",
+            "get",
+            "pod",
+            "-o", "jsonpath={.items[*].metadata.name}" ]
+    if node_type is not None:
+        cmd.append(f"-l type={node_type}")
+    pod_op = run_or_die(config,cmd, capture_output = True)
     pod_names = sanitise_output(pod_op).split()
+    return pod_names
+
+def get_rfc3339_recency(config,recency):
+    recency_num = int(recency)
+    from_date = datetime.datetime.now() - datetime.timedelta(seconds=recency_num)
+    utc_time = from_date.astimezone(datetime.timezone.utc)
+    rfc_time = utc_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    return rfc_time
+
+def which_pod_said(config, node_type, recency, what):
+    pod_names = get_pod_names(config, node_type)
     expression = re.compile(what)
+    rfc_time = get_rfc3339_recency(config, recency)
     pods_said = [ ]
     print("Pods: {' '.join(pod_names)}")
     for n in pod_names:
         print(f".. {n}")
-        logs = run_or_die(config, ["kubectl","logs", f"--tail={recency}", n ],
+        logs = run_or_die(config, ["kubectl","logs", f"--since-time={rfc_time}", n ],
                           capture_output = True)
         logs = sanitise_output(logs)
         if expression.search(logs):
@@ -600,14 +791,27 @@ def which_pod_said(config, node_type, recency, what):
     print("----")
     print(" ".join(pods_said))
 
+def restart_ingress(config):
+    print("Restarting ingress .. ")
+    run_or_die(config, ["kubectl", "rollout", "restart", "deployment",
+                        "ingress-nginx-controller", "-n", "ingress-nginx" ])
+
+@click.command("restart-ingress")
+@click.pass_context
+def restart_ingress_cmd(ctx):
+    """Restart the k8s ingress as it sometimes sticks connections"""
+    config = get_config(ctx)
+    restart_ingress(config)
+
 @click.command("reup")
 @click.pass_context
 def reup_cmd(ctx):
     """
     Equivalent to `localdev down && localdev up`
     """
-    down_cmd(ctx)
-    up_cmd(ctx)
+    config = get_config(ctx)
+    down(config)
+    up(config)
 
 @click.command("pull-containers")
 @click.pass_context
@@ -629,6 +833,16 @@ def show_proxy_cmd(ctx):
     config = get_config(ctx)
     show_proxy(config, config.testnet_name)
 
+@click.command("log-snapshot")
+@click.pass_context
+@click.argument("recency")
+def log_snapshot_cmd(ctx, recency):
+    """
+    Grab logs for the last RECENCY seconds for all pods and save them in /tmp
+    """
+    config = get_config(ctx)
+    log_snapshot(config, recency)
+
 @click.command("which-pod-said")
 @click.pass_context
 @click.argument("nodetype")
@@ -639,7 +853,7 @@ def which_pod_said_cmd(ctx, nodetype, recency, term):
     Find out which pods said something
 
     NODETYPE is the type of pod (normal, dsguard, .. )
-    RECENCY is the number of lines of history to check (typically 10000)
+    RECENCY is the number of seconds back to check.
     TERM is the term to check for
     """
     config = get_config(ctx)
@@ -705,6 +919,14 @@ def wait_for_termination_cmd(ctx):
     config = get_config(ctx)
     wait_for_termination(config)
 
+@click.command("rfc3339")
+@click.argument("recency")
+@click.pass_context
+def rfc3339_cmd(ctx, recency):
+    """ Print an RFC3339 date RECENCY seconds ago """
+    config = get_config(ctx)
+    print(get_rfc3339_recency(config, recency))
+
 @click.group()
 @click.pass_context
 def debug(ctx):
@@ -720,12 +942,12 @@ debug.add_command(pull_containers_cmd)
 debug.add_command(wait_for_running_pod_cmd)
 debug.add_command(wait_for_termination_cmd)
 debug.add_command(wait_for_local_registry_cmd)
+debug.add_command(rfc3339_cmd)
 
 @click.group()
 @click.pass_context
 def cli(ctx):
-    """
-    localdev.py sets up local development environments for Zilliqa.
+    """localdev.py sets up local development environments for Zilliqa.
 
     It is for internal use only and requires the use of the `testnet`
     private repository. We'll hope to relax this restriction when we can.
@@ -748,7 +970,14 @@ def cli(ctx):
      teardown-k8s    - Bring down k8s
      teardown-podman - On OS X only, tears down podman
 
+    If you reboot your machine, `localdev.py start-k8s` will restart
+    minikube for you.
+
+    There are also commands to collect logs, and one to restart the
+    ingress, since it sometimes sticks.
+
     WARNING: Only tested so far on Ubuntu 22.04 . OS X MAY NOT WORK.
+
     """
     ctx.obj = Config()
     ctx.obj.setup()
@@ -757,6 +986,7 @@ cli.add_command(build_lite_cmd)
 cli.add_command(setup_podman)
 cli.add_command(teardown_podman)
 cli.add_command(setup_k8s)
+cli.add_command(start_k8s_cmd)
 cli.add_command(teardown_k8s)
 cli.add_command(up_cmd)
 cli.add_command(down_cmd)
@@ -765,6 +995,9 @@ cli.add_command(which_pod_said_cmd)
 cli.add_command(debug)
 cli.add_command(pull_containers_cmd)
 cli.add_command(reup_cmd)
+cli.add_command(log_snapshot_cmd)
+cli.add_command(restart_ingress_cmd)
+cli.add_command(isolated_cmd)
 
 if __name__ == "__main__":
     cli()
