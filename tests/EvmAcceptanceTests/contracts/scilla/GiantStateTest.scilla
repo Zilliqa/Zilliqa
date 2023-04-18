@@ -1,0 +1,78 @@
+(* contract to generate large map state, fetch and delete them *)
+
+scilla_version 0
+
+import ListUtils IntUtils
+
+library GiantStateTest
+
+let iota : Uint32 -> Uint32 -> List Uint32 =
+  fun (m : Uint32) => fun (n : Uint32) =>
+    let m_lt_n = builtin lt m n in
+    match m_lt_n with
+    | True =>
+        let delta = builtin sub n m in
+        let delta_nat = builtin to_nat delta in
+        let nil = Nil {Uint32} in
+        let acc_init = Pair {(List Uint32) Uint32} nil n in
+        let one = Uint32 1 in
+        let step = fun (xs_n : Pair (List Uint32) Uint32) => fun (ignore : Nat) =>
+          match xs_n with
+          | Pair xs n =>
+              let new_n = builtin sub n one in
+              let new_xs = Cons {Uint32} new_n xs in
+              Pair {(List Uint32) Uint32} new_xs new_n
+          end in
+        let fold = @nat_fold (Pair (List Uint32) Uint32) in
+        let xs_m = fold step acc_init delta_nat in
+        match xs_m with
+        | Pair xs m => xs
+        end
+    | False => Nil {Uint32}
+    end
+
+let uint32_to_uint128 : Uint32 -> Uint128 =
+  fun (x : Uint32) =>
+    let ox128 = builtin to_uint128 x in
+      match ox128 with
+      | None =>
+        (* this never happens, hence we throw a division by zero exception just in case *)
+        let zero = Uint128 0 in
+        builtin div zero zero
+      | Some x128 => x128
+      end
+
+contract GiantStateTest()
+
+field some_str : String = "AAAABBBBCCCCDDDD"
+field giant_map : Map Uint128 String = Emp Uint128 String
+
+procedure AddValues(key: Uint32)
+  some_str_o <- some_str;
+  key_128 = uint32_to_uint128 key;
+  giant_map[key_128] := some_str_o
+end
+
+transition AddState(start_num: Uint32, end_num: Uint32)
+  keys_list = iota start_num end_num;
+  forall keys_list AddValues;
+  e = { _eventname: "AddState"; keys_list: keys_list};
+  event e
+end
+
+procedure DeleteValues(key: Uint32)
+  key_128 = uint32_to_uint128 key;
+  giant_map_o <- giant_map[key_128];
+  match giant_map_o with
+  | Some val =>
+    delete giant_map[key_128]
+  | None =>
+  end
+end
+
+transition DeleteState(start_num: Uint32, end_num: Uint32)
+  keys_list = iota start_num end_num;
+  forall keys_list DeleteValues;
+  e = { _eventname: "DeleteValue"; keys_list: keys_list};
+  event e
+end

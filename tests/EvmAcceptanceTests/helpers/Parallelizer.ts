@@ -62,7 +62,7 @@ export class Parallelizer {
   }
 
   async deployScillaContract(contractName: string, ...args: any[]): Promise<ScillaContract> {
-    return hre.deployScilla(contractName, ...args);
+    return hre.deployScillaContract(contractName, ...args);
   }
 
   async sendTransaction(txn: TransactionRequest) {
