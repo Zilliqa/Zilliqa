@@ -92,10 +92,16 @@ class Server : public ServerBase {
     (void)request;
     response = this->GetPrevDifficulty();
   }
+  inline virtual void GetVersionI(const Json::Value& request,
+                                    Json::Value& response) {
+    (void)request;
+    response = this->GetVersion();
+  }
 
   virtual std::string GetCurrentMiniEpoch();
   virtual std::string GetCurrentDSEpoch();
   virtual std::string GetNodeType();
+  virtual Json::Value GetVersion();
   virtual uint8_t GetPrevDSDifficulty();
   virtual uint8_t GetPrevDifficulty();
 };

@@ -22,8 +22,8 @@
 #include <vector>
 
 #include "libData/AccountStore/AccountStoreCpsInterface.h"
-#include "libData/AccountStore/services/scilla/ScillaClient.h"
 #include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
+#include "libScilla/ScillaClient.h"
 
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"

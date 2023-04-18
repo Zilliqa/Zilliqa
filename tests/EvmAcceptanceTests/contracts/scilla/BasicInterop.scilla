@@ -1,0 +1,28 @@
+scilla_version 0
+
+contract BasicInterop()
+
+field simpleMap: Map ByStr20 Uint128 
+  = Emp ByStr20 Uint128
+  
+field nestedMap: Map ByStr20 (Map ByStr20 Uint128) 
+  = Emp ByStr20 (Map ByStr20 Uint128)
+
+field uintField: Uint128 = Uint128 0
+field strField: String  = ""
+
+transition setSimpleMap(to: ByStr20, amount: Uint128)
+    simpleMap[to] := amount
+end
+
+transition setNestedMap(from: ByStr20, to: ByStr20, amount: Uint128)
+    nestedMap[from][to] := amount
+end
+
+transition setString(str: String)
+    strField := str
+end
+
+transition setUint(str: Uint128)
+    uintField := str
+end

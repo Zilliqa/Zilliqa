@@ -300,6 +300,33 @@ impl Backend for ScillaBackend {
         }
     }
 
+    fn code_as_json(&self, address: H160) -> Vec<u8> {
+        let mut query = ScillaMessage::ProtoScillaQuery::new();
+        query.set_name("_code".into());
+        let mut args = serde_json::Map::new();
+        args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
+        args.insert(
+            "query".into(),
+            base64::encode(query.write_to_bytes().unwrap()).into(),
+        );
+
+        let Ok(result) = self.call_ipc_server_api("fetchCodeJson", args) else {
+            return Vec::new()
+        };
+        serde_json::to_vec(&result).unwrap_or_default()
+    }
+
+    fn substate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {
+        let mut args = serde_json::Map::new();
+        args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
+        args.insert("vname".to_owned(), vname.into());
+        args.insert("indices".to_owned(), indices.into());
+        let Ok(result) = self.call_ipc_server_api("fetchStateJson", args) else {
+            return Vec::new()
+        };
+        serde_json::to_vec(&result).unwrap_or_default()
+    }
+
     fn storage(&self, address: H160, key: H256) -> H256 {
         let mut result = self
             .query_state_value(address, "_evm_storage", Some(key), true)

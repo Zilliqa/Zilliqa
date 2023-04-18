@@ -21,7 +21,7 @@
 
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
-#include "libData/AccountStore/services/scilla/ScillaClient.h"
+#include "libScilla/ScillaClient.h"
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"

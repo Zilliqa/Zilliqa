@@ -4,6 +4,7 @@
 //! * https://eips.ethereum.org/EIPS/eip-197
 //! * https://eips.ethereum.org/EIPS/eip-1108.
 
+use evm::backend::Backend;
 use evm::{
     executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType},
     Context, ExitError, ExitSucceed,
@@ -19,6 +20,7 @@ pub(crate) fn ec_add(
     input: &[u8],
     gas_limit: Option<u64>,
     _context: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if let Some(gas_limit) = gas_limit {
@@ -62,6 +64,7 @@ pub(crate) fn ec_mul(
     input: &[u8],
     gas_limit: Option<u64>,
     _context: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if let Some(gas_limit) = gas_limit {
@@ -105,6 +108,7 @@ pub(crate) fn ec_pairing(
     input: &[u8],
     gas_limit: Option<u64>,
     _context: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if input.len() % 192 != 0 {
