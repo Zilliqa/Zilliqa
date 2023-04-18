@@ -728,9 +728,55 @@ def build_native_to_workspace(config):
     shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "log4rs.yml"),
                     os.path.join(workspace, "zilliqa", "evm-ds", "log4rs.yml"))
 
+def get_pod_names(config, node_type = None):
+    cmd =  ["kubectl",
+            "get",
+            "pod",
+            "-o", "jsonpath={.items[*].metadata.name}" ]
+    if node_type is not None:
+        cmd.append(f"-l type={node_type}")
+    pod_op = run_or_die(config,cmd, capture_output = True)
+    pod_names = sanitise_output(pod_op).split()
+    return pod_names
+
+def get_rfc3339_recency(config,recency):
+    recency_num = int(recency)
+    from_date = datetime.datetime.now() - datetime.timedelta(seconds=recency_num)
+    utc_time = from_date.astimezone(datetime.timezone.utc)
+    rfc_time = utc_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    return rfc_time
+
+def log_snapshot(config, recency):
+    pod_names = get_pod_names(config)
+    log_name = "/tmp/" + "".join([random.choice(string.digits) for _ in range(0,10) ])
+    os.makedirs(log_name, 0o755)
+    rfc_time = get_rfc3339_recency(config, recency)
+    # Get a lookup table in case we want it (just because I wrote the command line .. )
+    lookup_file = os.path.join(log_name, "_ips.json")
+    ip_table = run_or_die(config, ["kubectl", "get", "pod","-o",
+                                   'jsonpath={ range .items[*]}{@.metadata.name}{" "}{@.status.podIP}{"\\n"}{end}'],
+                          capture_output = True)
+    ip_table = sanitise_output(ip_table)
+    ips = { }
+    for line in ip_table.split('\n'):
+        (name,value) = line.split(' ')
+        ips[name] = value
+    with open(lookup_file, 'w') as f:
+        f.write(json.dumps(ips, indent=2))
+
+    for n in pod_names:
+        print(f"..{n}")
+        logs = run_or_die(config, ["kubectl", "logs", f"--since-time={rfc_time}", n],
+                          capture_output = True)
+        logs = sanitise_output(logs)
+        ip = ips.get(n, "unknown")
+        output_file = os.path.join(log_name, f"{n}_{ip}")
+        with open(output_file, 'w') as f:
+            f.write(logs)
+    print(f"Logs in {log_name}")
 
 def build_lite(config, tag):
-    build_native_to_workspace(config)
+    workspace = build_native_to_workspace(config)
     new_env = os.environ.copy()
     new_env["DOCKER_BUILDKIT"] = "1"
     run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile.lite")], in_dir = ZILLIQA_DIR, env = new_env,
@@ -759,21 +805,6 @@ def get_rfc3339_recency(config,recency):
     utc_time = from_date.astimezone(datetime.timezone.utc)
     rfc_time = utc_time.strftime('%Y-%m-%dT%H:%M:%SZ')
     return rfc_time
-
-def log_snapshot(config, recency):
-    pod_names = get_pod_names(config)
-    log_name = "/tmp/" + "".join([random.choice(string.digits) for _ in range(0,10) ])
-    os.makedirs(log_name, 0o755)
-    rfc_time = get_rfc3339_recency(config, recency)
-    for n in pod_names:
-        print(f"..{n}")
-        logs = run_or_die(config, ["kubectl", "logs", f"--since-time={rfc_time}", n],
-                          capture_output = True)
-        logs = sanitise_output(logs)
-        output_file = os.path.join(log_name, f"{n}")
-        with open(output_file, 'w') as f:
-            f.write(logs)
-    print(f"Logs in {log_name}")
 
 def which_pod_said(config, node_type, recency, what):
     pod_names = get_pod_names(config, node_type)
