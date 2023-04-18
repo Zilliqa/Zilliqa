@@ -21,6 +21,14 @@ transition dontAcceptZil ()
   event ev
 end
 
+(* See ZIL-5165 *)
+transition fundUserWithTag( user : ByStr20, amount : Uint128)
+  msg = { _tag : "AddFunds"; _recipient : user ; _amount : amount };
+  no_msg = Nil {Message};
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
+
 transition fundUser (user : ByStr20, amount : Uint128)
   msg = { _tag : "" ; _recipient : user ; _amount : amount };
   no_msg = Nil {Message};

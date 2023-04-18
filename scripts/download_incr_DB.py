@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import traceback
 import requests 
 import xml.etree.ElementTree as ET
 import re
@@ -68,10 +69,12 @@ def UploadLock():
 	return False
 
 def GetCurrentTxBlkNum():
-	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.currentTxBlk", stream=True)
+	url = getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.currentTxBlk"
+	response = requests.get(url, stream=True)
 	if response.status_code == 200:
 		return int(response.text.strip())
 	else:
+		print(f"Failed to get current tx block from {url}: {response}")
 		return -1
 
 def GetEntirePersistenceFromS3():
@@ -156,22 +159,18 @@ def GetAllObjectsFromS3(url, folderName=""):
 	while True:
 		response = requests.get(url, params={"prefix":prefix, "max-keys":1000, "marker": MARKER})
 		tree = ET.fromstring(response.text)
-		startInd = 5
-		if(tree[startInd:] == []):
-			print("Empty response")
-			return 1
 		print("[" + str(datetime.datetime.now()) + "] Files to be downloaded:")
 		lastkey = ''
-		for key in tree[startInd:]:
-			key_url = key[0].text
+		for key in tree.findall("{*}Contents"):
+			key_url = key.find("{*}Key").text
 			if (not (Exclude_txnBodies and "txEpochs" in key_url) and not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlock" in key_url) and not (Exclude_minerInfo and "minerInfo" in key_url) and not ("diff_persistence" in key_url)):
 				list_of_keyurls.append(url+"/"+key_url)
 				print(key_url)
 			lastkey = key_url
-		istruncated=tree[4].text
-		if istruncated == 'true':
+		is_truncated = tree.find('{*}IsTruncated').text
+		if is_truncated == 'true':
 			MARKER=lastkey
-			print(istruncated)
+			print(is_truncated)
 		else:
 			break
 
@@ -314,7 +313,7 @@ def calculate_multipart_etag(source_path, chunk_size):
 		new_etag = '""'
 
 	return new_etag
-				
+
 def run():
 	dir_name = STORAGE_PATH + "/historical-data"
 	main_persistence = STORAGE_PATH + "/persistence"
@@ -346,6 +345,7 @@ def run():
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
 				GetEntirePersistenceFromS3()
 			else:
+				print("Upload lock in place")
 				time.sleep(1)
 				continue
 
@@ -356,6 +356,7 @@ def run():
 			if(currTxBlk < newTxBlk):
 				# To get new files from S3 if new files where uploaded in meantime
 				while(UploadLock() == True):
+					print("Upload lock in place")
 					time.sleep(1)
 			else:
 				break
@@ -374,6 +375,7 @@ def run():
 
 		except Exception as e:
 			print(e)
+			print(traceback.format_exc())
 			print("Error downloading!! Will try again")
 			time.sleep(5)
 			continue

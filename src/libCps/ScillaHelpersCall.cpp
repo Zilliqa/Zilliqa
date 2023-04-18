@@ -208,10 +208,28 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
       continue;
     }
 
+    // Transitions are always recorded in the receipt, even if their destination
+    // is an account and therefore doesn't accept them - tested on 8.2.x
+    // - rrw 2023-03-31.
     receipt.AddTransition(scillaArgs.dest, msg, scillaArgs.depth);
 
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
       LOG_GENERAL(INFO, "LDB Write (microseconds) = " << r_timer_end(tpStart));
+    }
+
+    // ZIL-5165: Don't fail if the recipient is a user account.
+    {
+      const CpsAccountStoreInterface::AccountType accountType = acc_store.GetAccountType(recipient);
+      LOG_GENERAL(INFO, "Target is accountType " << accountType);
+      if (accountType == CpsAccountStoreInterface::DoesNotExist ||
+          accountType == CpsAccountStoreInterface::EOA) {
+        LOG_GENERAL(INFO, "Target is EOA: processing.");
+        // Message sent to a non-contract account. Add something to results.entries so that if this
+        // message attempts to transfer funds, it succeeds.
+        results.entries.emplace_back(ScillaCallParseResult::SingleResult{
+            {}, recipient, amount, false});
+        continue;
+      }
     }
 
     if (scillaArgs.edge > MAX_CONTRACT_EDGES) {
@@ -249,6 +267,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
         std::move(inputMessage), recipient, amount, isNextContract});
   }
 
+  LOG_GENERAL(INFO, "Returning success " << results.success << " entries " << results.entries.size());
   return results;
 }
 

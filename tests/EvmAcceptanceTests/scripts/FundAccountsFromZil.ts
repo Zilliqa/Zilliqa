@@ -1,9 +1,8 @@
 import hre, {web3} from "hardhat";
 import clc from "cli-color";
-import { bytes, toBech32Address, toChecksumAddress, units, Zilliqa } from "@zilliqa-js/zilliqa";
+import {bytes, toBech32Address, toChecksumAddress, units, Zilliqa} from "@zilliqa-js/zilliqa";
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
-const { BN, Long } = require('@zilliqa-js/util');
-
+const {BN, Long} = require("@zilliqa-js/util");
 
 async function main() {
   const {provider} = hre.network;
@@ -19,7 +18,12 @@ async function main() {
 
   // Print balances of eth accounts before
   accounts.forEach((element, index) => {
-    console.log(clc.bold("Account"), clc.green(element), clc.bold("Initial balance:"), clc.greenBright(balances[index]));
+    console.log(
+      clc.bold("Account"),
+      clc.green(element),
+      clc.bold("Initial balance:"),
+      clc.greenBright(balances[index])
+    );
   });
 
   for (const element of hre.network["config"]["accounts"]) {
@@ -37,12 +41,23 @@ async function main() {
     let zilliqa = new Zilliqa(hre.getNetworkUrl());
     zilliqa.wallet.addByPrivateKey(element);
     const address = getAddressFromPrivateKey(element);
+    console.log(`My ZIL account address is: ${address}`);
 
     const res = await zilliqa.blockchain.getBalance(address);
+
+    if (res.error?.message) {
+      console.log("Error: ", res.error);
+      console.log("Skipping account with error");
+      continue;
+    }
     const balance = res.result.balance;
 
-    console.log(`My ZIL account address is: ${address}`);
     console.log(`My ZIL account balance is: ${balance}`);
+
+    if (balance == 0) {
+      console.log("Skipping account with 0 balance");
+      continue;
+    }
 
     const gasp = await web3.eth.getGasPrice();
     const gasPrice = new BN(gasp);
@@ -54,10 +69,10 @@ async function main() {
           toAddr: ethAddrConverted,
           amount: new BN(balance).div(new BN(2)), // Sending an amount in Zil (1) and converting the amount to Qa
           gasPrice: gasPrice, // Minimum gasPrice veries. Check the `GetMinimumGasPrice` on the blockchain
-          gasLimit: Long.fromNumber(2100),
+          gasLimit: Long.fromNumber(2100)
         },
-        false,
-      ),
+        false
+      )
     );
 
     // process confirm
@@ -71,13 +86,16 @@ async function main() {
     console.log(`My new account balance is: ${finalBal}`);
   }
 
-  balances = await Promise.all(
-    accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"]))
-  );
+  balances = await Promise.all(accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"])));
 
   // Print balances of eth accounts before
   accounts.forEach((element, index) => {
-    console.log(clc.bold("Account"), clc.green(element), clc.bold("Initial balance:"), clc.greenBright(balances[index]));
+    console.log(
+      clc.bold("Account"),
+      clc.green(element),
+      clc.bold("Initial balance:"),
+      clc.greenBright(balances[index])
+    );
   });
 }
 

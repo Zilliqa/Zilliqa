@@ -16,11 +16,10 @@ on:
       - v*
 
 jobs:
-  release-to-ecr:
+  release-image:
     permissions:
       id-token: write
       contents: write
-    name: ecr
     runs-on: docker
     steps:
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'

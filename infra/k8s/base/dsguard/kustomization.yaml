@@ -17,4 +17,4 @@ patchesStrategicMerge:
         testnet: devnet
     spec:
       podManagementPolicy: Parallel
-      replicas: 5
+      replicas: 4

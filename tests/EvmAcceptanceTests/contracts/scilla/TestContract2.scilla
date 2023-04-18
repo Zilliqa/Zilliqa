@@ -1,0 +1,16 @@
+scilla_version 0
+
+import MutualLib IntUtils
+
+library TestContract2 
+
+contract TestContract2()
+
+transition Receiving (param : T1)
+  ret = convert_if_c1_equal param;
+  msg = { _tag : "Receiving" ; _recipient : _sender; _amount : Uint128 0;
+            param : ret };
+  no_msg = Nil {Message};
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end

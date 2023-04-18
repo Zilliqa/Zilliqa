@@ -33,6 +33,7 @@
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
+#include "libServer/EthRpcMethods.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 

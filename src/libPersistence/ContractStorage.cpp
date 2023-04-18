@@ -25,6 +25,8 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 
@@ -32,6 +34,7 @@
 #include <bits/stdc++.h>
 #endif
 #include <boost/algorithm/string.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 using namespace std;
 using namespace ZilliqaMessage;
@@ -50,6 +53,12 @@ ContractStorage::ContractStorage()
 
 bool ContractStorage::PutContractCodeBatch(
     const unordered_map<string, string>& batch) {
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "ContractCodeBatch",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("contract_code_batch.addresses",
+                    boost::join(batch | boost::adaptors::map_keys, ","));
+
   lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.BatchInsert(batch);
 }
@@ -60,6 +69,11 @@ zbytes ContractStorage::GetContractCode(const dev::h160& address) {
 }
 
 bool ContractStorage::DeleteContractCode(const dev::h160& address) {
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::BLOCKCHAIN, "DeleteContractCode",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute("contract_code_batch.address", address.hex());
+
   lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.DeleteKey(address.hex()) == 0;
 }

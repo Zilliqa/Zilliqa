@@ -21,6 +21,7 @@
 #include <condition_variable>
 
 #include "ConsensusCommon.h"
+#include "libMetrics/Api.h"
 
 typedef std::function<bool(const zbytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;
@@ -103,7 +104,8 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageCommitCore(const zbytes& commit, unsigned int offset,
                                 Action action,
                                 ConsensusMessageType returnmsgtype,
-                                State nextstate, const Peer& from);
+                                State nextstate, const Peer& from,
+                                std::string_view spanName);
   bool ProcessMessageCommit(const zbytes& commit, unsigned int offset,
                             const Peer& from);
   bool ProcessMessageCommitFailure(const zbytes& commitFailureMsg,
@@ -112,7 +114,8 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageResponseCore(const zbytes& response, unsigned int offset,
                                   Action action,
                                   ConsensusMessageType returnmsgtype,
-                                  State nextstate, const Peer& from);
+                                  State nextstate, const Peer& from,
+                                  std::string_view spanName);
   bool ProcessMessageResponse(const zbytes& response, unsigned int offset,
                               const Peer& from);
   bool GenerateCollectiveSigMessage(zbytes& collectivesig, unsigned int offset,
@@ -165,6 +168,7 @@ class ConsensusLeader : public ConsensusCommon {
  private:
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
+  std::unique_ptr<Z_I64GAUGE> m_gaugeNumForConsensus;
 };
 
 #endif  // ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_

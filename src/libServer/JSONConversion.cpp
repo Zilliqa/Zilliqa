@@ -632,13 +632,27 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
   _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimitZil());
 
-  if (!twr.GetTransaction().GetCode().empty()) {
-    _json["code"] =
-        DataConversion::CharArrayToString(twr.GetTransaction().GetCode());
+  auto const code = twr.GetTransaction().GetCode();
+  auto const data = twr.GetTransaction().GetData();
+
+  // If we detect non ascii characters (i.e evm bytecode) we convert to hex
+  // this should only happen when old style API calls (GetTransaction) are made
+  // that hit on new eth-style TXs
+  if (!code.empty()) {
+    if(!DataConversion::ContainsAllAscii(code) && twr.GetTransaction().IsEth()) {
+      _json["code"] = DataConversion::Uint8VecToHexStrRet(code);
+    } else {
+      _json["code"] =
+          DataConversion::CharArrayToString(code);
+    }
   }
-  if (!twr.GetTransaction().GetData().empty()) {
+  if (!data.empty()) {
+    if(!DataConversion::ContainsAllAscii(data) && twr.GetTransaction().IsEth()) {
+      _json["data"] = DataConversion::Uint8VecToHexStrRet(data);
+    } else {
     _json["data"] =
-        DataConversion::CharArrayToString(twr.GetTransaction().GetData());
+        DataConversion::CharArrayToString(data);
+    }
   }
 
   if (isSoftConfirmed) {
