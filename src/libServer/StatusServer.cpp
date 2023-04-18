@@ -199,6 +199,9 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("DisableJsonRpcPort", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::DisableJsonRpcPortI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION, NULL),
+      &Server::GetVersionI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
