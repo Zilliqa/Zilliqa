@@ -1116,7 +1116,7 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
       return;
     }
   }
-  event_base_dispatch(m_base);
+  event_base_loop(m_base, EVLOOP_NO_EXIT_ON_EMPTY);
   evconnlistener_free(listener1);
   if (listener2 != NULL) {
     evconnlistener_free(listener2);
