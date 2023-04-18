@@ -13,7 +13,6 @@ async function getFee(hash: string) {
   return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
 }
 
-
 describe("ForwardZil contract functionality", function () {
   before(async function () {
     this.contract = await parallelizer.deployContract("ForwardZil");
@@ -94,7 +93,9 @@ describe("Transfer ethers", function () {
     const addresses = accounts.map((signer) => signer.address);
 
     const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
-    const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE});
+    const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {
+      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
+    });
     await batchTrans.deployed();
 
     const fee1 = await getFee(batchTrans.deployTransaction.hash);

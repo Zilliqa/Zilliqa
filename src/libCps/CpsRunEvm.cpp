@@ -338,8 +338,15 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
+  const auto sender = (jsonData["keep_origin"].isBool() &&
+                       jsonData["keep_origin"].asBool() == true)
+                          ? mCpsContext.origSender.hex()
+                          : ProtoToAddress(mProtoArgs.address()).hex();
+
+  jsonData.removeMember("keep_origin");
+
   jsonData["_origin"] = "0x" + mCpsContext.origSender.hex();
-  jsonData["_sender"] = "0x" + ProtoToAddress(mProtoArgs.address()).hex();
+  jsonData["_sender"] = "0x" + sender;
   jsonData["_amount"] = "0";
 
   CREATE_SPAN(
