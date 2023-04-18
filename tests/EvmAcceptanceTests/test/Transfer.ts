@@ -152,7 +152,7 @@ describe("Transfer ethers", function () {
   it("should return check gas and funds consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
-    const FUND = ethers.utils.parseUnits("10", "ether");
+    const FUND = BigNumber.from(200_000_000_000_000_000n);
 
     const tx = await parallelizer.sendTransaction({
       to: rndAccount.address,
