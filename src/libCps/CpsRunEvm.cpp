@@ -343,8 +343,6 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
                           ? mCpsContext.origSender.hex()
                           : ProtoToAddress(mProtoArgs.address()).hex();
 
-  LOG_GENERAL(WARNING,
-              "SXX: " << sender << ", ORG: " << mCpsContext.origSender.hex());
   jsonData.removeMember("keep_origin");
 
   jsonData["_origin"] = "0x" + mCpsContext.origSender.hex();
