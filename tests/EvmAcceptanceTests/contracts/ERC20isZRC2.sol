@@ -73,10 +73,10 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
     function approve(address spender, uint128 new_allowance) external returns (bool) {
         uint128 current_allowance = _read_scilla_nested_map_uint128("allowances", msg.sender, spender);
         if (current_allowance >= new_allowance) {
-            _call_scilla_two_args("DecreaseAllowance", spender, new_allowance);
+            _call_scilla_two_args("DecreaseAllowance", spender, current_allowance - new_allowance);
         }
         else {
-            _call_scilla_two_args("IncreaseAllowance", spender, new_allowance);
+            _call_scilla_two_args("IncreaseAllowance", spender, new_allowance - current_allowance);
         }
         return true;
     }

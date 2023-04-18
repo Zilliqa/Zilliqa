@@ -30,9 +30,7 @@ describe("Scilla contract deployment with error", () => {
 
   it("should return error if init doesn't contain parameter needed for contract deployment", async () => {
     let contractPath = hre.scillaContracts["ImmutableString"].path;
-    const init = [
-        {vname: "_scilla_version", type: "Uint32", value: "0"},
-    ];
+    const init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
 
     let [tx, contract] = await hre.deployScillaFile(contractPath, init);
     expect(contract.address).to.be.undefined;
@@ -44,14 +42,16 @@ describe("Scilla contract deployment with error", () => {
   it("should return error if the provided parameter to contract deployment doesn't match", async () => {
     let contractPath = hre.scillaContracts["ImmutableString"].path;
     const init = [
-        {vname: "_scilla_version", type: "Uint32", value: "0"},
-        {vname: "immutable_string", type: "Uint32", value: "3"}
+      {vname: "_scilla_version", type: "Uint32", value: "0"},
+      {vname: "immutable_string", type: "Uint32", value: "3"}
     ];
 
     let [tx, contract] = await hre.deployScillaFile(contractPath, init);
     expect(contract.address).to.be.undefined;
     expect(tx.getReceipt()).not.to.be.undefined;
     expect(tx.getReceipt()!.exceptions).not.to.be.undefined;
-    expect(tx.getReceipt()!.exceptions![0].message).to.include("Type unassignable: String expected, but Uint32 provided");
+    expect(tx.getReceipt()!.exceptions![0].message).to.include(
+      "Type unassignable: String expected, but Uint32 provided"
+    );
   });
 });
