@@ -15,13 +15,34 @@ use serde_json::{json, Value};
 const BASE_COST: u64 = 15;
 const PER_BYTE_COST: u64 = 3;
 
-// input should be formed of: scilla_contract_addr, transition_name, arg1, arg2, arg3, ..., argn
 pub(crate) fn scilla_call(
     input: &[u8],
     gas_limit: Option<u64>,
     _contex: &Context,
     backend: &dyn Backend,
     _is_static: bool,
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
+    scilla_call_common(input, gas_limit, _contex, backend, _is_static, false)
+}
+
+pub(crate) fn scilla_call_keep_origin(
+    input: &[u8],
+    gas_limit: Option<u64>,
+    _contex: &Context,
+    backend: &dyn Backend,
+    _is_static: bool,
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
+    scilla_call_common(input, gas_limit, _contex, backend, _is_static, true)
+}
+
+// input should be formed of: scilla_contract_addr, transition_name, arg1, arg2, arg3, ..., argn
+fn scilla_call_common(
+    input: &[u8],
+    gas_limit: Option<u64>,
+    _contex: &Context,
+    backend: &dyn Backend,
+    _is_static: bool,
+    keep_origin: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let gas_needed = match required_gas(input) {
         Ok(i) => i,
@@ -59,6 +80,7 @@ pub(crate) fn scilla_call(
     };
     let mut output_json = build_result_json(input, &passed_transition_name, transitions)?;
     output_json["_address"] = Value::String(code_address.encode_hex());
+    output_json["keep_origin"] = Value::Bool(keep_origin);
 
     Ok((
         PrecompileOutput {
