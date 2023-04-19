@@ -58,7 +58,8 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS,
+                                          "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
@@ -72,7 +73,7 @@ class DSVariables {
 static DSVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -423,7 +424,6 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
-
   zil::local::variables.SetDSState(int(state));
 
   if (LOOKUP_NODE_MODE) {
@@ -703,7 +703,8 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   if (fetchShardingStruct) {
     // Ask for the sharding structure from lookup
     {
-      std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+      std::unique_lock<std::mutex> cv_lk(
+          m_mediator.m_lookup->m_mutexShardStruct);
       m_mediator.m_lookup->m_shardStructSignal = false;
     }
     m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
@@ -1136,13 +1137,15 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
     return false;
   }
 
-  if (!m_mediator.m_lookup->VerifySenderNode(
-          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
-    return false;
-  }
+  // TODO reenable this verification after removing Multiplier communication
+  // mode
+  //  if (!m_mediator.m_lookup->VerifySenderNode(
+  //          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+  //    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+  //              "The message sender pubkey: "
+  //                  << lookupPubKey << " is not in my lookup node list.");
+  //    return false;
+  //  }
 
   LOG_GENERAL(INFO,
               "Returning created transactions for " << m_mediator.m_selfPeer);
