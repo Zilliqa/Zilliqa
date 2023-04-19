@@ -119,7 +119,7 @@ void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
 
   lock_guard<mutex> g(m_mutexDSGuardList);
   m_DSGuardList.emplace(dsGuardPubKey);
-  // LOG_GENERAL(INFO, "Added " << dsGuardPubKey);
+  LOG_EXTRA("Added " << dsGuardPubKey);
 }
 
 void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
@@ -130,6 +130,7 @@ void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
 
   lock_guard<mutex> g(m_mutexShardGuardList);
   m_ShardGuardList.emplace(shardGuardPubKey);
+  LOG_EXTRA("Added " << shardGuardPubKey);
 }
 
 bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {

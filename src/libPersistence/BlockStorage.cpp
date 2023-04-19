@@ -1223,8 +1223,10 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   }
 
   uint32_t version = 0;
+  auto old_size = shards.size();
   Messenger::ArrayToShardStructure(zbytes(dataStr.begin(), dataStr.end()), 0,
                                    version, shards);
+  LOG_EXTRA("Shards updated " << old_size << "->" << shards.size());
 
   if (version != SHARDINGSTRUCTURE_VERSION) {
     LOG_CHECK_FAIL("Sharding structure version", version,

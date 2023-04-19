@@ -35,7 +35,7 @@
 #include "libMetrics/Api.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libPythonRunner/PythonRunner.h"
@@ -771,6 +771,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     do {
       m_mediator.m_lookup->GetTxBlockFromSeedNodes(
           m_mediator.m_txBlockChain.GetBlockCount(), 0);
+    // TODO: cv fix
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
@@ -978,6 +979,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
             m_mediator.m_txBlockChain.GetBlockCount(), 0);
         LOG_GENERAL(INFO,
                     "Retrieve final block from lookup node, please wait...");
+        // TODO: cv fix
       } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
@@ -1006,6 +1008,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
                     "wait...");
+        // TODO: cv fix
       } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
@@ -1321,7 +1324,7 @@ void Node::WakeupAtTxEpoch() {
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::MICROBLOCK_SUBMISSION);
@@ -1338,7 +1341,7 @@ void Node::WakeupAtTxEpoch() {
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   SetState(WAITING_FINALBLOCK);
@@ -1353,6 +1356,7 @@ bool Node::GetOfflineLookups(bool endless) {
     {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+      // TODO: cv fix
       if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
@@ -1872,7 +1876,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
               << string(lookupPubKey).substr(0, 6) << "][" << message.size()
               << "] BEGN");
-    if (P2PComm::GetInstance().SpreadRumor(message)) {
+    if (zil::p2p::GetInstance().SpreadRumor(message)) {
       LOG_STATE("[TXNPKTPROC-INITIATE]["
                 << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
@@ -1897,7 +1901,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
 
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    zil::p2p::GetInstance().SendBroadcastMessage(toSend, message);
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
@@ -2249,7 +2253,7 @@ bool Node::CleanVariables() {
   m_lastMicroBlockCoSig = {0, CoSignatures()};
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
-  P2PComm::GetInstance().InitializeRumorManager({}, {});
+  zil::p2p::GetInstance().InitializeRumorManager({}, {});
   this->ResetRejoinFlags();
 
   {
@@ -2428,7 +2432,7 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
         }
       }
     }
-    P2PComm::GetInstance().SendMessage(peerList, message);
+    zil::p2p::GetInstance().SendMessage(peerList, message);
   }
 
   if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
@@ -2619,7 +2623,7 @@ bool Node::UpdateShardNodeIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage);
+  zil::p2p::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage);
 
   return true;
 }
@@ -2698,7 +2702,7 @@ bool Node::ProcessNewShardNodeNetworkInfo(
         m_myShardMembers->at(indexOfShardNode).second = shardNodeNewNetworkInfo;
         if (BROADCAST_GOSSIP_MODE) {
           // Update peer info for gossip
-          P2PComm::GetInstance().UpdatePeerInfoInRumorManager(
+          zil::p2p::GetInstance().UpdatePeerInfoInRumorManager(
               shardNodeNewNetworkInfo, shardNodePubkey);
         }
 
@@ -2754,7 +2758,7 @@ bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
       LOG_GENERAL(WARNING, "Messenger::SetNodeSetVersion failed");
       return false;
     }
-    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
+    zil::p2p::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
                                        response);
     m_versionChecked = true;
   }
@@ -3049,7 +3053,7 @@ void Node::SendBlockToOtherShardNodes(const zbytes &message,
                           << std::get<SHARD_NODE_PUBKEY>(kv) << " "
                           << std::get<SHARD_NODE_PEER>(kv));
   }
-  P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
+  zil::p2p::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
 bool Node::RecalculateMyShardId(bool &ipChanged) {
@@ -3326,7 +3330,7 @@ void Node::CheckPeers(const vector<Peer> &peers) {
                                     m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");
   }
-  P2PComm::GetInstance().SendMessage(peers, message);
+  zil::p2p::GetInstance().SendMessage(peers, message);
 }
 
 

@@ -28,7 +28,6 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -364,6 +363,7 @@ void DirectoryService::ScheduleViewChangeTimeout() {
   }
 
   std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeVCBlock);
+  // TODO: cv fix
   if (cv_ViewChangeVCBlock.wait_for(cv_lk,
                                     std::chrono::seconds(VIEWCHANGE_TIME)) ==
       std::cv_status::timeout) {
@@ -450,6 +450,7 @@ bool DirectoryService::NodeVCPrecheck() {
   }
 
   std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangePrecheck);
+  // TODO: cv fix
   if (cv_viewChangePrecheck.wait_for(
           cv_lk, std::chrono::seconds(VIEWCHANGE_PRECHECK_TIME)) ==
       std::cv_status::timeout) {

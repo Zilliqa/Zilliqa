@@ -26,7 +26,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -205,6 +205,7 @@ bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
 
   // wait for final block ( with complete microblock ) to be ready
   if (!m_completeFinalBlockReady) {
+    // TODO: cv fix
     if (m_cvCompleteFinalBlockReady.wait_for(
             lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
       // timed out
@@ -786,7 +787,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, mb_message);
+  zil::p2p::GetInstance().SendMessage(peer, mb_message);
 
   return true;
 }
@@ -1401,6 +1402,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // View change will wait for timeout. If conditional variable is notified
     // before timeout, the thread will return without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+    // TODO: cv fix
     if (cv_viewChangeFinalBlock.wait_for(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {

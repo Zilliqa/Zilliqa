@@ -27,7 +27,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -310,7 +310,7 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, tx_message);
+  zil::p2p::GetInstance().SendMessage(peer, tx_message);
 
   return true;
 }
@@ -1111,6 +1111,7 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
                   << timeout_time << " seconds");
 
   if (!m_completeMicroBlockReady) {
+    // TODO: cv verify
     if (m_cvCompleteMicroBlockReady.wait_for(
             lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
       // timed out

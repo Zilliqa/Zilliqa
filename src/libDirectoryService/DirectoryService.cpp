@@ -28,7 +28,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -58,7 +58,8 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS,
+                                          "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
@@ -72,7 +73,7 @@ class DSVariables {
 static DSVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -277,7 +278,7 @@ bool DirectoryService::ProcessSetPrimary(
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // Now I need to find my index in the sorted list (this will be my ID for the
@@ -423,7 +424,6 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
-
   zil::local::variables.SetDSState(int(state));
 
   if (LOOKUP_NODE_MODE) {
@@ -470,6 +470,7 @@ bool DirectoryService::CleanVariables() {
 
   LOG_MARKER();
 
+  LOG_EXTRA("Shards cleared");
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
   m_allPoWConns.clear();
@@ -626,7 +627,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
   }
 
@@ -701,11 +702,16 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
 
   if (fetchShardingStruct) {
     // Ask for the sharding structure from lookup
+    {
+      std::unique_lock<std::mutex> cv_lk(
+          m_mediator.m_lookup->m_mutexShardStruct);
+      m_mediator.m_lookup->m_shardStructSignal = false;
+    }
     m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
-    if (m_mediator.m_lookup->cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
+    if (!m_mediator.m_lookup->cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
+            [this]() { return m_mediator.m_lookup->m_shardStructSignal; })) {
       LOG_GENERAL(WARNING,
                   "Didn't receive sharding structure! Try checking next epoch");
     } else {
@@ -793,6 +799,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
     // So let's add that to our wait time to allow new nodes to get last TxBlock
     // + DSInfo and submit a PoW
     m_powSubmissionWindowExpired = false;
+    // TODO: cv fix
     if (cv_DSBlockConsensus.wait_for(
             cv_lk, std::chrono::seconds(
                        (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
@@ -812,6 +819,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
         DetachedFunction(1, func);
       }
 
+      // TODO: cv fix
       if (cv_DSBlockConsensus.wait_for(
               cv_lk,
               std::chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
@@ -930,7 +938,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
+  zil::p2p::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
 
   m_awaitingToSubmitNetworkInfoUpdate = false;
 
@@ -1031,7 +1039,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     // Lookup to store the info
@@ -1100,6 +1108,10 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
       m_totalTxnFees += cogsrews.GetRewards();
     }
   }
+  {
+    lock_guard<mutex> lock(m_mediator.m_lookup->m_mutexSetCosigRewardsFromSeed);
+    m_mediator.m_lookup->m_setCosigRewardsFromSeedSignal = true;
+  }
   m_mediator.m_lookup->cv_setCosigRewardsFromSeed.notify_all();
 
   return true;
@@ -1125,13 +1137,15 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
     return false;
   }
 
-  if (!m_mediator.m_lookup->VerifySenderNode(
-          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
-    return false;
-  }
+  // TODO reenable this verification after removing Multiplier communication
+  // mode
+  //  if (!m_mediator.m_lookup->VerifySenderNode(
+  //          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+  //    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+  //              "The message sender pubkey: "
+  //                  << lookupPubKey << " is not in my lookup node list.");
+  //    return false;
+  //  }
 
   LOG_GENERAL(INFO,
               "Returning created transactions for " << m_mediator.m_selfPeer);
@@ -1147,7 +1161,7 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  P2PComm::GetInstance().SendMessage(requestingNode, txnPoolMessage);
+  zil::p2p::GetInstance().SendMessage(requestingNode, txnPoolMessage);
   return true;
 }
 

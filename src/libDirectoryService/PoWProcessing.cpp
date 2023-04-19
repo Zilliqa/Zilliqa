@@ -26,7 +26,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -59,7 +59,7 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   vector<Peer> peerList;
 
   if (BROADCAST_GOSSIP_MODE) {
-    if (!P2PComm::GetInstance().SpreadRumor(powpacketmessage)) {
+    if (!zil::p2p::GetInstance().SpreadRumor(powpacketmessage)) {
       LOG_GENERAL(INFO,
                   "Seems same packet was received by me from other DS member. "
                   "That's even better.")
@@ -72,7 +72,7 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
     for (auto const& i : *m_mediator.m_DSCommittee) {
       peerList.push_back(i.second);
     }
-    P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
+    zil::p2p::GetInstance().SendMessage(peerList, powpacketmessage);
   }
 
   return true;
@@ -266,7 +266,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
 
   if (m_state == FINALBLOCK_CONSENSUS) {
     std::unique_lock<std::mutex> cv_lk(m_MutexCVPOWSubmission);
-
+    // TODO: cv fix
     if (cv_POWSubmission.wait_for(
             cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT)) ==
         std::cv_status::timeout) {
