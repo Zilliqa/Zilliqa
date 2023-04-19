@@ -41,6 +41,7 @@ struct CpsAccountStoreInterface {
                                         uint32_t transaction_version) = 0;
   virtual bool IncreaseBalanceAtomic(const Address& account, Amount amount) = 0;
   virtual bool DecreaseBalanceAtomic(const Address& account, Amount amount) = 0;
+  virtual bool DecreaseBalance(const Address& account, Amount amount) = 0;
   virtual void SetBalanceAtomic(const Address& account, Amount amount) = 0;
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      Amount amount) = 0;
@@ -87,7 +88,8 @@ struct CpsAccountStoreInterface {
                                  const Address& destAddress,
                                  uint32_t scillaVersion) = 0;
   virtual void MarkNewLibraryCreated(const Address& address) = 0;
-  virtual CpsAccountStoreInterface::AccountType GetAccountType(const Address& address) = 0;
+  virtual CpsAccountStoreInterface::AccountType GetAccountType(
+      const Address& address) = 0;
 };
 }  // namespace libCps
 
