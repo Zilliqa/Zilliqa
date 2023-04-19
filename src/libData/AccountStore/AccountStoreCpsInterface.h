@@ -71,6 +71,15 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return false;
   }
 
+  virtual bool DecreaseBalance(const Address& address,
+                               libCps::Amount amount) override {
+    Account* account = mAccountStore.GetAccount(address);
+    if (account != nullptr) {
+      return account->DecreaseBalance(amount.toQa());
+    }
+    return false;
+  }
+
   virtual void SetBalanceAtomic(const Address& address,
                                 libCps::Amount amount) override {
     Account* account = mAccountStore.GetAccountAtomic(address);
@@ -203,9 +212,9 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return mScillaRootVersion;
   }
 
-
-  virtual CpsAccountStoreInterface::AccountType GetAccountType(const Address& address) override {
-    Account *account = mAccountStore.GetAccountAtomic(address);
+  virtual CpsAccountStoreInterface::AccountType GetAccountType(
+      const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account == nullptr) {
       return CpsAccountStoreInterface::DoesNotExist;
     } else if (account->isContract()) {
