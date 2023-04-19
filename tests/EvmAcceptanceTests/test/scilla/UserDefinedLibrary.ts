@@ -55,21 +55,3 @@ describe("Scilla contract execute", () => {
     expect(tx).to.have.eventLog("Bool const of T2 type");
   });
 });
-
-// TODO: Enable this whenever https://github.com/Zilliqa/hardhat-scilla-plugin/issues/22 is fixed
-describe.skip("Codehash contract", () => {
-  let contract: ScillaContract;
-  it("Deploy codehash contract", async () => {
-    contract = await parallelizer.deployScillaContract("codehash.scilla");
-    assert.isTrue(contract.address !== undefined);
-  });
-
-  it("Call code hash contract - Foo transition", async () => {
-    let tx1 = await contract.foo2(contract.toLowerCase());
-    const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
-    expect(tx1.receipt.success).equal(true);
-    let tx2 = await contract.foo2(contract.toLowerCase());
-    const codeHash2 = tx2.receipt.event_logs[0].params[0].value;
-    expect(codeHash1 === codeHash2);
-  });
-});
