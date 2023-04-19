@@ -249,16 +249,16 @@ fn build_exit_result(
         result.mut_logs().push(log_proto.clone());
 
         let ss = String::from_utf8_lossy(log.address.as_bytes());
-        println!("LOG address: {:?}", ss);
-        println!("LOG addressasB: {:?}", log.address.as_bytes());
+        //println!("LOG address: {:?}", ss);
+        //println!("LOG addressasB: {:?}", log.address.as_bytes());
 
         for topic in log.topics {
             // print topic as ascii
             let asB = topic.as_bytes();
             //let s = core::str::from_utf8(asB).unwrap_or_default();
             let s = String::from_utf8_lossy(asB);
-            println!("LOG topic: {:?}", s);
-            println!("LOG topic bytes: {:?}", asB);
+            //println!("LOG topic: {:?}", s);
+            //println!("LOG topic bytes: {:?}", asB);
         }
     }
 

@@ -5,7 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
 // Entry contract, will call contract two
 contract ContractOne {
 
-    event AAAAAAAAAAAA();
+    event AAAAAAAAAAAA(string message);
     event FinalMessagex();
 
     constructor() payable
@@ -20,7 +20,7 @@ contract ContractOne {
 
             two.chainedCall(destinations, index + 1);
         }
-        emit AAAAAAAAAAAA();
+        emit AAAAAAAAAAAA("aaaaaaaaaaaaaaaaaa");
         return true;
     }
 }
