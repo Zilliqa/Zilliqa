@@ -409,10 +409,9 @@ RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
   RawBytes tmp;
   m_selfKey.second.Serialize(tmp, 0);
 
-  // XXX
   auto sig = zil::p2p::GetInstance().SignMessage(message);
   if (!sig) {
-    // TODO log fatal ???
+    LOG_GENERAL(FATAL, "Schnorr signing failed for unknown reason")
     return {};
   }
 

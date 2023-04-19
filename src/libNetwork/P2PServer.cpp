@@ -152,7 +152,7 @@ class P2PServerImpl : public P2PServer,
 
       AcceptNextConnection();
     } else {
-      // TODO log fatal
+      LOG_GENERAL(FATAL, "Error in accept : " << ec.message());
     }
   }
 
@@ -163,7 +163,7 @@ class P2PServerImpl : public P2PServer,
   std::unordered_map<uint64_t, std::shared_ptr<P2PServerConnection>>
       m_connections;
 
-  // TODO decide if this is needed
+  // TODO decide if this is needed. It seems that no
   //  std::map<uint128_t, uint16_t> m_peerConnectionCount;
 };
 
