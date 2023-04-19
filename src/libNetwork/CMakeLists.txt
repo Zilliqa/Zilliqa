@@ -1,5 +1,3 @@
-find_package(Libevent REQUIRED)
-
 add_library(Network
     Peer.cpp
     Guard.cpp
@@ -15,8 +13,6 @@ add_library(Network
 target_include_directories(Network PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Network PUBLIC
     Constants
-    libevent::core
-    libevent::pthreads
     RumorSpreading
     Utils
     Metrics

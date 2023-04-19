@@ -13,7 +13,6 @@
     "websocketpp",
     "gtest",
     "miniupnpc",
-    "libevent",
     {
       "name": "leveldb",
       "default-features": false,
