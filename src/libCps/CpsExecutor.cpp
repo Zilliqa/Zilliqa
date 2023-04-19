@@ -249,10 +249,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   }
   if (!isEstimate && !isEthCall) {
     // Increase nonce regardless of processing result for transaction calls
-    const auto currentNonce =
-        mAccountStore.GetNonceForAccount(cpsCtx.origSender);
     mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
-    const auto newNonce = mAccountStore.GetNonceForAccount(cpsCtx.origSender);
     // Take gas used by account even if it was a failed run
     if (isFailure) {
       uint128_t gasCost;
