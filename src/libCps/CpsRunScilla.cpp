@@ -104,25 +104,26 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
       static_cast<unsigned int>(codedata.code.size() + codedata.data.size()));
 
   // Original gas passed from user (not the one in current ctx)
-  auto retScillaVal =
+  auto failedRetScillaVal =
       ScillaResult{mCpsContext.scillaExtras.gasLimit - createPenalty};
   mArgs.dest =
       mAccountStore.GetAddressForContract(mArgs.from, TRANSACTION_VERSION);
   if (!mAccountStore.AddAccountAtomic(mArgs.dest)) {
     span.SetError("AcountCreation");
-    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, retScillaVal};
+    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false,
+            failedRetScillaVal};
   }
 
   if (!mAccountStore.TransferBalanceAtomic(mArgs.from, mArgs.dest,
                                            mArgs.value)) {
     span.SetError("Unable to make a balance transfer");
-    return {TxnStatus::INSUFFICIENT_BALANCE, false, retScillaVal};
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, failedRetScillaVal};
   }
 
   if (!mAccountStore.InitContract(mArgs.dest, codedata.code, codedata.data,
                                   mCpsContext.scillaExtras.blockNum)) {
     span.SetError("Unable to init a contract");
-    return {TxnStatus::FAIL_CONTRACT_INIT, false, retScillaVal};
+    return {TxnStatus::FAIL_CONTRACT_INIT, false, failedRetScillaVal};
   }
 
   std::vector<Address> extlibs;
@@ -133,25 +134,25 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   if (!mAccountStore.GetContractAuxiliaries(mArgs.dest, isLibrary,
                                             scillaVersion, extlibs)) {
     span.SetError("Failed Scilla Auxiliaries");
-    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
   if (DISABLE_SCILLA_LIB && isLibrary) {
     span.SetError("Scilla libraries disabled");
-    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
   if (!ScillaHelpers::PopulateExtlibsExports(mAccountStore, scillaVersion,
                                              extlibs, extlibsExports)) {
     span.SetError("Failed to populate export libs");
-    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
   if (!ScillaHelpers::ExportCreateContractFiles(mAccountStore, mArgs.dest,
                                                 isLibrary, scillaVersion,
                                                 extlibsExports)) {
     span.SetError("Unable to export create contract files");
-    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
   if (!mAccountStore.SetBCInfoProvider(mCpsContext.scillaExtras.blockNum,
@@ -159,21 +160,20 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
                                        mCpsContext.scillaExtras.origin,
                                        mArgs.dest, scillaVersion)) {
     span.SetError("Unable to set BCInfor provider");
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::ERROR, false, failedRetScillaVal};
   }
 
   mArgs.gasLimit -= SCILLA_CHECKER_INVOKE_GAS;
 
-  retScillaVal =
-      ScillaResult{std::min(retScillaVal.gasRemained,
-                            mCpsContext.scillaExtras.gasLimit - createPenalty)};
+  failedRetScillaVal = ScillaResult{std::min(
+      mArgs.gasLimit, mCpsContext.scillaExtras.gasLimit - createPenalty)};
 
   auto checkerResult = InvokeScillaInterpreter(INVOKE_TYPE::CHECKER);
   if (!checkerResult.isSuccess) {
     receipt.AddError(CHECKER_FAILED);
     span.SetError("Scilla contract checker failed");
     LOG_GENERAL(WARNING, "CHECKER out: " << checkerResult.returnVal);
-    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, failedRetScillaVal};
   }
 
   std::map<std::string, zbytes> t_metadata;
@@ -187,22 +187,25 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
           t_metadata, mArgs.gasLimit, isLibrary)) {
     receipt.AddError(CHECKER_FAILED);
     span.SetError("Unable to parse contract checker result");
-    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, failedRetScillaVal};
   }
 
   mArgs.gasLimit -= SCILLA_RUNNER_INVOKE_GAS;
+  failedRetScillaVal = ScillaResult{std::min(
+      mArgs.gasLimit, mCpsContext.scillaExtras.gasLimit - createPenalty)};
+
   const auto runnerResult = InvokeScillaInterpreter(INVOKE_TYPE::RUNNER_CREATE);
   if (!runnerResult.isSuccess) {
     span.SetError("Interpreter run is not successful");
     receipt.AddError(RUNNER_FAILED);
-    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, failedRetScillaVal};
   }
 
   if (!ScillaHelpersCreate::ParseCreateContract(
           mArgs.gasLimit, runnerResult.returnVal, receipt, isLibrary)) {
     receipt.AddError(RUNNER_FAILED);
     span.SetError("Unable to parse contract create result");
-    return {TxnStatus::NOT_PRESENT, false, retScillaVal};
+    return {TxnStatus::NOT_PRESENT, false, failedRetScillaVal};
   }
 
   t_metadata.emplace(mAccountStore.GenerateContractStorageKey(
@@ -211,7 +214,7 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
 
   if (!mAccountStore.UpdateStates(mArgs.dest, t_metadata, {}, true)) {
     span.SetError("Unable to update account state");
-    return {TxnStatus::ERROR, false, retScillaVal};
+    return {TxnStatus::ERROR, false, failedRetScillaVal};
   }
 
   if (isLibrary) {
@@ -221,7 +224,7 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
 
-  return {TxnStatus::NOT_PRESENT, true, retScillaVal};
+  return {TxnStatus::NOT_PRESENT, true, ScillaResult{mArgs.gasLimit}};
 }
 
 CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
