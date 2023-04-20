@@ -648,24 +648,30 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
   // Allow only removal of self in non-static calls
   if (accountToRemove == thisContractAddress && !mProtoArgs.is_static_call()) {
-    const auto currentFunds =
+    const auto currentContractFunds =
         mAccountStore.GetBalanceForAccountAtomic(accountToRemove);
+
+    // Funds for recipient
+    const auto recipientPreFunds =
+        mAccountStore.GetBalanceForAccountAtomic(fundsRecipient);
+
     const auto zero = Amount::fromQa(0);
 
-    if (funds > zero && funds <= currentFunds) {
-      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
-                                          funds);
-    } else if (funds > zero) {
-      std::string error =
-          "Possible zil mint. Funds in destroyed account: " +
-          currentFunds.toWei().convert_to<std::string>() +
-          ", requested: " + funds.toWei().convert_to<std::string>();
+    // Funds is what we want our contract to become/be modified to.
+    // Check that the contract funds plus the current funds in our account
+    // is equal to this value
+    if(funds != recipientPreFunds + currentContractFunds) {
+        std::string error =
+            "Possible zil mint. Funds in destroyed account: " +
+            currentContractFunds.toWei().convert_to<std::string>() +
+            ", requested: " + (funds - recipientPreFunds).toWei().convert_to<std::string>();
 
-      LOG_GENERAL(WARNING, "possible zil mint! " << error);
-      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
-                                          currentFunds);
-      span.SetError(error);
+        LOG_GENERAL(WARNING, "ERROR IN DESTUCT! " << error);
+        span.SetError(error);
     }
+
+    mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
+                                        currentContractFunds);
     mAccountStore.SetBalanceAtomic(accountToRemove, zero);
     mAccountStore.AddAddressToUpdateBufferAtomic(accountToRemove);
     mAccountStore.AddAddressToUpdateBufferAtomic(fundsRecipient);
