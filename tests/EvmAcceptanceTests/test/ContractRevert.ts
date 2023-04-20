@@ -30,6 +30,12 @@ describe("Revert Contract Call", function () {
       .withArgs(1000, owner.address);
   });
 
+  it("Should not be reverted despite its child possibly reverting", async function () {
+    const owner = this.contract.signer;
+    await expect(this.contract.callChainReverted()).not.to.be.reverted;
+    await expect(this.contract.callChainOk()).not.to.be.reverted;
+  });
+
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5001
   xit("Should be reverted without any reason if specified gasLimit is not enough to complete txn", async function () {
     await expect(this.contract.outOfGas({gasLimit: 100000})).to.be.revertedWithoutReason();
