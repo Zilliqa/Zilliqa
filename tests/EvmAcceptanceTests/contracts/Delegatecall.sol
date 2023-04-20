@@ -55,4 +55,4 @@ contract Delegatecall {
 
         require(success, "delegatecall failed");
     }
-
+}
