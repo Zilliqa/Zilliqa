@@ -5,13 +5,25 @@ import "hardhat/console.sol";
 
 error FakeError(uint256 value, address sender);
 
+contract RevertInChain {
+  function revertCall() public {
+    require(true == false);
+  }
+  function okCall() public {
+    require(true == true);
+  }
+}
+
 contract Revert {
   address owner;
   uint256[] private _array;
+  address helper_contract;
 
   constructor() {
     console.log("Constructing RevertContract from sender:", msg.sender);
     owner = msg.sender; // address that deploys contract will be the owner
+    RevertInChain chainContract = new RevertInChain();
+    helper_contract = address(chainContract);
   }
 
   function revertCall() public payable {
@@ -34,5 +46,15 @@ contract Revert {
     for (uint256 i = 0; ; ++i) {
         _array.push(i);
     }
+  }
+
+  function callChainReverted() public {
+    (bool success, bytes memory data) = helper_contract.call(abi.encodeWithSelector(RevertInChain.revertCall.selector));
+    require(success == false);
+  }
+
+  function callChainOk() public {
+    (bool success, bytes memory data) = helper_contract.call(abi.encodeWithSelector(RevertInChain.okCall.selector));
+    require(success == true);
   }
 }

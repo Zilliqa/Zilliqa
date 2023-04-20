@@ -683,12 +683,18 @@ bool CpsRunEvm::HasFeedback() const {
 void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
                                 const CpsExecuteResult& results) {
   if (!previousRun.HasFeedback()) {
+    // If there's no feedback from previous run we assume it was successful
+    mProtoArgs.mutable_continuation()->set_succeeded(true);
     return;
   }
 
   // For now only Evm is supported!
   if (std::holds_alternative<evm::EvmResult>(results.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(results.result);
+    const auto evmSucceeded = evmResult.exit_reason().exit_reason_case() ==
+                              evm::ExitReason::ExitReasonCase::kSucceed;
+    mProtoArgs.mutable_continuation()->set_succeeded(evmSucceeded);
+
     mProtoArgs.set_gas_limit(evmResult.remaining_gas());
     *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
 
@@ -697,7 +703,8 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
       if (mProtoArgs.continuation().feedback_type() ==
           evm::Continuation_Type_CREATE) {
         *mProtoArgs.mutable_continuation()->mutable_address() =
-            prevRunEvm.mProtoArgs.address();
+            (results.isSuccess ? prevRunEvm.mProtoArgs.address()
+                               : AddressToProto(libCps::CpsRunEvm::Address{}));
       } else {
         *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
             evmResult.return_value();
@@ -710,8 +717,7 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
     if (mProtoArgs.continuation().feedback_type() ==
         evm::Continuation_Type_CALL) {
       mProtoArgs.set_gas_limit(remainingGas);
-      *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
-          (scillaResult.isSuccess ? "1" : "0");
+      mProtoArgs.mutable_continuation()->set_succeeded(scillaResult.isSuccess);
     }
   }
 }
