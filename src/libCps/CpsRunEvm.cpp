@@ -660,7 +660,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     // Funds is what we want our contract to become/be modified to.
     // Check that the contract funds plus the current funds in our account
     // is equal to this value
-    if(!(funds == recipientPreFunds + currentContractFunds)) {
+    if(funds != recipientPreFunds + currentContractFunds) {
         std::string error =
             "Possible zil mint. Funds in destroyed account: " +
             currentContractFunds.toWei().convert_to<std::string>() +
