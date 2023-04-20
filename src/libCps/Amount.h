@@ -50,15 +50,16 @@ class Amount final {
     return !(*this <= other);
   }
   constexpr auto operator+(const Amount& rhs) const {
-    // return the sum of two numbers as biggest type to avoid overflow
     return Amount{this->toWei() + rhs.toWei()};
   }
   constexpr auto operator-(const Amount& rhs) const {
-    // return the sum of two numbers as biggest type to avoid overflow
     return Amount{this->toWei() - rhs.toWei()};
   }
   constexpr auto operator==(const Amount& rhs) const {
     return this->toWei() == rhs.toWei();
+  }
+  constexpr auto operator!=(const Amount& rhs) const {
+    return this->toWei() != rhs.toWei();
   }
 
  private:
