@@ -98,6 +98,10 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   if (!std::holds_alternative<ScillaArgs::CodeData>(mArgs.calldata)) {
     return {TxnStatus::ERROR, false, {}};
   }
+
+  //print warning
+  LOG_GENERAL(WARNING, "CpsRunScilla::runCreate");
+
   const auto& codedata = std::get<ScillaArgs::CodeData>(mArgs.calldata);
   const auto createPenalty = std::max(
       CONTRACT_CREATE_GAS,

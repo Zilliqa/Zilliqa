@@ -34,11 +34,23 @@ evm::EvmEvalExtras CpsUtils::FromScillaContext(
                              GasConv::GetScalingFactor());
   extras.set_block_difficulty(scillaCtx.blockDifficulty);
   extras.set_block_number(scillaCtx.blockNum);
+
+
   uint256_t gasPrice = (scillaCtx.gasPrice * EVM_ZIL_SCALING_FACTOR) /
                        GasConv::GetScalingFactor();
+
+  LOG_GENERAL(WARNING, "Gas price0: " << scillaCtx.gasPrice);
+  LOG_GENERAL(WARNING, "Gas price1: " << gasPrice);
+  LOG_GENERAL(WARNING, "Gas price2: " << GasConv::GetScalingFactor());
+  LOG_GENERAL(WARNING, "Gas price3: " << EVM_ZIL_SCALING_FACTOR);
+
   // The following ensures we get 'at least' that high price as it was before
   // dividing by GasScalingFactor
   gasPrice += EVM_ZIL_SCALING_FACTOR;
+
+  LOG_GENERAL(WARNING, "Gas price4: " << gasPrice);
+
+  // log gas price
   *extras.mutable_gas_price() = UIntToProto(gasPrice);
 
   return extras;

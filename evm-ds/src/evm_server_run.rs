@@ -82,7 +82,7 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
-            let runtime = evm::Runtime::new(code, data.clone(), context, &config);
+            let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
         };
@@ -174,10 +174,10 @@ pub async fn run_evm_impl(
             }
         };
         info!(
-            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
+            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {} code: {:02X?}",
             evm_context, backend.origin, address, gas_limit, apparent_value,
             hex::encode(data.deref()),
-            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
+            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()), code);
         Ok(base64::encode(result.write_to_bytes().unwrap()))
     })
     .await

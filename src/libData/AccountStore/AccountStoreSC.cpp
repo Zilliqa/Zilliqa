@@ -299,7 +299,7 @@ bool AccountStoreSC::UpdateAccounts(
       return AccountStoreBase::UpdateAccounts(transaction, receipt, error_code);
     }
     case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Create contract");
+      LOG_GENERAL(WARNING, "Create contractXXX");
 
       INC_STATUS(GetInvocationsCounter(), "Transaction", "Create");
 

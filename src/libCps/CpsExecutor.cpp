@@ -151,6 +151,9 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 
   const auto gasRemainedCore = GetRemainedGasCore(execResult);
 
+  // print gas remained
+  LOG_GENERAL(WARNING, "Gas remained core: " << gasRemainedCore);
+
   const bool isFailure = !m_queue.empty() || !execResult.isSuccess;
   span.SetAttribute("Failure", isFailure);
   if (isFailure) {
@@ -317,6 +320,8 @@ void CpsExecutor::TakeGasFromAccount(
   }
   // Scilla initiates
   else {
+    // log warning
+
     const auto& scillaCtx = std::get<ScillaProcessContext>(context);
     uint128_t gasDepositQa;
     if (!SafeMath<uint128_t>::mul(scillaCtx.gasLimit, scillaCtx.gasPrice,

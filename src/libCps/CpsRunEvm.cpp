@@ -129,6 +129,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
     span.SetError("Unknown trap type");
+    LOG_GENERAL(WARNING, "Unknown trap type FAILEDDDD!!!");
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }
