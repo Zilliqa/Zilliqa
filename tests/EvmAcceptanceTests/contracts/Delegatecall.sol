@@ -48,9 +48,9 @@ contract Delegatecall {
         emit DebugMsg("making the call... done.");
 
         if (success) {
-            emit A("this was a success");
+            emit DebugMsg("this was a success");
         } else {
-            emit A("this was a failure");
+            emit DebugMsg("this was a failure");
         }
 
         require(success, "delegatecall failed");
