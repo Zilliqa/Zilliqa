@@ -6,15 +6,16 @@ contract TestDelegatecall {
     uint public value;
     uint public num;
 
-    event A(string message);
+    event DebugMsg(string message);
 
     function setVars(uint _num) external payable {
 
-        emit A("we are here 0");
+        emit DebugMsg("Setting vars!");
+
         require(value == 9, "Didn't reflect variables from calling contract correctly");
-        emit A("we are here 1");
         require(num == 10, "Didn't reflect variables from calling contract correctly");
-        emit A("we are here 2");
+
+        emit DebugMsg("Vars are OK");
 
         sender = msg.sender;
         value = msg.value;
@@ -27,7 +28,7 @@ contract Delegatecall {
     uint public value;
     uint public num;
 
-    event A(string message);
+    event DebugMsg(string message);
 
     function setVars(address _test, uint _num) external payable {
 
@@ -38,13 +39,13 @@ contract Delegatecall {
         require(num == 10, "cannot set own variables correctly(num)");
 
 
-        emit A("making the call...");
+        emit DebugMsg("making the call...");
 
         (bool success, bytes memory data) = _test.delegatecall(
             abi.encodeWithSelector(TestDelegatecall.setVars.selector, _num)
         );
 
-        emit A("making the call... done.");
+        emit DebugMsg("making the call... done.");
 
         if (success) {
             emit A("this was a success");
@@ -54,4 +55,4 @@ contract Delegatecall {
 
         require(success, "delegatecall failed");
     }
-}
+
