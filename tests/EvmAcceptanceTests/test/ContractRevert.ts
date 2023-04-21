@@ -39,11 +39,6 @@ describe("Revert Contract Call", function () {
   it("Should be reverted without any reason if specified gasLimit is not enough to complete txn", async function () {
     const txn = await this.contract.outOfGas({gasLimit: 100000});
     expect(txn).not.to.be.reverted;
-    try {
-      await txn.wait();
-      throw new Error("transaction succeeded, it should have failed");
-    } catch (err: any) {
-      // out of gas
-    }
+    await expect(txn.wait()).eventually.to.be.rejected;
   });
 });
