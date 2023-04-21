@@ -36,8 +36,14 @@ describe("Revert Contract Call", function () {
     await expect(this.contract.callChainOk()).not.to.be.reverted;
   });
 
-  // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5001
-  xit("Should be reverted without any reason if specified gasLimit is not enough to complete txn", async function () {
-    await expect(this.contract.outOfGas({gasLimit: 100000})).to.be.revertedWithoutReason();
+  it("Should be reverted without any reason if specified gasLimit is not enough to complete txn", async function () {
+    const txn = await this.contract.outOfGas({gasLimit: 100000});
+    expect(txn).not.to.be.reverted;
+    try {
+      await txn.wait();
+      throw new Error("transaction succeeded, it should have failed");
+    } catch (err: any) {
+      // out of gas
+    }
   });
 });
