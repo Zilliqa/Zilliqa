@@ -27,6 +27,7 @@ pub struct ScillaBackendConfig {
 }
 
 // Backend relying on Scilla variables and Scilla JSONRPC interface.
+#[derive(Clone)]
 pub struct ScillaBackend {
     config: ScillaBackendConfig,
     pub origin: H160,

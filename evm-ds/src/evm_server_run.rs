@@ -165,7 +165,7 @@ pub async fn run_evm_impl(
                 build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas)
             },
             CpsReason::CallInterrupt(i) => {
-                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), &(&executor.into_state().substate().clone()));
+                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
                 build_call_result(executor, &runtime, &backend, i, &listener, remaining_gas, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
