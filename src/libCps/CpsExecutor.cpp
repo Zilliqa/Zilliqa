@@ -320,7 +320,7 @@ void CpsExecutor::TakeGasFromAccount(
   if (std::holds_alternative<EvmProcessContext>(context)) {
     const auto& evmCtx = std::get<EvmProcessContext>(context);
     uint256_t gasDepositWei;
-    if (!SafeMath<uint256_t>::mul(evmCtx.GetTransaction().GetGasLimitZil(),
+    if (!SafeMath<uint256_t>::mul(evmCtx.GetTransaction().GetGasLimitEth(),
                                   CpsExecuteValidator::GetGasPriceWei(evmCtx),
                                   gasDepositWei)) {
       return;
