@@ -31,7 +31,7 @@ contract BasicInterop {
         bool success;
         bytes memory output = new bytes(36);
         assembly {
-            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
+            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
         }
         require(success);
         (funds) = abi.decode(output, (uint128));
@@ -56,7 +56,7 @@ contract BasicInterop {
         bool success;
         bytes memory output = new bytes(36);
         assembly {
-            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
+            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
         }
         require(success);
         (funds) = abi.decode(output, (uint128));
@@ -81,7 +81,7 @@ contract BasicInterop {
         bool success;
         bytes memory output = new bytes(36);
         assembly {
-            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
+            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
         }
         require(success);
         uint128 funds;
@@ -108,7 +108,7 @@ contract BasicInterop {
         bytes memory output = new bytes(128);
         uint256 output_len = output.length - 4;
         assembly {
-            success := staticcall(21000, 0x5a494c52, add(encodedArgs, 0x20), argsLength, add(output, 0x20), output_len)
+            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), output_len)
         }
         require(success);
 

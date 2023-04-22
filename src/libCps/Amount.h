@@ -49,6 +49,18 @@ class Amount final {
   constexpr auto operator>(const Amount& other) const {
     return !(*this <= other);
   }
+  constexpr auto operator+(const Amount& rhs) const {
+    return Amount{this->toWei() + rhs.toWei()};
+  }
+  constexpr auto operator-(const Amount& rhs) const {
+    return Amount{this->toWei() - rhs.toWei()};
+  }
+  constexpr auto operator==(const Amount& rhs) const {
+    return this->toWei() == rhs.toWei();
+  }
+  constexpr auto operator!=(const Amount& rhs) const {
+    return this->toWei() != rhs.toWei();
+  }
 
  private:
   constexpr Amount(const uint256_t& wei) : m_value(wei){};

@@ -228,21 +228,23 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   span.SetAttribute("EthCall", isEthCall);
   span.SetAttribute("Failure", isFailure);
 
+  const auto usedGas = givenGasCore - gasRemainedCore;
+
   // failure or Estimate/EthCall mode
   if (isFailure || isEstimate || isEthCall) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
-    mTxReceipt.clear();
-    mTxReceipt.SetCumGas(givenGasCore - gasRemainedCore);
+    mTxReceipt.SetCumGas(usedGas);
     if (isFailure) {
       mTxReceipt.SetResult(false);
       mTxReceipt.AddError(RUNNER_FAILED);
     } else {
       mTxReceipt.SetResult(true);
+      mTxReceipt.clear();
     }
     mTxReceipt.update();
   } else {
-    mTxReceipt.SetCumGas(givenGasCore - gasRemainedCore);
+    mTxReceipt.SetCumGas(usedGas);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
     RefundGas(clientContext, gasRemainedCore);
@@ -251,6 +253,17 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   if (!isEstimate && !isEthCall) {
     // Increase nonce regardless of processing result for transaction calls
     mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
+    // Take gas used by account even if it was a failed run
+    if (isFailure) {
+      uint128_t gasCost;
+      if (!SafeMath<uint128_t>::mul(
+              usedGas, CpsExecuteValidator::GetGasPriceWei(clientContext),
+              gasCost)) {
+        return {TxnStatus::ERROR, false, {}};
+      }
+      const auto amount = Amount::fromWei(gasCost);
+      mAccountStore.DecreaseBalance(cpsCtx.origSender, amount);
+    }
   }
   // Always mark run as successful in estimate mode
   if (isEstimate) {

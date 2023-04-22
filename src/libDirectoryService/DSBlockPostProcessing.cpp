@@ -454,6 +454,7 @@ void DirectoryService::StartNextTxEpoch() {
           (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
               ? 0
               : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
+      // TODO: cv fix
       if (cv_scheduleDSMicroBlockConsensus.wait_for(
               cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
           std::cv_status::timeout) {
@@ -610,6 +611,7 @@ void DirectoryService::StartFirstTxEpoch() {
             (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
                 ? 0
                 : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
+        // TODO: cv fix
         if (cv_scheduleDSMicroBlockConsensus.wait_for(
                 cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
             std::cv_status::timeout) {
@@ -889,6 +891,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
       std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
 
+      // TODO: cv fix
       if (cv_DSBlockConsensusObject.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT)) ==
           std::cv_status::timeout) {

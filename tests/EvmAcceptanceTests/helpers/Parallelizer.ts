@@ -36,6 +36,15 @@ export class Parallelizer {
     return deployedContract;
   }
 
+  async deployContractWithSigner(signer: Signer, contractName: string, ...args: any[]) {
+    const Contract = await hh_ethers.getContractFactory(contractName);
+    const deployedContract = await Contract.connect(signer).deploy(...args);
+    if (hre.isEthernalPluginEnabled()) {
+      hre.ethernal.push({name: contractName, address: deployedContract.address});
+    }
+    return deployedContract;
+  }
+
   async deployContractWeb3(contractName: string, options: DeployOptions = {}, ...args: any[]) {
     const signer = await this.signerPool.takeSigner();
 

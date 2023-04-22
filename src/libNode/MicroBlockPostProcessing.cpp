@@ -404,6 +404,7 @@ bool Node::ProcessMicroBlockConsensusCore(
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
+      // TODO: cv fix
       if (cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {

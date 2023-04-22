@@ -1,0 +1,37 @@
+scilla_version 0
+
+import PairUtils
+
+library Ecdsa
+
+let one_msg = 
+  fun (msg : Message) => 
+    let nil_msg = Nil {Message} in
+    Cons {Message} msg nil_msg
+
+let fst_f = @fst (ByStr32) (ByStr33)
+let snd_f = @snd (ByStr32) (ByStr33)
+
+contract Ecdsa
+()
+
+transition recover(msg : ByStr, sig : ByStr64, recid : Uint32)
+  pk = builtin ecdsa_recover_pk msg sig recid;
+  m = { _tag : ""; _recipient : _sender; _amount : Uint128 0; pk : pk };
+  mone = one_msg m;
+  send mone
+end
+
+transition verify(pubk: ByStr33, msg : ByStr, sig : ByStr64)
+  result = builtin ecdsa_verify pubk msg sig;
+  match result with
+  | True =>
+    m = { _tag : ""; _recipient : _sender; _amount : Uint128 0; status : "verification successful" };
+    mone = one_msg m;
+    send mone
+  | False =>
+    m = { _tag : ""; _recipient : _sender; _amount : Uint128 0; status : "verification failed" };
+    mone = one_msg m;
+    send mone
+  end
+end
