@@ -175,6 +175,10 @@ impl<'a> CpsExecutor<'a> {
     pub fn into_state(self) -> MemoryStackState<'a, 'a, ScillaBackend> {
         self.stack_executor.into_state()
     }
+
+    pub fn state(&self) -> &MemoryStackState<'a, 'a, ScillaBackend> {
+        self.stack_executor.state()
+    }
 }
 
 impl<'a> Handler for CpsExecutor<'a> {
