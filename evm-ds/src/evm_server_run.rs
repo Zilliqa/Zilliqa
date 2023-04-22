@@ -82,7 +82,7 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
-            let runtime = evm::Runtime::new(code, data.clone(), context, &config);
+            let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
         };
@@ -165,8 +165,8 @@ pub async fn run_evm_impl(
                 build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas)
             },
             CpsReason::CallInterrupt(i) => {
-                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                build_call_result(&runtime, i, &listener, remaining_gas, cont_id)
+                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
+                build_call_result(executor, &runtime, &backend, i, &listener, remaining_gas, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
@@ -174,10 +174,10 @@ pub async fn run_evm_impl(
             }
         };
         info!(
-            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
+            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {} code: {:02X?}",
             evm_context, backend.origin, address, gas_limit, apparent_value,
             hex::encode(data.deref()),
-            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
+            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()), code);
         Ok(base64::encode(result.write_to_bytes().unwrap()))
     })
     .await
@@ -196,6 +196,67 @@ fn build_exit_result(
     result.set_exit_reason(exit_reason.clone().into());
     result.set_return_value(runtime.machine().return_value().into());
     let (state_apply, logs) = executor.into_state().deconstruct();
+
+    result.set_apply(
+        state_apply
+            .into_iter()
+            .map(|apply| {
+                let mut result = EvmProto::Apply::new();
+                match apply {
+                    Apply::Delete { .. } => {}
+                    Apply::Modify {
+                        address,
+                        basic,
+                        code,
+                        storage,
+                        reset_storage,
+                    } => {
+                        debug!("Modify: {:?} {:?}", address, basic);
+                        let mut modify = EvmProto::Apply_Modify::new();
+                        modify.set_address(address.into());
+                        modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
+                        modify.set_nonce(basic.nonce.into());
+                        if let Some(code) = code {
+                            modify.set_code(code.into());
+                        }
+                        modify.set_reset_storage(reset_storage);
+                        let storage_proto = storage
+                            .into_iter()
+                            .map(|(k, v)| backend.encode_storage(k, v).into())
+                            .collect();
+                        modify.set_storage(storage_proto);
+                        result.set_modify(modify);
+                    }
+                };
+                result
+            })
+            .collect(),
+    );
+    result.set_tx_trace(trace.as_string().into());
+    result.set_logs(logs.into_iter().map(Into::into).collect());
+    result.set_remaining_gas(remaining_gas);
+    result
+}
+
+fn build_call_result(
+    executor: CpsExecutor,
+    runtime: &Runtime,
+    backend: &ScillaBackend,
+    interrupt: CpsCallInterrupt,
+    trace: &LoggingEventListener,
+    remaining_gas: u64,
+    cont_id: u64,
+) -> EvmProto::EvmResult {
+    let mut result = EvmProto::EvmResult::new();
+    result.set_return_value(runtime.machine().return_value().into());
+    let mut trap_reason = EvmProto::ExitReason_Trap::new();
+    trap_reason.set_kind(EvmProto::ExitReason_Trap_Kind::CALL);
+    let mut exit_reason = EvmProto::ExitReason::new();
+
+    let (state_apply, _) = executor.into_state().deconstruct();
+
+    // We need to apply the changes made to the state so subsequent calls can
+    // see the changes.
     result.set_apply(
         state_apply
             .into_iter()
@@ -235,24 +296,7 @@ fn build_exit_result(
             })
             .collect(),
     );
-    result.set_tx_trace(trace.as_string().into());
-    result.set_logs(logs.into_iter().map(Into::into).collect());
-    result.set_remaining_gas(remaining_gas);
-    result
-}
 
-fn build_call_result(
-    runtime: &Runtime,
-    interrupt: CpsCallInterrupt,
-    trace: &LoggingEventListener,
-    remaining_gas: u64,
-    cont_id: u64,
-) -> EvmProto::EvmResult {
-    let mut result = EvmProto::EvmResult::new();
-    result.set_return_value(runtime.machine().return_value().into());
-    let mut trap_reason = EvmProto::ExitReason_Trap::new();
-    trap_reason.set_kind(EvmProto::ExitReason_Trap_Kind::CALL);
-    let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
     result.set_tx_trace(trace.as_string().into());
