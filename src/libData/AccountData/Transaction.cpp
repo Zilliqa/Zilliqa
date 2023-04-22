@@ -228,6 +228,7 @@ const uint128_t Transaction::GetGasPriceWei() const {
 }
 
 uint64_t Transaction::GetGasLimitZil() const {
+  LOG_GENERAL(INFO, "Gas limit " << m_coreInfo.gasLimit << " isEth? " << IsEth());
   if (IsEth()) {
     return GasConv::GasUnitsFromEthToCore(m_coreInfo.gasLimit);
   }

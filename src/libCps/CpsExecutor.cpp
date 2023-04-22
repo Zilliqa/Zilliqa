@@ -207,10 +207,17 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   auto runResult = processLoop(cpsCtx);
   TRACE_EVENT("EvmCpsRun", "processLoop", "completed");
 
+  // right. There is a long and tedious discussion about this in slack
+  // https://zilliqa-team.slack.com/archives/C042YP854RZ/p1682094771583839
+  // You need to do this calculation in core units, so that we can correctly
+  // represent the cumulative gas used in the receipt (which is serialised,
+  // so can't easily be changed).
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
+  LOG_GENERAL(INFO, "givenGasCore " << givenGasCore);
 
-  uint64_t gasRemainedCore = GetRemainedGasCore(runResult);
+  uint64_t gasRemainingCore = GetRemainedGasCore(runResult);
+  LOG_GENERAL(INFO, "gasRemainingCore " << gasRemainingCore);
 
   if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(runResult.result);
@@ -225,13 +232,16 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   span.SetAttribute("EthCall", isEthCall);
   span.SetAttribute("Failure", isFailure);
 
-  const auto usedGas = givenGasCore - gasRemainedCore;
+  const auto usedGasCore = givenGasCore - gasRemainingCore;
+  LOG_GENERAL(INFO, "usedGasCore = " << usedGasCore << " given " << givenGasCore << " remaining " << gasRemainingCore);
 
   // failure or Estimate/EthCall mode
   if (isFailure || isEstimate || isEthCall) {
+    LOG_GENERAL(INFO, "Attempting to revert");
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
-    mTxReceipt.SetCumGas(usedGas);
+    // This will get converted back up again before we report it.
+    mTxReceipt.SetCumGas(usedGasCore);
     if (isFailure) {
       mTxReceipt.SetResult(false);
       mTxReceipt.AddError(RUNNER_FAILED);
@@ -241,10 +251,11 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     }
     mTxReceipt.update();
   } else {
-    mTxReceipt.SetCumGas(usedGas);
+    LOG_GENERAL(INFO, "Not attempting to revert");
+    mTxReceipt.SetCumGas(usedGasCore);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
-    RefundGas(clientContext, gasRemainedCore);
+    RefundGas(clientContext, gasRemainingCore);
     mAccountStore.CommitAtomics();
   }
   if (!isEstimate && !isEthCall) {
@@ -253,12 +264,15 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     // Take gas used by account even if it was a failed run
     if (isFailure) {
       uint128_t gasCost;
+      // Convert here because we deducted in eth units.
       if (!SafeMath<uint128_t>::mul(
-              usedGas, CpsExecuteValidator::GetGasPriceWei(clientContext),
+              GasConv::GasUnitsFromCoreToEth(usedGasCore),
+              CpsExecuteValidator::GetGasPriceWei(clientContext),
               gasCost)) {
         return {TxnStatus::ERROR, false, {}};
       }
       const auto amount = Amount::fromWei(gasCost);
+      LOG_GENERAL(INFO, "DecreaseBalance " << amount.toWei());
       mAccountStore.DecreaseBalance(cpsCtx.origSender, amount);
     }
   }
@@ -279,7 +293,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     }
     evm::EvmResult evmResult;
     evmResult.set_remaining_gas(
-        GasConv::GasUnitsFromCoreToEth(gasRemainedCore));
+        GasConv::GasUnitsFromCoreToEth(gasRemainingCore));
     return {TxnStatus::NOT_PRESENT, true, std::move(evmResult)};
   }
 
@@ -320,11 +334,25 @@ void CpsExecutor::TakeGasFromAccount(
   if (std::holds_alternative<EvmProcessContext>(context)) {
     const auto& evmCtx = std::get<EvmProcessContext>(context);
     uint256_t gasDepositWei;
-    if (!SafeMath<uint256_t>::mul(evmCtx.GetTransaction().GetGasLimitZil(),
+    // The gas price here is already scaled by GasConv::GetScalingFactor()
+    // So we need to make sure our gas limit isn't also scaled by it.
+    // We also need to round the gas limit so that we take a whole number
+    // of core units.
+    // - rrw 2023-04-22
+    uint256_t gasLimitRounded =
+        GasConv::GasUnitsFromCoreToEth(
+            GasConv::GasUnitsFromEthToCore(
+                evmCtx.GetTransaction().GetGasLimitEth()));
+    if (!SafeMath<uint256_t>::mul(gasLimitRounded,
                                   CpsExecuteValidator::GetGasPriceWei(evmCtx),
                                   gasDepositWei)) {
       return;
     }
+    LOG_GENERAL(INFO, "gasLimitEth() " <<
+                gasLimitRounded <<
+                " gas price " <<
+                CpsExecuteValidator::GetGasPriceWei(evmCtx)
+                << " amount " << gasDepositWei);
     address = ProtoToAddress(evmCtx.GetEvmArgs().origin());
     amount = Amount::fromWei(gasDepositWei);
   }
@@ -340,6 +368,8 @@ void CpsExecutor::TakeGasFromAccount(
     amount = Amount::fromQa(gasDepositQa);
   }
 
+  LOG_GENERAL(INFO, "Gas deposit from " << address << " Wei: " << amount.toWei());
+  // This is in Wei!
   mAccountStore.DecreaseBalanceAtomic(address, amount);
 }
 
@@ -354,7 +384,10 @@ void CpsExecutor::RefundGas(
     const auto& evmCtx = std::get<EvmProcessContext>(context);
     account = ProtoToAddress(evmCtx.GetEvmArgs().origin());
     uint128_t gasRefund;
-    if (!SafeMath<uint128_t>::mul(gasRemainedCore,
+    // The gas price is already scaled by GasConv::EthToCore, so we need to make
+    // sure the gas remaining isn't.
+    uint128_t gasRemainedEth = GasConv::GasUnitsFromCoreToEth(gasRemainedCore);
+    if (!SafeMath<uint128_t>::mul(gasRemainedEth,
                                   CpsExecuteValidator::GetGasPriceWei(evmCtx),
                                   gasRefund)) {
       return;
@@ -380,6 +413,7 @@ uint64_t CpsExecutor::GetRemainedGasCore(
   // EvmRun was the last one
   if (std::holds_alternative<evm::EvmResult>(execResult.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(execResult.result);
+    LOG_GENERAL(INFO, "converting gas " << evmResult.remaining_gas());
     return GasConv::GasUnitsFromEthToCore(evmResult.remaining_gas());
   }
   // ScillaRun was the last one

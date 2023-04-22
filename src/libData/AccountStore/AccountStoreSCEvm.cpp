@@ -367,6 +367,11 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
   uint64_t gasLimitEth = evmContext.GetTransaction().GetGasLimitEth();
 
+  {
+    Account * f = this->GetAccount(fromAddr);
+    LOG_GENERAL(INFO, "Sender " << fromAddr << " has balance " << f->GetBalance());
+  }
+
   // Get the amount of deposit for running this txn
   uint256_t gasDepositWei;
   if (!SafeMath<uint256_t>::mul(evmContext.GetTransaction().GetGasLimitZil(),
@@ -461,6 +466,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         m_curBlockNum = blockNum;
         const uint128_t decreaseAmount =
             uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
+        LOG_GENERAL(INFO, "Decreasing sender account by deposit wei " << gasDepositWei);
         if (!this->DecreaseBalance(fromAddr, decreaseAmount)) {
           error_code = TxnStatus::FAIL_CONTRACT_INIT;
           constexpr auto str = "Decrease Balance failed.";
@@ -535,6 +541,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         return false;
       }
 
+      LOG_GENERAL(INFO, "Refunding sender account by refund wei " << gasRefund);
       if (!this->IncreaseBalance(fromAddr,
                                  gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");

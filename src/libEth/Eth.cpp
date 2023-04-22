@@ -51,6 +51,8 @@ Json::Value populateReceiptHelper(
   ret["blockHash"] = blockHash;
   ret["blockNumber"] = blockNumber;
   ret["contractAddress"] = contractAddress;
+  LOG_GENERAL(INFO, "Setting gasUsed " << gasUsed);
+  LOG_GENERAL(INFO, "Setting gasPrice " << gasPrice);
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["effectiveGasPrice"] = gasPrice.empty() ? "0x0" : gasPrice;
   ret["from"] = from;

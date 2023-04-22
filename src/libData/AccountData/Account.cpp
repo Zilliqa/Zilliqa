@@ -102,7 +102,9 @@ bool AccountBase::ChangeBalance(const int256_t& delta) {
                       : DecreaseBalance(uint128_t(-delta));
 }
 
-void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
+void AccountBase::SetBalance(const uint128_t& balance) {
+  m_balance = balance;
+}
 
 const uint128_t& AccountBase::GetBalance() const { return m_balance; }
 

@@ -165,7 +165,7 @@ bool AccountStoreBase::CalculateGasRefund(const uint128_t& gasDeposit,
     return false;
   }
 
-  // LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
+  LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
   return true;
 }
 
@@ -222,9 +222,12 @@ bool AccountStoreBase::IncreaseBalance(const Address& address,
 
   Account* account = GetAccount(address);
 
+  LOG_GENERAL(INFO, "IncreaseBalance of " << address << " by " << delta);
   if (account != nullptr && account->IncreaseBalance(delta)) {
+    LOG_GENERAL(INFO, "Increased to " << account->GetBalance());
     return true;
   } else if (account == nullptr) {
+    LOG_GENERAL(INFO, "Creating account with balance " << delta);
     return AddAccount(address, {delta, 0});
   }
 
@@ -241,6 +244,7 @@ bool AccountStoreBase::DecreaseBalance(const Address& address,
 
   Account* account = GetAccount(address);
 
+  LOG_GENERAL(INFO, "DecreaseBalance of " << address << " by " << delta);
   if (nullptr == account) {
     LOG_GENERAL(WARNING, "Account " << address.hex() << " not exist");
     return false;
@@ -251,6 +255,7 @@ bool AccountStoreBase::DecreaseBalance(const Address& address,
                                                << address.hex());
     return false;
   }
+  LOG_GENERAL(INFO, "Decreased to " << account->GetBalance());
   return true;
 }
 
@@ -258,8 +263,11 @@ bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
                                        const uint128_t& delta) {
   // LOG_MARKER();
   // FIXME: Is there any elegent way to implement this atomic change on balance?
+  LOG_GENERAL(INFO, "prev balances: " << from << ":"  << GetBalance(from) << " " << to << ":" << GetBalance(to));
   if (DecreaseBalance(from, delta)) {
     if (IncreaseBalance(to, delta)) {
+      LOG_GENERAL(INFO, "transferred " << delta << " from " << from << " to " << to);
+      LOG_GENERAL(INFO, "new balances: " << from << ":"  << GetBalance(from) << " " << to << ":" << GetBalance(to));
       return true;
     } else {
       if (!IncreaseBalance(from, delta)) {

@@ -780,6 +780,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
          EVM_ZIL_SCALING_FACTOR) /
         GasConv::GetScalingFactor();
+    LOG_GENERAL(INFO, "gasPriceWei[2] = " << gasPriceWei);
 
     const Address fromAddr = tx.GetSenderAddr();
 
@@ -799,7 +800,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       } else {
         minGasLimit = MIN_ETH_GAS;
       }
-      LOG_GENERAL(WARNING, "Minium gas units required: " << minGasLimit);
+      LOG_GENERAL(WARNING, "Minimum gas units required: " << minGasLimit);
       if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei,
                                minGasLimit)) {
         return ret;
@@ -807,6 +808,11 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
     }
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance " << uint256_t{sender->GetBalance()});
+    }
+
 
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
@@ -871,11 +877,32 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
     LOG_GENERAL(INFO, "Processing On the isolated server...");
 
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance2 " << uint256_t{sender->GetBalance()});
+    }
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance2.1 " << uint256_t{sender->GetBalance()});
+    }
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance2.2 " << uint256_t{sender->GetBalance()});
+    }
 
     AccountStore::GetInstance().SerializeDelta();
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance2.3 " << uint256_t{sender->GetBalance()});
+    }
+
     AccountStore::GetInstance().CommitTemp();
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance3 " << uint256_t{sender->GetBalance()});
+    }
 
     if (!m_timeDelta) {
       AccountStore::GetInstance().InitTemp();
@@ -914,6 +941,10 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
 
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
+    {
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      LOG_GENERAL(INFO, "Sender balance4 " << uint256_t{sender->GetBalance()});
+    }
 
     // No-op if websocket not enabled
     m_mediator.m_websocketServer->ParseTxn(twr);

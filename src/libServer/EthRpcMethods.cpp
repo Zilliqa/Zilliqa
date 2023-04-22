@@ -1440,6 +1440,7 @@ Json::Value EthRpcMethods::GetEthBalance(const std::string &address,
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Invalid account balance number");
     }
+    LOG_GENERAL(INFO, "getBalance() " << address << " = " << ethBalance);
     uint256_t ethBalanceScaled;
     if (!SafeMath<uint256_t>::mul(ethBalance, EVM_ZIL_SCALING_FACTOR,
                                   ethBalanceScaled)) {
@@ -1450,6 +1451,7 @@ Json::Value EthRpcMethods::GetEthBalance(const std::string &address,
     std::ostringstream strm;
     strm << "0x" << std::hex << ethBalanceScaled << std::dec;
 
+    LOG_GENERAL(INFO, "getBalance()[2] " << address << " =(scaled) " << strm.str());
     return strm.str();
   }
   throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -1463,6 +1465,7 @@ uint256_t EthRpcMethods::GetEthGasPriceNum() const {
 
   uint256_t gasPrice =
       m_sharedMediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+  LOG_GENERAL(INFO, "gasPrice = " << gasPrice);
   // Make gas price in wei
   gasPrice = (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
 

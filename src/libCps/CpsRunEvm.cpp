@@ -68,7 +68,11 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
+      LOG_GENERAL(INFO, "Set gas limit " << mProtoArgs.gas_limit() << " minus baseFee " << baseFee);
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - baseFee);
+      LOG_GENERAL(INFO, "TransferBalanceAtomic " << ProtoToAddress(mProtoArgs.origin()) << " -> " <<
+                  ProtoToAddress(mProtoArgs.address()) << " = " <<
+                  ProtoToUint(mProtoArgs.apparent_value()));
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -83,14 +87,18 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
+      LOG_GENERAL(INFO, "Set gas limit[2] " << mProtoArgs.gas_limit() << " minus min gas " << MIN_ETH_GAS);
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+      LOG_GENERAL(INFO, "TransferBalanceAtomic " << ProtoToAddress(mProtoArgs.origin()) << " -> " <<
+                  ProtoToAddress(mProtoArgs.address()) << " = " <<
+                  ProtoToUint(mProtoArgs.apparent_value()));
 
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
         INC_STATUS(GetCPSMetric(), "error", "balance too low");
-        TRACE_ERROR("balance tool low");
+        TRACE_ERROR("balance too low");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
     }
@@ -124,7 +132,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
-    // Allow CPS to continune since caller may expect failures
+    // Allow CPS to continue since caller may expect failures
     if (GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate) {
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
@@ -636,6 +644,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         if (it.modify().has_balance()) {
           fundsRecipient = ProtoToAddress(it.modify().address());
           funds = Amount::fromQa(ProtoToUint(it.modify().balance()));
+          LOG_GENERAL(INFO, "EVM requested modification of " << fundsRecipient << " (raw) " <<
+                      ProtoToUint(it.modify().balance()));
         }
         // Mark the Address as updated
         mAccountStore.AddAddressToUpdateBufferAtomic(thisContractAddress);
@@ -670,8 +680,10 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         span.SetError(error);
     }
 
+    LOG_GENERAL(WARNING, "TransferBalanceAtomic " << accountToRemove <<  " to " << fundsRecipient << " = " << currentContractFunds.toWei());
     mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
                                         currentContractFunds);
+    LOG_GENERAL(WARNING, "SetBalanceAtomic " << accountToRemove <<  " = " << zero.toWei());
     mAccountStore.SetBalanceAtomic(accountToRemove, zero);
     mAccountStore.AddAddressToUpdateBufferAtomic(accountToRemove);
     mAccountStore.AddAddressToUpdateBufferAtomic(fundsRecipient);
