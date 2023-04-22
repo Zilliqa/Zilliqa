@@ -206,6 +206,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   uint64_t remainingGas = result.remaining_gas();
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
+  Address fundsRecipient;
+  Amount funds;
 
   // Apply the evm state changes made so far so subsequent contract calls
   // can see the changes (delegatecall)
