@@ -7,10 +7,13 @@ const FUND = ethers.utils.parseUnits("1", "gwei");
 
 async function getFee(hash: string) {
   const res = await ethers.provider.getTransactionReceipt(hash);
-  const NORM_TXN_GAS = 50;
-  const MIN_ETH_GAS = 21000;
-  // Result should be scaled by (50/21000)
-  return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
+  // No Need to scale anything as `EthRpcMethods::GetEthTransactionReceipt` return Eth values.
+  return res.gasUsed.mul(res.effectiveGasPrice);
+}
+
+async function getGasPrice(hash: string) {
+  const res = await ethers.provider.getTransactionReceipt(hash);
+  return res.effectiveGasPrice;
 }
 
 describe("ForwardZil contract functionality", function () {
@@ -84,7 +87,7 @@ describe("Transfer ethers", function () {
 
   it("should be possible to batch transfer using a smart contract and get funds back on self destruct", async function () {
     const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_000_000_000;
+    const ACCOUNT_VALUE = 1_000_000_000_000_000;
 
     const [owner] = await ethers.getSigners();
     let initialOwnerBal = await ethers.provider.getBalance(owner.address);
@@ -105,6 +108,7 @@ describe("Transfer ethers", function () {
 
     // Make sure to remove gas accounting from the calculation
     let finalOwnerBal = await ethers.provider.getBalance(owner.address);
+
     const diff = initialOwnerBal.sub(finalOwnerBal).sub(fee1);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
@@ -180,7 +184,7 @@ describe("Transfer ethers", function () {
 
     rndAccount = rndAccount.connect(ethers.provider);
 
-    const TRANSFER_VALUE = 100_000_000;
+    const TRANSFER_VALUE = 100_000_000_000_000;
 
     // We can't use parallizer here since we need a hash of the receipt to inspect gas usage later
     const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
@@ -190,9 +194,10 @@ describe("Transfer ethers", function () {
     await singleTransfer.deployed();
 
     const fee1 = await getFee(singleTransfer.deployTransaction.hash);
-
+    const gasPrice = await getGasPrice(singleTransfer.deployTransaction.hash);
     // Need to scale down to ignore miniscule rounding differences from getFee
-    const scaleDown = 10000000;
+    // This difference could be up to `420 * gasPrice`
+    const scaleDown = 420 * gasPrice;
 
     let newBal = await ethers.provider.getBalance(rndAccount.address);
 
