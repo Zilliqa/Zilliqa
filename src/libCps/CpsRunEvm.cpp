@@ -102,7 +102,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   mProtoArgs.set_tx_trace_enabled(TX_TRACES);
   mProtoArgs.set_tx_trace(mExecutor.CurrentTrace());
 
-  auto invokeResult = InvokeEvm();
+  const auto invokeResult = InvokeEvm();
 
   if (!invokeResult.has_value()) {
     // Timeout
@@ -111,7 +111,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     INC_STATUS(GetCPSMetric(), "error", "timeout");
     return {};
   }
-  evm::EvmResult& evmResult = invokeResult.value();
+  const evm::EvmResult& evmResult = invokeResult.value();
 
   mExecutor.CurrentTrace() = evmResult.tx_trace();
   mProtoArgs.set_gas_limit(evmResult.remaining_gas());
@@ -119,14 +119,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-    auto ret = HandleTrap(evmResult);
-
-    //// Now CLEAR the apply buffer so that the continuation of the execution
-    //// doesn't re-execute the same apply instructions
-    //LOG_GENERAL(WARNING, "Clearing the call trap");
-    //evmResult.clear_apply();
-
-    return ret;
+    return HandleTrap(evmResult);;
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
@@ -136,7 +129,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
     span.SetError("Unknown trap type");
-    LOG_GENERAL(WARNING, "Unknown trap type FAILEDDDD!!!");
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }
@@ -216,18 +208,13 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   Address fundsRecipient;
   Amount funds;
 
-  LOG_GENERAL(INFO, "HandleCallTrap: WE ARE HERE *** ");
-
   // Apply the evm state changes made so far so subsequent contract calls
   // can see the changes (delegatecall)
   for (const auto& it : result.apply()) {
     switch (it.apply_case()) {
       case evm::Apply::ApplyCase::kDelete:
-        LOG_GENERAL(INFO, "HandleCallTrap: ignoring kdelete... ");
         break;
       case evm::Apply::ApplyCase::kModify: {
-        LOG_GENERAL(INFO, "HandleCallTrap: kmodify... ");
-
         const auto iterAddress = ProtoToAddress(it.modify().address());
         // Get the account that this apply instruction applies to
         if (!mAccountStore.AccountExistsAtomic(thisContractAddress)) {
@@ -273,7 +260,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
       } break;
       case evm::Apply::ApplyCase::APPLY_NOT_SET:
         // do nothing;
-        LOG_GENERAL(INFO, "HandleCallTrap: appy not set... ");
         break;
     }
   }
