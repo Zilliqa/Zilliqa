@@ -23,7 +23,7 @@ use crate::precompiles::get_precompiles;
 use crate::pretty_printer::log_evm_result;
 use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
-use protobuf::{Message};
+use protobuf::Message;
 
 #[allow(clippy::too_many_arguments)]
 pub async fn run_evm_impl(
@@ -73,12 +73,6 @@ pub async fn run_evm_impl(
             }
 
             let recorded_cont = recorded_cont.unwrap();
-
-            // print the continuation storage
-            eprintln!("Continuation memory: {:?}", recorded_cont.memory);
-            eprintln!("Continuation stack: {:?}", recorded_cont.stack);
-            eprintln!("Continuation storages: {:?}", recorded_cont.storages);
-            eprintln!("Continuation id: {:?}", continuation.get_id());
 
             let machine = Machine::create_from_state(Rc::new(recorded_cont.code), Rc::new(recorded_cont.data),
                                                               recorded_cont.position, recorded_cont.return_range, recorded_cont.valids,
@@ -182,10 +176,10 @@ pub async fn run_evm_impl(
             }
         };
         info!(
-            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {} code: {:02X?}",
+            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
             evm_context, backend.origin, address, gas_limit, apparent_value,
             hex::encode(data.deref()),
-            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()), code);
+            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
         Ok(base64::encode(result.write_to_bytes().unwrap()))
     })
     .await
@@ -220,8 +214,6 @@ fn build_exit_result(
                         storage,
                         reset_storage,
                     } => {
-                        eprintln!("Modify: {:?} {:?}", address, basic);
-
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
                         modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
@@ -232,7 +224,7 @@ fn build_exit_result(
                         modify.set_reset_storage(reset_storage);
                         let storage_proto = storage
                             .into_iter()
-                            .map(|(k, v)| { eprintln!("Storage: {:?} {:?}", k, v); continuations.lock().unwrap().update_states(address, k, v);backend.encode_storage(k, v).into()})
+                            .map(|(k, v)| { continuations.lock().unwrap().update_states(address, k, v); backend.encode_storage(k, v).into()})
                             .collect();
 
                         modify.set_storage(storage_proto);
