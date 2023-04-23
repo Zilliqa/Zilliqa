@@ -23,7 +23,7 @@ use crate::precompiles::get_precompiles;
 use crate::pretty_printer::log_evm_result;
 use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
-use protobuf::Message;
+use protobuf::{Message};
 
 #[allow(clippy::too_many_arguments)]
 pub async fn run_evm_impl(
@@ -71,7 +71,15 @@ pub async fn run_evm_impl(
                 let result = handle_panic(tx_trace, gas_limit, "Continuation not found!");
                 return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
+
             let recorded_cont = recorded_cont.unwrap();
+
+            // print the continuation storage
+            eprintln!("Continuation memory: {:?}", recorded_cont.memory);
+            eprintln!("Continuation stack: {:?}", recorded_cont.stack);
+            eprintln!("Continuation storages: {:?}", recorded_cont.storages);
+            eprintln!("Continuation id: {:?}", continuation.get_id());
+
             let machine = Machine::create_from_state(Rc::new(recorded_cont.code), Rc::new(recorded_cont.data),
                                                               recorded_cont.position, recorded_cont.return_range, recorded_cont.valids,
                                                               recorded_cont.memory, recorded_cont.stack);
@@ -162,7 +170,7 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
-                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas)
+                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas, continuations)
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
@@ -191,6 +199,7 @@ fn build_exit_result(
     trace: &LoggingEventListener,
     exit_reason: &evm::ExitReason,
     remaining_gas: u64,
+    continuations: Arc<Mutex<Continuations>>,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     result.set_exit_reason(exit_reason.clone().into());
@@ -211,7 +220,8 @@ fn build_exit_result(
                         storage,
                         reset_storage,
                     } => {
-                        debug!("Modify: {:?} {:?}", address, basic);
+                        eprintln!("Modify: {:?} {:?}", address, basic);
+
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
                         modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
@@ -222,8 +232,9 @@ fn build_exit_result(
                         modify.set_reset_storage(reset_storage);
                         let storage_proto = storage
                             .into_iter()
-                            .map(|(k, v)| backend.encode_storage(k, v).into())
+                            .map(|(k, v)| { eprintln!("Storage: {:?} {:?}", k, v); continuations.lock().unwrap().update_states(address, k, v);backend.encode_storage(k, v).into()})
                             .collect();
+
                         modify.set_storage(storage_proto);
                         result.set_modify(modify);
                     }

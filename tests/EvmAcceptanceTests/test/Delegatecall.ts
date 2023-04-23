@@ -10,18 +10,28 @@ describe("Delegatecall functionality", function () {
 
   it("should delegate function call correctly", async function () {
     const VALUE = 1000000;
-    const NUM = 123;
+    const NUM = 3735931646; // 0xDEADCAFE
 
     const owner = this.delegateContract.signer;
     await this.delegateContract.setVars(this.testDelegateContract.address, NUM, {value: VALUE});
+
+    console.log("here0");
     expect(await this.delegateContract.num()).to.be.eq(NUM);
+    console.log("here1");
     expect(await this.delegateContract.value()).to.be.eq(VALUE);
+    console.log("here2");
     expect(await this.delegateContract.sender()).to.be.eq(owner.address);
+    console.log("here3");
     expect(await ethers.provider.getBalance(this.delegateContract.address)).to.be.eq(VALUE);
 
+    console.log("here4");
     expect(await this.testDelegateContract.num()).to.be.eq(0);
+    console.log("here5");
     expect(await this.testDelegateContract.value()).to.be.eq(0);
+    console.log("here6");
     expect(await this.testDelegateContract.sender()).to.be.eq("0x0000000000000000000000000000000000000000");
+    console.log("here7");
     expect(await ethers.provider.getBalance(this.testDelegateContract.address)).to.be.eq(0);
+    console.log("here8");
   });
 });
