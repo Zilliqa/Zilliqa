@@ -11,14 +11,14 @@ contract TestDelegatecall {
     function setVars(uint _num) external payable {
 
         emit A("we are here 0");
-        require(value == 9, "Didn't reflect variables from calling contract correctly");
+        require(num == 3735928559, "Didn't reflect variables from calling contract correctly"); // 0xDEADBEEF
+
         emit A("we are here 1");
-        require(num == 10, "Didn't reflect variables from calling contract correctly");
-        emit A("we are here 2");
 
         sender = msg.sender;
         value = msg.value;
         num = _num;
+        emit A("we are here 3");
     }
 }
 
@@ -31,12 +31,8 @@ contract Delegatecall {
 
     function setVars(address _test, uint _num) external payable {
 
-        value = 9;
-        num = 10;
-
-        require(value == 9, "cannot set own variables correctly (value)");
-        require(num == 10, "cannot set own variables correctly(num)");
-
+        num = 3735928559; // 0xDEADBEEF
+        value = 4027445261; // 0xF00DF00D
 
         emit A("making the call...");
 
@@ -45,6 +41,8 @@ contract Delegatecall {
         );
 
         emit A("making the call... done.");
+
+        require(num == _num, "Didn't set it...");
 
         if (success) {
             emit A("this was a success");
