@@ -49,7 +49,7 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        debug!(
+        info!(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}",
             backend.origin, address, gas_limit, apparent_value,
             backend.extras, estimate, enable_cps, tx_trace);
@@ -169,7 +169,7 @@ pub async fn run_evm_impl(
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
-                build_call_result(executor, &runtime, &backend, i, &listener, remaining_gas, cont_id)
+                build_call_result(executor, &runtime, &backend, i, &listener, remaining_gas, is_static, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
@@ -257,6 +257,7 @@ fn build_call_result(
     interrupt: CpsCallInterrupt,
     trace: &LoggingEventListener,
     remaining_gas: u64,
+    is_static: bool,
     cont_id: u64,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
@@ -332,7 +333,12 @@ fn build_call_result(
 
     trap_data_call.set_callee_address(interrupt.code_address.into());
     trap_data_call.set_call_data(interrupt.input.into());
-    trap_data_call.set_is_static(interrupt.is_static);
+    trap_data_call.set_is_static(interrupt.is_static || is_static);
+
+    if interrupt.is_static {
+        eprintln!("Static call detected. XXXX");
+    }
+
     trap_data_call.set_is_precompile(interrupt.is_precompile);
     trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
     trap_data_call.set_memory_offset(interrupt.memory_offset.into());
