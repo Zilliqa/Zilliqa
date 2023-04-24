@@ -250,6 +250,7 @@ fn build_exit_result(
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_call_result(
     executor: CpsExecutor,
     runtime: &Runtime,
