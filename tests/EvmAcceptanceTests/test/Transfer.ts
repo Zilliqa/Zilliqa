@@ -7,10 +7,7 @@ const FUND = ethers.utils.parseUnits("1", "gwei");
 
 async function getFee(hash: string) {
   const res = await ethers.provider.getTransactionReceipt(hash);
-  const NORM_TXN_GAS = 50;
-  const MIN_ETH_GAS = 21000;
-  // Result should be scaled by (50/21000)
-  return res.gasUsed.mul(res.effectiveGasPrice).mul(NORM_TXN_GAS).div(MIN_ETH_GAS);
+  return res.gasUsed.mul(res.effectiveGasPrice);
 }
 
 describe("ForwardZil contract functionality", function () {
