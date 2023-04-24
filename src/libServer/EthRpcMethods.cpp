@@ -399,6 +399,15 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                        NULL),
     &EthRpcMethods::GetOtterscanApiLevelI
   );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_BOOLEAN,
+                       "param01", jsonrpc::JSON_STRING,
+                       "param02", jsonrpc::JSON_STRING,
+                       NULL),
+    &EthRpcMethods::HasCodeI
+  );
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1994,4 +2003,22 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
 Json::Value EthRpcMethods::GetHeaderByNumber(const uint64_t blockNumber) {
   // Erigon headers are a subset of a full block - So just return the full block.
   return EthRpcMethods::GetEthBlockByNumber(std::to_string(blockNumber), false);
+}
+
+bool EthRpcMethods::HasCode(const std::string& address, const std::string& /*block*/) {
+  // TODO: Respect block parameter - We can probably do this by finding the contract creation transaction and comparing
+  // the block numbers.
+  Address addr{address, Address::FromHex};
+  unique_lock<shared_timed_mutex> lock(
+      AccountStore::GetInstance().GetPrimaryMutex());
+  AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+    return AccountStore::GetInstance().GetPrimaryWriteAccess();
+  });
+
+  const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
+  if (account) {
+    return !account->GetCode().empty();
+  } else {
+    return false;
+  }
 }
