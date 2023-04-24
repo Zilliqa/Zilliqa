@@ -612,6 +612,12 @@ class EthRpcMethods {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->HasCode(request[0u].asString(), request[1u].asString());
   }
+
+  inline virtual void GetBlockDetailsI(const Json::Value& request,
+                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetBlockDetails(request[0u].asUInt64());
+  }
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
@@ -694,6 +700,7 @@ class EthRpcMethods {
 
   Json::Value GetHeaderByNumber(const uint64_t blockNumber);
   bool HasCode(const std::string& address, const std::string& block);
+  Json::Value GetBlockDetails(const uint64_t blockNumber);
 
   Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
