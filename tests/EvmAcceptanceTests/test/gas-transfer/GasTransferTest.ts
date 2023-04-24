@@ -32,7 +32,7 @@ class TestCase {
 describe("GasTransferTest", function () {
   const ONE_GWEI = BigNumber.from(1_000_000_000);
   const ONE_MWEI = BigNumber.from(1_000_000);
-  const DEBUG = false;
+  const DEBUG = true;
   const testCases = [
     // Values less than 1MWei (10^(18-12)) won't show up because of rounding.
     new TestCase( "0", BigNumber.from(ONE_GWEI), BigNumber.from(0), BigNumber.from(0), BigNumber.from(ONE_GWEI), BigNumber.from(ONE_GWEI), BigNumber.from(ONE_GWEI)),

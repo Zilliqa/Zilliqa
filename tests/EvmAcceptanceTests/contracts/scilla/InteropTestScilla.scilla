@@ -1,0 +1,64 @@
+scilla_version 0
+
+library InteropTestScilla
+
+let one_msg = 
+  fun (msg : Message) => 
+  let nil_msg = Nil {Message} in
+  Cons {Message} msg nil_msg
+
+let two_msgs =
+fun (msg1 : Message) =>
+fun (msg2 : Message) =>
+  let msgs_tmp = one_msg msg2 in
+  Cons {Message} msg1 msgs_tmp
+
+type Error =
+| CodeIsSender
+| CodeInsufficientFunds
+| CodeInsufficientAllowance
+| CodeNotOwner
+
+let make_error =
+  fun (result : Error) =>
+    let result_code = 
+      match result with
+      | CodeIsSender              => Int32 -1
+      | CodeInsufficientFunds     => Int32 -2
+      | CodeInsufficientAllowance => Int32 -3
+      | CodeNotOwner              => Int32 -4
+      end
+    in
+    { _exception : "Error"; code : result_code }
+
+let zero = Uint128 0
+
+contract InteropTestScilla(msg : String)
+
+transition sayHelloAndReceiveFunds()
+  e = { _eventname: "hello"; msg: msg };
+  event e;
+  accept
+end
+
+transition sendToEvm(evmAddress: ByStr20)
+  bal <- _balance;
+  msg = { _tag: "receiveFunds"; _amount: bal; _recipient: evmAddress  };
+  no_msg = Nil { Message };
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
+
+transition Ock(otherAddress: ByStr20, dummy: Uint128) 
+  e = { _eventname: "helloFromScilla"; msg: msg };
+  event e;
+  accept
+end
+
+transition Tock(otherAddress: ByStr20)
+  msg = { _tag: "tick"; _amount: zero;  _recipient: otherAddress };
+  no_msg = Nil { Message };
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
+
