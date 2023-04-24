@@ -73,6 +73,7 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
+    m_contractCreatorDB = std::make_shared<LevelDB>("contractCreators");
   }
   m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
 }
@@ -1646,6 +1647,24 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
   }
 
   return found;
+}
+
+bool BlockStorage::PutContractCreator(const dev::h160 address, const dev::h256 txnHash) {
+  if (!m_contractCreatorDB) {
+    return true;
+  }
+
+  lock_guard<mutex> g(m_contractCreatorMutex);
+  return m_contractCreatorDB->Insert(address.asBytes(), txnHash.asBytes());
+}
+
+dev::h256 BlockStorage::GetContractCreator(const dev::h160 address) {
+  if (!m_contractCreatorDB) {
+    return dev::h256();
+  }
+
+  lock_guard<mutex> g(m_contractCreatorMutex);
+  return dev::h256(reinterpret_cast<const unsigned char*>(m_contractCreatorDB->Lookup(address.asBytes()).c_str()), dev::h256::ConstructFromPointerType::ConstructFromPointer);
 }
 
 bool BlockStorage::ResetDB(DBTYPE type) {

@@ -427,6 +427,14 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                        NULL),
     &EthRpcMethods::GetBlockTransactionsI
   );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_STRING,
+                       NULL),
+    &EthRpcMethods::GetContractCreatorI
+  );
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -2091,6 +2099,34 @@ Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, cons
   for (auto r : receipts) {
     response["receipts"].append(r);
   }
+
+  return response;
+}
+
+Json::Value EthRpcMethods::GetContractCreator(const std::string& address) {
+  Address addr{address, Address::FromHex};
+
+  dev::h256 creationTxn = BlockStorage::GetBlockStorage().GetContractCreator(addr);
+
+  if (creationTxn == dev::h256()) {
+    return Json::nullValue;
+  }
+
+  TxBodySharedPtr txnBodyPtr;
+  bool isPresent =
+    BlockStorage::GetBlockStorage().GetTxBody(creationTxn, txnBodyPtr);
+  if (!isPresent) {
+    LOG_GENERAL(WARNING, "Contract creator transaction doesn't exist");
+    return Json::nullValue;
+  }
+  const TransactionWithReceipt& txnBody = *txnBodyPtr;
+
+  Json::Value response = Json::objectValue;
+
+  response["hash"] = "0x" + creationTxn.hex();
+  // FIXME: This is wrong for deployer contracts.
+  // "For deployer contracts, i.e., the contract is created as a result of a method call, this corresponds to the address of the contract who created it."
+  response["creator"] = "0x" + txnBody.GetTransaction().GetSenderAddr().hex();
 
   return response;
 }
