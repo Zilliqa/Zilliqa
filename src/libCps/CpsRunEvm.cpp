@@ -193,8 +193,23 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result) {
   }
 }
 
-void CpsRunEvm::ApplyStateChanges(const evm::EvmResult& result, Address &thisContractAddress, Address &fundsRecipient, Amount &funds) {
+CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
+  const evm::TrapData& trap_data = result.trap_data();
+  const evm::TrapData_Call callData = trap_data.call();
+  const auto& ctx = callData.context();
 
+  CREATE_SPAN(
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
+      ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
+      ProtoToUint(callData.transfer().value()).convert_to<std::string>());
+
+  uint64_t remainingGas = result.remaining_gas();
+  Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
+  Address fundsRecipient;
+  Amount funds;
+
+  // Apply the evm state changes made so far so subsequent contract calls
+  // can see the changes (delegatecall)
   for (const auto& it : result.apply()) {
     switch (it.apply_case()) {
       case evm::Apply::ApplyCase::kDelete:
@@ -248,27 +263,6 @@ void CpsRunEvm::ApplyStateChanges(const evm::EvmResult& result, Address &thisCon
         break;
     }
   }
-}
-
-CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
-  const evm::TrapData& trap_data = result.trap_data();
-  const evm::TrapData_Call callData = trap_data.call();
-  const auto& ctx = callData.context();
-
-  CREATE_SPAN(
-      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
-      ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
-      ProtoToUint(callData.transfer().value()).convert_to<std::string>());
-
-  uint64_t remainingGas = result.remaining_gas();
-
-  Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
-  Address fundsRecipient;
-  Amount funds;
-
-  // Apply the evm state changes made so far so subsequent contract calls
-  // can see the changes (delegatecall)
-  ApplyStateChanges(result, thisContractAddress, fundsRecipient, funds);
 
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
@@ -648,15 +642,68 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     receipt.AddJsonEntry(entry);
   }
 
-  Address accountToRemove;
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
+  Address accountToRemove;
   Address fundsRecipient;
   Amount funds;
 
   // parse the return values from the call to evm.
   // we should expect no more that 2 apply instuctions (in case of selfdestruct:
   // fund recipient and deleted account)
-  ApplyStateChanges(result, thisContractAddress, fundsRecipient, funds);
+  for (const auto& it : result.apply()) {
+    switch (it.apply_case()) {
+      case evm::Apply::ApplyCase::kDelete:
+        accountToRemove = ProtoToAddress(it.delete_().address());
+        break;
+      case evm::Apply::ApplyCase::kModify: {
+        const auto iterAddress = ProtoToAddress(it.modify().address());
+        // Get the account that this apply instruction applies to
+        if (!mAccountStore.AccountExistsAtomic(thisContractAddress)) {
+          mAccountStore.AddAccountAtomic(thisContractAddress);
+        }
+
+        // only allowed for thisContractAddress in non-static context!
+        if (it.modify().reset_storage() && iterAddress == thisContractAddress &&
+            !mProtoArgs.is_static_call()) {
+          std::map<std::string, zbytes> states;
+          std::vector<std::string> toDeletes;
+
+          mAccountStore.FetchStateDataForContract(states, thisContractAddress,
+                                                  "", {}, true);
+          for (const auto& x : states) {
+            toDeletes.emplace_back(x.first);
+          }
+
+          mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes, true);
+        }
+        // Actually Update the state for the contract (only allowed for
+        // thisContractAddress in non-static context!)
+        for (const auto& sit : it.modify().storage()) {
+          if (iterAddress != thisContractAddress ||
+              mProtoArgs.is_static_call()) {
+            break;
+          }
+          LOG_GENERAL(INFO,
+                      "Saving storage for Address: " << thisContractAddress);
+          if (!mAccountStore.UpdateStateValue(
+                  thisContractAddress,
+                  DataConversion::StringToCharArray(sit.key()), 0,
+                  DataConversion::StringToCharArray(sit.value()), 0)) {
+          }
+        }
+
+        if (it.modify().has_balance()) {
+          fundsRecipient = ProtoToAddress(it.modify().address());
+          funds = Amount::fromQa(ProtoToUint(it.modify().balance()));
+        }
+        // Mark the Address as updated
+        mAccountStore.AddAddressToUpdateBufferAtomic(thisContractAddress);
+      } break;
+      case evm::Apply::ApplyCase::APPLY_NOT_SET:
+        // do nothing;
+        break;
+    }
+  }
 
   // Allow only removal of self in non-static calls
   if (accountToRemove == thisContractAddress && !mProtoArgs.is_static_call()) {
