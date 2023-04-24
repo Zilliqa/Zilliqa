@@ -25,6 +25,7 @@
 #include "libCps/ScillaHelpersCall.h"
 #include "libCps/ScillaHelpersCreate.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libScilla/ScillaClient.h"
 #include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
@@ -223,6 +224,10 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
 
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
+
+  if (!BlockStorage::GetBlockStorage().PutContractCreator(mArgs.dest, mCpsContext.scillaExtras.txnHash)) {
+    LOG_GENERAL(WARNING, "Failed to save contract creator");
+  }
 
   return {TxnStatus::NOT_PRESENT, true, ScillaResult{mArgs.gasLimit}};
 }

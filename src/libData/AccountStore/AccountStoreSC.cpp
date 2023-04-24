@@ -249,7 +249,9 @@ bool AccountStoreSC::UpdateAccounts(
         .dsBlockNum = m_curDSBlockNum,
         .blockTimestamp = extras.block_timestamp,
         .blockDifficulty = extras.block_difficulty,
-        .contractType = Transaction::GetTransactionType(transaction)};
+        .contractType = Transaction::GetTransactionType(transaction),
+        .txnHash = transaction.GetTranID()
+    };
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
