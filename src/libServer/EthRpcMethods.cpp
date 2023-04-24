@@ -40,6 +40,7 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/AddressChecksum.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
@@ -407,6 +408,14 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                        "param02", jsonrpc::JSON_STRING,
                        NULL),
     &EthRpcMethods::HasCodeI
+  );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetBlockDetailsI
   );
 }
 
@@ -2021,4 +2030,26 @@ bool EthRpcMethods::HasCode(const std::string& address, const std::string& /*blo
   } else {
     return false;
   }
+}
+
+Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
+  Json::Value response;
+
+  auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
+  bool isVacuous = CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
+  uint128_t rewards = (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR : 0);
+  uint128_t fees = (isVacuous ? 0 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
+  auto jsonBlock = GetEthBlockCommon(txBlock, false);
+
+  jsonBlock.removeMember("transactions");
+  jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
+  jsonBlock["logsBloom"] = Json::nullValue;
+  response["block"] = jsonBlock;
+
+  response["issuance"]["blockReward"] = rewards.str();
+  response["issuance"]["uncleReward"] = 0;
+  response["issuance"]["issuance"] = rewards.str();
+
+  response["totalFees"] = fees.str();
+  return response;
 }
