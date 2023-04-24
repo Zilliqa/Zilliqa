@@ -187,6 +187,7 @@ pub async fn run_evm_impl(
     .unwrap()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_exit_result(
     executor: CpsExecutor,
     runtime: &Runtime,
