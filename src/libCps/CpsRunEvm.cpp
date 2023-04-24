@@ -273,7 +273,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     INC_STATUS(GetCPSMetric(), "error",
                "Context change from static to non-static");
     TRACE_ERROR(
-        "Atempt to change context from static to non-static in call-trap");
+        "Attempt to change context from static to non-static in call-trap");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
@@ -332,6 +332,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     *evmCallArgs.mutable_context() = "TrapCall";
     *evmCallArgs.mutable_extras() = mCpsContext.evmExtras;
     evmCallArgs.set_enable_cps(ENABLE_CPS);
+
     evmCallArgs.set_is_static_call(isStatic);
     auto callRun = std::make_unique<CpsRunEvm>(
         std::move(evmCallArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
