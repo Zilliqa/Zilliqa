@@ -401,6 +401,8 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
     &EthRpcMethods::GetOtterscanApiLevelI
   );
 
+  // "ots_getInternalOperations"
+
   m_lookupServer->bindAndAddExternalMethod(
     jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
                        jsonrpc::JSON_BOOLEAN,
@@ -409,6 +411,9 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                        NULL),
     &EthRpcMethods::HasCodeI
   );
+
+  // "ots_traceTransaction"
+  // "ots_getTransactionError"
 
   m_lookupServer->bindAndAddExternalMethod(
     jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
@@ -427,6 +432,10 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                        NULL),
     &EthRpcMethods::GetBlockTransactionsI
   );
+
+  // "ots_searchTransactionsBefore"
+  // "ots_searchTransactionsAfter"
+  // "ots_getTransactionBySenderAndNonce"
 
   m_lookupServer->bindAndAddExternalMethod(
     jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
