@@ -36,6 +36,7 @@ pub async fn run_evm_impl(
     backend: ScillaBackend,
     gas_scaling_factor: u64,
     estimate: bool,
+    is_static: bool,
     evm_context: String,
     node_continuation: Option<EvmProto::Continuation>,
     continuations: Arc<Mutex<Continuations>>,
@@ -164,7 +165,7 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
-                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas, continuations)
+                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas, is_static, continuations)
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
@@ -193,12 +194,16 @@ fn build_exit_result(
     trace: &LoggingEventListener,
     exit_reason: &evm::ExitReason,
     remaining_gas: u64,
+    is_static: bool,
     continuations: Arc<Mutex<Continuations>>,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     result.set_exit_reason(exit_reason.clone().into());
     result.set_return_value(runtime.machine().return_value().into());
     let (state_apply, logs) = executor.into_state().deconstruct();
+
+    // Is this call static? if so, we don't want to modify other continuations' state
+    //let is_static = true;
 
     result.set_apply(
         state_apply
@@ -228,7 +233,7 @@ fn build_exit_result(
                         modify.set_reset_storage(reset_storage);
                         let storage_proto = storage
                             .into_iter()
-                            .map(|(k, v)| { continuations.lock().unwrap().update_states(address, k, v); backend.encode_storage(k, v).into()})
+                            .map(|(k, v)| { continuations.lock().unwrap().update_states(address, k, v, is_static); backend.encode_storage(k, v).into()})
                             .collect();
 
                         modify.set_storage(storage_proto);

@@ -67,7 +67,15 @@ impl Continuations {
     // Sometimes a contract will change the state of another contract
     // in this case, we need to find cached state of continuations that
     // has now been invalidated by this and update it
-    pub fn update_states(&mut self, addr: H160, key: H256, value: H256)  {
+    pub fn update_states(&mut self, addr: H160, key: H256, value: H256, skip: bool)  {
+
+        if skip {
+            return;
+        }
+
+        // print states we are updating
+        eprintln!("Updating states for {:?} {:?} {:?}", addr, key, value);
+
         // Loop over continuations updating the address if it exists
         for (_, continuation) in self.storage.iter_mut() {
 

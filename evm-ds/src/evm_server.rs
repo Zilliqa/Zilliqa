@@ -65,6 +65,7 @@ impl EvmServer {
                 let backend =
                     ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
                 let gas_scaling_factor = self.gas_scaling_factor;
+                let is_static = args.get_is_static_call();
 
                 let node_continuation = if args.get_continuation().get_id() == 0 {
                     None
@@ -82,6 +83,7 @@ impl EvmServer {
                     backend,
                     gas_scaling_factor,
                     estimate,
+                    is_static,
                     args.get_context().to_string(),
                     node_continuation,
                     self.continuations.clone(),
