@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSRUNEVM_H_
 #define ZILLIQA_SRC_LIBCPS_CPSRUNEVM_H_
 
+#include "Amount.h"
 #include "libCps/CpsExecuteResult.h"
 #include "libCps/CpsRun.h"
 #include "libUtils/Evm.pb.h"
@@ -54,6 +55,7 @@ class CpsRunEvm final : public CpsRun {
   void InstallCode(const Address& address, const std::string& code);
 
  private:
+  void ApplyStateChanges(const evm::EvmResult& result, Address &thisContractAddress, Address &fundsRecipient, Amount &funds);
   evm::EvmArgs mProtoArgs;
   CpsExecutor& mExecutor;
   const CpsContext& mCpsContext;
