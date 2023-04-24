@@ -73,9 +73,6 @@ impl Continuations {
             return;
         }
 
-        // print states we are updating
-        eprintln!("Updating states for {:?} {:?} {:?}", addr, key, value);
-
         // Loop over continuations updating the address if it exists
         for (_, continuation) in self.storage.iter_mut() {
 

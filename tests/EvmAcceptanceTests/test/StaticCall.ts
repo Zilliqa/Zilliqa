@@ -37,9 +37,7 @@ describe("Static Contract Calls Functionality", function () {
       assert.equal(contractNum, 0);
 
       // This contract calls 'Caller' which makes a static call back to itself. This should
-      // not change its value
-
-      // Static call to contract should not increase it/work
+      // not change its value (but will if static is not respected)
       let res = await called.callCaller(callerAddress, calledAddress);
 
       contractNum = await called.getNumber();

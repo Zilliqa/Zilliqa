@@ -202,9 +202,6 @@ fn build_exit_result(
     result.set_return_value(runtime.machine().return_value().into());
     let (state_apply, logs) = executor.into_state().deconstruct();
 
-    // Is this call static? if so, we don't want to modify other continuations' state
-    //let is_static = true;
-
     result.set_apply(
         state_apply
             .into_iter()
@@ -231,6 +228,8 @@ fn build_exit_result(
                             modify.set_code(code.into());
                         }
                         modify.set_reset_storage(reset_storage);
+
+                        // Is this call static? if so, we don't want to modify other continuations' state
                         let storage_proto = storage
                             .into_iter()
                             .map(|(k, v)| { continuations.lock().unwrap().update_states(address, k, v, is_static); backend.encode_storage(k, v).into()})
