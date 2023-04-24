@@ -274,7 +274,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
                "Context change from static to non-static");
     TRACE_ERROR(
         "Atempt to change context from static to non-static in call-trap");
-    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
   span.SetAttribute("IsStatic", isStatic);
