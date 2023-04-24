@@ -64,7 +64,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
       mAccountStore.AddAccountAtomic(contractAddress);
-      mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
