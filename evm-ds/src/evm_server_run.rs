@@ -49,7 +49,7 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        info!(
+        debug!(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}",
             backend.origin, address, gas_limit, apparent_value,
             backend.extras, estimate, enable_cps, tx_trace);
@@ -334,11 +334,6 @@ fn build_call_result(
     trap_data_call.set_callee_address(interrupt.code_address.into());
     trap_data_call.set_call_data(interrupt.input.into());
     trap_data_call.set_is_static(interrupt.is_static || is_static);
-
-    if interrupt.is_static {
-        eprintln!("Static call detected. XXXX");
-    }
-
     trap_data_call.set_is_precompile(interrupt.is_precompile);
     trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
     trap_data_call.set_memory_offset(interrupt.memory_offset.into());
