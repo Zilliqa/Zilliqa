@@ -417,6 +417,16 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                        NULL),
     &EthRpcMethods::GetBlockDetailsI
   );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getBlockTransactions", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_INTEGER,
+                       "param02", jsonrpc::JSON_INTEGER,
+                       "param03", jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetBlockTransactionsI
+  );
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -2045,5 +2055,36 @@ Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   response["issuance"]["issuance"] = rewards.str();
 
   response["totalFees"] = fees.str();
+  return response;
+}
+
+Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, const uint32_t pageNumber, const uint32_t pageSize) {
+  Json::Value response;
+
+  auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
+  auto jsonBlock = GetEthBlockCommon(txBlock, true);
+
+  auto transactions = jsonBlock["transactions"];
+
+  auto start = pageNumber * pageSize;
+  auto end = std::min(transactions.size(), (pageNumber + 1) * pageSize);
+
+  std::vector<Json::Value> receipts;
+  for (Json::Value::ArrayIndex i = start; i < end; i++) {
+    auto transaction = transactions[i];
+    // TODO: Truncate input to 4 bytes (plus 0x) - Work out why the 0x is optional
+
+    auto receipt = EthRpcMethods::GetEthTransactionReceipt(transaction["hash"].asString());
+    receipt["logs"] = Json::nullValue;
+    receipt["logsBloom"] = Json::nullValue;
+    receipts.push_back(receipt);
+  }
+
+  response["fullblock"] = jsonBlock;
+
+  for (auto r : receipts) {
+    response["receipts"].append(r);
+  }
+
   return response;
 }
