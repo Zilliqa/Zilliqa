@@ -206,7 +206,11 @@ fn build_exit_result(
             .map(|apply| {
                 let mut result = EvmProto::Apply::new();
                 match apply {
-                    Apply::Delete { .. } => {}
+                    Apply::Delete { address } => {
+                        let mut delete = EvmProto::Apply_Delete::new();
+                        delete.set_address(address.into());
+                        result.set_delete(delete);
+                    }
                     Apply::Modify {
                         address,
                         basic,
