@@ -384,6 +384,14 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, nullptr),
       &EthRpcMethods::GetDSLeaderTxnPoolI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("erigon_getHeaderByNumber", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetHeaderByNumberI
+  );
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1974,4 +1982,9 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
+}
+
+Json::Value EthRpcMethods::GetHeaderByNumber(const uint64_t blockNumber) {
+  // Erigon headers are a subset of a full block - So just return the full block.
+  return EthRpcMethods::GetEthBlockByNumber(std::to_string(blockNumber), false);
 }
