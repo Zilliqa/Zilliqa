@@ -180,6 +180,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
               ProtoToAddress(clientContext.GetEvmArgs().origin()).hex(),
               ProtoToUint(clientContext.GetEvmArgs().apparent_value())
                   .convert_to<std::string>())
+  LOG_MARKER();
 
   InitRun();
 
@@ -206,6 +207,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   auto runResult = processLoop(cpsCtx);
   TRACE_EVENT("EvmCpsRun", "processLoop", "completed");
+  LOG_GENERAL(INFO, "Process loop completed");
 
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
@@ -224,6 +226,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   span.SetAttribute("Estimate", isEstimate);
   span.SetAttribute("EthCall", isEthCall);
   span.SetAttribute("Failure", isFailure);
+  LOG_GENERAL(INFO, "Estimate: " << isEstimate << ", EthCall: " << isEthCall << ", Failure: " << isFailure);
 
   const auto usedGas = givenGasCore - gasRemainedCore;
 
@@ -233,6 +236,13 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     mAccountStore.DiscardAtomics();
     mTxReceipt.SetCumGas(usedGas);
     if (isFailure) {
+      LOG_GENERAL(INFO, "Call failed");
+      if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
+        auto const &result = std::get<evm::EvmResult>(runResult.result);
+        LOG_GENERAL(INFO, EvmUtils::ExitReasonString(result.exit_reason()));
+      } else {
+        LOG_GENERAL(WARNING, "EVM call returned a Scilla result");
+      }
       mTxReceipt.SetResult(false);
       mTxReceipt.AddError(RUNNER_FAILED);
     } else {
@@ -340,6 +350,7 @@ void CpsExecutor::TakeGasFromAccount(
     amount = Amount::fromQa(gasDepositQa);
   }
 
+  LOG_GENERAL(INFO, "Take " << amount.toWei().str() << " Wei (" << amount.toQa().str() << " Qa) from " << address << " for gas deposit");
   mAccountStore.DecreaseBalanceAtomic(address, amount);
 }
 
