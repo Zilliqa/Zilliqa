@@ -384,6 +384,13 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, nullptr),
       &EthRpcMethods::GetDSLeaderTxnPoolI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getApiLevel", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetOtterscanApiLevelI
+  );
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
