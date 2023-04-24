@@ -10,10 +10,11 @@ describe("Delegatecall functionality", function () {
 
   it("should delegate function call correctly", async function () {
     const VALUE = 1000000;
-    const NUM = 123;
+    const NUM = 3735931646; // 0xDEADCAFE
 
     const owner = this.delegateContract.signer;
     await this.delegateContract.setVars(this.testDelegateContract.address, NUM, {value: VALUE});
+
     expect(await this.delegateContract.num()).to.be.eq(NUM);
     expect(await this.delegateContract.value()).to.be.eq(VALUE);
     expect(await this.delegateContract.sender()).to.be.eq(owner.address);
