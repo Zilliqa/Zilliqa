@@ -601,6 +601,12 @@ class EthRpcMethods {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetHeaderByNumber(request[0u].asUInt64());
   }
+
+  inline virtual void GetOtterscanApiLevelI(const Json::Value& request,
+                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = 8;
+  }
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
