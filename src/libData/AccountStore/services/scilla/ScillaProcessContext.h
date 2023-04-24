@@ -37,6 +37,7 @@ struct ScillaProcessContext {
   uint128_t blockTimestamp;
   uint8_t blockDifficulty = 0;
   Transaction::ContractType contractType;
+  TxnHash txnHash;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLAPROCESSCONTEXT_H_
