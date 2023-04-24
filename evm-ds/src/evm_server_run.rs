@@ -84,7 +84,7 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
-            let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+            let runtime = evm::Runtime::new(code, data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
         };
