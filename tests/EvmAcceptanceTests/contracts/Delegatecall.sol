@@ -104,8 +104,10 @@ contract Delegatecall {
 
 
         emit DebugMsg("(level two): Here are first two return values: ");
+        emit DebugMsgAddress(_first);
         emit DebugMsgAddress(toRet);
         emit DebugMsgAddress(toRetSecond);
+        emit DebugMsg("(level two): We could actualy break here... ");
         return toRet;
     }
 }
@@ -144,6 +146,7 @@ contract BaseDelegator {
         address toRetSecond = direct.addresses(msg.sender);
 
         emit DebugMsg("Here are first two return values: ");
+        emit DebugMsgAddress(_first);
         emit DebugMsgAddress(toRet);
         emit DebugMsgAddress(toRetSecond);
 
