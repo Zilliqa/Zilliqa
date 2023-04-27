@@ -130,7 +130,8 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, NULL),
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
       &Server::GetVersionI);
 
   if (timeDelta > 0) {

@@ -771,7 +771,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     do {
       m_mediator.m_lookup->GetTxBlockFromSeedNodes(
           m_mediator.m_txBlockChain.GetBlockCount(), 0);
-    // TODO: cv fix
+      // TODO: cv fix
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
@@ -785,7 +785,8 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
   m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllSync,
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool &allowRecoveryAllSync,
                                 bool rejoiningAfterRecover) {
   LOG_MARKER();
 
@@ -1119,7 +1120,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);
   }
-  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
+  bool rejoinCondition =
+      REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
 
   if (rejoinCondition && bIpChanged) {
     LOG_GENERAL(
@@ -1534,7 +1536,6 @@ bool GetOneGenesisAddress(Address &oAddr) {
 
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
-
   zil::local::nodeVar.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2003,7 +2004,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             rejectTxns.emplace_back(status.second, status.first);
           }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to ( " << (int)status.first << ") "
+                                   << " rejected by pool due to ( "
+                                   << (int)status.first << ") "
                                    << status.first);
         }
       } else {
@@ -2019,8 +2021,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
-                                        << " TxnPool size after processing: "
-                                        << m_createdTxns.size());
+                                           << " TxnPool size after processing: "
+                                           << m_createdTxns.size());
 
     zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
@@ -3333,13 +3335,12 @@ void Node::CheckPeers(const vector<Peer> &peers) {
   P2PComm::GetInstance().SendMessage(peers, message);
 }
 
-
-void Node::AddPendingTxn(Transaction const& tx) {
+void Node::AddPendingTxn(Transaction const &tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   // Emergency fail safe to avoid memory issues if the pool isn't getting
   // cleared somehow
-  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+  if (m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
     LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
     m_pendingTxns.clear();
   }
@@ -3352,7 +3353,7 @@ std::vector<Transaction> Node::GetPendingTxns() const {
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 
-  for (const auto &s :m_pendingTxns) {
+  for (const auto &s : m_pendingTxns) {
     ret.push_back(s.second);
   }
 

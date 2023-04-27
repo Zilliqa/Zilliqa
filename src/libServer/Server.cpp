@@ -21,8 +21,8 @@
 #include "libMessage/Messenger.h"
 #include "libNode/Node.h"
 #include "libUtils/Logger.h"
-#include "libUtils/TimeUtils.h"
 #include "libUtils/SWInfo.h"
+#include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;

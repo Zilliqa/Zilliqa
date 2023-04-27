@@ -118,7 +118,8 @@ class FinalBLockProcessingVariables {
         result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
         result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
-        result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(missedMicroblockConsensus,
+                   {{"counter", "MissedMicroblockConsensus"}});
         result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
         result.Set(shard, {{"counter", "Shard"}});
       });
@@ -1046,7 +1047,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus. Timeout: " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
+        LOG_GENERAL(WARNING,
+                    "Timeout, I didn't finish microblock consensus. Timeout: "
+                        << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
         zil::local::variables.AddTimedOutMicroblock(1);
       }
     }

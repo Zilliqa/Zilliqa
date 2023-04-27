@@ -77,7 +77,7 @@ class IsolatedServer : public LookupServer,
     LOG_MARKER_CONTITIONAL(LOG_SC);
     auto rawTx = request[0u].asString();
 
-    if(LOG_SC) {
+    if (LOG_SC) {
       LOG_GENERAL(INFO, "rawTx: " << rawTx);
     }
 

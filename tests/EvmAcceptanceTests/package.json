@@ -51,6 +51,8 @@
     "cli-color": "^2.0.3",
     "deep-equal-in-any-order": "^2.0.6",
     "dotenv": "^16.0.3",
+    "node": "^16.20.0",
+    "npm": "^9.6.5",
     "yargs": "^17.7.1"
   },
   "lint-staged": {

@@ -323,8 +323,8 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
   this->bindAndAddMethod(
-      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
-                         NULL),
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
       &Server::GetVersionI);
 
   m_StartTimeTx = 0;
@@ -991,13 +991,15 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
 
     string initDataStr;
     Json::Value initDataJson;
-    // If the contract is EVM, represent the init data as a hex string. Otherwise, it is JSON.
+    // If the contract is EVM, represent the init data as a hex string.
+    // Otherwise, it is JSON.
     if (EvmUtils::isEvm(code)) {
       initDataStr = DataConversion::Uint8VecToHexStrRet(initData);
       initDataJson = initDataStr;
     } else {
       initDataStr = DataConversion::CharArrayToString(initData);
-      if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
+      if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr,
+                                                     initDataJson)) {
         throw JsonRpcException(RPC_PARSE_ERROR,
                                "Unable to convert initData into Json");
       }
@@ -1278,8 +1280,7 @@ double LookupServer::GetTransactionRate() {
     refBlockNum = refBlockNum - REF_BLOCK_DIFF;
   }
 
-  mp::cpp_dec_float_50 numTxns(
-      LookupServer::GetNumTransactions(refBlockNum));
+  mp::cpp_dec_float_50 numTxns(LookupServer::GetNumTransactions(refBlockNum));
   LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
   try {
@@ -2370,7 +2371,6 @@ Json::Value LookupServer::GetStateProof(const string& address,
 
   return ret;
 }
-
 
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,

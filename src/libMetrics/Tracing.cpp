@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Common.h"
 #include "Tracing.h"
+#include "Common.h"
 
 #include <cassert>
 #include <thread>

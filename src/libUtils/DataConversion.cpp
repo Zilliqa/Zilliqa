@@ -101,11 +101,10 @@ std::string DataConversion::Uint8VecToHexStrRet(const zbytes& hex_vec) {
   return str;
 }
 
-
-bool DataConversion::ContainsAllAscii(const zbytes& vec){
+bool DataConversion::ContainsAllAscii(const zbytes& vec) {
   // Check if vec contains all ASCII characters
-  for (auto& i : vec){
-    if (i > 127){
+  for (auto& i : vec) {
+    if (i > 127) {
       return false;
     }
   }
