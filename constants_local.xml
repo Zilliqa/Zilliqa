@@ -200,6 +200,8 @@
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
         <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
+        <RPC_QUEUE_SIZE>10000</RPC_QUEUE_SIZE>
+        <NUM_RPC_THREADS>50</NUM_RPC_THREADS>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
