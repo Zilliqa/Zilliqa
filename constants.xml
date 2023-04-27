@@ -205,6 +205,8 @@
         <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
         <!-- Use Continuation passing style -->
         <ENABLE_CPS>true</ENABLE_CPS>
+        <RPC_QUEUE_SIZE>10000</RPC_QUEUE_SIZE>
+        <NUM_RPC_THREADS>50</NUM_RPC_THREADS>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

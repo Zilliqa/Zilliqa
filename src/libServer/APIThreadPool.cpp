@@ -38,6 +38,7 @@ APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
   if (numThreads == 0) numThreads = 1;
 
   m_threads.reserve(numThreads);
+  LOG_GENERAL(INFO, "maxQueueSize = "<<maxQueueSize<< " num threads = "<< numThreads);
   for (size_t i = 0; i < numThreads; ++i) {
     m_threads.emplace_back([this, i] { WorkerThread(i); });
   }

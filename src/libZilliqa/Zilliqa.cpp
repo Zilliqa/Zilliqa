@@ -487,6 +487,8 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
       options.asio = asioCtx;
       options.threadPoolName = "API";
       options.port = static_cast<uint16_t>(LOOKUP_RPC_PORT);
+      options.maxQueueSize = RPC_QUEUE_SIZE;
+      options.numThreads = NUM_RPC_THREADS;
 
       apiRPC = rpc::APIServer::CreateAndStart(std::move(options), false);
       if (apiRPC) {

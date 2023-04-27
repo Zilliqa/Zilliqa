@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include "libUtils/Logger.h"
 
 namespace utility {
 
@@ -53,7 +54,10 @@ class Queue {
     {
       std::lock_guard<Mutex> lk(m_mutex);
       queue_size = m_queue.size();
-      if (m_stopped || queue_size >= m_maxSize) return false;
+      if (m_stopped || queue_size >= m_maxSize) {
+        LOG_GENERAL(INFO, "m_stopped = " << m_stopped << " queue size = " << queue_size);
+        return false;
+      }
       m_queue.push_back(std::move(item));
       ++queue_size;
     }
@@ -65,7 +69,10 @@ class Queue {
     std::unique_lock<Mutex> lk(m_mutex);
     m_condition.wait(lk, [this] { return !m_queue.empty() || m_stopped; });
     queue_size = m_queue.size();
-    if (m_stopped) return false;
+    if (m_stopped) {
+      LOG_GENERAL(INFO, "m_stopped = " << m_stopped << " queue size = " << queue_size);
+      return false;
+    }
     item = std::move(m_queue.front());
     m_queue.pop_front();
     return true;
