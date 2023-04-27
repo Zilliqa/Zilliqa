@@ -43,7 +43,11 @@ class Queue {
   bool bounded_push(T item) {
     {
       std::lock_guard<Mutex> lk(m_mutex);
-      if (m_stopped || m_queue.size() >= m_maxSize) return false;
+      LOG_GENERAL(INFO, "bounded_push() m_stopped = " << m_stopped << " queue size = " << m_queue.size());
+      if (m_stopped || m_queue.size() >= m_maxSize) {
+      LOG_GENERAL(INFO, "bounded_push() error m_stopped = " << m_stopped << " queue size = " << m_queue.size());
+        return false;
+      }
       m_queue.push_back(std::move(item));
     }
     m_condition.notify_one();
@@ -54,8 +58,9 @@ class Queue {
     {
       std::lock_guard<Mutex> lk(m_mutex);
       queue_size = m_queue.size();
+      LOG_GENERAL(INFO, "bounded_push() m_stopped = " << m_stopped << " queue size = " << queue_size);
       if (m_stopped || queue_size >= m_maxSize) {
-        LOG_GENERAL(INFO, "m_stopped = " << m_stopped << " queue size = " << queue_size);
+        LOG_GENERAL(INFO, "bounded_push() error m_stopped = " << m_stopped << " queue size = " << queue_size);
         return false;
       }
       m_queue.push_back(std::move(item));
@@ -70,21 +75,27 @@ class Queue {
     m_condition.wait(lk, [this] { return !m_queue.empty() || m_stopped; });
     queue_size = m_queue.size();
     if (m_stopped) {
-      LOG_GENERAL(INFO, "m_stopped = " << m_stopped << " queue size = " << queue_size);
+      LOG_GENERAL(INFO, "pop() error m_stopped = " << m_stopped << " queue size = " << queue_size);
       return false;
     }
+    LOG_GENERAL(INFO, "pop() m_stopped = " << m_stopped << " queue size = " << queue_size);
     item = std::move(m_queue.front());
     m_queue.pop_front();
     return true;
   }
 
-  bool try_pop(T &item) {
-    std::unique_lock<Mutex> lk(m_mutex);
-    if (m_stopped || m_queue.empty()) return false;
-    item = std::move(m_queue.front());
-    m_queue.pop_front();
-    return true;
+bool try_pop(T &item) {
+  std::unique_lock<Mutex> lk(m_mutex);
+  if (m_stopped || m_queue.empty()) {
+      LOG_GENERAL(INFO, "try_pop() error m_stopped = " << m_stopped << " queue size = " << m_queue.size());
+      return false;
   }
+  item = std::move(m_queue.front());
+  size_t queue_size = m_queue.size();
+  LOG_GENERAL(INFO, "try_pop() m_stopped = " << m_stopped << " queue size = " << queue_size);
+  m_queue.pop_front();
+  return true;
+}
 
   void stop() {
     {
