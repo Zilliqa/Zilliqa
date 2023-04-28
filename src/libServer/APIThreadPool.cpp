@@ -102,21 +102,23 @@ class StopWatch {
 void APIThreadPool::WorkerThread(size_t threadNo) {
   auto threadName = m_name + "-" + std::to_string(threadNo + 1);
   utility::SetThreadName(threadName.c_str());
-  StopWatch sw;
+  // StopWatch sw;
 
   Request request;
   size_t queueSize = 0;
   while (m_requestQueue.pop(request, queueSize)) {
-    LOG_GENERAL(INFO, threadName << " processes job #" << request.id
-                                  << ", Q=" << queueSize);
-    sw.Start();
+    LOG_GENERAL(INFO, threadName << " processes job begin #" << request.id
+                                 << ", Q=" << queueSize);
+    // sw.Start();
     auto response = m_processRequest(request);
-    sw.Stop();
+    // sw.Stop();
+    LOG_GENERAL(INFO, threadName << " processes job end #" << request.id
+                                 << ", Q=" << queueSize);
 
-    LOG_GENERAL(INFO, threadName << ": " << sw.Microseconds()
-                                  << " microsec, request=\n"
-                                  << request.body << "\nresponse=\n"
-                                  << response.body);
+    // LOG_GENERAL(INFO, threadName << ": " << sw.Microseconds()
+    //                               << " microsec, request=\n"
+    //                               << request.body << "\nresponse=\n"
+    //                              << response.body);
     PushResponse(std::move(response));
   }
 }
