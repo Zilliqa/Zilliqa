@@ -4,6 +4,10 @@ import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 
+require("@nomiclabs/hardhat-ethers");
+require("@openzeppelin/hardhat-upgrades");
+require("@nomiclabs/hardhat-etherscan");
+
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
   const chai = require("chai");

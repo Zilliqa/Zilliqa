@@ -40,6 +40,9 @@ describe("Delegatecall functionality", function () {
     // Set up the ID mapping
     await this.testDelegateContract.setOwnerAndCheck();
 
+    console.log("NOW DO IT");
+    await new Promise(r => setTimeout(r, 15000));
+
     await this.baseDelegator.checkOwnerTwoWays(this.testDelegateContract.address, this.delegateContract.address);
   });
 });

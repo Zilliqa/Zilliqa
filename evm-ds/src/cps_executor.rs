@@ -229,6 +229,7 @@ impl<'a> Handler for CpsExecutor<'a> {
 
     /// Get execution origin.
     fn origin(&self) -> H160 {
+        eprintln!("Getting origin and it is: {:?}", self.stack_executor.origin());
         self.stack_executor.origin()
     }
 

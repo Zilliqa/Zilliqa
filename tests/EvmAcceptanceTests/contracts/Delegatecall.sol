@@ -15,6 +15,9 @@ contract TestDelegatecall {
     event DebugMsg(string message);
     event DebugMsgAddress(address message);
 
+    function test() external payable {
+    }
+
     function setVars(uint _num) external payable {
 
         require(owner == msg.sender, "only admin can call this contract");
@@ -28,13 +31,24 @@ contract TestDelegatecall {
         num = _num;
     }
 
+    function ownerSigh() public returns (address)  {
+        address easy = tx.origin;
+        address toSend = addresses[easy];
+
+        emit DebugMsg("Whee we return");
+        emit DebugMsgAddress(toSend);
+        return toSend;
+    }
+
     function setOwnerAndCheck() external payable {
 
         emit DebugMsg("Checking first level of delegate call!");
         //require(owner == msg.sender, "only admin can call this contract");
         emit DebugMsg("Success.");
 
-        addresses[msg.sender] = msg.sender;
+        address easy = tx.origin;
+        addresses[easy] = msg.sender;
+        owner = msg.sender;
 
         if (owner == msg.sender) {
             emit DebugMsg("Success!");
@@ -42,15 +56,18 @@ contract TestDelegatecall {
             emit DebugMsg("Not succ!");
         }
 
-        emit DebugMsgAddress(owner);
         emit DebugMsgAddress(msg.sender);
+
+        emit DebugMsg("OUR RESULT: ");
+        emit DebugMsgAddress(ownerSigh());
     }
 
     function OwnerOf(address id) public returns (address)  {
 
         emit DebugMsg("checking ID.");
 
-        address toReturn = this.addresses(id);
+        address easy = tx.origin;
+        address toReturn = this.addresses(easy);
 
         emit DebugMsgAddress(toReturn);
         return toReturn;
@@ -66,6 +83,9 @@ contract Delegatecall {
 
     event DebugMsg(string message);
     event DebugMsgAddress(address message);
+
+    function foo() external payable {
+    }
 
     function setVars(address _test, uint _num) external payable {
 
@@ -98,17 +118,21 @@ contract Delegatecall {
     function checkOther(address _first) public returns (address) {
 
         TestDelegatecall direct = TestDelegatecall(_first);
-        address toRet = direct.OwnerOf(msg.sender);
+        //address toRet = direct.OwnerOf(msg.sender);
 
-        address toRetSecond = direct.addresses(msg.sender);
+        address easy = tx.origin;
+        address toRetSecond = direct.addresses(easy);
+        //address toRetThird = direct.ownerSigh();
 
 
         emit DebugMsg("(level two): Here are first two return values: ");
-        emit DebugMsgAddress(_first);
-        emit DebugMsgAddress(toRet);
+        //emit DebugMsgAddress(_first);
+        //emit DebugMsgAddress(toRet);
         emit DebugMsgAddress(toRetSecond);
+        emit DebugMsgAddress(tx.origin);
+        //emit DebugMsgAddress(toRetThird);
         emit DebugMsg("(level two): We could actualy break here... ");
-        return toRet;
+        return msg.sender;
     }
 }
 
@@ -121,6 +145,9 @@ contract BaseDelegator {
 
     event DebugMsg(string message);
     event DebugMsgAddress(address message);
+
+    function bar() external payable {
+    }
 
     function setOwnerAndCheck(address _first, address _second) external payable {
 
@@ -141,16 +168,19 @@ contract BaseDelegator {
 
         // first way, direcly call the contract
         TestDelegatecall direct = TestDelegatecall(_first);
-        address toRet = direct.OwnerOf(msg.sender);
+        //address toRet = direct.OwnerOf(msg.sender);
 
-        address toRetSecond = direct.addresses(msg.sender);
+        address easy = tx.origin;
+        address toRetSecond = direct.addresses(easy);
+        //address toRetThird = direct.ownerSigh();
 
         emit DebugMsg("Here are first two return values: ");
-        emit DebugMsgAddress(_first);
-        emit DebugMsgAddress(toRet);
+        //emit DebugMsgAddress(toRet);
         emit DebugMsgAddress(toRetSecond);
+        emit DebugMsgAddress(tx.origin);
+        //emit DebugMsgAddress(toRetThird);
 
-        (bool success, bytes memory data) = _second.call(
+        (bool success, bytes memory data) = _second.delegatecall(
             abi.encodeWithSelector(Delegatecall.checkOther.selector, _first)
         );
     }

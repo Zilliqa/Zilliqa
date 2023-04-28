@@ -46,6 +46,8 @@
     "web3": "^1.9.0"
   },
   "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^4.8.3",
+    "@openzeppelin/hardhat-upgrades": "^1.23.1",
     "@types/deep-equal-in-any-order": "^1.0.1",
     "@zilliqa-js/zilliqa": "^3.3.4",
     "cli-color": "^2.0.3",
