@@ -44,6 +44,8 @@ KEEP_WORKSPACE = True
 
 class Config:
     def __init__(self):
+        self.persistence = None
+        self.key_file = None
         self.default_env = { "LOCALDEV" : "1" , "FAST_BUILD" : "1"}
         self.cache_dir = os.path.join(pathlib.Path.home(), ".cache", "zilliqa_localdev");
         self.pods_to_start = {
@@ -535,15 +537,16 @@ def write_testnet_configuration(config, tag_name, testnet_name):
         "--local-repo", f"{minikube_ip}:5000",
         "--localdev", "true",
         "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
-        "-n", "20",
+        "-n", "6",
         "-d", "5",
         "-l", "1",
-        "--guard", "4/10",
+        "--guard", "4/0",
         "--gentxn", "false",
         "--multiplier-fanout", "2",
         "--host-network", "false",
         "--https", "localdomain",
         "--seed-multiplier", "true",
+        "--skip-non-guard-ds", "true",
         "-f",
     ]
     if config.persistence is not None and config.key_file is not None:
@@ -844,6 +847,8 @@ def reup_cmd(ctx):
     config = get_config(ctx)
     down(config)
     up(config)
+
+
 
 @click.command("pull-containers")
 @click.pass_context

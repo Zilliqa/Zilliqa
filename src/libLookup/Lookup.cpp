@@ -183,7 +183,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
     SetDSCommitteInfo();
   }
   m_sendSCCallsToDS = true;
-  m_sendAllToDS = false;
+  m_sendAllToDS = true;
 
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
     m_extSeedKey = std::move(extSeedKey);
