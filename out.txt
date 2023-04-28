@@ -1,0 +1,100 @@
+13122  pro
+13123  v evm-ds/src/evm_server_run.rs 
+13124  v out*
+13125  rm -rf ~/repos/Zilliqa/persistence/*
+13126  fg
+13127  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13128  v out*
+13129  fg
+13130  fg
+13131  rm -rf ~/repos/Zilliqa/persistence/*
+13132  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13133  fg
+13134  rm -rf ~/repos/Zilliqa/persistence/*
+13135  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13136  fg
+13137  rm -rf ~/repos/Zilliqa/persistence/*
+13138  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13139  fg
+13140  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13141  fg
+13142  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13143  fg
+13144  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13145  fg
+13146  git diff
+13147  fg
+13148  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13149  cd evm-ds/
+13150  rr origin
+13151  fg
+13152  fg
+13153  rm -rf ~/repos/Zilliqa/persistence/*
+13154  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13155  fg
+13156  rm -rf ~/repos/Zilliqa/persistence/*
+13157  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13158  fg
+13159  rm -rf ~/repos/Zilliqa/persistence/*
+13160  fg
+13161  npx hardhat test ./test/Delegatecall.ts --grep "Can see the values of delegated calls chained multiple times"  --network isolated_server
+13162  fg
+13163  pro
+13164  cd tests/EvmAcceptanceTests/
+13165  startup.sh 
+13166  ls
+13167  rm -rf ~/repos/Zilliqa/persistence/*
+13168  ls test/
+13169  cp test/Delegatecall.ts test/Nathan.ts
+13170  v test/Nathan.ts 
+13171  cp contracts/Delegatecall.sol contracts/Nathan.sol
+13172  fg
+13173  pro
+13174  startup.sh 
+13175  cd tests/EvmAcceptanceTests/
+13176  v contracts/Nathan.sol test/Nathan.ts 
+13177  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13178  fg
+13179  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13180  rr openzeppelin
+13181  ls
+13182  v package.json 
+13183  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13184  fg
+13185  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13186  npm install --legacy-peer-deps --force
+13187  fg
+13188  npm i @openzeppelin/contracts-upgradeable
+13189  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13190  fg
+13191  nsadf
+13192  fg
+13193  nsadf
+13194  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13195  fg
+13196  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13197  fg
+13198  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13199  fg
+13200  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13201  fg
+13202  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13203  fg
+13204  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13205  fg
+13206  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13207  npm i @openzeppelin/hardhat-upgrades
+13208  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13209  fg
+13210  npx hardhat test ./test/Nathan.ts  --network isolated_server
+13211  pro
+13212  git st
+13213  git co -b user_bug_replicate_xx
+13214  git st
+13215  git add tests/EvmAcceptanceTests/test/Nathan.ts 
+13216  git add -u
+13217  git st
+13218  git add tests/EvmAcceptanceTests/contracts/*
+13219  git st
+13220  git commit -m "wipme"
+13221  history | tail -n 100 > out.txt
