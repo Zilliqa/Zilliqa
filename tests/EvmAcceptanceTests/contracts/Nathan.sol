@@ -11,31 +11,33 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 //import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 //
 
-// This contract is not to be called directly. This is the proxy implementation of Contract B
-contract A {
-    mapping(uint256 => address) _owners;
-
-    ///// @custom:oz-upgrades-unsafe-allow constructor
-    //constructor() {
-    //    _disableInitializers();
-    //}
-
-    //function initialize() public payable initializer {
-    //}
-
-    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
-        return _owners[tokenId];
-    }
-
-    function ownerOf(uint256 tokenId) public view virtual returns (address) {
-        address owner = _ownerOf(tokenId);
-        require(owner != address(0), "ERC721: invalid token ID");
-        return owner;
-    }
-}
+//// This contract is not to be called directly. This is the proxy implementation of Contract B
+//contract CONTRACT_A {
+//    mapping(uint256 => address) _owners;
+//
+//    ///// @custom:oz-upgrades-unsafe-allow constructor
+//    //constructor() {
+//    //    _disableInitializers();
+//    //}
+//
+//    //function initialize() public payable initializer {
+//    //}
+//
+//    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
+//        return _owners[tokenId];
+//    }
+//
+//    function ownerOf(uint256 tokenId) public view virtual returns (address) {
+//        address owner = _ownerOf(tokenId);
+//        require(owner != address(0), "ERC721: invalid token ID");
+//        return owner;
+//    }
+//}
 
 // UUPS proxy of contract A
-contract Nathan is A, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract A is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+
+   mapping(uint256 => address) _owners;
 
    //uint256 public slices;
    //mapping(uint256 => address) private _owners;
@@ -57,7 +59,43 @@ contract Nathan is A, Initializable, UUPSUpgradeable, OwnableUpgradeable {
    //    require(slices > 1, "no slices left");
    //    slices -= 1;
    //}
+
+
+    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
+        return _owners[tokenId];
+    }
+
+    function ownerOf(uint256 tokenId) public view virtual returns (address) {
+        address owner = _ownerOf(tokenId);
+        require(owner != address(0), "ERC721: invalid token ID");
+        return owner;
+    }
 }
+
+contract C is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+
+   address proxyAddressContractB;
+
+   function initialize(address proxyAddr) public initializer {
+      proxyAddressContractB = proxyAddr;
+
+      ///@dev as there is no constructor, we need to initialise the OwnableUpgradeable explicitly
+       __Ownable_init();
+   }
+
+   ///@dev required by the OZ UUPS module
+   function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function ownerTest() public view returns (address collectionOwner) {
+        address  = 0x920279CB2096E34b6f7B8C787Cb6c8000b13814f;
+
+        try A(proxyAddressContractB).ownerOf(uint256(uint160(address(this)))) returns (address ownerOf) {
+            return ownerOf;
+        } catch {}
+    }
+}
+
+
 
 // Contract B is just a UUPS proxy of Contract A (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.3/contracts/proxy/utils/UUPSUpgradeable.sol).
 // Most probably any proxy would work, even a minimal proxy.

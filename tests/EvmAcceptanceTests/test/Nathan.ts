@@ -15,20 +15,40 @@ describe("Delegatecall functionality", function () {
   });
 
   it("xxx", async function () {
-    const SLICES = 1000000;
+    const OWNER = 1;
     //
     //this.nathan = await parallelizer.deployContract("Nathan");
 
-   const Nathan = await ethers.getContractFactory("Nathan");
+   console.log("Getting contract A...");
 
-   console.log("Deploying Nathan...");
+   const contractA = await ethers.getContractFactory("A");
 
-   const nathan = await upgrades.deployProxy(Nathan, [SLICES], {
+   console.log("Deploying contract A...");
+
+   const contA = await upgrades.deployProxy(contractA, [OWNER], {
      initializer: "initialize",
    });
-   await nathan.deployed();
+   await contA.deployed();
 
-   console.log("Nathan deployed to:", nathan.address);
+   console.log("Contract A proxy deployed to:", contA.address);
+
+   // This should succeed
+   let zz = await contA.ownerOf(OWNER);
+   console.log(zz);
+
+   const contractC = await ethers.getContractFactory("C");
+
+   console.log("Deploying contract C...");
+
+   const contC = await upgrades.deployProxy(contractC, [contA.address], {
+     initializer: "initialize",
+   });
+   await contC.deployed();
+
+   console.log("Contract C proxy deployed to:", contC.address);
+
+   zz = await contC.ownerTest();
+   console.log(zz);
 
   });
 });
