@@ -44,8 +44,8 @@ class Queue {
       std::lock_guard<Mutex> lk(m_mutex);
       if (m_stopped || m_queue.size() >= m_maxSize) return false;
       m_queue.push_back(std::move(item));
+      m_condition.notify_one();
     }
-    m_condition.notify_one();
     return true;
   }
 
@@ -56,8 +56,8 @@ class Queue {
       if (m_stopped || queue_size >= m_maxSize) return false;
       m_queue.push_back(std::move(item));
       ++queue_size;
+      m_condition.notify_one();
     }
-    m_condition.notify_one();
     return true;
   }
 
@@ -84,14 +84,17 @@ class Queue {
       std::lock_guard<Mutex> lk(m_mutex);
       m_stopped = true;
       m_queue.clear();
+      m_condition.notify_all();
     }
-    m_condition.notify_all();
   }
 
   void reset() {
     std::lock_guard<Mutex> lk(m_mutex);
     m_stopped = false;
     m_queue.clear();
+    // We can avoid notify_all() here because pop() won't return unless
+    // stopped or the queue is non-empty, and we just emptied it.
+    // - rrw 2023-05-01
   }
 
  private:

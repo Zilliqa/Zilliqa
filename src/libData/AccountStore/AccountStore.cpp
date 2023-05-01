@@ -160,7 +160,7 @@ void AccountStore::InitTrie() {
 }
 
 void AccountStore::InitSoft() {
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx);
 
   AccountStoreBase::Init();
   InitTrie();
@@ -266,7 +266,7 @@ AccountStore &AccountStore::GetInstance() {
 
 bool AccountStore::Serialize(zbytes &dst, unsigned int offset) const {
   LOG_MARKER();
-  shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
+  shared_lock<shared_timed_mutex> lock(m_mutexPrimaryx);
   std::lock_guard<std::mutex> g(m_mutexTrie);
   if (LOOKUP_NODE_MODE) {
     if (m_prevRoot != dev::h256()) {
@@ -291,7 +291,7 @@ bool AccountStore::Deserialize(const zbytes &src, unsigned int offset) {
 
   this->Init();
 
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx);
 
   if (!Messenger::GetAccountStore(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -308,7 +308,7 @@ bool AccountStore::Deserialize(const string &src, unsigned int offset) {
 
   this->Init();
 
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx);
 
   if (!Messenger::GetAccountStore(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -322,7 +322,7 @@ bool AccountStore::SerializeDelta() {
   LOG_MARKER();
 
   unique_lock<mutex> g(m_mutexDelta, defer_lock);
-  shared_lock<shared_timed_mutex> g2(m_mutexPrimary, defer_lock);
+  shared_lock<shared_timed_mutex> g2(m_mutexPrimaryx, defer_lock);
   lock(g, g2);
 
   m_stateDeltaSerialized.clear();
@@ -360,7 +360,7 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
   }
 
   if (revertible) {
-    unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+    unique_lock<shared_timed_mutex> g(m_mutexPrimaryx, defer_lock);
     unique_lock<mutex> g2(m_mutexRevertibles, defer_lock);
     lock(g, g2);
 
@@ -371,11 +371,13 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
     }
   } else {
     if (LOOKUP_NODE_MODE) {
-      IncrementPrimaryWriteAccessCount();
+      IncrementPrimaryWriteAccessCountX();
     }
-    unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+    unique_lock<shared_timed_mutex> g(m_mutexPrimaryx);
     if (LOOKUP_NODE_MODE) {
-      DecrementPrimaryWriteAccessCount();
+      DecrementPrimaryWriteAccessCountX();
+      // We just made some people eligible to run. Tell someone they can run.
+      GetPrimaryWriteAccessCond().notify_one();
     }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
@@ -408,7 +410,7 @@ bool AccountStore::MoveRootToDisk(const dev::h256 &root) {
 bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   LOG_MARKER();
 
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
@@ -500,7 +502,7 @@ bool AccountStore::IsPurgeRunning() {
 bool AccountStore::RetrieveFromDisk() {
   InitSoft();
 
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
@@ -546,7 +548,7 @@ bool AccountStore::RetrieveFromDiskOld() {
   // Only For migration
   InitSoft();
 
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
@@ -592,7 +594,7 @@ bool AccountStore::UpdateAccountsTemp(
     const uint64_t &blockNum, const unsigned int &numShards, const bool &isDS,
     const Transaction &transaction, const TxnExtras &txnExtras,
     TransactionReceipt &receipt, TxnStatus &error_code) {
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
 
   // start the clock
@@ -732,7 +734,7 @@ void AccountStore::CommitTempRevertible() {
 bool AccountStore::RevertCommitTemp() {
   LOG_MARKER();
 
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimaryx);
   // Revert changed
   for (auto const &entry : m_addressToAccountRevChanged) {
     m_addressToAccount->insert_or_assign(entry.first, entry.second);
