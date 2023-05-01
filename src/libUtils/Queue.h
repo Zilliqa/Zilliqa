@@ -44,7 +44,7 @@ class Queue {
       std::lock_guard<Mutex> lk(m_mutex);
       if (m_stopped || m_queue.size() >= m_maxSize) return false;
       m_queue.push_back(std::move(item));
-      m_condition.notify_one();
+      m_condition.notify_all();
     }
     return true;
   }
@@ -56,7 +56,7 @@ class Queue {
       if (m_stopped || queue_size >= m_maxSize) return false;
       m_queue.push_back(std::move(item));
       ++queue_size;
-      m_condition.notify_one();
+      m_condition.notify_all();
     }
     return true;
   }
