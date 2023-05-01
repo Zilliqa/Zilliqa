@@ -376,8 +376,11 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
     unique_lock<shared_timed_mutex> g(m_mutexPrimaryx);
     if (LOOKUP_NODE_MODE) {
       DecrementPrimaryWriteAccessCountX();
-      // We just made some people eligible to run. Tell someone they can run.
-      GetPrimaryWriteAccessCond().notify_one();
+      // We just made someone eligible to run, and need to notify everyone
+      // because there could be multiple people blocking on this condition
+      // and this is the only place we can signal them. Hopefully they will
+      // then queue up to get the mutex and run - rrw 2023-05-01
+      GetPrimaryWriteAccessCond().notify_all();
     }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
