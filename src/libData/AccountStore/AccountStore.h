@@ -62,7 +62,7 @@ class AccountStore : public AccountStoreBase {
 
   /// primary mutex used by account store for protecting permanent states from
   /// external access
-  mutable std::shared_timed_mutex m_mutexPrimary;
+  mutable std::shared_timed_mutex m_mutexPrimaryx;
   /// mutex used when manipulating with state delta
   std::mutex m_mutexDelta;
   /// mutex related to revertibles
@@ -71,7 +71,7 @@ class AccountStore : public AccountStoreBase {
   zbytes m_stateDeltaSerialized;
   // for external write access prioritization
   std::atomic<int> m_externalWriters;
-  std::condition_variable_any m_writeCond;
+  std::condition_variable_any m_writeCondx;
   static constexpr int NUM_OF_WRITERS_IN_QUEUE = 1;
 
   /// Scilla IPC server related
@@ -232,15 +232,15 @@ class AccountStore : public AccountStoreBase {
 
   bool IsPurgeRunning();
 
-  std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
+  std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimaryx; }
 
-  void IncrementPrimaryWriteAccessCount() { ++m_externalWriters; }
-  void DecrementPrimaryWriteAccessCount() { --m_externalWriters; }
+  void IncrementPrimaryWriteAccessCountX() { ++m_externalWriters; }
+  void DecrementPrimaryWriteAccessCountX() { --m_externalWriters; }
   bool GetPrimaryWriteAccess() {
     return m_externalWriters.load() < NUM_OF_WRITERS_IN_QUEUE;
   }
   std::condition_variable_any& GetPrimaryWriteAccessCond() {
-    return m_writeCond;
+    return m_writeCondx;
   }
   bool EvmProcessMessageTemp(EvmProcessContext& params,
                              evm::EvmResult& result) {
