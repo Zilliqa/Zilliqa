@@ -3,6 +3,7 @@ import {expect} from "chai";
 import hre, {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
 import {BN, Zilliqa} from "@zilliqa-js/zilliqa";
+import {toBech32Address, Zilliqa} from "@zilliqa-js/zilliqa";
 
 describe("Move Zil", function () {
   const ZIL_AMOUNT = 3_000_000;

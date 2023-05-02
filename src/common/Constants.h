@@ -463,6 +463,8 @@ extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
 extern const uint64_t EVM_RPC_TIMEOUT_SECONDS;
+extern const uint64_t RPC_QUEUE_SIZE;
+extern const uint64_t NUM_RPC_THREADS;
 
 // TxBlockAux constants
 constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";

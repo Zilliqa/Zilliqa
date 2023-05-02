@@ -31,6 +31,7 @@ APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
       m_processRequest(std::move(processRequest)),
       m_ownerFeedback(std::move(ownerFeedback)),
       m_requestQueue(maxQueueSize) {
+  LOG_MARKER();
   assert(m_processRequest);
   assert(m_ownerFeedback);
   assert(maxQueueSize > 0);
@@ -38,12 +39,14 @@ APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
   if (numThreads == 0) numThreads = 1;
 
   m_threads.reserve(numThreads);
+  LOG_GENERAL(INFO, "maxQueueSize = "<<maxQueueSize<< " num threads = "<< numThreads);
   for (size_t i = 0; i < numThreads; ++i) {
     m_threads.emplace_back([this, i] { WorkerThread(i); });
   }
 }
 
 APIThreadPool::~APIThreadPool() {
+  LOG_MARKER();
   m_requestQueue.stop();
   m_responseQueue.stop();
   for (auto& thread : m_threads) {
@@ -53,6 +56,7 @@ APIThreadPool::~APIThreadPool() {
 
 bool APIThreadPool::PushRequest(JobId id, bool isWebsocket, std::string from,
                                 std::string body) {
+  LOG_MARKER();
   if (!m_requestQueue.bounded_push(
           Request{id, isWebsocket, std::move(from), std::move(body)})) {
     Response response;
@@ -66,6 +70,7 @@ bool APIThreadPool::PushRequest(JobId id, bool isWebsocket, std::string from,
 }
 
 void APIThreadPool::Reset() {
+  LOG_MARKER();
   m_requestQueue.reset();
   m_responseQueue.reset();
 }
@@ -97,26 +102,29 @@ class StopWatch {
 void APIThreadPool::WorkerThread(size_t threadNo) {
   auto threadName = m_name + "-" + std::to_string(threadNo + 1);
   utility::SetThreadName(threadName.c_str());
-  StopWatch sw;
+  // StopWatch sw;
 
   Request request;
   size_t queueSize = 0;
   while (m_requestQueue.pop(request, queueSize)) {
-    LOG_GENERAL(DEBUG, threadName << " processes job #" << request.id
-                                  << ", Q=" << queueSize);
-    sw.Start();
+    LOG_GENERAL(INFO, threadName << " processes job begin #" << request.id
+                                 << ", Q=" << queueSize);
+    // sw.Start();
     auto response = m_processRequest(request);
-    sw.Stop();
+    // sw.Stop();
+    LOG_GENERAL(INFO, threadName << " processes job end #" << request.id
+                                 << ", Q=" << queueSize);
 
-    LOG_GENERAL(DEBUG, threadName << ": " << sw.Microseconds()
-                                  << " microsec, request=\n"
-                                  << request.body << "\nresponse=\n"
-                                  << response.body);
+    // LOG_GENERAL(INFO, threadName << ": " << sw.Microseconds()
+    //                               << " microsec, request=\n"
+    //                               << request.body << "\nresponse=\n"
+    //                              << response.body);
     PushResponse(std::move(response));
   }
 }
 
 void APIThreadPool::PushResponse(Response&& response) {
+  LOG_MARKER();
   size_t queueSize = 0;
   if (!m_responseQueue.bounded_push(std::move(response), queueSize)) {
     return;
@@ -132,6 +140,7 @@ void APIThreadPool::PushResponse(Response&& response) {
 }
 
 void APIThreadPool::ProcessResponseQueue() {
+  LOG_MARKER();
   Response response;
   while (m_responseQueue.try_pop(response)) {
     m_ownerFeedback(std::move(response));
