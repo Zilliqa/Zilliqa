@@ -42,6 +42,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
+#include <thread>
 
 using namespace jsonrpc;
 using namespace std;
@@ -946,6 +947,12 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
     if (!account->FetchStateJson(root, vname, indices_vector)) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
     }
+    {
+      LOG_GENERAL(INFO, "Sleeping .. ");
+      std::this_thread::sleep_for(20000ms);
+      LOG_GENERAL(INFO, "Sleep over");
+    }
+    
     return root;
   } catch (const JsonRpcException& je) {
     throw je;

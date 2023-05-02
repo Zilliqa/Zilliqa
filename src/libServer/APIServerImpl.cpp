@@ -481,8 +481,10 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
   APIThreadPool::Response response;
   bool error = false;
   try {
+    LOG_GENERAL(DEBUG, "Calling ProcessRequest");
     // Calls connection handler from AbstractServerConnector
     ProcessRequest(request.body, response.body);
+    LOG_GENERAL(DEBUG, "ProcessRequest returns");
 
     // Connection handler was not installed - internal error
     error = response.body.empty();
@@ -501,6 +503,7 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
   }
   response.id = request.id;
   response.isWebsocket = request.isWebsocket;
+  LOG_GENERAL(DEBUG, "Leaving request processor function");
   return response;
 }
 
