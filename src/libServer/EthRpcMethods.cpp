@@ -1254,9 +1254,6 @@ Json::Value EthRpcMethods::GetEthCode(std::string const &address,
     Address addr{address, Address::FromHex};
     unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-      return AccountStore::GetInstance().GetPrimaryWriteAccess();
-    });
 
     const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
     if (account) {
