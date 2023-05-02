@@ -403,10 +403,6 @@ bool DedicatedWSImpl::OnMessage(ConnectionId hdl, const std::string& query) {
           {
             std::shared_lock<std::shared_timed_mutex> lock(
                 AccountStore::GetInstance().GetPrimaryMutex());
-            AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
-                lock, [] {
-                  return AccountStore::GetInstance().GetPrimaryWriteAccess();
-                });
             for (const auto& address : j_query["addresses"]) {
               try {
                 const auto& addr_str = address.asString();
