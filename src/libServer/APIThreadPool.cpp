@@ -19,6 +19,7 @@
 
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
+#include <time.h>
 
 namespace rpc {
 
@@ -30,6 +31,8 @@ APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
       m_name(std::move(name)),
       m_processRequest(std::move(processRequest)),
       m_ownerFeedback(std::move(ownerFeedback)),
+      m_occupied(),
+      m_last_occupied_log(0),
       m_requestQueue(maxQueueSize) {
   LOG_MARKER();
   assert(m_processRequest);
@@ -39,6 +42,9 @@ APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
   if (numThreads == 0) numThreads = 1;
 
   m_threads.reserve(numThreads);
+  for (size_t i =0;i < numThreads; ++i) {
+    m_occupied.push_back('I');
+  }
   LOG_GENERAL(INFO, "maxQueueSize = "<<maxQueueSize<< " num threads = "<< numThreads);
   for (size_t i = 0; i < numThreads; ++i) {
     m_threads.emplace_back([this, i] { WorkerThread(i); });
@@ -57,6 +63,20 @@ APIThreadPool::~APIThreadPool() {
 bool APIThreadPool::PushRequest(JobId id, bool isWebsocket, std::string from,
                                 std::string body) {
   LOG_MARKER();
+  {
+    size_t ourSize = m_requestQueue.size();
+    struct timespec now = { 0, 0 };
+    if (ourSize > m_requestQueueHWM) {
+      m_requestQueueHWM = ourSize;
+    }
+    clock_gettime(CLOCK_MONOTONIC, & now);
+    if (now.tv_sec > m_lastSeconds+2) {
+      LOG_GENERAL(INFO, "Queue HWM " << m_requestQueueHWM << " size " << ourSize);
+      m_lastSeconds = now.tv_sec;
+      m_requestQueueHWM = 0;
+    }
+  }
+
   if (!m_requestQueue.bounded_push(
           Request{id, isWebsocket, std::move(from), std::move(body)})) {
     Response response;
@@ -106,7 +126,9 @@ void APIThreadPool::WorkerThread(size_t threadNo) {
 
   Request request;
   size_t queueSize = 0;
+  this->SetThreadStatus(threadNo, 'w');
   while (m_requestQueue.pop(request, queueSize)) {
+    this->SetThreadStatus(threadNo, '<');
     LOG_GENERAL(INFO, threadName << " processes job begin #" << request.id
                                  << ", Q=" << queueSize);
     // sw.Start();
@@ -119,7 +141,22 @@ void APIThreadPool::WorkerThread(size_t threadNo) {
     //                               << " microsec, request=\n"
     //                               << request.body << "\nresponse=\n"
     //                              << response.body);
+    this->SetThreadStatus(threadNo, '>');
     PushResponse(std::move(response));
+    this->SetThreadStatus(threadNo, 'w');
+  }
+  this->SetThreadStatus(threadNo, 'x');
+}
+
+void APIThreadPool::SetThreadStatus(size_t which, char what) {
+  std::lock_guard<std::mutex> my_lock(m_occupied_mutex);
+  m_occupied[which] = what;
+  struct timespec tv;
+  clock_gettime(CLOCK_MONOTONIC, &tv);
+  if (tv.tv_sec > m_last_occupied_log+3) {
+    std::string occupation(m_occupied.begin(), m_occupied.end());
+    LOG_GENERAL(INFO, "T: " << occupation);
+    m_last_occupied_log = tv.tv_sec;
   }
 }
 
