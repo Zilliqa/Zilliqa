@@ -135,10 +135,7 @@ void APIThreadPool::WorkerThread(size_t threadNo) {
     auto response = m_processRequest(request);
     sw.Stop();
 
-    LOG_GENERAL(INFO, threadName << ": " << sw.Microseconds()
-                                  << " microsec, request=\n"
-                                  << request.body << "\nresponse=\n"
-                                  << response.body);
+    LOG_GENERAL(INFO, threadName << ": " << sw.Microseconds() << " microsec");
     this->SetThreadStatus(threadNo, '>');
     PushResponse(std::move(response));
     this->SetThreadStatus(threadNo, 'w');
