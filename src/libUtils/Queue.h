@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include "libUtils/Logger.h"
 
 namespace utility {
 
@@ -42,10 +43,14 @@ class Queue {
   bool bounded_push(T item) {
     {
       std::lock_guard<Mutex> lk(m_mutex);
-      if (m_stopped || m_queue.size() >= m_maxSize) return false;
+      LOG_GENERAL(INFO, "bounded_push() m_stopped = " << m_stopped << " queue size = " << m_queue.size());
+      if (m_stopped || m_queue.size() >= m_maxSize) {
+      LOG_GENERAL(INFO, "bounded_push() error m_stopped = " << m_stopped << " queue size = " << m_queue.size());
+        return false;
+      }
       m_queue.push_back(std::move(item));
+      m_condition.notify_all();
     }
-    m_condition.notify_one();
     return true;
   }
 
@@ -53,11 +58,15 @@ class Queue {
     {
       std::lock_guard<Mutex> lk(m_mutex);
       queue_size = m_queue.size();
-      if (m_stopped || queue_size >= m_maxSize) return false;
+      LOG_GENERAL(INFO, "bounded_push() m_stopped = " << m_stopped << " queue size = " << queue_size);
+      if (m_stopped || queue_size >= m_maxSize) {
+        LOG_GENERAL(INFO, "bounded_push() error m_stopped = " << m_stopped << " queue size = " << queue_size);
+        return false;
+      }
       m_queue.push_back(std::move(item));
       ++queue_size;
+      m_condition.notify_all();
     }
-    m_condition.notify_one();
     return true;
   }
 
@@ -65,33 +74,45 @@ class Queue {
     std::unique_lock<Mutex> lk(m_mutex);
     m_condition.wait(lk, [this] { return !m_queue.empty() || m_stopped; });
     queue_size = m_queue.size();
-    if (m_stopped) return false;
+    if (m_stopped) {
+      LOG_GENERAL(INFO, "pop() error m_stopped = " << m_stopped << " queue size = " << queue_size);
+      return false;
+    }
+    LOG_GENERAL(INFO, "pop() m_stopped = " << m_stopped << " queue size = " << queue_size);
     item = std::move(m_queue.front());
     m_queue.pop_front();
     return true;
   }
 
-  bool try_pop(T &item) {
-    std::unique_lock<Mutex> lk(m_mutex);
-    if (m_stopped || m_queue.empty()) return false;
-    item = std::move(m_queue.front());
-    m_queue.pop_front();
-    return true;
+bool try_pop(T &item) {
+  std::unique_lock<Mutex> lk(m_mutex);
+  if (m_stopped || m_queue.empty()) {
+      LOG_GENERAL(INFO, "try_pop() error m_stopped = " << m_stopped << " queue size = " << m_queue.size());
+      return false;
   }
+  item = std::move(m_queue.front());
+  size_t queue_size = m_queue.size();
+  LOG_GENERAL(INFO, "try_pop() m_stopped = " << m_stopped << " queue size = " << queue_size);
+  m_queue.pop_front();
+  return true;
+}
 
   void stop() {
     {
       std::lock_guard<Mutex> lk(m_mutex);
       m_stopped = true;
       m_queue.clear();
+      m_condition.notify_all();
     }
-    m_condition.notify_all();
   }
 
   void reset() {
     std::lock_guard<Mutex> lk(m_mutex);
     m_stopped = false;
     m_queue.clear();
+    // We can avoid notify_all() here because pop() won't return unless
+    // stopped or the queue is non-empty, and we just emptied it.
+    // - rrw 2023-05-01
   }
 
  private:
