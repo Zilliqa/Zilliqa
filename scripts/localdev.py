@@ -181,7 +181,9 @@ def teardown_podman(ctx):
         run_or_die(config, ["podman", "machine", "rm", "-f"])
 
 def get_minikube_ip(config):
-    result = sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
+    # On OS X it's not possible to use the real minikube IP, and instead 127.0.0.1 must
+    # be used as well as running 'minikube tunnel'.
+    result = "127.0.0.1" if config.is_osx and config.engine == "k8s" else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
     return result
 
 def gen_tag():
@@ -222,7 +224,14 @@ systemctl restart systemd-resolved
 {hosts}
 
     to your /etc/hosts.
-""")
+""" + """
+Run:
+    """ + ("""
+    eval $(minikube docker-env)
+""" if config.engine == "k8s" and config.docker_binary == "docker" else "") +
+"""
+    sudo minikube tunnel
+""" if config.is_osx and config.engine == "k8s" else "")
 
 def start_k8s(config):
     print("Starting minikube .. ")
@@ -238,6 +247,29 @@ def start_k8s_cmd(ctx):
     start_k8s(config)
     pull_containers(config)
 
+def minikube_env(config):
+    engine_env = os.environ.copy()
+    for p in map(
+        # Skip the 'export ' and split at '=' into a tuple
+        lambda x: x[7:].split('='),
+        re.findall(
+            r'export [A-Z_]+="[^"]*"',
+            run_or_die(config, ["minikube", "docker-env"], capture_output=True).decode('utf-8'))):
+        engine_env[p[0]] = p[1][1:-1]
+
+    return engine_env
+
+def adjust_config(config, engine):
+    config.engine = engine
+
+    if engine == "podman":
+        config.docker_binary = "podman"
+    elif engine == "k8s":
+        config.docker_binary = "docker"
+        config.engine_env = minikube_env(config)
+    else:
+        raise GiveUp("Unknown virtualization engine");
+
 def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     """
     Set up a minikube cluster with appropriate containers and add-ons to run a local development version of Zilliqa
@@ -246,15 +278,18 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     config = get_config(ctx)
     print("Creating minikube cluster .. ")
     run_or_die(config, ["minikube", "start", "--disk-size", "{}g".format(disk_size), "--cpus", str(cpus), "--memory", str(memory), "--driver", driver,
-                "--insecure-registry", "192.168.39.0/24", "--container-runtime", container_runtime])
+                "--insecure-registry", "192.168.0.0/16", "--container-runtime", container_runtime])
     registry_addon_output = run_or_die(config, ["minikube", "addons", "enable", "registry"], capture_output = True)
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
     run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
     wait_for_running_pod(config, "registry", "kube-system")
     wait_for_running_pod(config, "registry-proxy", "kube-system")
+
+    adjust_config(config, "k8s")
     wait_for_local_registry(config)
-    #  pull_containers(config)
+
+    pull_containers(config)
     print_config_advice(config)
     print("You can then run localdev up")
 
@@ -299,12 +334,9 @@ def setup(ctx, engine, cpus, memory, disk_size, driver, container_runtime):
     Sets up the virtualization engine
     """
 
-    config = get_config(ctx)
-    config.engine = engine
-
-    if engine == 'podman':
+    if engine == "podman":
         setup_podman(ctx, cpus, memory, disk_size)
-    elif engine == 'k8s':
+    elif engine == "k8s":
         setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime)
     else:
         raise GiveUp("Unknown virtualization engine");
@@ -363,13 +395,13 @@ def pull_containers(config):
             local_tag = '/'.join(container.split('/')[1:])
         local_tag = f"{remote_registry}/{local_tag}"
         print(f"Retagging {container} as {local_tag} .. ")
-        run_or_die(config, [config.docker_binary, "tag", container, local_tag])
+        run_or_die(config, [config.docker_binary, "tag", container, local_tag], env=config.engine_env)
         push_to_local_registry(config, local_tag)
 
 
 
 def pull_container(config, container):
-    run_or_die(config, [ config.docker_binary, "pull" , container])
+    run_or_die(config, [ config.docker_binary, "pull" , container], env=config.engine_env)
 
 def push_to_local_registry(config, tag):
     if using_podman(config):
@@ -380,7 +412,7 @@ def push_to_local_registry(config, tag):
         print(f"> Pushing to local registry")
         cmd = [ config.docker_binary, "push", tag ]
         cmd.extend(extra_flags)
-        run_or_die(config, cmd, in_dir = ZILLIQA_DIR, capture_output = False)
+        run_or_die(config, cmd, env=config.engine_env, in_dir = ZILLIQA_DIR, capture_output = False)
 
 @click.command("teardown-k8s")
 @click.pass_context
@@ -392,6 +424,10 @@ def teardown_k8s(ctx):
 
 @click.command("up")
 @click.pass_context
+@click.option("--engine",
+              required=True,
+              default=default_engine(),
+              show_default=True, help="the virtualization engine used for setup")
 @click.option("--persistence", help="A persistence directory to start the network with. Has no effect without also passing `--key-file`.")
 @click.option("--key-file", help="A `.tar.gz` generated by `./testnet.sh back-up auto` containing the keys used to start this network. Has no effect without also passing `--persistence`.")
 def up_cmd(ctx, persistence, key_file):
