@@ -43,7 +43,10 @@ TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 
 def default_engine():
-    return "podman" if sys.platform == "darwin" else "docker"
+    return "podman" if sys.platform == "darwin" else "k8s"
+
+def using_podman(config):
+    return config.engine == "podman"
 
 class Config:
     def __init__(self):
@@ -57,7 +60,7 @@ class Config:
             "seedpub": 1
         }
         self.is_osx = sys.platform == "darwin"
-        self.docker_binary = "podman" if default_engine == "podman" else "docker"
+        self.docker_binary = "podman" if default_engine() == "podman" else "docker"
 
         #  if self.is_osx:
             #print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
@@ -202,7 +205,7 @@ def print_config_advice(config):
                         "localdev-origin.localdomain",
                         "localdev-origin-internal.localdomain" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
-    print("Minikube is at {ip}")
+    print(f"Minikube is at {ip}")
     print(f"""Please add
 
 [Resolver]
@@ -244,19 +247,20 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     print("Creating minikube cluster .. ")
     run_or_die(config, ["minikube", "start", "--disk-size", "{}g".format(disk_size), "--cpus", str(cpus), "--memory", str(memory), "--driver", driver,
                 "--insecure-registry", "192.168.39.0/24", "--container-runtime", container_runtime])
-    run_or_die(config, ["minikube", "addons", "enable", "registry"])
+    registry_addon_output = run_or_die(config, ["minikube", "addons", "enable", "registry"], capture_output = True)
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
     run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
-    #  wait_for_running_pod(config, "registry", "kube-system")
-    #  wait_for_running_pod(config, "registry-proxy", "kube-system")
-    #  wait_for_local_registry(config)
+    wait_for_running_pod(config, "registry", "kube-system")
+    wait_for_running_pod(config, "registry-proxy", "kube-system")
+    wait_for_local_registry(config)
     #  pull_containers(config)
-    #  print_config_advice(config)
-    #  print("You can then run localdev up")
+    print_config_advice(config)
+    print("You can then run localdev up")
 
 def adjust_value_for_k8s(ctx, param, value, default_value):
-    if ctx.params["engine"] == "k8s":
+    engine = ctx.params["engine"] if "engine" in ctx.params else default_engine()
+    if engine == "k8s":
         return value if value else default_value
     else:
         if value:
@@ -279,7 +283,7 @@ def adjust_value_for_k8s(ctx, param, value, default_value):
               help="The amount of memory allocated to the guest VM (in MB)")
 @click.option("--disk-size",
               required=False,
-              callback=lambda ctx, param, value: value if value else 196 if ctx.params["engine"] == "podman" else "100g",
+              callback=lambda ctx, param, value: value if value else 196 if ctx.params["engine"] == "podman" else "100",
               help="The disk size (in GB) in the guest VM")
 @click.option("--driver",
               required=False,
@@ -294,6 +298,9 @@ def setup(ctx, engine, cpus, memory, disk_size, driver, container_runtime):
     """
     Sets up the virtualization engine
     """
+
+    config = get_config(ctx)
+    config.engine = engine
 
     if engine == 'podman':
         setup_podman(ctx, cpus, memory, disk_size)
@@ -365,7 +372,7 @@ def pull_container(config, container):
     run_or_die(config, [ config.docker_binary, "pull" , container])
 
 def push_to_local_registry(config, tag):
-    if config.using_podman:
+    if using_podman(config):
         extra_flags = [ "--tls-verify=false" ]
     else:
         extra_flags = [ ]
