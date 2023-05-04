@@ -42,6 +42,9 @@ SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 
+def default_engine():
+    return "podman" if sys.platform == "darwin" else "docker"
+
 class Config:
     def __init__(self):
         self.default_env = { "LOCALDEV" : "1" , "FAST_BUILD" : "1"}
@@ -53,21 +56,21 @@ class Config:
             "normal": 4,
             "seedpub": 1
         }
-        if sys.platform == "darwin":
-            print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
-            self.default_env['KIND_EXPERIMENTAL_PROVIDER'] = "podman"
+        self.is_osx = sys.platform == "darwin"
+        self.docker_binary = "podman" if default_engine == "podman" else "docker"
+
+        #  if self.is_osx:
+            #print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
+            #self.default_env['KIND_EXPERIMENTAL_PROVIDER'] = "podman"
             # This allows localstack to start - otherwise it gets weird chwon / subuid errors.
-            self.default_env["PODMAN_USERNS"] = "host"
-            self.default_env["BUILDAH_LAYERS"] = "true"
-            self.using_podman = True
-            self.using_local_registry = True
-            self.docker_binary = "podman"
-            self.is_osx = True
-        else:
-            self.using_podman = True
-            self.using_local_registry = True
-            self.docker_binary = "podman"
-            self.is_osx = False
+            #  self.default_env["PODMAN_USERNS"] = "host"
+            #  self.default_env["BUILDAH_LAYERS"] = "true"
+            #  self.using_podman = False
+            #  self.docker_binary = "docker"
+        #  else:
+            #  self.using_podman = True
+            #  self.docker_binary = "podman"
+        self.using_local_registry = True
         self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
         self.testnet_name = "localdev"
         self.strip_binaries = False
@@ -150,15 +153,13 @@ def run_or_die(config, cmd, in_dir = None, env = None, in_background = False, pi
             raise e
 
 
-@click.command("setup-podman")
-@click.pass_context
-def setup_podman(ctx):
+def setup_podman(ctx, cpus, memory, disk_size):
     """
     Set up podman on OS X machines.
     """
     config = get_config(ctx)
     if config.is_osx:
-        run_or_die(config, ["podman", "machine", "init" , "--cpus=8", "--memory=16384", "--disk-size=196"])
+        run_or_die(config, ["podman", "machine", "init" , "--cpus={}".format(cpus), "--memory={}".format(memory), "--disk-size={}".format(disk_size)])
         # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
         run_or_die(config, ["podman", "machine", "set", "--rootful" ])
         run_or_die(config, ["podman", "machine", "start"])
@@ -220,7 +221,6 @@ systemctl restart systemd-resolved
     to your /etc/hosts.
 """)
 
-
 def start_k8s(config):
     print("Starting minikube .. ")
     run_or_die(config, ["minikube", "start", "--driver", "kvm2"])
@@ -235,26 +235,73 @@ def start_k8s_cmd(ctx):
     start_k8s(config)
     pull_containers(config)
 
-@click.command("setup-k8s")
-@click.pass_context
-def setup_k8s(ctx):
+def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     """
     Set up a minikube cluster with appropriate containers and add-ons to run a local development version of Zilliqa
     """
+
     config = get_config(ctx)
     print("Creating minikube cluster .. ")
-    run_or_die(config, ["minikube", "start", "--disk-size", "100g", "--cpus", "max", "--memory", "max", "--driver", "kvm2",
-                "--insecure-registry", "192.168.39.0/24", "--container-runtime", "cri-o"])
+    run_or_die(config, ["minikube", "start", "--disk-size", "{}g".format(disk_size), "--cpus", str(cpus), "--memory", str(memory), "--driver", driver,
+                "--insecure-registry", "192.168.39.0/24", "--container-runtime", container_runtime])
     run_or_die(config, ["minikube", "addons", "enable", "registry"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
     run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
-    wait_for_running_pod(config, "registry", "kube-system")
-    wait_for_running_pod(config, "registry-proxy", "kube-system")
-    wait_for_local_registry(config)
-    pull_containers(config)
-    print_config_advice(config)
-    print("You can then run localdev up")
+    #  wait_for_running_pod(config, "registry", "kube-system")
+    #  wait_for_running_pod(config, "registry-proxy", "kube-system")
+    #  wait_for_local_registry(config)
+    #  pull_containers(config)
+    #  print_config_advice(config)
+    #  print("You can then run localdev up")
+
+def adjust_value_for_k8s(ctx, param, value, default_value):
+    if ctx.params["engine"] == "k8s":
+        return value if value else default_value
+    else:
+        if value:
+            raise GiveUp("--{} can only be used with k8s".format(param.name))
+
+    return None
+
+@click.command("setup")
+@click.option("--engine",
+              required=True,
+              default=default_engine(),
+              show_default=True, help="the virtualization engine")
+@click.option("--cpus",
+              required=False,
+              callback=lambda ctx, param, value: value if value else 8 if ctx.params["engine"] == "podman" else "max",
+              help="The number of CPUs in the guest VM")
+@click.option("--memory",
+              required=False,
+              callback=lambda ctx, param, value: value if value else 16384 if ctx.params["engine"] == "podman" else "max",
+              help="The amount of memory allocated to the guest VM (in MB)")
+@click.option("--disk-size",
+              required=False,
+              callback=lambda ctx, param, value: value if value else 196 if ctx.params["engine"] == "podman" else "100g",
+              help="The disk size (in GB) in the guest VM")
+@click.option("--driver",
+              required=False,
+              callback=lambda ctx, param, value: adjust_value_for_k8s(ctx, param, value, "docker" if sys.platform == "darwin" else "kvm2"),
+              help="The minikube driver to use (only if --engine=k8s)")
+@click.option("--container-runtime",
+              required=False,
+              callback=lambda ctx, param, value: adjust_value_for_k8s(ctx, param, value, "cri-o"),
+              help="The minikube container runtime to use (only if --engine=k8s)")
+@click.pass_context
+def setup(ctx, engine, cpus, memory, disk_size, driver, container_runtime):
+    """
+    Sets up the virtualization engine
+    """
+
+    if engine == 'podman':
+        setup_podman(ctx, cpus, memory, disk_size)
+    elif engine == 'k8s':
+        setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime)
+    else:
+        raise GiveUp("Unknown virtualization engine");
+
 
 def wait_for_local_registry(config):
     """
@@ -1024,11 +1071,12 @@ def cli(ctx):
     ctx.obj.setup()
 
 cli.add_command(build_lite_cmd)
-cli.add_command(setup_podman)
+#  cli.add_command(setup_podman)
 cli.add_command(teardown_podman)
-cli.add_command(setup_k8s)
+#cli.add_command(setup_k8s)
 cli.add_command(start_k8s_cmd)
 cli.add_command(teardown_k8s)
+cli.add_command(setup)
 cli.add_command(up_cmd)
 cli.add_command(down_cmd)
 cli.add_command(show_proxy_cmd)
