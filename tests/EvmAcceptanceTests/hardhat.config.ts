@@ -3,6 +3,7 @@ import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
+import "@openzeppelin/hardhat-upgrades"
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
@@ -22,7 +23,7 @@ declare module "hardhat/types/config" {
 }
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.9",
+  solidity: "0.8.10",
 
   ethernal: {
     disabled: ENV_VARS.ethernalPassword === undefined,
