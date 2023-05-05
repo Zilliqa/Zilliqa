@@ -365,13 +365,15 @@ def up(config):
     print("Ingress restarted; you should be ready to go...");
 
 @click.command("isolated")
+@click.option("--enable-evm", is_flag = True, help="Disable the EVM so you can start it yourself - instructions will appear in the log")
+@click.option("--disable-evm", is_flag = True, help="Disable the EVM so you can start it yourself - instructions will appear in the log")
 @click.pass_context
-def isolated_cmd(ctx):
+def isolated_cmd(ctx, enable_evm, disable_evm):
     """
     Run an isolated server
     """
     config = get_config(ctx)
-    isolated(config)
+    isolated(config, enable_evm = enable_evm or not disable_evm)
 
 def xml_get_element(doc, parent, name):
     elems = parent.getElementsByTagName(name)
@@ -396,10 +398,11 @@ def copy_everything_in_dir(src, dest):
         if os.path.isfile(full_src):
             shutil.copy(full_src, os.path.join(dest, f))
 
-def isolated(config):
+def isolated(config, enable_evm = True):
     build_native_to_workspace(config)
     #workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
     config_file = xml.dom.minidom.parse(os.path.join(ZILLIQA_DIR, "constants.xml"))
+    xml_replace_element(config_file, config_file.documentElement, "LAUNCH_EVM_DAEMON", "true" if enable_evm else "false")
     xml_replace_element(config_file, config_file.documentElement, "LOOKUP_NODE_MODE", "true")
     xml_replace_element(config_file, config_file.documentElement, "ENABLE_SC", "true")
     xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
@@ -408,7 +411,7 @@ def isolated(config):
     xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
     xml_replace_element(config_file, config_file.documentElement, "ENABLE_EVM", "true")
     xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_BINARY", "evm-ds/evm-ds")
-    xml_replace_element(config_file, config_file.documentElement, "EVM_LOG_CONFIG", "evm-ds/log4rs.yml")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_LOG_CONFIG", "evm-ds/log4rs-local.yml")
     xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_SOCKET_PATH", "/tmp/evm-server.sock")
     # Now assemble an isolated server release.
     target_workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
@@ -451,6 +454,7 @@ def isolated(config):
     #new_env["DYLD_LIBRARY_PATH"] = f"{target_workspace}/lib:{old_path}"
     cmd = [ "./bin/isolatedServer", "-f", "isolated-server-accounts.json", "-u", "999" ]
     print(f"Running isolated server in {target_workspace} with ${new_env}.. ")
+    print(f"EVM logs will appear in /tmp/evm.log")
     run_or_die(config, cmd, in_dir = target_workspace, env = new_env)
 
     # print(f"> Using workspace {workspace}")
@@ -721,6 +725,8 @@ def build_native_to_workspace(config):
         pass
     shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "target", "release", "evm-ds"),
                     os.path.join(evm_ds_tgt, "evm-ds"))
+    shutil.copyfile(os.path.join(ZILLIQA_DIR, "evm-ds", "log4rs-local.yml"),
+                    os.path.join(evm_ds_tgt, "log4rs-local.yml"))
     if config.strip_binaries:
         run_or_die(config, ["strip", os.path.join(evm_ds_tgt, "evm-ds")])
     os.chmod(os.path.join(evm_ds_tgt, "evm-ds"), 0o755)
