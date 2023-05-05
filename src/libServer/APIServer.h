@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <string>
+#include "common/Constants.h"
 
 namespace boost {
 namespace asio {
@@ -58,10 +59,10 @@ class APIServer {
     std::string threadPoolName;
 
     /// Number of threads in thread pool
-    size_t numThreads = 6;
+    size_t numThreads = REQUEST_PROCESSING_THREADS;
 
     /// Max size of unhandled requests queue
-    size_t maxQueueSize = 256;
+    size_t maxQueueSize = REQUEST_QUEUE_SIZE;
 
     // TODO enable TLS later
     // std::string tlsCertificateFileName;

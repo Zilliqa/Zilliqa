@@ -181,6 +181,7 @@ class APIServerImpl::Connection
     res.keep_alive(keepAlive);
     if (!description.empty()) {
       res.set(http::field::content_type, "text/plain");
+      res.set(http::field::access_control_allow_origin, "*");
       res.body() = std::move(description);
     }
     res.prepare_payload();
