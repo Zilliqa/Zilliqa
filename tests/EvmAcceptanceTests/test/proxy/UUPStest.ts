@@ -66,7 +66,8 @@ describe("When using UUPS proxy for interacting with contract", function () {
     await expect(proxyContract.initialize(123)).to.be.rejected;
   });
 
-  it("Should not be possible to upgrade contract with different signer", async function () {
-    await expect(proxyContract.initialize(123)).to.be.rejected;
+  it("Should not be possible to initialize the same proxy contract twice with different signer", async function () {
+    const newSigner = await parallelizer.takeSigner();
+    await expect(proxyContract.connect(newSigner).initialize(123)).to.be.rejected;
   });
 });
