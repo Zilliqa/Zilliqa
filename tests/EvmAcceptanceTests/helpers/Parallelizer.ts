@@ -1,8 +1,8 @@
-import { getAddressFromPrivateKey } from "@zilliqa-js/crypto";
+import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import BN from "bn.js";
 import {Contract, Signer, Wallet} from "ethers";
-import hre, { ethers as hh_ethers, web3, upgrades } from "hardhat";
-import { ScillaContract, Setup, UserDefinedLibrary, initZilliqa } from "hardhat-scilla-plugin";
+import hre, {ethers as hh_ethers, web3, upgrades} from "hardhat";
+import {ScillaContract, Setup, UserDefinedLibrary, initZilliqa} from "hardhat-scilla-plugin";
 import SignerPool from "./SignerPool";
 
 export type DeployOptions = {
@@ -44,8 +44,14 @@ export class Parallelizer {
     return deployedContract;
   }
 
-  async deployProxyWithSigner(signer: Signer, kind: "uups" | "transparent" | "beacon" | undefined, contractName: string, initializer: string,...args: any[]) {
-    let Contract = await hh_ethers.getContractFactory(contractName)
+  async deployProxyWithSigner(
+    signer: Signer,
+    kind: "uups" | "transparent" | "beacon" | undefined,
+    contractName: string,
+    initializer: string,
+    ...args: any[]
+  ) {
+    let Contract = await hh_ethers.getContractFactory(contractName);
     Contract = Contract.connect(signer);
     const deployed = await upgrades.deployProxy(Contract, args, {
       initializer: initializer,
@@ -54,7 +60,7 @@ export class Parallelizer {
     return await deployed.deployed();
   }
 
-  async upgradeProxyWithSigner(signer: Signer, proxy: Contract, contractName: string)  {
+  async upgradeProxyWithSigner(signer: Signer, proxy: Contract, contractName: string) {
     let Contract = await hh_ethers.getContractFactory(contractName);
     Contract = Contract.connect(signer);
     return await upgrades.upgradeProxy(proxy, Contract);
