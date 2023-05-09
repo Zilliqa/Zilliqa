@@ -155,19 +155,16 @@ def run_or_die(config, cmd, in_dir = None, env = None, in_background = False, pi
         else:
             raise e
 
-
 def setup_podman(ctx, cpus, memory, disk_size):
     """
-    Set up podman on OS X machines.
+    Set up podman.
     """
     config = get_config(ctx)
-    if config.is_osx:
-        run_or_die(config, ["podman", "machine", "init" , "--cpus={}".format(cpus), "--memory={}".format(memory), "--disk-size={}".format(disk_size)])
-        # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
-        run_or_die(config, ["podman", "machine", "set", "--rootful" ])
-        run_or_die(config, ["podman", "machine", "start"])
-    else:
-        print("No need to setup podman on non-OS X machines")
+    run_or_die(config, ["podman", "machine", "init" , "--cpus={}".format(cpus), "--memory={}".format(memory), "--disk-size={}".format(disk_size)])
+    # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
+    run_or_die(config, ["podman", "machine", "set", "--rootful" ])
+    run_or_die(config, ["podman", "machine", "start"])
+    adjust_config(config, "podman")
 
 @click.command("teardown-podman")
 @click.pass_context
@@ -264,7 +261,7 @@ def adjust_config(config, engine):
 
     if engine == "podman":
         config.docker_binary = "podman"
-        config.engine_env = config.default_env
+        config.engine_env = os.environ.copy()
     elif engine == "k8s":
         config.docker_binary = "docker"
         config.engine_env = minikube_env(config)
