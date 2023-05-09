@@ -42,8 +42,11 @@ SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 
-def default_engine():
-    return "podman" if sys.platform == "darwin" else "k8s"
+#  def default_engine():
+    #  return "podman" if sys.platform == "darwin" else "k8s"
+
+def default_driver():
+    return "podman" if sys.platform == "darwin" else "kvm2"
 
 def using_podman(config):
     return config.engine == "podman"
@@ -60,7 +63,7 @@ class Config:
             "seedpub": 1
         }
         self.is_osx = sys.platform == "darwin"
-        self.docker_binary = "podman" if default_engine() == "podman" else "docker"
+        self.docker_binary = "podman" if default_driver() == "podman" else "docker"
 
         #  if self.is_osx:
             #print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
@@ -180,7 +183,7 @@ def teardown_podman(ctx):
 def get_minikube_ip(config):
     # On OS X it's not possible to use the real minikube IP, and instead 127.0.0.1 must
     # be used as well as running 'minikube tunnel'.
-    result = "127.0.0.1" if config.is_osx and config.engine == "k8s" else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
+    result = "127.0.0.1" if config.is_osx else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
     return result
 
 def gen_tag():
@@ -244,29 +247,21 @@ def start_k8s_cmd(ctx):
     start_k8s(config)
     pull_containers(config)
 
-def minikube_env(config):
-    engine_env = os.environ.copy()
+def minikube_env(config, driver):
+    driver_env = os.environ.copy()
     for p in map(
         # Skip the 'export ' and split at '=' into a tuple
         lambda x: x[7:].split('='),
         re.findall(
             r'export [A-Z_]+="[^"]*"',
-            run_or_die(config, ["minikube", "docker-env"], capture_output=True).decode('utf-8'))):
-        engine_env[p[0]] = p[1][1:-1]
+            run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
+        driver_env[p[0]] = p[1][1:-1]
 
-    return engine_env
+    return driver_env
 
-def adjust_config(config, engine):
-    config.engine = engine
-
-    if engine == "podman":
-        config.docker_binary = "podman"
-        config.engine_env = os.environ.copy()
-    elif engine == "k8s":
-        config.docker_binary = "docker"
-        config.engine_env = minikube_env(config)
-    else:
-        raise GiveUp("Unknown virtualization engine");
+def adjust_config(config, driver):
+    config.driver = driver
+    config.driver_env = minikube_env(config, driver)
 
 def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     """
@@ -284,7 +279,7 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     wait_for_running_pod(config, "registry", "kube-system")
     wait_for_running_pod(config, "registry-proxy", "kube-system")
 
-    adjust_config(config, "k8s")
+    adjust_config(config, driver)
     wait_for_local_registry(config)
 
     pull_containers(config)
@@ -302,42 +297,37 @@ def adjust_value_for_k8s(ctx, param, value, default_value):
     return None
 
 @click.command("setup")
-@click.option("--engine",
+@click.option("--driver",
               required=True,
-              default=default_engine(),
-              show_default=True, help="the virtualization engine")
+              default=default_driver(),
+              show_default=True,
+              help="The minikube driver to use")
 @click.option("--cpus",
               required=False,
-              callback=lambda ctx, param, value: value if value else 8 if ctx.params["engine"] == "podman" else "max",
+              callback=lambda ctx, param, value: value if value else 8 if ctx.params["driver"] == "podman" else "max",
               help="The number of CPUs in the guest VM")
 @click.option("--memory",
               required=False,
-              callback=lambda ctx, param, value: value if value else 16384 if ctx.params["engine"] == "podman" else "max",
+              callback=lambda ctx, param, value: value if value else 16384 if ctx.params["driver"] == "podman" else "max",
               help="The amount of memory allocated to the guest VM (in MB)")
 @click.option("--disk-size",
               required=False,
-              callback=lambda ctx, param, value: value if value else 196 if ctx.params["engine"] == "podman" else "100",
+              callback=lambda ctx, param, value: value if value else 196 if ctx.params["driver"] == "podman" else "100",
               help="The disk size (in GB) in the guest VM")
-@click.option("--driver",
-              required=False,
-              callback=lambda ctx, param, value: adjust_value_for_k8s(ctx, param, value, "docker" if sys.platform == "darwin" else "kvm2"),
-              help="The minikube driver to use (only if --engine=k8s)")
 @click.option("--container-runtime",
               required=False,
-              callback=lambda ctx, param, value: adjust_value_for_k8s(ctx, param, value, "cri-o"),
-              help="The minikube container runtime to use (only if --engine=k8s)")
+              callback=lambda ctx, param, value: value if value else "cri-o" if ctx.params["driver"] == "podman" else "dockerd",
+              help="The minikube container runtime to use")
 @click.pass_context
-def setup(ctx, engine, cpus, memory, disk_size, driver, container_runtime):
+def setup(ctx, driver, cpus, memory, disk_size, container_runtime):
     """
-    Sets up the virtualization engine
+    Sets up minikube & the virtualization environment
     """
 
-    if engine == "podman":
+    if driver == "podman":
         setup_podman(ctx, cpus, memory, disk_size)
-    elif engine == "k8s":
-        setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime)
-    else:
-        raise GiveUp("Unknown virtualization engine");
+
+    setup_k8s(ctx, cpus, memory if memory == "max" else int((int(memory) * 9) / 10), int((int(disk_size) * 9) / 10), driver, container_runtime)
 
 
 def wait_for_local_registry(config):
@@ -393,13 +383,13 @@ def pull_containers(config):
             local_tag = '/'.join(container.split('/')[1:])
         local_tag = f"{remote_registry}/{local_tag}"
         print(f"Retagging {container} as {local_tag} .. ")
-        run_or_die(config, [config.docker_binary, "tag", container, local_tag], env=config.engine_env)
+        run_or_die(config, [config.docker_binary, "tag", container, local_tag], env=config.driver_env)
         push_to_local_registry(config, local_tag)
 
 
 
 def pull_container(config, container):
-    run_or_die(config, [ config.docker_binary, "pull" , container], env=config.engine_env)
+    run_or_die(config, [ config.docker_binary, "pull" , container], env=config.driver_env)
 
 def push_to_local_registry(config, tag):
     if using_podman(config):
@@ -422,9 +412,9 @@ def teardown_k8s(ctx):
 
 @click.command("up")
 @click.pass_context
-@click.option("--engine",
+@click.option("--driver",
               required=True,
-              default=default_engine(),
+              default=default_driver(),
               show_default=True, help="the virtualization engine used for setup")
 @click.option("--zilliqa-image",
               required=True,
@@ -436,7 +426,7 @@ def teardown_k8s(ctx):
               help="the test network's name")
 @click.option("--persistence", help="A persistence directory to start the network with. Has no effect without also passing `--key-file`.")
 @click.option("--key-file", help="A `.tar.gz` generated by `./testnet.sh back-up auto` containing the keys used to start this network. Has no effect without also passing `--persistence`.")
-def up_cmd(ctx, engine, zilliqa_image, testnet_name, persistence, key_file):
+def up_cmd(ctx, driver, zilliqa_image, testnet_name, persistence, key_file):
     """
     Build Zilliqa (via a process equivalent to the build_lite command), write configuration files for a
     testnet named localdev, run `localdev/config.sh up`, and start a proxy to allow the user to monitor traffic
@@ -884,9 +874,9 @@ def log_snapshot(config, recency):
 
 
 @click.command("build_scilla")
-@click.option("--engine",
+@click.option("--driver",
               required=True,
-              default=default_engine(),
+              default=default_driver(),
               show_default=True, help="the virtualization engine used for setup")
 @click.pass_context
 def build_scilla(ctx, engine):
@@ -905,9 +895,9 @@ def build_scilla(ctx, engine):
     push_to_local_registry(config, tag)
 
 @click.command("build_zilliqa")
-@click.option("--engine",
+@click.option("--driver",
               required=True,
-              default=default_engine(),
+              default=default_driver(),
               show_default=True, help="the virtualization engine used for setup")
 @click.option("--scilla-image",
               required=True,
