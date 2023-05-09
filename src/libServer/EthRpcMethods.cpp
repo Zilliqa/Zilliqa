@@ -764,7 +764,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     if (sender == nullptr) {
       TRACE_ERROR("Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Sender doesn't exist");
+                             "The sender of the tx doesn't appear to have funds");
     }
     accountFunds = sender->GetBalance();
 
