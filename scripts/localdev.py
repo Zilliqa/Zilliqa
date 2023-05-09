@@ -49,7 +49,7 @@ def default_driver():
     return "podman" if sys.platform == "darwin" else "kvm2"
 
 def using_podman(config):
-    return config.engine == "podman"
+    return config.driver == "podman"
 
 class Config:
     def __init__(self):
@@ -167,7 +167,6 @@ def setup_podman(ctx, cpus, memory, disk_size):
     # This is necessary because Zilliqa requires various files in /proc/sys/net/core, which aren't exposed in rootless configurations.
     run_or_die(config, ["podman", "machine", "set", "--rootful" ])
     run_or_die(config, ["podman", "machine", "start"])
-    adjust_config(config, "podman")
 
 @click.command("teardown-podman")
 @click.pass_context
@@ -226,12 +225,8 @@ systemctl restart systemd-resolved
     to your /etc/hosts.
 """ + """
 Run:
-    """ + ("""
-    eval $(minikube docker-env)
-""" if config.engine == "k8s" and config.docker_binary == "docker" else "") +
-"""
     sudo minikube tunnel
-""" if config.is_osx and config.engine == "k8s" else "")
+""" if config.is_osx else "")
 
 def start_k8s(config):
     print("Starting minikube .. ")
@@ -249,13 +244,14 @@ def start_k8s_cmd(ctx):
 
 def minikube_env(config, driver):
     driver_env = os.environ.copy()
-    for p in map(
-        # Skip the 'export ' and split at '=' into a tuple
-        lambda x: x[7:].split('='),
-        re.findall(
-            r'export [A-Z_]+="[^"]*"',
-            run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
-        driver_env[p[0]] = p[1][1:-1]
+    if driver == "docker": # or driver == "podman":
+        for p in map(
+            # Skip the 'export ' and split at '=' into a tuple
+            lambda x: x[7:].split('='),
+            re.findall(
+                r'export [A-Z_]+="[^"]*"',
+                run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
+            driver_env[p[0]] = p[1][1:-1]
 
     return driver_env
 
@@ -271,7 +267,7 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     config = get_config(ctx)
     print("Creating minikube cluster .. ")
     run_or_die(config, ["minikube", "start", "--disk-size", "{}g".format(disk_size), "--cpus", str(cpus), "--memory", str(memory), "--driver", driver,
-                "--insecure-registry", "192.168.0.0/16", "--container-runtime", container_runtime])
+                        "--insecure-registry", "192.168.0.0/16", "--ports=5000:5000", "--container-runtime", container_runtime])
     registry_addon_output = run_or_die(config, ["minikube", "addons", "enable", "registry"], capture_output = True)
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
@@ -324,8 +320,8 @@ def setup(ctx, driver, cpus, memory, disk_size, container_runtime):
     Sets up minikube & the virtualization environment
     """
 
-    if driver == "podman":
-        setup_podman(ctx, cpus, memory, disk_size)
+    #  if driver == "podman":
+        #  setup_podman(ctx, cpus, memory, disk_size)
 
     setup_k8s(ctx, cpus, memory if memory == "max" else int((int(memory) * 9) / 10), int((int(disk_size) * 9) / 10), driver, container_runtime)
 
@@ -335,6 +331,7 @@ def wait_for_local_registry(config):
     Wait for the local registry to be up
     """
     ip = get_minikube_ip(config)
+    #  run_or_die(config, ["kubectl", "port-forward", "--namespace", "kube-system", "service/registry", "5000:80"], in_background=True)
     print(f"Waiting for http://{ip}:5000/v2 .. ")
     while True:
         try:
@@ -400,7 +397,7 @@ def push_to_local_registry(config, tag):
         print(f"> Pushing to local registry")
         cmd = [ config.docker_binary, "push", tag ]
         cmd.extend(extra_flags)
-        run_or_die(config, cmd, env=config.engine_env, in_dir = ZILLIQA_DIR, capture_output = False)
+        run_or_die(config, cmd, env=config.driver_env, in_dir = ZILLIQA_DIR, capture_output = False)
 
 @click.command("teardown-k8s")
 @click.pass_context
