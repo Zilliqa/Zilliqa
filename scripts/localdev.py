@@ -185,6 +185,9 @@ def get_minikube_ip(config):
     result = "127.0.0.1" if config.is_osx else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
     return result
 
+def get_registry_ip(config):
+    return "127.0.0.1"
+
 def gen_tag():
     """
     Generate a short random tag for builds
@@ -282,15 +285,6 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     print_config_advice(config)
     print("You can then run localdev up")
 
-def adjust_value_for_k8s(ctx, param, value, default_value):
-    engine = ctx.params["engine"] if "engine" in ctx.params else default_engine()
-    if engine == "k8s":
-        return value if value else default_value
-    else:
-        if value:
-            raise GiveUp("--{} can only be used with k8s".format(param.name))
-
-    return None
 
 @click.command("setup")
 @click.option("--driver",
@@ -367,7 +361,7 @@ def wait_for_running_pod(config, podname_prefix, namespace):
 
 def pull_containers(config):
     # Pre-emptively grab busybox and nginx
-    ip = get_minikube_ip(config)
+    ip = get_registry_ip(config)
     remote_registry = f"{ip}:5000"
     for container in [ 'docker.io/localstack/localstack:latest',
                        'docker.io/library/nginx:latest',
@@ -412,7 +406,8 @@ def teardown_k8s(ctx):
 @click.option("--driver",
               required=True,
               default=default_driver(),
-              show_default=True, help="the virtualization engine used for setup")
+              show_default=True,
+              help="The minikube driver to use")
 @click.option("--zilliqa-image",
               required=True,
               help="the zilliqz image to use when building the zilliqa image")
@@ -430,7 +425,7 @@ def up_cmd(ctx, driver, zilliqa_image, testnet_name, persistence, key_file):
     on the API ports.
     """
     config = get_config(ctx)
-    adjust_config(config, engine)
+    adjust_config(config, driver)
     config.persistence = persistence
     config.key_file = key_file
     up(config, zilliqa_image, testnet_name)
@@ -870,59 +865,70 @@ def log_snapshot(config, recency):
     print(f"Logs in {log_name}")
 
 
-@click.command("build_scilla")
+@click.command("build-scilla")
 @click.option("--driver",
               required=True,
               default=default_driver(),
-              show_default=True, help="the virtualization engine used for setup")
+              show_default=True,
+              help="The minikube driver to use")
 @click.pass_context
-def build_scilla(ctx, engine):
+def build_scilla(ctx, driver):
     """
     Builds a scilla image and generates a new tag for it.
     """
     config = get_config(ctx)
-    adjust_config(config, engine)
+    adjust_config(config, driver)
 
-    build_env = config.engine_env.copy()
+    build_env = config.driver_env.copy()
     build_env["DOCKER_BUILDKIT"] = "1"
 
     tag = "scilla:" + gen_tag()
     run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(SCILLA_DIR, "docker", "Dockerfile")], in_dir = SCILLA_DIR, env = build_env,
                capture_output = False)
-    push_to_local_registry(config, tag)
+    ip = get_registry_ip(config)
+    target_tag = f"{ip}:5000/{tag}"
+    run_or_die(config, [config.docker_binary, "tag", tag, target_tag], env=config.driver_env)
+    push_to_local_registry(config, target_tag)
 
-@click.command("build_zilliqa")
+@click.command("build-zilliqa")
 @click.option("--driver",
               required=True,
               default=default_driver(),
-              show_default=True, help="the virtualization engine used for setup")
+              show_default=True,
+              help="The minikube driver to use")
 @click.option("--scilla-image",
               required=True,
               help="the scilla image to use when building the zilliqa image")
 @click.pass_context
-def build_zilliqa(ctx, engine, scilla_image):
+def build_zilliqa(ctx, driver, scilla_image):
     """
     Builds a zilliqa image and generates a new tag for it.
     """
     config = get_config(ctx)
-    adjust_config(config, engine)
+    adjust_config(config, driver)
 
-    build_env = config.engine_env.copy()
+    build_env = config.driver_env.copy()
     build_env["DOCKER_BUILDKIT"] = "1"
 
     tag = "zilliqa:" + gen_tag()
     run_or_die(config, [config.docker_binary, "build", ".", "--build-arg", f"SCILLA_IMAGE={scilla_image}", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
                capture_output = False)
-    push_to_local_registry(config, tag)
+    ip = get_registry_ip(config)
+    target_tag = f"{ip}:5000/{tag}"
+    run_or_die(config, [config.docker_binary, "tag", tag, target_tag], env=config.driver_env)
+    push_to_local_registry(config, target_tag)
 
 
 def build_lite(config, tag):
     #  workspace = build_native_to_workspace(config)
-    build_env = config.engine_env.copy()
+    build_env = config.driver_env.copy()
     print(build_env)
     build_env["DOCKER_BUILDKIT"] = "1"
     run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
                capture_output = False)
+
+    ip = get_minikube_ip(config)
+    run_or_die(config, [config.docker_binary, "tag", tag, f"{ip}:5000/{tag}"], env=config.driver_env)
     push_to_local_registry(config, tag)
     #  print(f"> Built in workspace {workspace}")
     #  if not config.keep_workspace:
