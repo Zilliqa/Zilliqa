@@ -226,10 +226,6 @@ Run:
     sudo minikube tunnel
 """ if config.is_osx else "")
 
-def start_k8s(config):
-    print("Starting minikube .. ")
-    run_or_die(config, ["minikube", "start", "--driver", "kvm2"])
-
 @click.command("start-k8s")
 @click.pass_context
 def start_k8s_cmd(ctx):
@@ -237,38 +233,29 @@ def start_k8s_cmd(ctx):
     Restart minikube after a reboot or after you've stopped it for some other reason
     """
     config = get_config(ctx)
-    start_k8s(config)
-    pull_containers(config)
+    print("Starting minikube .. ")
+    run_or_die(config, ["minikube", "start"])
 
 def minikube_env(config, driver):
     driver_env = os.environ.copy()
-    #  if driver == "docker": # or driver == "podman":
-        #  for p in map(
-            #  Skip the 'export ' and split at '=' into a tuple
-            #  lambda x: x[7:].split('='),
-            #  re.findall(
-                #  r'export [A-Z_]+="[^"]*"',
-                #  run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
-            #  driver_env[p[0]] = p[1][1:-1]
+    if driver == "docker" or driver == "podman":
+        for p in map(
+            # Skip the 'export ' and split at '=' into a tuple
+            lambda x: x[7:].split('='),
+            re.findall(
+                r'export [A-Z_]+="[^"]*"',
+                run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
+            driver_env[p[0]] = p[1][1:-1]
 
     return driver_env
 
-def adjust_config(config, driver, container_runtime=None):
+def adjust_config(config, driver):
     config.driver = driver
 
     if driver == "podman":
         config.docker_binary = "podman"
-    elif driver == "qemu":
-        config.docker_binary = "nerdctl"
     else:
         config.docker_binary = "docker"
-
-    if container_runtime == "podman":
-        config.minikube_crt_binary = "podman"
-    elif container_runtime == "cri-o" or container_runtime == "containerd":
-        config.minikube_crt_binary = "crictl"
-    else:
-        config.minikube_crt_binary = "docker"
 
     config.driver_env = minikube_env(config, driver)
 
@@ -280,18 +267,13 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     config = get_config(ctx)
     print("Creating minikube cluster .. ")
     run_or_die(config, ["minikube", "start", "--disk-size", "{}g".format(disk_size), "--cpus", str(cpus), "--memory", str(memory), "--driver", driver,
-                        "--insecure-registry", "192.168.0.0/16", "--ports=5000:5000", "--container-runtime", container_runtime])
-    registry_addon_output = run_or_die(config, ["minikube", "addons", "enable", "registry"], capture_output = True)
+                        "--container-runtime", container_runtime])
     run_or_die(config, ["minikube", "addons", "enable", "ingress"])
     run_or_die(config, ["minikube", "addons", "enable", "ingress-dns"])
     run_or_die(config, ["kubectl", "config", "use-context", "minikube"])
-    wait_for_running_pod(config, "registry", "kube-system")
-    wait_for_running_pod(config, "registry-proxy", "kube-system")
 
-    adjust_config(config, driver, container_runtime)
-    wait_for_local_registry(config)
+    adjust_config(config, driver)
 
-    pull_containers(config)
     print_config_advice(config)
     print("You can then run localdev up")
 
@@ -349,22 +331,6 @@ def setup(ctx, driver, cpus, memory, disk_size, container_runtime):
     setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime)
 
 
-def wait_for_local_registry(config):
-    """
-    Wait for the local registry to be up
-    """
-    ip = get_minikube_ip(config)
-    run_or_die(config, ["kubectl", "port-forward", "--namespace", "kube-system", "service/registry", "5000:80"], in_background=True)
-    print(f"Waiting for http://{ip}:5000/v2 .. ")
-    while True:
-        try:
-            run_or_die(config, [ "curl", f"http://{ip}:5000/v2" ] )
-            print(".. OK")
-            break
-        except:
-            print("...")
-            time.sleep(5)
-
 def wait_for_running_pod(config, podname_prefix, namespace):
     """
     Wait for a pod with a name starting with podman_prefix to be running
@@ -387,6 +353,8 @@ def wait_for_running_pod(config, podname_prefix, namespace):
         print(f": {' '.join(pods)}")
         time.sleep(2)
 
+def pull_container(config, container):
+    run_or_die(config, [ config.docker_binary, "pull" , container], env=config.driver_env)
 
 def pull_containers(config):
     # Pre-emptively grab busybox and nginx
@@ -405,11 +373,6 @@ def pull_containers(config):
         print(f"Retagging {container} as {local_tag} .. ")
         run_or_die(config, [config.docker_binary, "tag", container, local_tag], env=config.driver_env)
         push_to_local_registry(config, local_tag)
-
-
-
-def pull_container(config, container):
-    run_or_die(config, [ config.docker_binary, "pull" , container], env=config.driver_env)
 
 def push_to_local_registry(config, tag):
     if using_podman(config):
@@ -888,10 +851,13 @@ def log_snapshot(config, recency):
               default=default_driver(),
               show_default=True,
               help="The minikube driver to use")
+@click.option("--tag",
+              required=False,
+              help="The scilla image tag. Will be generated if not given.")
 @click.pass_context
-def build_scilla(ctx, driver):
+def build_scilla(ctx, driver, tag):
     """
-    Builds a scilla image and generates a new tag for it.
+    Builds a scilla image.
     """
     config = get_config(ctx)
     adjust_config(config, driver)
@@ -899,13 +865,9 @@ def build_scilla(ctx, driver):
     build_env = config.driver_env.copy()
     build_env["DOCKER_BUILDKIT"] = "1"
 
-    tag = "scilla:" + gen_tag()
+    tag = "scilla:" + (tag if tag else gen_tag())
     run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(SCILLA_DIR, "docker", "Dockerfile")], in_dir = SCILLA_DIR, env = build_env,
                capture_output = False)
-    ip = get_registry_ip(config)
-    target_tag = f"{ip}:5000/{tag}"
-    run_or_die(config, [config.docker_binary, "tag", tag, target_tag], env=config.driver_env)
-    push_to_local_registry(config, target_tag)
 
 @click.command("build-zilliqa")
 @click.option("--driver",
@@ -915,11 +877,14 @@ def build_scilla(ctx, driver):
               help="The minikube driver to use")
 @click.option("--scilla-image",
               required=True,
-              help="the scilla image to use when building the zilliqa image")
+              help="the scilla image to use when building the zilliqa image (i.e. scilla:<tag>)")
+@click.option("--tag",
+              required=False,
+              help="The zilliqa image tag. Will be generated if not given.")
 @click.pass_context
-def build_zilliqa(ctx, driver, scilla_image):
+def build_zilliqa(ctx, driver, scilla_image, tag):
     """
-    Builds a zilliqa image and generates a new tag for it.
+    Builds a zilliqa image.
     """
     config = get_config(ctx)
     adjust_config(config, driver)
@@ -927,13 +892,9 @@ def build_zilliqa(ctx, driver, scilla_image):
     build_env = config.driver_env.copy()
     build_env["DOCKER_BUILDKIT"] = "1"
 
-    tag = "zilliqa:" + gen_tag()
+    tag = "zilliqa:" + (tag if tag else gen_tag())
     run_or_die(config, [config.docker_binary, "build", ".", "--build-arg", f"SCILLA_IMAGE={scilla_image}", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
                capture_output = False)
-    ip = get_registry_ip(config)
-    target_tag = f"{ip}:5000/{tag}"
-    run_or_die(config, [config.docker_binary, "tag", tag, target_tag], env=config.driver_env)
-    push_to_local_registry(config, target_tag)
 
 def get_pod_names(config, node_type = None):
     cmd =  ["kubectl",
@@ -991,17 +952,6 @@ def reup_cmd(ctx):
     config = get_config(ctx)
     down(config)
     up(config)
-
-@click.command("pull-containers")
-@click.pass_context
-def pull_containers_cmd(ctx):
-    """
-    Pull external containers and push them to the k8s registry for loading
-    (up may not work if you don't do this)
-    This command is executed implicitly by setup-k8s
-    """
-    config = get_config(ctx)
-    pull_containers(config)
 
 @click.command("show-proxy")
 @click.pass_context
@@ -1117,7 +1067,6 @@ def debug(ctx):
 debug.add_command(start_proxy_cmd)
 debug.add_command(write_testnet_config_cmd)
 debug.add_command(print_config_advice_cmd)
-debug.add_command(pull_containers_cmd)
 debug.add_command(wait_for_running_pod_cmd)
 debug.add_command(wait_for_termination_cmd)
 debug.add_command(wait_for_local_registry_cmd)
@@ -1172,7 +1121,6 @@ cli.add_command(down_cmd)
 cli.add_command(show_proxy_cmd)
 cli.add_command(which_pod_said_cmd)
 cli.add_command(debug)
-cli.add_command(pull_containers_cmd)
 cli.add_command(reup_cmd)
 cli.add_command(log_snapshot_cmd)
 cli.add_command(restart_ingress_cmd)
