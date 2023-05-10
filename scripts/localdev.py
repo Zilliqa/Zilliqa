@@ -42,11 +42,8 @@ SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 
-#  def default_engine():
-    #  return "podman" if sys.platform == "darwin" else "k8s"
-
 def default_driver():
-    return "podman" if sys.platform == "darwin" else "kvm2"
+    return "docker" if sys.platform == "darwin" else "kvm2"
 
 def using_podman(config):
     return config.driver == "podman"
@@ -55,15 +52,7 @@ class Config:
     def __init__(self):
         self.default_env = { "LOCALDEV" : "1" , "FAST_BUILD" : "1"}
         self.cache_dir = os.path.join(pathlib.Path.home(), ".cache", "zilliqa_localdev");
-        self.pods_to_start = {
-            "dsguard": 4,
-            "lookup": 2,
-            "multiplier": 1,
-            "normal": 4,
-            "seedpub": 1
-        }
         self.is_osx = sys.platform == "darwin"
-        self.docker_binary = "podman" if default_driver() == "podman" else "docker"
 
         #  if self.is_osx:
             #print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
@@ -76,7 +65,6 @@ class Config:
         #  else:
             #  self.using_podman = True
             #  self.docker_binary = "podman"
-        self.using_local_registry = True
         self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
         self.testnet_name = "localdev"
         self.strip_binaries = False
@@ -168,6 +156,13 @@ def setup_podman(ctx, cpus, memory, disk_size):
     run_or_die(config, ["podman", "machine", "set", "--rootful" ])
     run_or_die(config, ["podman", "machine", "start"])
 
+def setup_colima(ctx, cpus, memory, disk_size):
+    """
+    Sets up colima.
+    """
+    config = get_config(ctx)
+    run_or_die(config, ["colima", "start", f"--cpus={cpus}", f"--memory={int(memory / 1024)}", f"--disk-size={disk_size}", "--runtime=docker"])
+
 @click.command("teardown-podman")
 @click.pass_context
 def teardown_podman(ctx):
@@ -202,12 +197,12 @@ def print_config_advice(config):
     host_names = sanitise_output(host_names).split()
     # May have to be hardcoded, since the net isn't running at this point...
     if len(host_names) == 0:
-        host_names = [  "localdev-api.localdomain",
-                        "localdev-explorer.localdomain",
-                        "localdev-l2api.localdomain",
-                        "localdev-newapi.localdomain",
-                        "localdev-origin.localdomain",
-                        "localdev-origin-internal.localdomain" ]
+        host_names = [  "localdev-api",
+                        "localdev-explorer",
+                        "localdev-l2api",
+                        "localdev-newapi",
+                        "localdev-origin",
+                        "localdev-origin-internal" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
     print(f"Minikube is at {ip}")
     print(f"""Please add
@@ -247,19 +242,34 @@ def start_k8s_cmd(ctx):
 
 def minikube_env(config, driver):
     driver_env = os.environ.copy()
-    if driver == "docker": # or driver == "podman":
-        for p in map(
-            # Skip the 'export ' and split at '=' into a tuple
-            lambda x: x[7:].split('='),
-            re.findall(
-                r'export [A-Z_]+="[^"]*"',
-                run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
-            driver_env[p[0]] = p[1][1:-1]
+    #  if driver == "docker": # or driver == "podman":
+        #  for p in map(
+            #  Skip the 'export ' and split at '=' into a tuple
+            #  lambda x: x[7:].split('='),
+            #  re.findall(
+                #  r'export [A-Z_]+="[^"]*"',
+                #  run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
+            #  driver_env[p[0]] = p[1][1:-1]
 
     return driver_env
 
-def adjust_config(config, driver):
+def adjust_config(config, driver, container_runtime=None):
     config.driver = driver
+
+    if driver == "podman":
+        config.docker_binary = "podman"
+    elif driver == "qemu":
+        config.docker_binary = "nerdctl"
+    else:
+        config.docker_binary = "docker"
+
+    if container_runtime == "podman":
+        config.minikube_crt_binary = "podman"
+    elif container_runtime == "cri-o" or container_runtime == "containerd":
+        config.minikube_crt_binary = "crictl"
+    else:
+        config.minikube_crt_binary = "docker"
+
     config.driver_env = minikube_env(config, driver)
 
 def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
@@ -278,7 +288,7 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
     wait_for_running_pod(config, "registry", "kube-system")
     wait_for_running_pod(config, "registry-proxy", "kube-system")
 
-    adjust_config(config, driver)
+    adjust_config(config, driver, container_runtime)
     wait_for_local_registry(config)
 
     pull_containers(config)
@@ -298,15 +308,17 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
               help="The number of CPUs in the guest VM")
 @click.option("--memory",
               required=False,
-              callback=lambda ctx, param, value: value if value else 16384 if ctx.params["driver"] == "podman" else "max",
+              default=12288,
+              show_default=True,
               help="The amount of memory allocated to the guest VM (in MB)")
 @click.option("--disk-size",
               required=False,
-              callback=lambda ctx, param, value: value if value else 196 if ctx.params["driver"] == "podman" else "100",
+              default=128,
+              show_default=True,
               help="The disk size (in GB) in the guest VM")
 @click.option("--container-runtime",
               required=False,
-              callback=lambda ctx, param, value: value if value else "cri-o" if ctx.params["driver"] == "podman" else "dockerd",
+              callback=lambda ctx, param, value: value if value else "cri-o" if ctx.params["driver"] == "podman" else "docker",
               help="The minikube container runtime to use")
 @click.pass_context
 def setup(ctx, driver, cpus, memory, disk_size, container_runtime):
@@ -314,10 +326,27 @@ def setup(ctx, driver, cpus, memory, disk_size, container_runtime):
     Sets up minikube & the virtualization environment
     """
 
-    #  if driver == "podman":
-        #  setup_podman(ctx, cpus, memory, disk_size)
+    adjust_minikube_specs = False
+    if driver == "podman":
+        setup_podman(ctx, cpus, memory, disk_size)
+        adjust_minikube_specs = True
+    elif driver == "docker" and sys.platform == "darwin":
+        adjust_minikube_specs = True
+        setup_colima(ctx, cpus, memory, disk_size)
 
-    setup_k8s(ctx, cpus, memory if memory == "max" else int((int(memory) * 9) / 10), int((int(disk_size) * 9) / 10), driver, container_runtime)
+    memory = int(memory)
+    disk_size = int(disk_size)
+
+    # If the driver is podman or docker on OS X, minikube will be created inside the
+    # podman/colima VM so we need to reduce the memory & disk size it's allocated.
+    if adjust_minikube_specs:
+        try:
+            memory = memory * 0.8
+        except:
+            pass
+        disk_size = disk_size * 0.75
+
+    setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime)
 
 
 def wait_for_local_registry(config):
@@ -325,7 +354,7 @@ def wait_for_local_registry(config):
     Wait for the local registry to be up
     """
     ip = get_minikube_ip(config)
-    #  run_or_die(config, ["kubectl", "port-forward", "--namespace", "kube-system", "service/registry", "5000:80"], in_background=True)
+    run_or_die(config, ["kubectl", "port-forward", "--namespace", "kube-system", "service/registry", "5000:80"], in_background=True)
     print(f"Waiting for http://{ip}:5000/v2 .. ")
     while True:
         try:
@@ -603,13 +632,20 @@ def stop_testnet(config, testnet_name):
     # tediously, testnet.sh has a habit of returning non-zero error codes when eg. the testnet has already been destroyed :-(
     run_or_die(config, ["sh", "-c", "echo localdev | ./testnet.sh down"], in_dir=os.path.join(TESTNET_DIR, testnet_name), allow_failure = True)
 
-def build_tag(config, tag_name):
-    print(f"Building Zilliqa to container {tag_name} .. ")
-    build_lite(config, tag_name)
-
 def write_testnet_configuration(config, zilliqa_image, testnet_name):
     instance_dir = os.path.join(TESTNET_DIR, testnet_name)
     minikube_ip = get_minikube_ip(config)
+
+    registry_cluster_ip = run_or_die(config, ["kubectl",
+                          "get",
+                          "services",
+                          "-n",
+                          "kube-system",
+                          "registry",
+                          "--template",
+                          "'{{.spec.clusterIP}}'"],
+                         capture_output = True)
+
     if os.path.exists(instance_dir):
         print(f"Removing old testnet configuration ..")
         shutil.rmtree(instance_dir)
@@ -617,10 +653,6 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name):
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube",
         #  "--constants-from-file", os.path.join(ZILLIQA_DIR, "constants_local.xml"),
         "--image", zilliqa_image,
-        #  "--k8s-logs", "true",
-        #  "--local-repo", f"{minikube_ip}:5000",
-        #  "--localdev", "true",
-        #  "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json"),
         "-c", "master",
         "-n", "20",
         "-d", "5",
@@ -722,21 +754,6 @@ def show_proxy(config, testnet_name):
         port = v['port']
         info[k] = { "comm" : f"http://localhost:{port}", "monitor" : f"http://localhost:{port+3000}" }
     print(json.dumps(info))
-
-@click.command("build-lite")
-@click.argument("tag")
-@click.pass_context
-def build_lite_cmd(ctx, tag):
-    """
-    Builds a Zilliqa container using docker/Dockerfile.lite
-    This uses your local compiler and OS, so you need to set that up as described in README.md and have vcpkg available.
-    It copies in (but does not build) scilla, so if you are making changes to Scilla you will need to rebuild it yourself.
-    Dockerfile.lite contains just enough mechanism to let Zilliqa run.
-
-    TAG is the container tag to build - eg. 'zilliqa:v1'
-    """
-    config = get_config(ctx)
-    build_lite(config, tag)
 
 def build_native_to_workspace(config):
     workspace = os.path.join(ZILLIQA_DIR, "_localdev")
@@ -917,23 +934,6 @@ def build_zilliqa(ctx, driver, scilla_image):
     target_tag = f"{ip}:5000/{tag}"
     run_or_die(config, [config.docker_binary, "tag", tag, target_tag], env=config.driver_env)
     push_to_local_registry(config, target_tag)
-
-
-def build_lite(config, tag):
-    #  workspace = build_native_to_workspace(config)
-    build_env = config.driver_env.copy()
-    print(build_env)
-    build_env["DOCKER_BUILDKIT"] = "1"
-    run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
-               capture_output = False)
-
-    ip = get_minikube_ip(config)
-    run_or_die(config, [config.docker_binary, "tag", tag, f"{ip}:5000/{tag}"], env=config.driver_env)
-    push_to_local_registry(config, tag)
-    #  print(f"> Built in workspace {workspace}")
-    #  if not config.keep_workspace:
-        #  print(f"> Removing workspace")
-        #  shutil.rmtree(workspace)
 
 def get_pod_names(config, node_type = None):
     cmd =  ["kubectl",
@@ -1161,10 +1161,7 @@ def cli(ctx):
     ctx.obj = Config()
     ctx.obj.setup()
 
-cli.add_command(build_lite_cmd)
-#  cli.add_command(setup_podman)
 cli.add_command(teardown_podman)
-#cli.add_command(setup_k8s)
 cli.add_command(start_k8s_cmd)
 cli.add_command(teardown_k8s)
 cli.add_command(setup)
