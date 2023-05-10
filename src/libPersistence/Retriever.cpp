@@ -59,6 +59,7 @@ bool Retriever::RetrieveTxBlocks() {
             m_mediator.m_lookup->m_mutexSetStateDeltaFromSeed);
         m_mediator.m_lookup->m_skipAddStateDeltaToAccountStore = true;
         m_mediator.m_lookup->GetStateDeltaFromSeedNodes(blockNum);
+        // TODO: cv fix
         if (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
                 cv_lk,
                 std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==

@@ -18,13 +18,17 @@
 #include "ScillaIPCServer.h"
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/common/specification.h>
-#include <sstream>
+#include "ScillaClient.h"
+#include "ScillaUtils.h"
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
+
+#include <sstream>
 
 using namespace std;
 using namespace Contract;
@@ -84,6 +88,13 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
+
+  bindAndAddMethod(Procedure("fetchStateJson", PARAMS_BY_NAME, JSON_OBJECT,
+                             "addr", JSON_STRING, "vname", JSON_STRING, NULL),
+                   &ScillaIPCServer::fetchStateJsonI);
+  bindAndAddMethod(Procedure("fetchCodeJson", PARAMS_BY_NAME, JSON_OBJECT,
+                             "addr", JSON_STRING, "query", JSON_STRING, NULL),
+                   &ScillaIPCServer::fetchCodeJsonI);
   bindAndAddMethod(
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -228,6 +239,64 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   }
 
   return true;
+}
+
+void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
+                                      Json::Value &response) {
+  INC_CALLS(GetCallsCounter());
+  const auto address = Address{request["addr"].asString()};
+  const auto vname = request["vname"].asString();
+  if (!request["indices"].isArray()) {
+    LOG_GENERAL(WARNING, "Given indices field is not an array!");
+    return;
+  }
+  std::vector<std::string> indicesVector;
+  for (const auto &index : request["indices"]) {
+    if (!index.isString()) {
+      continue;
+    }
+    std::stringstream ss;
+    ss << quoted(index.asString());
+    indicesVector.emplace_back(ss.str());
+  }
+
+  if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
+          response, address, vname, indicesVector)) {
+    LOG_GENERAL(WARNING, "Unable to fetch json state for addr " << address);
+  }
+
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING,
+                "Successfully fetch json substate for addr " << address);
+  }
+}
+
+void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
+                                     Json::Value &response) {
+  INC_CALLS(GetCallsCounter());
+  const auto address = Address{request["addr"].asString()};
+  std::string code;
+  std::string type;
+  bool found = false;
+
+  string query = base64_decode(request["query"].asString());
+  if (!fetchExternalStateValue(address.hex(), query, code, found, type)) {
+    return;
+  }
+  std::string rootVersion;
+  if (!ScillaUtils::PrepareRootPathWVersion(0, rootVersion)) {
+    return;
+  }
+  constexpr auto GAS_LIMIT = std::numeric_limits<uint32_t>::max();
+  const auto checkerJson =
+      ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT);
+  std::string interprinterPrint;
+  if (!ScillaClient::GetInstance().CallChecker(
+          0, ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT),
+          interprinterPrint)) {
+    return;
+  }
+  JSONUtils::GetInstance().convertStrtoJson(interprinterPrint, response);
 }
 
 bool ScillaIPCServer::updateStateValue(const string &query,

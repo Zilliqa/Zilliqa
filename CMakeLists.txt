@@ -67,6 +67,11 @@ find_package(CryptoUtils REQUIRED)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
+if (COMMIT_ID)
+   message(STATUS "Commit ID included")
+   add_definitions(-DCOMMIT_ID=${COMMIT_ID})
+endif()
+
 if(OPENCL_MINE)
     message(STATUS "OpenCL enabled")
     find_package(OpenCL REQUIRED)

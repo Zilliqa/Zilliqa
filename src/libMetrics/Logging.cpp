@@ -16,6 +16,7 @@
  */
 
 #include "Logging.h"
+#include "Common.h"
 #include "Tracing.h"
 
 #include "libUtils/Logger.h"
@@ -29,6 +30,8 @@
 #include "opentelemetry/sdk/common/global_log_handler.h"
 #include "opentelemetry/sdk/logs/logger_provider_factory.h"
 #include "opentelemetry/sdk/logs/simple_log_record_processor_factory.h"
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 namespace otlp_exporter = opentelemetry::exporter::otlp;
 namespace logs_exporter = opentelemetry::exporter::logs;
@@ -142,25 +145,31 @@ std::shared_ptr<logs::LoggerProvider> InitNoop() {
 
 }  // namespace
 
-Logging::Logging() {
-  std::string cmp(LOGGING_ZILLIQA_PROVIDER);
-
-  std::shared_ptr<logs::LoggerProvider> provider;
-
-  if (cmp == "OTLPHTTP") {
-    provider = InitOTHTTP();
-  } else if (cmp == "OTLPGRPC") {
-    provider = InitOtlpGrpc();
-  } else if (cmp == "STDOUT") {
-    provider = InitStdOut();
-  } else {
-    LOG_GENERAL(WARNING,
-                "Logging provider has defaulted to NOOP provider due to no "
-                "configuration");
-    provider = InitNoop();
+void Logging::Initialize(std::string_view identity /*= {}*/,
+                         std::string provider /*= LOGGING_ZILLIQA_PROVIDER*/) {
+  if (!IsObservabilityAllowed(identity)) {
+    provider = "NONE";
   }
 
-  opentelemetry::logs::Provider::SetLoggerProvider(provider);
+  boost::algorithm::to_lower(provider);
+
+  std::shared_ptr<logs::LoggerProvider> loggingProvider;
+
+  if (provider == "otlphttp") {
+    loggingProvider = InitOTHTTP();
+  } else if (provider == "otlpgrpc") {
+    loggingProvider = InitOtlpGrpc();
+  } else if (provider == "stdout") {
+    loggingProvider = InitStdOut();
+  } else {
+    LOG_GENERAL(
+        WARNING,
+        "Logging provider has defaulted to NOOP loggingProvider due to no "
+        "configuration");
+    loggingProvider = InitNoop();
+  }
+
+  opentelemetry::logs::Provider::SetLoggerProvider(loggingProvider);
 
   Logger::GetLogger().AddSink(std::make_unique<OTelLoggingSink>(),
                               &OTelLoggingSink::forwardToOTel);

@@ -16,18 +16,12 @@
  */
 
 #include <arpa/inet.h>
-#include <array>
-#include <chrono>
-#include <functional>
-#include <thread>
-#include <tuple>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <Schnorr.h>
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -41,6 +35,7 @@
 #include "libMetrics/Api.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
+#include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libPythonRunner/PythonRunner.h"
@@ -54,7 +49,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-using namespace boost::multi_index;
 
 const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
@@ -103,6 +97,7 @@ class VariablesNode {
   int nodeState = 0;
   int txnPool = 0;
   int txsInserted = 0;
+  int missingForwardedTx = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -110,6 +105,11 @@ class VariablesNode {
   void SetNodeState(int state) {
     Init();
     nodeState = state;
+  }
+
+  void AddForwardedMissingTx(int number) {
+    Init();
+    missingForwardedTx = number;
   }
 
   void AddTxnInserted(int inserted) {
@@ -131,6 +131,7 @@ class VariablesNode {
         result.Set(nodeState, {{"counter", "NodeState"}});
         result.Set(txsInserted, {{"counter", "TXsInserted"}});
         result.Set(txnPool, {{"counter", "txnPool"}});
+        result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
       });
     }
   }
@@ -138,7 +139,6 @@ class VariablesNode {
 
 static VariablesNode nodeVar{};
 }  // namespace local
-
 }  // namespace zil
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
@@ -294,8 +294,10 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
     }
 #endif
 
+  bool allowRecoveryAllSync{false};
   if (toRetrieveHistory) {
-    if (!StartRetrieveHistory(syncType, rejoiningAfterRecover)) {
+    if (!StartRetrieveHistory(syncType, allowRecoveryAllSync,
+                              rejoiningAfterRecover)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
@@ -313,10 +315,12 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
 
     runInitializeGenesisBlocks = false;
 
-    /// When non-rejoin mode, call wake-up or recovery
+    /// When non-rejoin mode, call wake-up for consensus when
+    // 1. Node is synced already
+    // 2. recovered node and is part of shard
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
-      WakeupAtTxEpoch();
+      if (!allowRecoveryAllSync) WakeupAtTxEpoch();
       return true;
     }
   }
@@ -767,6 +771,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     do {
       m_mediator.m_lookup->GetTxBlockFromSeedNodes(
           m_mediator.m_txBlockChain.GetBlockCount(), 0);
+    // TODO: cv fix
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
@@ -780,7 +785,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
   m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType,
+bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllSync,
                                 bool rejoiningAfterRecover) {
   LOG_MARKER();
 
@@ -974,6 +979,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
             m_mediator.m_txBlockChain.GetBlockCount(), 0);
         LOG_GENERAL(INFO,
                     "Retrieve final block from lookup node, please wait...");
+        // TODO: cv fix
       } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
@@ -1002,6 +1008,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
                     "wait...");
+        // TODO: cv fix
       } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
@@ -1112,23 +1119,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);
   }
+  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
 
-  if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS) {
-    if (!bInShardStructure) {
-      LOG_GENERAL(
-          WARNING,
-          "Node " << m_mediator.m_selfKey.second
-                  << " is not in network, apply re-join process instead");
+  if (rejoinCondition && bIpChanged) {
+    LOG_GENERAL(
+        INFO, "My IP has been changed. So will broadcast my new IP to network");
+    if (!UpdateShardNodeIdentity()) {
       WaitForNextTwoBlocksBeforeRejoin();
       return false;
-    } else if (bIpChanged) {
-      LOG_GENERAL(
-          INFO,
-          "My IP has been changed. So will broadcast my new IP to network");
-      if (!UpdateShardNodeIdentity()) {
-        WaitForNextTwoBlocksBeforeRejoin();
-        return false;
-      }
     }
   }
 
@@ -1256,7 +1254,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       }
     }
   }
-
+  if (rejoinCondition && !bInShardStructure) {
+    LOG_GENERAL(WARNING, "Node "
+                             << m_mediator.m_selfKey.second
+                             << " is not in network, allow the node to sync");
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    allowRecoveryAllSync = true;
+    StartSynchronization();
+  }
   return res;
 }
 
@@ -1351,6 +1356,7 @@ bool Node::GetOfflineLookups(bool endless) {
     {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+      // TODO: cv fix
       if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
@@ -1528,6 +1534,8 @@ bool GetOneGenesisAddress(Address &oAddr) {
 
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
+
+  zil::local::nodeVar.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessSubmitMissingTxn not expected to be called "
@@ -1995,7 +2003,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             rejectTxns.emplace_back(status.second, status.first);
           }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to "
+                                   << " rejected by pool due to ( " << (int)status.first << ") "
                                    << status.first);
         }
       } else {
@@ -2010,7 +2018,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
       }
     }
 
-    LOG_GENERAL(INFO, "Txn processed: " << processed_count
+    LOG_GENERAL(WARNING, "Txn processed: " << processed_count
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
 

@@ -38,6 +38,37 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+namespace zil {
+namespace local {
+
+class FinalBlockPostProcessingVariables {
+  int mbInFinal = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetMbInFinal(int count) {
+    Init();
+    mbInFinal = count;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "finalblockpostproc.gauge",
+                                          "Final block post processing state", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(mbInFinal, {{"counter", "MbInFinal"}});
+      });
+    }
+  }
+};
+
+static FinalBlockPostProcessingVariables variables{};
+
+}  // namespace local
+}  // namespace zil
+
 bool DirectoryService::StoreFinalBlockToDisk() {
   LOG_MARKER();
 
@@ -85,6 +116,7 @@ bool DirectoryService::StoreFinalBlockToDisk() {
             "Storing Tx Block" << endl
                                << *m_finalBlock);
 
+  zil::local::variables.SetMbInFinal(m_finalBlock->GetMicroBlockInfos().size());
   zbytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(m_finalBlock->GetHeader(),
@@ -359,6 +391,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
             (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
                 ? 0
                 : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
+        // TODO: cv fix
         if (cv_scheduleDSMicroBlockConsensus.wait_for(
                 cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
             std::cv_status::timeout) {
@@ -537,6 +570,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   // It is possible for ANNOUNCE to arrive before correct DS state
   // In that case, state transition will occurs and ANNOUNCE will be processed.
   std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
+  // TODO: cv fix
   if (cv_processConsensusMessage.wait_for(
           cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
           [this, message, offset]() -> bool {
@@ -614,6 +648,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
       // Block till microblock is fetched
       unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
+      // TODO: cv fix
       if (cv_MissingMicroBlock.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
@@ -642,6 +677,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mediator.m_node->m_mutexCVMicroBlockMissingTxn);
+      // TODO: cv fix      
       if (m_mediator.m_node->cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {

@@ -78,6 +78,7 @@ message Continuation {
     Call calldata = 4;
   }
   repeated EvmLog logs = 5;
+  bool succeeded = 6;
 }
 
 message EvmArgs {
@@ -95,6 +96,7 @@ message EvmArgs {
   bool tx_trace_enabled = 12;
   string tx_trace = 13;
   bool is_static_call = 14;
+  Address caller = 15;
 }
 
 message EvmLog {
@@ -212,6 +214,7 @@ message TrapData {
     Context context = 6;
     UInt256 memory_offset = 7;
     UInt256 offset_len = 8;
+    bool is_precompile = 9;
   }
 
   message Create {

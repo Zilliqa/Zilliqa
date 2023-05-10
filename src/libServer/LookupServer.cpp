@@ -322,6 +322,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
+                         NULL),
+      &Server::GetVersionI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -963,6 +967,7 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
   try {
     Address addr{ToBase16AddrHelper(address)};
     zbytes initData;
+    zbytes code;
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -981,13 +986,21 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
       }
 
       initData = account->GetInitData();
+      code = account->GetCode();
     }
 
-    string initDataStr = DataConversion::CharArrayToString(initData);
+    string initDataStr;
     Json::Value initDataJson;
-    if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
-      throw JsonRpcException(RPC_PARSE_ERROR,
-                             "Unable to convert initData into Json");
+    // If the contract is EVM, represent the init data as a hex string. Otherwise, it is JSON.
+    if (EvmUtils::isEvm(code)) {
+      initDataStr = DataConversion::Uint8VecToHexStrRet(initData);
+      initDataJson = initDataStr;
+    } else {
+      initDataStr = DataConversion::CharArrayToString(initData);
+      if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
+        throw JsonRpcException(RPC_PARSE_ERROR,
+                               "Unable to convert initData into Json");
+      }
     }
     return initDataJson;
   } catch (const JsonRpcException& je) {
@@ -2358,6 +2371,7 @@ Json::Value LookupServer::GetStateProof(const string& address,
   return ret;
 }
 
+
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
@@ -2391,7 +2405,9 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   if (!tx.IsEth() && scType == Transaction::CONTRACT_CREATION) {
     // Scilla smart CONTRACT_CREATION call should be executed in shard rather
     // than DS.
-    mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    if (ARCHIVAL_LOOKUP) {
+      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    }
     resultStr = "Contract Creation txn, sent to shard";
   } else {
     // CONTRACT_CALL - scilla and EVM , CONTRACT_CREATION - EVM

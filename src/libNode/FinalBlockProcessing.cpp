@@ -15,7 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/algorithm/string.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 #include "Node.h"
 #include "RootComputation.h"
@@ -30,7 +32,8 @@
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/TracedIds.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -56,12 +59,16 @@
 #include <thread>
 
 namespace zil {
-
 namespace local {
 
-class Variables {
+class FinalBLockProcessingVariables {
   int lastBlockHeight = 0;
-  int misc = 0;
+  int lastVcBlockHeight = 0;
+  int forwardedTx = 0;
+  int timedOutMicroblock = 0;
+  int missedMicroblockConsensus = 0;
+  int isShardLeader = -1;
+  int shard = -1;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -71,6 +78,36 @@ class Variables {
     lastBlockHeight = height;
   }
 
+  void AddMissedMicroblockConsensus(int missed) {
+    Init();
+    missedMicroblockConsensus += missed;
+  }
+
+  void SetLastVcBlockHeight(int height) {
+    Init();
+    lastVcBlockHeight = height;
+  }
+
+  void AddForwardedTx(int number) {
+    Init();
+    forwardedTx += number;
+  }
+
+  void AddTimedOutMicroblock(int number) {
+    Init();
+    timedOutMicroblock += number;
+  }
+
+  void SetIsShardLeader(int number) {
+    Init();
+    isShardLeader = number;
+  }
+
+  void SetShard(int number) {
+    Init();
+    shard = number;
+  }
+
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge",
@@ -78,16 +115,20 @@ class Variables {
 
       temp->SetCallback([this](auto&& result) {
         result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
-        result.Set(misc, {{"counter", "Misc"}});
+        result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
+        result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
+        result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
+        result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
+        result.Set(shard, {{"counter", "Shard"}});
       });
     }
   }
 };
 
-static Variables variables{};
+static FinalBLockProcessingVariables variables{};
 
 }  // namespace local
-
 }  // namespace zil
 
 using namespace std;
@@ -420,11 +461,15 @@ void Node::UpdateStateForNextConsensusRound() {
                          << "][" << m_mediator.m_currentEpochNum << "]["
                          << m_myshardId << "][  0] SCLD");
     m_isPrimary = true;
+    zil::local::variables.SetIsShardLeader(1);
   } else {
     LOG_EPOCH(
         INFO, m_mediator.m_currentEpochNum,
         "The new shard leader is m_consensusLeaderID " << m_consensusLeaderID);
+    zil::local::variables.SetIsShardLeader(0);
   }
+
+  zil::local::variables.SetShard(m_myshardId);
 }
 
 void Node::ScheduleMicroBlockConsensus() {
@@ -650,6 +695,9 @@ bool Node::ProcessVCFinalBlockCore(
                                << vcBlock.GetHeader().GetViewChangeCounter());
       return false;
     }
+
+    zil::local::variables.SetLastVcBlockHeight(
+        vcBlock.GetHeader().GetViewChangeEpochNo());
   }
 
   if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
@@ -994,10 +1042,12 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
              (m_state == MICROBLOCK_CONSENSUS ||
               m_state == MICROBLOCK_CONSENSUS_PREP)) {
       std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+      // TODO: cv fix
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
+        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus. Timeout: " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
+        zil::local::variables.AddTimedOutMicroblock(1);
       }
     }
 
@@ -1060,7 +1110,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
     // Remove all TXs from the pending pool
     lock_guard<mutex> g(m_mutexPending);
-    for (const auto &txnHash : txsExecuted) {
+    for (const auto& txnHash : txsExecuted) {
       m_pendingTxns.erase(txnHash);
     }
   }
@@ -1506,6 +1556,7 @@ bool Node::ProcessMBnForwardTransaction(
 #endif  // SJ_TEST_SJ_MISSING_MBTXNS
 
   MBnForwardedTxnEntry entry;
+  zil::local::variables.AddForwardedTx(1);
 
   if (!Messenger::GetNodeMBnForwardTransaction(message, cur_offset, entry)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -1716,9 +1767,16 @@ bool Node::SendPendingTxnToLookup() {
   LOG_GENERAL(
       INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              "PendingTxnsSend");
-  span.SetAttribute("Count", pendingTxns.size());
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::NODE, "PendingTxnsSend",
+      TracedIds::GetInstance().GetCurrentEpochSpanIds());
+  span.SetAttribute(
+      "pending_txns_send.txns",
+      boost::join(pendingTxns | boost::adaptors::map_keys |
+                      boost::adaptors::transformed(
+                          [](const auto& hash) { return hash.hex(); }),
+                  ","));
+  span.SetAttribute("pending_txns_send.count", pendingTxns.size());
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 

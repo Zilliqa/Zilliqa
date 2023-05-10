@@ -22,8 +22,8 @@
 #include <vector>
 
 #include "libData/AccountStore/AccountStoreCpsInterface.h"
-#include "libData/AccountStore/services/scilla/ScillaClient.h"
 #include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
+#include "libScilla/ScillaClient.h"
 
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
@@ -253,7 +253,13 @@ bool AccountStoreSC::UpdateAccounts(
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
-    const auto cpsRunResult = cpsExecutor.RunFromScilla(scillaContext);
+    auto cpsRunResult = cpsExecutor.RunFromScilla(scillaContext);
+    // Scilla runtime could fail but such transactions are not considered as
+    // failed
+    if (!cpsRunResult.isSuccess &&
+        cpsRunResult.txnStatus == TxnStatus::NOT_PRESENT) {
+      cpsRunResult.isSuccess = true;
+    }
     error_code = cpsRunResult.txnStatus;
     return cpsRunResult.isSuccess;
   }

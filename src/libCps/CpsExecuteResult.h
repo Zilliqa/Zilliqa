@@ -27,6 +27,7 @@ namespace libCps {
 
 struct ScillaResult {
   uint64_t gasRemained = 0;
+  bool isSuccess = false;
 };
 struct CpsExecuteResult {
   TxnStatus txnStatus = TxnStatus::NOT_PRESENT;

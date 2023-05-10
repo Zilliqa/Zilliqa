@@ -32,9 +32,61 @@
 
 #include "Blacklist.h"
 #include "Peer.h"
+#include "libMetrics/Api.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 
+namespace zil {
+namespace local {
+
+class SendJobsVariables {
+  std::atomic<int> sendMessageToPeerCount = 0;
+  std::atomic<int> sendMessageToPeerFailed = 0;
+  std::atomic<int> sendMessageToPeerSyncCount = 0;
+  std::atomic<int> activePeersSize = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void AddSendMessageToPeerCount(int count) {
+    Init();
+    sendMessageToPeerCount += count;
+  }
+
+  void AddSendMessageToPeerFailed(int count) {
+    Init();
+    sendMessageToPeerFailed += count;
+  }
+
+  void AddSendMessageToPeerSyncCount(int count) {
+    Init();
+    sendMessageToPeerSyncCount += count;
+  }
+
+  void SetActivePeersSize(int amount) {
+    Init();
+    activePeersSize = amount;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "sendjobs.gauge",
+                                          "Send Jobs metrics", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(sendMessageToPeerCount.load(), {{"counter", "SendMessageToPeerCount"}});
+        result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
+        result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
+        result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
+      });
+    }
+  }
+};
+
+static SendJobsVariables variables{};
+
+}  // namespace local
+}  // namespace zil
 namespace zil::p2p {
 
 using AsioContext = boost::asio::io_context;
@@ -60,11 +112,11 @@ inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
 }
 
 inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
-  return (ec == HOST_UNREACHABLE || ec == TIMED_OUT || ec == NETWORK_DOWN ||
+  return (ec == HOST_UNREACHABLE || ec == NETWORK_DOWN ||
           ec == NETWORK_UNREACHABLE);
 }
 
-inline bool IsNodeNotRunning(const ErrorCode& ec) { return ec == CONN_REFUSED; }
+inline bool IsNodeNotRunning(const ErrorCode& ec) { return (ec == TIMED_OUT || ec == CONN_REFUSED); }
 
 inline Milliseconds Clock() {
   return std::chrono::duration_cast<Milliseconds>(
@@ -278,6 +330,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     if (m_queue.empty()) {
       // impossible
+      zil::local::variables.AddSendMessageToPeerFailed(1);
       LOG_GENERAL(WARNING, "Unexpected queue state, peer="
                                << m_peer.GetPrintableIPAddress() << ":"
                                << m_peer.GetListenPortHost());
@@ -367,8 +420,10 @@ class SendJobsImpl : public SendJobs,
  private:
   void SendMessageToPeer(const Peer& peer, RawMessage message,
                          bool allow_relaxed_blacklist) override {
+    zil::local::variables.AddSendMessageToPeerCount(1);
     if (peer.m_listenPortHost == 0) {
-      LOG_GENERAL(INFO, "Ignoring message to peer " << peer);
+      LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
+      zil::local::variables.AddSendMessageToPeerFailed(1);
       return;
     }
 
@@ -386,12 +441,14 @@ class SendJobsImpl : public SendJobs,
   void SendMessageToPeerSynchronous(const Peer& peer, const zbytes& message,
                                     uint8_t start_byte) override {
     LOG_MARKER();
+    zil::local::variables.AddSendMessageToPeerSyncCount(1);
 
     AsioContext localCtx(1);
 
     auto doneCallback = [&localCtx](const Peer& peer, ErrorCode ec) {
       auto peerStr = peer.GetPrintableIPAddress();
       if (ec) {
+        zil::local::variables.AddSendMessageToPeerFailed(1);
         LOG_GENERAL(WARNING, "Send message to "
                                  << peerStr
                                  << " failed with error: " << ec.message());
@@ -413,7 +470,9 @@ class SendJobsImpl : public SendJobs,
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
       LOG_GENERAL(INFO,
-                  "Ignoring blacklisted peer " << peer.GetPrintableIPAddress());
+                  "Ignoring blacklisted peer " <<
+                  peer.GetPrintableIPAddress()
+                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
       return;
     }
 
@@ -422,10 +481,12 @@ class SendJobsImpl : public SendJobs,
       ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback,
                                             std::move(peer));
     }
+    zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
+
     if (ec) {
       LOG_GENERAL(
           INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
@@ -436,10 +497,12 @@ class SendJobsImpl : public SendJobs,
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
+      zil::local::variables.AddSendMessageToPeerFailed(1);
       return;
     }
 
     if (IsHostHavingNetworkIssue(ec)) {
+      zil::local::variables.AddSendMessageToPeerFailed(1);
       if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                  << ec.value() << " (" << ec.message()

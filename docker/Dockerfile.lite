@@ -1,0 +1,115 @@
+# Copyright (C) 2019 Zilliqa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+ARG SCILLA_VERSION=a254436b
+
+# Common dependencies of the builder and runner stages.
+FROM ubuntu:22.04 AS deps
+# Format guideline: one package per line and keep them alphabetically sorted
+RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    autoconf \
+    bison \
+    build-essential \
+    ca-certificates \
+    ccache \
+    clang-format \
+    clang-tidy \
+    cron \
+    curl \
+    dnsutils \
+    gawk \
+    gdb \
+    git \
+    htop \
+    iproute2 \
+    lcov \
+    libcurl4-openssl-dev \
+    libgmp-dev \
+    libsecp256k1-dev \
+    libssl-dev \
+    libtool \
+    libxml2-utils \
+    logrotate \
+    net-tools \
+    ninja-build \
+    nload \
+    ocl-icd-opencl-dev \
+    openssh-client \
+    pigz \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    rsync \
+    rsyslog \
+    tar \
+    trickle \
+    unzip \
+    vim \
+    wget \
+    zip \
+    && apt-get remove -y cmake python2  && apt-get autoremove -y
+
+RUN apt-get update && apt-get install -y python3 python3-pip
+
+FROM deps
+
+ARG PYTHON3_ENV_PATH=/usr/local
+COPY docker/requirements3.txt ./
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+#RUN  update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+RUN python3 -m pip install --upgrade pip setuptools wheel \
+  && python3 -m pip install -I  --no-cache-dir -r requirements3.txt
+
+RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
+  && chmod a+x /usr/bin/pip3 \
+  && rm /usr/bin/pip \
+  && ln -s /usr/bin/pip3 /usr/bin/pip
+
+RUN mkdir -p /scilla/0 /zilliqa/scripts /etc/zilliqa
+
+COPY _localdev/scilla/bin /scilla/0/bin
+COPY _localdev/scilla/stdlib /scilla/0/src/stdlib
+COPY _localdev/zilliqa/scripts /zilliqa/scripts
+COPY _localdev/zilliqa/build/bin /usr/local/bin
+COPY _localdev/zilliqa/build/lib /usr/local/lib
+COPY _localdev/zilliqa/lib /usr/local/lib
+COPY _localdev/zilliqa/evm-ds/evm-ds /usr/local/bin/evm-ds
+COPY _localdev/zilliqa/evm-ds/log4rs.yml /usr/local/etc/log4rs.yml
+
+# The above COPY doesn't preserve symlinks which causes gcc/g++/cc/c++
+# to hang as stand-alone binaries on Ubuntu 22.04.
+RUN rm -f /usr/local/bin/gcc \
+      /usr/local/bin/g++ \
+      /usr/local/bin/cc \
+    /usr/local/bin/c++ \
+    && ln -s "$(which ccache)" /usr/local/bin/gcc \
+    && ln -s "$(which ccache)" /usr/local/bin/g++ \
+    && ln -s "$(which ccache)" /usr/local/bin/cc \
+    && ln -s "$(which ccache)" /usr/local/bin/c++
+
+RUN rm -f /usr/local/bin/python3.10 /usr/local/lib/libpython3.10.so.1.0 \
+    /usr/local/bin/python3 /usr/local/bin/python /usr/local/bin/pip3
+
+RUN ln -fs /usr/lib/x86_64-linux-gnu/libpython3.10.so.1.0 /usr/local/lib/libpython3.10.so.1.0
+ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
+
+
+ENTRYPOINT ["/bin/bash"]

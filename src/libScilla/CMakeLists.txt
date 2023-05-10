@@ -1,4 +1,5 @@
 add_library(Scilla STATIC
+    ScillaClient.cpp
     ScillaIPCServer.cpp
     ScillaUtils.cpp
     UnixDomainSocketClient.cpp
@@ -12,4 +13,5 @@ target_link_libraries(Scilla
   PUBLIC
     jsoncpp_lib
   PRIVATE
-    Persistence)
+    Persistence
+    Utils)

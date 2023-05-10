@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include "JSONConversion.h"
 #include "LookupServer.h"
+#include "common/CommonData.h"
 #include "common/Constants.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
@@ -389,7 +390,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     Eth::EthFields const &fields, zbytes const &pubKey,
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
-  TRACE(zil::trace::FilterClass::DEMO);
+  TRACE(zil::trace::FilterClass::TXN);
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -434,7 +435,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     bool toAccountIsContract;
 
     {
-      shared_lock<shared_timed_mutex> lock(
+      unique_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
 
       const Account *sender =
@@ -584,11 +585,15 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
                            "Sent to a non-lookup");
   }
 
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
+                                              __FUNCTION__);
+
+
   INC_CALLS(GetInvocationsCounter());
 
   try {
     Address addr{ToBase16AddrHelper(address)};
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
@@ -619,6 +624,11 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
 }
 
 string EthRpcMethods::GetEthCallZil(const Json::Value &_json) {
+
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
+                                              __FUNCTION__);
+
+
   INC_CALLS(GetInvocationsCounter());
 
   return this->GetEthCallImpl(
@@ -692,10 +702,35 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
                               tracerType);
 }
 
+// See https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/accounts/abi/abi.go#L242
+bool EthRpcMethods::UnpackRevert(const std::string &data_in, std::string &message) {
+  zbytes data(data_in.begin(), data_in.end());
+  // 68 bytes is the minimum: 4 prefix + 32 offset + 32 string length.
+  if (data.size() < 68 ||
+      // Keccack-256("Error(string)")[:4] == 0x08c379a0
+      !(data[0] == 0x08 && data[1] == 0xc3 && data[2] == 0x79 && data[3] == 0xa0)) {
+    TRACE_ERROR("Invalid revert data for unpacking");
+    return false;
+  }
+  // Take offset of the parameter
+  zbytes offset_vec(data.begin() + 4, data.begin() + 36);
+  size_t offset = static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(offset_vec));
+  zbytes len_vec(data.begin() + 4 + offset, data.begin() + 4 + offset + 32);
+  size_t len = static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(len_vec));
+  message.clear();
+  if (data.size() < 4 + offset + 32 + len) {
+    TRACE_ERROR("Invalid revert data for unpacking");
+    return false;
+  }
+  std::copy(data.begin() + 4 + offset + 32, data.begin() + 4 + offset + 32 + len,
+            std::back_inserter(message));
+  return true;
+}
+
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   Address fromAddr;
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
 
   INC_CALLS(GetInvocationsCounter());
@@ -719,7 +754,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   uint256_t accountFunds{};
   bool contractCreation = false;
   {
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account *sender =
@@ -729,7 +764,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     if (sender == nullptr) {
       TRACE_ERROR("Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Sender doesn't exist");
+                             "The sender of the tx doesn't appear to have funds");
     }
     accountFunds = sender->GetBalance();
 
@@ -867,7 +902,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     std::string return_value;
     DataConversion::StringToHexStr(result.return_value(), return_value);
     boost::algorithm::to_lower(return_value);
-    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+    std::string revert_error_str;
+    std::ostringstream message;
+    message << "execution reverted";
+    if (UnpackRevert(result.return_value(), revert_error_str)) {
+      message << ": " << revert_error_str;
+    }
+    throw JsonRpcException(3, message.str(), "0x" + return_value);
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            EvmUtils::ExitReasonString(result.exit_reason()));
@@ -885,7 +926,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
   zbytes code{};
   auto success{false};
   {
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
     Account *contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
@@ -978,7 +1019,13 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
-    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+    std::string revert_error_str;
+    std::ostringstream message;
+    message << "execution reverted";
+    if (UnpackRevert(result.return_value(), revert_error_str)) {
+      message << ": " << revert_error_str;
+    }
+    throw JsonRpcException(3, message.str(), "0x" + return_value);
   } else {
     LOG_GENERAL(WARNING, "Warning! Misc error...");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -1125,7 +1172,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
 
   try {
     Address addr{ToBase16AddrHelper(address)};
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
@@ -1205,7 +1252,7 @@ Json::Value EthRpcMethods::GetEthCode(std::string const &address,
   zbytes code;
   try {
     Address addr{address, Address::FromHex};
-    shared_lock<shared_timed_mutex> lock(
+    unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
     AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
       return AccountStore::GetInstance().GetPrimaryWriteAccess();

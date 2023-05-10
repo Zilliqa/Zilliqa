@@ -3,13 +3,13 @@ use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use crate::CallContext;
 use evm::executor::stack::MemoryStackSubstate;
 use evm::{
     backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
 use evm::{Machine, Runtime};
-use crate::CallContext;
 
 use log::{debug, error, info};
 
@@ -32,9 +32,11 @@ pub async fn run_evm_impl(
     data: Vec<u8>,
     apparent_value: U256,
     gas_limit: u64,
+    caller: H160,
     backend: ScillaBackend,
     gas_scaling_factor: u64,
     estimate: bool,
+    is_static: bool,
     evm_context: String,
     node_continuation: Option<EvmProto::Continuation>,
     continuations: Arc<Mutex<Continuations>>,
@@ -42,7 +44,6 @@ pub async fn run_evm_impl(
     tx_trace_enabled: bool,
     tx_trace: String,
 ) -> Result<String> {
-
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
@@ -58,7 +59,7 @@ pub async fn run_evm_impl(
         let config = evm::Config { estimate, call_l64_after_gas: false, ..evm::Config::london()};
         let context = evm::Context {
             address,
-            caller: backend.origin,
+            caller,
             apparent_value,
         };
         let gas_limit = gas_limit * gas_scaling_factor;
@@ -71,7 +72,9 @@ pub async fn run_evm_impl(
                 let result = handle_panic(tx_trace, gas_limit, "Continuation not found!");
                 return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
+
             let recorded_cont = recorded_cont.unwrap();
+
             let machine = Machine::create_from_state(Rc::new(recorded_cont.code), Rc::new(recorded_cont.data),
                                                               recorded_cont.position, recorded_cont.return_range, recorded_cont.valids,
                                                               recorded_cont.memory, recorded_cont.stack);
@@ -162,16 +165,14 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
-                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas)
+                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas, is_static, continuations)
             },
             CpsReason::CallInterrupt(i) => {
-                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                
-                build_call_result(&runtime, i, &listener, remaining_gas, cont_id)
+                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
+                build_call_result(executor, &runtime, &backend, i, &listener, remaining_gas, is_static, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                
                 build_create_result(&runtime, i, &listener, remaining_gas, cont_id)
             }
         };
@@ -186,6 +187,7 @@ pub async fn run_evm_impl(
     .unwrap()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_exit_result(
     executor: CpsExecutor,
     runtime: &Runtime,
@@ -193,11 +195,82 @@ fn build_exit_result(
     trace: &LoggingEventListener,
     exit_reason: &evm::ExitReason,
     remaining_gas: u64,
+    is_static: bool,
+    continuations: Arc<Mutex<Continuations>>,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     result.set_exit_reason(exit_reason.clone().into());
     result.set_return_value(runtime.machine().return_value().into());
     let (state_apply, logs) = executor.into_state().deconstruct();
+
+    result.set_apply(
+        state_apply
+            .into_iter()
+            .map(|apply| {
+                let mut result = EvmProto::Apply::new();
+                match apply {
+                    Apply::Delete { address } => {
+                        let mut delete = EvmProto::Apply_Delete::new();
+                        delete.set_address(address.into());
+                        result.set_delete(delete);
+                    }
+                    Apply::Modify {
+                        address,
+                        basic,
+                        code,
+                        storage,
+                        reset_storage,
+                    } => {
+                        let mut modify = EvmProto::Apply_Modify::new();
+                        modify.set_address(address.into());
+                        modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
+                        modify.set_nonce(basic.nonce.into());
+                        if let Some(code) = code {
+                            modify.set_code(code.into());
+                        }
+                        modify.set_reset_storage(reset_storage);
+
+                        // Is this call static? if so, we don't want to modify other continuations' state
+                        let storage_proto = storage
+                            .into_iter()
+                            .map(|(k, v)| { continuations.lock().unwrap().update_states(address, k, v, is_static); backend.encode_storage(k, v).into()})
+                            .collect();
+
+                        modify.set_storage(storage_proto);
+                        result.set_modify(modify);
+                    }
+                };
+                result
+            })
+            .collect(),
+    );
+    result.set_tx_trace(trace.as_string().into());
+    result.set_logs(logs.into_iter().map(Into::into).collect());
+    result.set_remaining_gas(remaining_gas);
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_call_result(
+    executor: CpsExecutor,
+    runtime: &Runtime,
+    backend: &ScillaBackend,
+    interrupt: CpsCallInterrupt,
+    trace: &LoggingEventListener,
+    remaining_gas: u64,
+    is_static: bool,
+    cont_id: u64,
+) -> EvmProto::EvmResult {
+    let mut result = EvmProto::EvmResult::new();
+    result.set_return_value(runtime.machine().return_value().into());
+    let mut trap_reason = EvmProto::ExitReason_Trap::new();
+    trap_reason.set_kind(EvmProto::ExitReason_Trap_Kind::CALL);
+    let mut exit_reason = EvmProto::ExitReason::new();
+
+    let (state_apply, _) = executor.into_state().deconstruct();
+
+    // We need to apply the changes made to the state so subsequent calls can
+    // see the changes.
     result.set_apply(
         state_apply
             .into_iter()
@@ -237,24 +310,7 @@ fn build_exit_result(
             })
             .collect(),
     );
-    result.set_tx_trace(trace.as_string().into());
-    result.set_logs(logs.into_iter().map(Into::into).collect());
-    result.set_remaining_gas(remaining_gas);
-    result
-}
 
-fn build_call_result(
-    runtime: &Runtime,
-    interrupt: CpsCallInterrupt,
-    trace: &LoggingEventListener,
-    remaining_gas: u64,
-    cont_id: u64,
-) -> EvmProto::EvmResult {
-    let mut result = EvmProto::EvmResult::new();
-    result.set_return_value(runtime.machine().return_value().into());
-    let mut trap_reason = EvmProto::ExitReason_Trap::new();
-    trap_reason.set_kind(EvmProto::ExitReason_Trap_Kind::CALL);
-    let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
     result.set_tx_trace(trace.as_string().into());
@@ -278,7 +334,8 @@ fn build_call_result(
 
     trap_data_call.set_callee_address(interrupt.code_address.into());
     trap_data_call.set_call_data(interrupt.input.into());
-    trap_data_call.set_is_static(interrupt.is_static);
+    trap_data_call.set_is_static(interrupt.is_static || is_static);
+    trap_data_call.set_is_precompile(interrupt.is_precompile);
     trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
     trap_data_call.set_memory_offset(interrupt.memory_offset.into());
     trap_data_call.set_offset_len(interrupt.offset_len.into());

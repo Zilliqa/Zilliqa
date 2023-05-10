@@ -29,7 +29,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-template <class Container>
+template <typename Container>
 bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
                                         const vector<bool>& b2,
                                         const Container& shard,

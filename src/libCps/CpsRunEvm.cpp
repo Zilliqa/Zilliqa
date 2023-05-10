@@ -20,6 +20,7 @@
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecutor.h"
 #include "libCps/CpsMetrics.h"
+#include "libCps/CpsRunScilla.h"
 #include "libCps/CpsRunTransfer.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -29,6 +30,8 @@
 #include "libMetrics/Tracing.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/GasConv.h"
+#include "libUtils/JsonUtils.h"
 
 #include <boost/algorithm/hex.hpp>
 
@@ -52,8 +55,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH);
 
   CREATE_SPAN(
-      zil::trace::FilterClass::CPS_EVM, fromAddress.hex(),
-      contractAddress.hex(), mCpsContext.origSender.hex(),
+      zil::trace::FilterClass::TXN, fromAddress.hex(), contractAddress.hex(),
+      mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
   if (!IsResumable()) {
@@ -61,7 +64,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
       mAccountStore.AddAccountAtomic(contractAddress);
-      mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
@@ -182,6 +184,10 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result) {
   if (trap_data.has_create()) {
     return HandleCreateTrap(result);
   } else {
+    const bool is_precompile = trap_data.call().is_precompile();
+    if (is_precompile) {
+      return HandlePrecompileTrap(result);
+    }
     return HandleCallTrap(result);
   }
 }
@@ -192,12 +198,70 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   const auto& ctx = callData.context();
 
   CREATE_SPAN(
-      zil::trace::FilterClass::CPS_EVM,
-      ProtoToAddress(mProtoArgs.origin()).hex(),
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
       ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
   uint64_t remainingGas = result.remaining_gas();
+  Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
+  Address fundsRecipient;
+  Amount funds;
+
+  // Apply the evm state changes made so far so subsequent contract calls
+  // can see the changes (delegatecall)
+  for (const auto& it : result.apply()) {
+    switch (it.apply_case()) {
+      case evm::Apply::ApplyCase::kDelete:
+        break;
+      case evm::Apply::ApplyCase::kModify: {
+        const auto iterAddress = ProtoToAddress(it.modify().address());
+        // Get the account that this apply instruction applies to
+        if (!mAccountStore.AccountExistsAtomic(thisContractAddress)) {
+          mAccountStore.AddAccountAtomic(thisContractAddress);
+        }
+
+        // only allowed for thisContractAddress in non-static context!
+        if (it.modify().reset_storage() && iterAddress == thisContractAddress &&
+            !mProtoArgs.is_static_call()) {
+          std::map<std::string, zbytes> states;
+          std::vector<std::string> toDeletes;
+
+          mAccountStore.FetchStateDataForContract(states, thisContractAddress,
+                                                  "", {}, true);
+          for (const auto& x : states) {
+            toDeletes.emplace_back(x.first);
+          }
+
+          mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes, true);
+        }
+        // Actually Update the state for the contract (only allowed for
+        // thisContractAddress in non-static context!)
+        for (const auto& sit : it.modify().storage()) {
+          if (iterAddress != thisContractAddress ||
+              mProtoArgs.is_static_call()) {
+            break;
+          }
+          LOG_GENERAL(INFO,
+                      "Saving storage for Address: " << thisContractAddress);
+          if (!mAccountStore.UpdateStateValue(
+              thisContractAddress,
+              DataConversion::StringToCharArray(sit.key()), 0,
+              DataConversion::StringToCharArray(sit.value()), 0)) {
+          }
+        }
+
+        if (it.modify().has_balance()) {
+          fundsRecipient = ProtoToAddress(it.modify().address());
+          funds = Amount::fromQa(ProtoToUint(it.modify().balance()));
+        }
+        // Mark the Address as updated
+        mAccountStore.AddAddressToUpdateBufferAtomic(thisContractAddress);
+      } break;
+      case evm::Apply::ApplyCase::APPLY_NOT_SET:
+        // do nothing;
+        break;
+    }
+  }
 
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
@@ -209,7 +273,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     INC_STATUS(GetCPSMetric(), "error",
                "Context change from static to non-static");
     TRACE_ERROR(
-        "Atempt to change context from static to non-static in call-trap");
+        "Attempt to change context from static to non-static in call-trap");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
@@ -255,7 +319,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     inputGas = std::max(remainingGas, inputGas);
     evm::EvmArgs evmCallArgs;
     *evmCallArgs.mutable_address() = ctx.destination();
-    *evmCallArgs.mutable_origin() = ctx.caller();
+    *evmCallArgs.mutable_origin() = mProtoArgs.origin();
+    *evmCallArgs.mutable_caller() = ctx.caller();
     const auto code = mAccountStore.GetContractCode(
         ProtoToAddress(callData.callee_address()));
     *evmCallArgs.mutable_code() =
@@ -267,6 +332,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     *evmCallArgs.mutable_context() = "TrapCall";
     *evmCallArgs.mutable_extras() = mCpsContext.evmExtras;
     evmCallArgs.set_enable_cps(ENABLE_CPS);
+
     evmCallArgs.set_is_static_call(isStatic);
     auto callRun = std::make_unique<CpsRunEvm>(
         std::move(evmCallArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
@@ -317,6 +383,89 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
+CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
+    const evm::EvmResult& evm_result) {
+  const evm::TrapData& trap_data = evm_result.trap_data();
+  const evm::TrapData_Call callData = trap_data.call();
+
+  const auto strJsonData = callData.call_data();
+  Json::Value jsonData;
+  if (!JSONUtils::GetInstance().convertStrtoJson(strJsonData, jsonData)) {
+    LOG_GENERAL(
+        WARNING,
+        "Error with convert precompile call_data string to json object");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+
+  const auto sender = (jsonData["keep_origin"].isBool() &&
+                       jsonData["keep_origin"].asBool() == true)
+                          ? mCpsContext.origSender.hex()
+                          : ProtoToAddress(mProtoArgs.address()).hex();
+
+  jsonData.removeMember("keep_origin");
+
+  jsonData["_origin"] = "0x" + mCpsContext.origSender.hex();
+  jsonData["_sender"] = "0x" + sender;
+  jsonData["_amount"] = "0";
+
+  CREATE_SPAN(
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
+      jsonData["_address"].asString(), mCpsContext.origSender.hex(),
+      ProtoToUint(callData.transfer().value()).convert_to<std::string>());
+
+  uint64_t remainingGas =
+      GasConv::GasUnitsFromEthToCore(evm_result.remaining_gas());
+  if (mCpsContext.estimate) {
+    remainingGas -= (SCILLA_RUNNER_INVOKE_GAS + CONTRACT_INVOKE_GAS);
+  }
+
+  const bool isStatic = callData.is_static();
+
+  // Don't allow for non-static calls when its parent is already static
+  if (mProtoArgs.is_static_call() && !isStatic) {
+    INC_STATUS(GetCPSMetric(), "error",
+               "Context change from static to non-static");
+    TRACE_ERROR(
+        "Atempt to change context from static to non-static in "
+        "precompile-trap");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+  span.SetAttribute("IsStatic", isStatic);
+  span.SetAttribute("IsPrecompile", true);
+
+  // Set continuation (itself) to be resumed when create run is finished
+  {
+    mProtoArgs.mutable_continuation()->set_feedback_type(
+        evm::Continuation_Type_CALL);
+    mProtoArgs.mutable_continuation()->set_id(evm_result.continuation_id());
+    *mProtoArgs.mutable_continuation()
+         ->mutable_calldata()
+         ->mutable_memory_offset() = callData.memory_offset();
+    *mProtoArgs.mutable_continuation()
+         ->mutable_calldata()
+         ->mutable_offset_len() = callData.offset_len();
+    *mProtoArgs.mutable_continuation()->mutable_logs() = evm_result.logs();
+    mExecutor.PushRun(shared_from_this());
+  }
+
+  const auto destAddress = jsonData["_address"].asString();
+
+  ScillaArgs scillaArgs = {.from = ProtoToAddress(mProtoArgs.address()),
+                           .dest = Address{destAddress},
+                           .origin = mCpsContext.origSender,
+                           .value = Amount{},
+                           .calldata = jsonData,
+                           .edge = 0,
+                           .depth = 0,
+                           .gasLimit = remainingGas};
+
+  auto nextRun = std::make_shared<CpsRunScilla>(
+      std::move(scillaArgs), mExecutor, mCpsContext, CpsRun::TrapScillaCall);
+
+  mExecutor.PushRun(nextRun);
+  return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
 CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   const evm::TrapData& trap_data = result.trap_data();
   const evm::TrapData_Create& createData = trap_data.create();
@@ -342,7 +491,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   const auto transferValue = ProtoToUint(createData.value());
 
-  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+  CREATE_SPAN(zil::trace::FilterClass::TXN,
               ProtoToAddress(mProtoArgs.origin()).hex(), contractAddress.hex(),
               mCpsContext.origSender.hex(),
               transferValue.convert_to<std::string>());
@@ -413,7 +562,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     const auto inputGas = targetGas - baseFee;
     evm::EvmArgs evmCreateArgs;
     *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
-    *evmCreateArgs.mutable_origin() = AddressToProto(fromAddress);
+    *evmCreateArgs.mutable_origin() = mProtoArgs.origin();
+    *evmCreateArgs.mutable_caller() = AddressToProto(fromAddress);
     *evmCreateArgs.mutable_code() = createData.call_data();
     evmCreateArgs.set_gas_limit(inputGas);
     *evmCreateArgs.mutable_apparent_value() = createData.value();
@@ -471,8 +621,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 void CpsRunEvm::HandleApply(const evm::EvmResult& result,
                             TransactionReceipt& receipt) {
   CREATE_SPAN(
-      zil::trace::FilterClass::CPS_EVM,
-      ProtoToAddress(mProtoArgs.origin()).hex(),
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
       ProtoToAddress(mProtoArgs.address()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
@@ -500,7 +649,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
   // parse the return values from the call to evm.
   // we should expect no more that 2 apply instuctions (in case of selfdestruct:
-  // fund recipiend and deleted account)
+  // fund recipient and deleted account)
   for (const auto& it : result.apply()) {
     switch (it.apply_case()) {
       case evm::Apply::ApplyCase::kDelete:
@@ -558,24 +707,30 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
   // Allow only removal of self in non-static calls
   if (accountToRemove == thisContractAddress && !mProtoArgs.is_static_call()) {
-    const auto currentFunds =
+    const auto currentContractFunds =
         mAccountStore.GetBalanceForAccountAtomic(accountToRemove);
+
+    // Funds for recipient
+    const auto recipientPreFunds =
+        mAccountStore.GetBalanceForAccountAtomic(fundsRecipient);
+
     const auto zero = Amount::fromQa(0);
 
-    if (funds > zero && funds <= currentFunds) {
-      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
-                                          funds);
-    } else if (funds > zero) {
-      std::string error =
-          "Possible zil mint. Funds in destroyed account: " +
-          currentFunds.toWei().convert_to<std::string>() +
-          ", requested: " + funds.toWei().convert_to<std::string>();
+    // Funds is what we want our contract to become/be modified to.
+    // Check that the contract funds plus the current funds in our account
+    // is equal to this value
+    if(funds != recipientPreFunds + currentContractFunds) {
+        std::string error =
+            "Possible zil mint. Funds in destroyed account: " +
+            currentContractFunds.toWei().convert_to<std::string>() +
+            ", requested: " + (funds - recipientPreFunds).toWei().convert_to<std::string>();
 
-      LOG_GENERAL(WARNING, "possible zil mint! " << error);
-      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
-                                          currentFunds);
-      span.SetError(error);
+        LOG_GENERAL(WARNING, "ERROR IN DESTUCT! " << error);
+        span.SetError(error);
     }
+
+    mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
+                                        currentContractFunds);
     mAccountStore.SetBalanceAtomic(accountToRemove, zero);
     mAccountStore.AddAddressToUpdateBufferAtomic(accountToRemove);
     mAccountStore.AddAddressToUpdateBufferAtomic(fundsRecipient);
@@ -593,12 +748,18 @@ bool CpsRunEvm::HasFeedback() const {
 void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
                                 const CpsExecuteResult& results) {
   if (!previousRun.HasFeedback()) {
+    // If there's no feedback from previous run we assume it was successful
+    mProtoArgs.mutable_continuation()->set_succeeded(true);
     return;
   }
 
   // For now only Evm is supported!
   if (std::holds_alternative<evm::EvmResult>(results.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(results.result);
+    const auto evmSucceeded = evmResult.exit_reason().exit_reason_case() ==
+                              evm::ExitReason::ExitReasonCase::kSucceed;
+    mProtoArgs.mutable_continuation()->set_succeeded(evmSucceeded);
+
     mProtoArgs.set_gas_limit(evmResult.remaining_gas());
     *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
 
@@ -607,14 +768,22 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
       if (mProtoArgs.continuation().feedback_type() ==
           evm::Continuation_Type_CREATE) {
         *mProtoArgs.mutable_continuation()->mutable_address() =
-            prevRunEvm.mProtoArgs.address();
+            (results.isSuccess ? prevRunEvm.mProtoArgs.address()
+                               : AddressToProto(libCps::CpsRunEvm::Address{}));
       } else {
         *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
             evmResult.return_value();
       }
     }
   } else {
-    // TODO: allow scilla runner to provide feedback too
+    const auto& scillaResult = std::get<ScillaResult>(results.result);
+    const auto remainingGas =
+        GasConv::GasUnitsFromCoreToEth(scillaResult.gasRemained);
+    if (mProtoArgs.continuation().feedback_type() ==
+        evm::Continuation_Type_CALL) {
+      mProtoArgs.set_gas_limit(remainingGas);
+      mProtoArgs.mutable_continuation()->set_succeeded(scillaResult.isSuccess);
+    }
   }
 }
 

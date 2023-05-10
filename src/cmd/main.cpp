@@ -170,12 +170,12 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    Metrics::GetInstance().Init();
+    Metrics::GetInstance().Initialize(identity);
     zil::trace::Tracing::Initialize(identity);
+    Logging::GetInstance().Initialize(identity);
 
     auto span =
         zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE, "Main");
-    Logging::GetInstance();
 
     std::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {

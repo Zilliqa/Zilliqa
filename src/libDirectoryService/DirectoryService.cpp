@@ -36,6 +36,44 @@
 #include "libUtils/Logger.h"
 #include "libUtils/TimestampVerifier.h"
 
+namespace zil {
+namespace local {
+
+class DSVariables {
+  int DSState = 0;
+  int isLeader = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetDSState(int number) {
+    Init();
+    DSState = number;
+  }
+
+  void SetIsLeader(int leader) {
+    Init();
+    isLeader = leader;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
+                                          "DS variables", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(DSState, {{"counter", "DSState"}});
+        result.Set(isLeader, {{"counter", "isLeader"}});
+      });
+    }
+  }
+};
+
+static DSVariables variables{};
+
+}  // namespace local
+}
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -49,6 +87,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
   m_mediator.m_consensusID = 1;
   m_viewChangeCounter = 0;
   m_forceMulticast = false;
+  zil::local::variables.SetIsLeader(int(m_mode));
 }
 
 DirectoryService::~DirectoryService() {}
@@ -200,6 +239,8 @@ bool DirectoryService::ProcessSetPrimary(
     LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
     m_mode = BACKUP_DS;
   }
+
+  zil::local::variables.SetIsLeader(int(m_mode));
 
   // When ProcessSetPrimary() is called, all peers in the peer list are my
   // fellow DS committee members for this first epoch
@@ -382,6 +423,9 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
+
+  zil::local::variables.SetDSState(int(state));
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SetState not expected to be called from "
@@ -481,6 +525,8 @@ bool DirectoryService::CleanVariables() {
   m_powSubmissionWindowExpired = false;
 
   m_dsEpochAfterUpgrade = false;
+
+  zil::local::variables.SetIsLeader(int(m_mode));
 
   return true;
 }
@@ -593,6 +639,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   }
 
   m_mode = BACKUP_DS;
+  zil::local::variables.SetIsLeader(int(m_mode));
   DequeOfNode dsComm;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
@@ -654,11 +701,15 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
 
   if (fetchShardingStruct) {
     // Ask for the sharding structure from lookup
+    {
+      std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+      m_mediator.m_lookup->m_shardStructSignal = false;
+    }
     m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
-    if (m_mediator.m_lookup->cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
+    if (!m_mediator.m_lookup->cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
+            [this]() { return m_mediator.m_lookup->m_shardStructSignal; })) {
       LOG_GENERAL(WARNING,
                   "Didn't receive sharding structure! Try checking next epoch");
     } else {
@@ -746,6 +797,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
     // So let's add that to our wait time to allow new nodes to get last TxBlock
     // + DSInfo and submit a PoW
     m_powSubmissionWindowExpired = false;
+    // TODO: cv fix
     if (cv_DSBlockConsensus.wait_for(
             cv_lk, std::chrono::seconds(
                        (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
@@ -765,6 +817,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
         DetachedFunction(1, func);
       }
 
+      // TODO: cv fix
       if (cv_DSBlockConsensus.wait_for(
               cv_lk,
               std::chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
@@ -1052,6 +1105,10 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
         (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD)) {
       m_totalTxnFees += cogsrews.GetRewards();
     }
+  }
+  {
+    lock_guard<mutex> lock(m_mediator.m_lookup->m_mutexSetCosigRewardsFromSeed);
+    m_mediator.m_lookup->m_setCosigRewardsFromSeedSignal = true;
   }
   m_mediator.m_lookup->cv_setCosigRewardsFromSeed.notify_all();
 

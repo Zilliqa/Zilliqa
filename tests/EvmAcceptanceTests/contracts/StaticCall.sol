@@ -17,6 +17,14 @@ contract Called {
     return (true, number);
   }
 
+  function callCaller(address caller, address called) public  {
+      number = 0;
+
+      (bool success, bytes memory data) = caller.call(
+          abi.encodeWithSelector(Caller.callCalled.selector, called)
+      );
+  }
+
   function getNumber() public view returns (uint) {
       return number;
   }

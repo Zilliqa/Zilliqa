@@ -27,7 +27,10 @@ describe("Scilla ByStr Functionality", function () {
 
   it("should return expected value if builtin concat is called", async function () {
     const tx = await contract.getByStrConcat();
-    expect(tx).to.have.eventLogWithParams("getByStrConcat()", {value: BYSTR5_VALUE + BYSTR6_VALUE.substring(2), vname: "value"});
+    expect(tx).to.have.eventLogWithParams("getByStrConcat()", {
+      value: BYSTR5_VALUE + BYSTR6_VALUE.substring(2),
+      vname: "value"
+    });
   });
 
   it("should return expected value if builtin strlen is called", async function () {

@@ -15,19 +15,18 @@ describe("Chained Contract Calls Functionality", function () {
   });
 
   describe("Install and call chained contracts", function () {
-
     it("Should create a transaction trace after child creation", async function () {
-      const METHOD       = "debug_traceTransaction";
+      const METHOD = "debug_traceTransaction";
       const METHOD_BLOCK = "debug_traceBlockByNumber";
 
-      let addrOne   = contractOne.address.toLowerCase();
-      let addrTwo   = contractTwo.address.toLowerCase();
+      let addrOne = contractOne.address.toLowerCase();
+      let addrTwo = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
 
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
-      let tracer = {'tracer' : 'callTracer'};
+      let tracer = {tracer: "callTracer"};
 
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
@@ -40,28 +39,45 @@ describe("Chained Contract Calls Functionality", function () {
         assert.equal(addrOne, jsonObject["to"].toLowerCase(), "has correct to field for top level call");
         assert.equal(addrTwo, jsonObject["calls"][0]["to"].toLowerCase(), "has correct to field for second level call");
 
-        assert.equal(addrThree, jsonObject["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field for third level call (2x)");
-        assert.equal(addrThree, jsonObject["calls"][0]["calls"][1]["to"].toLowerCase(), "has correct to field for third level call (2x)");
+        assert.equal(
+          addrThree,
+          jsonObject["calls"][0]["calls"][0]["to"].toLowerCase(),
+          "has correct to field for third level call (2x)"
+        );
+        assert.equal(
+          addrThree,
+          jsonObject["calls"][0]["calls"][1]["to"].toLowerCase(),
+          "has correct to field for third level call (2x)"
+        );
 
-        assert.equal(addrOne, jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
-        assert.equal(addrOne, jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
+        assert.equal(
+          addrOne,
+          jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(),
+          "has correct to field calling back into original contract"
+        );
+        assert.equal(
+          addrOne,
+          jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(),
+          "has correct to field calling back into original contract"
+        );
       });
 
-      let secondTracer = {'tracer' : 'raw'};
+      let secondTracer = {tracer: "raw"};
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
         assert.equal(status, 200, "has status code");
       });
 
-      console.log("so frustrating ", res);
-
       // Query the block by number to get the call
-      await sendJsonRpcRequest(METHOD_BLOCK, 1, ["0x"+(res.blockNumber).toString(16), tracer], (result, status) => {
+      await sendJsonRpcRequest(METHOD_BLOCK, 1, ["0x" + res.blockNumber.toString(16), tracer], (result, status) => {
         assert.equal(status, 200, "has status code");
-        assert.equal(addrOne, result.result["calls"][0]["to"].toLowerCase(), "first call in the result matches the traceTransaction");
+        assert.equal(
+          addrOne,
+          result.result["calls"][0]["to"].toLowerCase(),
+          "first call in the result matches the traceTransaction"
+        );
       });
-
-      });
+    });
 
     it("Should correctly call chained contracts", async function () {
       let addrOne = contractOne.address.toLowerCase();
@@ -70,7 +86,10 @@ describe("Chained Contract Calls Functionality", function () {
 
       await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractOne, "FinalMessage");
       await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractTwo, "FinalMessageTwo");
-      await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractThree, "FinalMessageThree");
+      await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(
+        contractThree,
+        "FinalMessageThree"
+      );
     });
   });
 });

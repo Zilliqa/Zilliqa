@@ -27,7 +27,6 @@
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include "libValidator/Validator.h"
 
 #define BOOST_TEST_MODULE transactiontest
 #define BOOST_TEST_DYN_LINK
@@ -39,7 +38,10 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() Metrics::GetInstance().Init(); }
+  Fixture() {
+    INIT_STDOUT_LOGGER();
+    Metrics::GetInstance().Initialize();
+  }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);
@@ -48,9 +50,6 @@ BOOST_AUTO_TEST_CASE(test1, *boost::unit_test::timeout(180)) {
   LOG_MARKER();
 
   Address toAddr;
-
-  Mediator* m = nullptr;
-  unique_ptr<Validator> m_validator = make_unique<Validator>(*m);
 
   for (unsigned int i = 0; i < toAddr.asArray().size(); i++) {
     toAddr.asArray().at(i) = i + 4;

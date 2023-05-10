@@ -337,7 +337,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     span.AddEvent("info", {{"Calling", "cps"}});
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
-    error_code = cpsRunResult.txnStatus;
 
     if (std::holds_alternative<evm::EvmResult>(cpsRunResult.result) &&
         ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
@@ -356,6 +355,12 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       }
     }
 
+    // Unless it's internal error include this transaction and form proper
+    // receipt
+    if (!cpsRunResult.isSuccess && cpsRunResult.txnStatus != TxnStatus::ERROR) {
+      error_code = TxnStatus::NOT_PRESENT;
+      return true;
+    }
     return cpsRunResult.isSuccess;
   }
   error_code = TxnStatus::NOT_PRESENT;

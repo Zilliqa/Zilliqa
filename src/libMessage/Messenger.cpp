@@ -1061,7 +1061,6 @@ bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey) {
-  LOG_MARKER();
 
   // Set the consensus parameters
 
@@ -1171,7 +1170,6 @@ bool GetConsensusAnnouncementCore(
     const ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, const uint64_t blockNumber,
     const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey) {
-  LOG_MARKER();
 
   // Check the consensus parameters
 
@@ -2349,7 +2347,6 @@ bool Messenger::GetDiagnosticDataCoinbase(const zbytes& src,
 
 bool Messenger::SetPMHello(zbytes& dst, const unsigned int offset,
                            const PairOfKey& key, const uint32_t listenPort) {
-  LOG_MARKER();
 
   PMHello result;
 
@@ -2382,7 +2379,6 @@ bool Messenger::SetPMHello(zbytes& dst, const unsigned int offset,
 
 bool Messenger::GetPMHello(const zbytes& src, const unsigned int offset,
                            PubKey& pubKey, uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2426,7 +2422,6 @@ bool Messenger::SetDSPoWSubmission(
     const string& resultingHash, const string& mixHash,
     const uint32_t& lookupId, const uint128_t& gasPrice,
     const GovProposalIdVotePair& govProposal, const string& version) {
-  LOG_MARKER();
 
   DSPoWSubmission result;
 
@@ -2489,7 +2484,6 @@ bool Messenger::GetDSPoWSubmission(
     uint64_t& nonce, string& resultingHash, string& mixHash,
     Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
     uint32_t& govProposalId, uint32_t& govVoteValue, string& version) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2541,7 +2535,6 @@ bool Messenger::GetDSPoWSubmission(
 bool Messenger::SetDSPoWPacketSubmission(
     zbytes& dst, const unsigned int offset,
     const vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys) {
-  LOG_MARKER();
 
   DSPoWPacketSubmission result;
 
@@ -2573,7 +2566,6 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
                                          const unsigned int offset,
                                          vector<DSPowSolution>& dsPowSolutions,
                                          PubKey& pubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2612,7 +2604,6 @@ bool Messenger::SetDSMicroBlockSubmission(
     zbytes& dst, const unsigned int offset, const unsigned char microBlockType,
     const uint64_t epochNumber, const vector<MicroBlock>& microBlocks,
     const vector<zbytes>& stateDeltas, const PairOfKey& keys) {
-  LOG_MARKER();
 
   DSMicroBlockSubmission result;
 
@@ -2656,7 +2647,6 @@ bool Messenger::GetDSMicroBlockSubmission(
     const zbytes& src, const unsigned int offset, unsigned char& microBlockType,
     uint64_t& epochNumber, vector<MicroBlock>& microBlocks,
     vector<zbytes>& stateDeltas, PubKey& pubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2708,7 +2698,6 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const uint16_t leaderID, const PairOfKey& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
     const MapOfPubKeyPoW& dsWinnerPoWs, zbytes& messageToCosign) {
-  LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
@@ -2772,7 +2761,6 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
     DequeOfShard& shards, MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
     zbytes& messageToCosign) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2869,7 +2857,6 @@ bool Messenger::SetDSFinalBlockAnnouncement(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey, const TxBlock& txBlock,
     const shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
-  LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
@@ -2915,7 +2902,6 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
     shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2975,7 +2961,6 @@ bool Messenger::SetDSVCBlockAnnouncement(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey, const VCBlock& vcBlock,
     zbytes& messageToCosign) {
-  LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
@@ -3016,7 +3001,6 @@ bool Messenger::GetDSVCBlockAnnouncement(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
     zbytes& messageToCosign) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3066,7 +3050,6 @@ bool Messenger::SetDSMissingMicroBlocksErrorMsg(
     zbytes& dst, const unsigned int offset,
     const vector<BlockHash>& missingMicroBlockHashes, const uint64_t epochNum,
     const uint32_t listenPort) {
-  LOG_MARKER();
 
   DSMissingMicroBlocksErrorMsg result;
 
@@ -3089,7 +3072,6 @@ bool Messenger::GetDSMissingMicroBlocksErrorMsg(
     const zbytes& src, const unsigned int offset,
     vector<BlockHash>& missingMicroBlockHashes, uint64_t& epochNum,
     uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3127,7 +3109,6 @@ bool Messenger::SetNodeVCDSBlocksMessage(
     zbytes& dst, const unsigned int offset, const uint32_t shardId,
     const DSBlock& dsBlock, const std::vector<VCBlock>& vcBlocks,
     const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
-  LOG_MARKER();
 
   NodeDSBlock result;
 
@@ -3154,7 +3135,6 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
                                          std::vector<VCBlock>& vcBlocks,
                                          uint32_t& shardingStructureVersion,
                                          DequeOfShard& shards) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3194,7 +3174,6 @@ bool Messenger::SetNodeVCFinalBlock(zbytes& dst, const unsigned int offset,
                                     const TxBlock& txBlock,
                                     const zbytes& stateDelta,
                                     const std::vector<VCBlock>& vcBlocks) {
-  LOG_MARKER();
 
   NodeVCFinalBlock result;
 
@@ -3221,7 +3200,6 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
                                     uint32_t& consensusID, TxBlock& txBlock,
                                     zbytes& stateDelta,
                                     std::vector<VCBlock>& vcBlocks) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3262,7 +3240,6 @@ bool Messenger::SetNodeFinalBlock(zbytes& dst, const unsigned int offset,
                                   const uint32_t consensusID,
                                   const TxBlock& txBlock,
                                   const zbytes& stateDelta) {
-  LOG_MARKER();
 
   NodeFinalBlock result;
 
@@ -3283,7 +3260,6 @@ bool Messenger::GetNodeFinalBlock(const zbytes& src, const unsigned int offset,
                                   uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   zbytes& stateDelta) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3314,7 +3290,6 @@ bool Messenger::GetNodeFinalBlock(const zbytes& src, const unsigned int offset,
 bool Messenger::SetNodeMBnForwardTransaction(
     zbytes& dst, const unsigned int offset, const MicroBlock& microBlock,
     const vector<TransactionWithReceipt>& txns) {
-  LOG_MARKER();
 
   NodeMBnForwardTransaction result;
 
@@ -3343,7 +3318,6 @@ bool Messenger::SetNodePendingTxn(
     zbytes& dst, const unsigned offset, const uint64_t& epochnum,
     const unordered_map<TxnHash, TxnStatus>& hashCodeMap,
     const uint32_t shardId, const PairOfKey& key) {
-  LOG_MARKER();
 
   NodePendingTxn result;
 
@@ -3396,7 +3370,6 @@ bool Messenger::GetNodePendingTxn(
     const zbytes& src, const unsigned offset, uint64_t& epochnum,
     unordered_map<TxnHash, TxnStatus>& hashCodeMap, uint32_t& shardId,
     PubKey& pubKey, zbytes& txnListHash) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3449,7 +3422,6 @@ bool Messenger::GetNodePendingTxn(
 bool Messenger::GetNodeMBnForwardTransaction(const zbytes& src,
                                              const unsigned int offset,
                                              MBnForwardedTxnEntry& entry) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3483,7 +3455,6 @@ bool Messenger::GetNodeMBnForwardTransaction(const zbytes& src,
 
 bool Messenger::SetNodeVCBlock(zbytes& dst, const unsigned int offset,
                                const VCBlock& vcBlock) {
-  LOG_MARKER();
 
   NodeVCBlock result;
 
@@ -3499,7 +3470,6 @@ bool Messenger::SetNodeVCBlock(zbytes& dst, const unsigned int offset,
 
 bool Messenger::GetNodeVCBlock(const zbytes& src, const unsigned int offset,
                                VCBlock& vcBlock) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3524,7 +3494,6 @@ bool Messenger::SetNodeForwardTxnBlock(
     const PairOfKey& lookupKey,
     deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
     deque<std::pair<Transaction, uint32_t>>& txnsGenerated) {
-  LOG_MARKER();
 
   NodeForwardTxnBlock result;
 
@@ -3619,7 +3588,6 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
                                        const PubKey& lookupKey,
                                        std::vector<Transaction>& txns,
                                        const Signature& signature) {
-  LOG_MARKER();
 
   NodeForwardTxnBlock result;
 
@@ -3664,7 +3632,6 @@ bool Messenger::GetNodeForwardTxnBlock(
     const zbytes& src, const unsigned int offset, uint64_t& epochNumber,
     uint64_t& dsBlockNum, uint32_t& shardId, PubKey& lookupPubKey,
     std::vector<Transaction>& txns, Signature& signature) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3719,7 +3686,6 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey,
     const MicroBlock& microBlock, zbytes& messageToCosign) {
-  LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
@@ -3760,7 +3726,6 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey, MicroBlock& microBlock,
     zbytes& messageToCosign) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3844,7 +3809,6 @@ bool Messenger::SetNodeMissingTxnsErrorMsg(
     zbytes& dst, const unsigned int offset,
     const vector<TxnHash>& missingTxnHashes, const uint64_t epochNum,
     const uint32_t listenPort) {
-  LOG_MARKER();
 
   NodeMissingTxnsErrorMsg result;
 
@@ -3869,7 +3833,6 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes& src,
                                            vector<TxnHash>& missingTxnHashes,
                                            uint64_t& epochNum,
                                            uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3901,7 +3864,6 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes& src,
 
 bool Messenger::SetNodeGetVersion(zbytes& dst, const unsigned int offset,
                                   const uint32_t listenPort) {
-  LOG_MARKER();
 
   NodeGetVersion result;
   result.set_listenport(listenPort);
@@ -3915,7 +3877,6 @@ bool Messenger::SetNodeGetVersion(zbytes& dst, const unsigned int offset,
 
 bool Messenger::GetNodeGetVersion(const zbytes& src, const unsigned int offset,
                                   uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3938,7 +3899,6 @@ bool Messenger::GetNodeGetVersion(const zbytes& src, const unsigned int offset,
 
 bool Messenger::SetNodeSetVersion(zbytes& dst, const unsigned int offset,
                                   const std::string& version) {
-  LOG_MARKER();
 
   NodeSetVersion result;
   result.set_version(version);
@@ -3952,7 +3912,6 @@ bool Messenger::SetNodeSetVersion(zbytes& dst, const unsigned int offset,
 
 bool Messenger::GetNodeSetVersion(const zbytes& src, const unsigned int offset,
                                   std::string& version) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3979,7 +3938,6 @@ bool Messenger::GetNodeSetVersion(const zbytes& src, const unsigned int offset,
 
 bool Messenger::SetLookupGetSeedPeers(zbytes& dst, const unsigned int offset,
                                       const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetSeedPeers result;
 
@@ -3996,7 +3954,6 @@ bool Messenger::SetLookupGetSeedPeers(zbytes& dst, const unsigned int offset,
 bool Messenger::GetLookupGetSeedPeers(const zbytes& src,
                                       const unsigned int offset,
                                       uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4020,7 +3977,6 @@ bool Messenger::GetLookupGetSeedPeers(const zbytes& src,
 bool Messenger::SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
                                       const PairOfKey& lookupKey,
                                       const vector<Peer>& candidateSeeds) {
-  LOG_MARKER();
 
   LookupSetSeedPeers result;
 
@@ -4070,7 +4026,6 @@ bool Messenger::GetLookupSetSeedPeers(const zbytes& src,
                                       const unsigned int offset,
                                       PubKey& lookupPubKey,
                                       vector<Peer>& candidateSeeds) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4117,7 +4072,6 @@ bool Messenger::SetLookupGetDSInfoFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort,
                                            const bool initialDS) {
-  LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
 
@@ -4136,7 +4090,6 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const zbytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort,
                                            bool& initialDS) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4164,7 +4117,6 @@ bool Messenger::SetLookupSetDSInfoFromSeed(zbytes& dst,
                                            const uint32_t& dsCommitteeVersion,
                                            const DequeOfNode& dsNodes,
                                            const bool initialDS) {
-  LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
 
@@ -4200,7 +4152,6 @@ bool Messenger::SetLookupSetDSInfoFromSeed(zbytes& dst,
 bool Messenger::GetLookupSetDSInfoFromSeed(
     const zbytes& src, const unsigned int offset, PubKey& senderPubKey,
     uint32_t& dsCommitteeVersion, DequeOfNode& dsNodes, bool& initialDS) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4248,7 +4199,6 @@ bool Messenger::SetLookupGetDSBlockFromSeed(zbytes& dst,
                                             const uint64_t highBlockNum,
                                             const uint32_t listenPort,
                                             const bool includeMinerInfo) {
-  LOG_MARKER();
 
   LookupGetDSBlockFromSeed result;
 
@@ -4268,7 +4218,6 @@ bool Messenger::SetLookupGetDSBlockFromSeed(zbytes& dst,
 bool Messenger::GetLookupGetDSBlockFromSeed(
     const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, uint32_t& listenPort, bool& includeMinerInfo) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4298,7 +4247,6 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
                                             const uint64_t highBlockNum,
                                             const PairOfKey& lookupKey,
                                             const vector<DSBlock>& dsBlocks) {
-  LOG_MARKER();
 
   LookupSetDSBlockFromSeed result;
 
@@ -4337,7 +4285,6 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
 bool Messenger::GetLookupSetDSBlockFromSeed(
     const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<DSBlock>& dsBlocks) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4384,7 +4331,6 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
     zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>&
         minerInfoPerDS) {
-  LOG_MARKER();
 
   LookupSetMinerInfoFromSeed result;
 
@@ -4459,7 +4405,6 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
 bool Messenger::GetLookupSetMinerInfoFromSeed(
     const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
     map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>& minerInfoPerDS) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4531,7 +4476,6 @@ bool Messenger::SetLookupGetTxBlockFromSeed(zbytes& dst,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
                                             const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetTxBlockFromSeed result;
 
@@ -4552,7 +4496,6 @@ bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes& dst,
                                                 const uint64_t& blockNum,
                                                 const Peer& sender,
                                                 const PairOfKey& seedKey) {
-  LOG_MARKER();
 
   LookupGetVCFinalBlockFromL2l result;
 
@@ -4591,7 +4534,6 @@ bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes& src,
                                                 const unsigned int offset,
                                                 uint64_t& blockNum, Peer& from,
                                                 PubKey& senderPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4629,7 +4571,6 @@ bool Messenger::SetLookupGetDSBlockFromL2l(zbytes& dst,
                                            const uint64_t& blockNum,
                                            const Peer& sender,
                                            const PairOfKey& seedKey) {
-  LOG_MARKER();
 
   LookupGetDSBlockFromL2l result;
 
@@ -4667,7 +4608,6 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
                                            const unsigned int offset,
                                            uint64_t& blockNum, Peer& from,
                                            PubKey& senderPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4702,7 +4642,6 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
 bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
     zbytes& dst, const unsigned int offset, const uint64_t& blockNum,
     const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
-  LOG_MARKER();
 
   LookupGetMBnForwardTxnFromL2l result;
 
@@ -4743,7 +4682,6 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes& src,
                                                  uint64_t& blockNum,
                                                  uint32_t& shardId, Peer& from,
                                                  PubKey& senderPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4779,7 +4717,6 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes& src,
 bool Messenger::SetLookupGetPendingTxnFromL2l(
     zbytes& dst, const unsigned int offset, const uint64_t& blockNum,
     const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
-  LOG_MARKER();
 
   LookupGetPendingTxnFromL2l result;
 
@@ -4820,7 +4757,6 @@ bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes& src,
                                               uint64_t& blockNum,
                                               uint32_t& shardId, Peer& from,
                                               PubKey& senderPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4858,7 +4794,6 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const zbytes& src,
                                             uint64_t& lowBlockNum,
                                             uint64_t& highBlockNum,
                                             uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -4887,7 +4822,6 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
                                             const uint64_t highBlockNum,
                                             const PairOfKey& lookupKey,
                                             const vector<TxBlock>& txBlocks) {
-  LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
 
@@ -4927,7 +4861,6 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
 bool Messenger::GetLookupSetTxBlockFromSeed(
     const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<TxBlock>& txBlocks) {
-  LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
 
@@ -4974,7 +4907,6 @@ bool Messenger::SetLookupGetStateDeltaFromSeed(zbytes& dst,
                                                const unsigned int offset,
                                                const uint64_t blockNum,
                                                const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetStateDeltaFromSeed result;
 
@@ -4994,7 +4926,6 @@ bool Messenger::SetLookupGetStateDeltasFromSeed(zbytes& dst,
                                                 uint64_t& lowBlockNum,
                                                 uint64_t& highBlockNum,
                                                 const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetStateDeltasFromSeed result;
 
@@ -5014,7 +4945,6 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const zbytes& src,
                                                const unsigned int offset,
                                                uint64_t& blockNum,
                                                uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5041,7 +4971,6 @@ bool Messenger::GetLookupGetStateDeltasFromSeed(const zbytes& src,
                                                 uint64_t& lowBlockNum,
                                                 uint64_t& highBlockNum,
                                                 uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5069,7 +4998,6 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes& dst,
                                                const uint64_t blockNum,
                                                const PairOfKey& lookupKey,
                                                const zbytes& stateDelta) {
-  LOG_MARKER();
 
   LookupSetStateDeltaFromSeed result;
 
@@ -5107,7 +5035,6 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
     zbytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
     const uint64_t highBlockNum, const PairOfKey& lookupKey,
     const vector<zbytes>& stateDeltas) {
-  LOG_MARKER();
 
   LookupSetStateDeltasFromSeed result;
 
@@ -5149,7 +5076,6 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes& src,
                                                uint64_t& blockNum,
                                                PubKey& lookupPubKey,
                                                zbytes& stateDelta) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5189,7 +5115,6 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes& src,
 bool Messenger::GetLookupSetStateDeltasFromSeed(
     const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<zbytes>& stateDeltas) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5235,7 +5160,6 @@ bool Messenger::SetLookupSetLookupOffline(zbytes& dst,
                                           const uint8_t msgType,
                                           const uint32_t listenPort,
                                           const PairOfKey& lookupKey) {
-  LOG_MARKER();
 
   LookupSetLookupOffline result;
 
@@ -5271,7 +5195,6 @@ bool Messenger::GetLookupSetLookupOffline(const zbytes& src,
                                           uint8_t& msgType,
                                           uint32_t& listenPort,
                                           PubKey& lookupPubkey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5309,7 +5232,6 @@ bool Messenger::SetLookupSetLookupOnline(zbytes& dst, const unsigned int offset,
                                          const uint8_t msgType,
                                          const uint32_t listenPort,
                                          const PairOfKey& lookupKey) {
-  LOG_MARKER();
 
   LookupSetLookupOnline result;
 
@@ -5343,7 +5265,6 @@ bool Messenger::GetLookupSetLookupOnline(const zbytes& src,
                                          const unsigned int offset,
                                          uint8_t& msgType, uint32_t& listenPort,
                                          PubKey& pubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5380,7 +5301,6 @@ bool Messenger::GetLookupSetLookupOnline(const zbytes& src,
 bool Messenger::SetLookupGetOfflineLookups(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetOfflineLookups result;
 
@@ -5420,7 +5340,6 @@ bool Messenger::SetLookupSetOfflineLookups(zbytes& dst,
                                            const unsigned int offset,
                                            const PairOfKey& lookupKey,
                                            const vector<Peer>& nodes) {
-  LOG_MARKER();
 
   LookupSetOfflineLookups result;
 
@@ -5457,7 +5376,6 @@ bool Messenger::GetLookupSetOfflineLookups(const zbytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey,
                                            vector<Peer>& nodes) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5552,7 +5470,6 @@ bool Messenger::GetForwardTxnBlockFromSeed(
 bool Messenger::SetLookupGetShardsFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetShardsFromSeed result;
 
@@ -5570,7 +5487,6 @@ bool Messenger::SetLookupGetShardsFromSeed(zbytes& dst,
 bool Messenger::GetLookupGetShardsFromSeed(const zbytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5595,7 +5511,6 @@ bool Messenger::GetLookupGetShardsFromSeed(const zbytes& src,
 bool Messenger::SetLookupSetShardsFromSeed(
     zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
-  LOG_MARKER();
 
   LookupSetShardsFromSeed result;
 
@@ -5630,7 +5545,6 @@ bool Messenger::GetLookupSetShardsFromSeed(const zbytes& src,
                                            PubKey& lookupPubKey,
                                            uint32_t& shardingStructureVersion,
                                            DequeOfShard& shards) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5673,7 +5587,6 @@ bool Messenger::GetLookupSetShardsFromSeed(const zbytes& src,
 bool Messenger::SetLookupGetMicroBlockFromLookup(
     zbytes& dst, const unsigned int offset,
     const vector<BlockHash>& microBlockHashes, const uint32_t portNo) {
-  LOG_MARKER();
 
   LookupGetMicroBlockFromLookup result;
 
@@ -5694,7 +5607,6 @@ bool Messenger::SetLookupGetMicroBlockFromL2l(
     zbytes& dst, const unsigned int offset,
     const vector<BlockHash>& microBlockHashes, uint32_t portNo,
     const PairOfKey& seedKey) {
-  LOG_MARKER();
 
   LookupGetMicroBlockFromL2l result;
 
@@ -5734,7 +5646,6 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
     const zbytes& src, const unsigned int offset,
     vector<BlockHash>& microBlockHashes, uint32_t& portNo,
     PubKey& senderPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5777,7 +5688,6 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
 bool Messenger::GetLookupGetMicroBlockFromLookup(
     const zbytes& src, const unsigned int offset,
     vector<BlockHash>& microBlockHashes, uint32_t& portNo) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5845,7 +5755,6 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
                                                  const unsigned int offset,
                                                  PubKey& lookupPubKey,
                                                  vector<MicroBlock>& mbs) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5895,7 +5804,6 @@ bool Messenger::SetLookupGetTxnsFromLookup(zbytes& dst,
                                            const BlockHash& mbHash,
                                            const vector<TxnHash>& txnhashes,
                                            const uint32_t portNo) {
-  LOG_MARKER();
 
   LookupGetTxnsFromLookup result;
 
@@ -5920,7 +5828,6 @@ bool Messenger::GetLookupGetTxnsFromLookup(const zbytes& src,
                                            BlockHash& mbHash,
                                            vector<TxnHash>& txnhashes,
                                            uint32_t& portNo) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -5954,7 +5861,6 @@ bool Messenger::SetLookupGetTxnsFromL2l(zbytes& dst, const unsigned int offset,
                                         const vector<TxnHash>& txnhashes,
                                         const uint32_t portNo,
                                         const PairOfKey& seedKey) {
-  LOG_MARKER();
 
   LookupGetTxnsFromL2l result;
 
@@ -5994,7 +5900,6 @@ bool Messenger::SetLookupGetTxnsFromL2l(zbytes& dst, const unsigned int offset,
 bool Messenger::GetLookupGetTxnsFromL2l(
     const zbytes& src, const unsigned int offset, BlockHash& mbHash,
     vector<TxnHash>& txnhashes, uint32_t& portNo, PubKey& senderPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -6037,7 +5942,6 @@ bool Messenger::GetLookupGetTxnsFromL2l(
 bool Messenger::SetLookupSetTxnsFromLookup(
     zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const BlockHash& mbHash, const vector<TransactionWithReceipt>& txns) {
-  LOG_MARKER();
 
   LookupSetTxnsFromLookup result;
 
@@ -6076,7 +5980,6 @@ bool Messenger::SetLookupSetTxnsFromLookup(
 bool Messenger::GetLookupSetTxnsFromLookup(
     const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
     BlockHash& mbHash, vector<TransactionWithReceipt>& txns) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -6298,7 +6201,6 @@ bool Messenger::SetConsensusCommit(zbytes& dst, const unsigned int offset,
                                    const uint16_t backupID,
                                    const vector<CommitInfo>& commitInfo,
                                    const PairOfKey& backupKey) {
-  LOG_MARKER();
 
   ConsensusCommit result;
 
@@ -6348,7 +6250,6 @@ bool Messenger::GetConsensusCommit(const zbytes& src, const unsigned int offset,
                                    const zbytes& blockHash, uint16_t& backupID,
                                    vector<CommitInfo>& commitInfo,
                                    const DequeOfNode& committeeKeys) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -6442,7 +6343,6 @@ bool Messenger::SetConsensusChallenge(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const vector<ChallengeSubsetInfo>& subsetInfo,
     const PairOfKey& leaderKey) {
-  LOG_MARKER();
 
   ConsensusChallenge result;
 
@@ -6494,7 +6394,6 @@ bool Messenger::GetConsensusChallenge(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, vector<ChallengeSubsetInfo>& subsetInfo,
     const PubKey& leaderKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -6587,7 +6486,6 @@ bool Messenger::SetConsensusResponse(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t backupID, const vector<ResponseSubsetInfo>& subsetInfo,
     const PairOfKey& backupKey) {
-  LOG_MARKER();
 
   ConsensusResponse result;
 
@@ -6633,7 +6531,6 @@ bool Messenger::GetConsensusResponse(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const zbytes& blockHash, uint16_t& backupID,
     vector<ResponseSubsetInfo>& subsetInfo, const DequeOfNode& committeeKeys) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -6727,7 +6624,6 @@ bool Messenger::SetConsensusCollectiveSig(
     const uint16_t leaderID, const Signature& collectiveSig,
     const vector<bool>& bitmap, const PairOfKey& leaderKey,
     const zbytes& newAnnouncementMessage) {
-  LOG_MARKER();
 
   ConsensusCollectiveSig result;
 
@@ -6788,7 +6684,6 @@ bool Messenger::GetConsensusCollectiveSig(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, vector<bool>& bitmap, Signature& collectiveSig,
     const PubKey& leaderKey, zbytes& newAnnouncement) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -6893,7 +6788,6 @@ bool Messenger::SetConsensusCommitFailure(
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t backupID, const zbytes& errorMsg,
     const PairOfKey& backupKey) {
-  LOG_MARKER();
 
   ConsensusCommitFailure result;
 
@@ -6935,7 +6829,6 @@ bool Messenger::GetConsensusCommitFailure(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const zbytes& blockHash, uint16_t& backupID,
     zbytes& errorMsg, const DequeOfNode& committeeKeys) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7023,7 +6916,6 @@ bool Messenger::SetConsensusConsensusFailure(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey) {
-  LOG_MARKER();
 
   ConsensusConsensusFailure result;
 
@@ -7064,7 +6956,6 @@ bool Messenger::GetConsensusConsensusFailure(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const zbytes& blockHash, uint16_t& leaderID,
     const PubKey& leaderKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7150,7 +7041,6 @@ bool Messenger::SetLookupGetDSTxBlockFromSeed(
     zbytes& dst, const unsigned int offset, const uint64_t dsLowBlockNum,
     const uint64_t dsHighBlockNum, const uint64_t txLowBlockNum,
     const uint64_t txHighBlockNum, const uint32_t listenPort) {
-  LOG_MARKER();
 
   LookupGetDSTxBlockFromSeed result;
 
@@ -7172,7 +7062,6 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
     const zbytes& src, const unsigned int offset, uint64_t& dsLowBlockNum,
     uint64_t& dsHighBlockNum, uint64_t& txLowBlockNum, uint64_t& txHighBlockNum,
     uint32_t& listenPort) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7202,7 +7091,6 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes& dst,
                                               const PairOfKey& lookupKey,
                                               const vector<DSBlock>& DSBlocks,
                                               const vector<TxBlock>& txBlocks) {
-  LOG_MARKER();
 
   VCNodeSetDSTxBlockFromSeed result;
 
@@ -7246,7 +7134,6 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
                                               vector<DSBlock>& dsBlocks,
                                               vector<TxBlock>& txBlocks,
                                               PubKey& lookupPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7342,7 +7229,6 @@ bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes& src,
                                                Peer& shardNodeNewNetworkInfo,
                                                uint64_t& timestamp,
                                                PubKey& shardNodePubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7426,7 +7312,6 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
 bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
     const zbytes& src, const unsigned int offset, uint64_t& dsEpochNumber,
     Peer& dsGuardNewNetworkInfo, uint64_t& timestamp, PubKey& dsGuardPubkey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7467,7 +7352,6 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
 bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
     zbytes& dst, const unsigned int offset, const uint32_t portNo,
     const uint64_t dsEpochNumber, const PairOfKey& lookupKey) {
-  LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
   result.mutable_data()->set_portno(portNo);
@@ -7496,7 +7380,6 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
 bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
     const zbytes& src, const unsigned int offset, uint32_t& portNo,
     uint64_t& dsEpochNumber) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7584,7 +7467,6 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
     const zbytes& src, const unsigned int offset,
     vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
     PubKey& lookupPubKey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -7699,7 +7581,6 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes& dst,
                                                   const uint64_t txBlkNum,
                                                   const uint32_t listenPort,
                                                   const PairOfKey& keys) {
-  LOG_MARKER();
 
   LookupGetCosigsRewardsFromSeed result;
 
@@ -7943,7 +7824,6 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
 bool Messenger::GetLookupSetCosigsRewardsFromSeed(
     const zbytes& src, const unsigned int offset,
     vector<CoinbaseStruct>& cosigrewards, PubKey& senderPubkey) {
-  LOG_MARKER();
 
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -8004,7 +7884,6 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
 
 bool Messenger::SetMinerInfoDSComm(zbytes& dst, const unsigned int offset,
                                    const MinerInfoDSComm& minerInfo) {
-  LOG_MARKER();
 
   ProtoMinerInfoDSComm result;
 
@@ -8028,7 +7907,6 @@ bool Messenger::SetMinerInfoDSComm(zbytes& dst, const unsigned int offset,
 
 bool Messenger::GetMinerInfoDSComm(const zbytes& src, const unsigned int offset,
                                    MinerInfoDSComm& minerInfo) {
-  LOG_MARKER();
 
   minerInfo.m_dsNodes.clear();
   minerInfo.m_dsNodesEjected.clear();
@@ -8069,7 +7947,6 @@ bool Messenger::GetMinerInfoDSComm(const zbytes& src, const unsigned int offset,
 
 bool Messenger::SetMinerInfoShards(zbytes& dst, const unsigned int offset,
                                    const MinerInfoShards& minerInfo) {
-  LOG_MARKER();
 
   ProtoMinerInfoShards result;
 
@@ -8093,7 +7970,6 @@ bool Messenger::SetMinerInfoShards(zbytes& dst, const unsigned int offset,
 
 bool Messenger::GetMinerInfoShards(const zbytes& src, const unsigned int offset,
                                    MinerInfoShards& minerInfo) {
-  LOG_MARKER();
 
   minerInfo.m_shards.clear();
 

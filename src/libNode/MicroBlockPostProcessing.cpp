@@ -38,7 +38,58 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-using namespace boost::multi_index;
+
+namespace zil {
+namespace local {
+
+class MicroBlockPostProcessingVariables {
+  int errorsMissingTx = 0;
+  int consensusErrorCode = -1;
+  int microblockConsensusMessages = 0;
+  int microblockConsensusFailedBadly = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetConsensusErrorCode(int code) {
+    Init();
+    consensusErrorCode = code;
+  }
+
+  void AddErrorsMissingTx(int missingTx) {
+    Init();
+    errorsMissingTx += missingTx;
+  }
+
+  void AddMicroblockConsensusMessages(int count) {
+    Init();
+    microblockConsensusMessages += count;
+  }
+
+  void AddMicroblockConsensusFailedBadly(int count) {
+    Init();
+    microblockConsensusFailedBadly += count;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.gauge",
+                                          "Consensus", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(consensusErrorCode, {{"counter", "ConsensusErrorCode"}});
+        result.Set(errorsMissingTx, {{"counter", "ErrorsMissingTx"}});
+        result.Set(microblockConsensusMessages, {{"counter", "MicroblockConsensusMessages"}});
+        result.Set(microblockConsensusFailedBadly, {{"counter", "MicroblockConsensusFailedBadly"}});
+      });
+    }
+  }
+};
+
+static MicroBlockPostProcessingVariables variables{};
+
+}  // namespace local
+}  // namespace zil
 
 bool Node::ComposeMicroBlockMessageForSender(zbytes& microblock_message) const {
   if (LOOKUP_NODE_MODE) {
@@ -86,12 +137,14 @@ bool Node::ProcessMicroBlockConsensus(
           message, offset, consensus_id, senderPubKey, reserialized_message)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "PreProcessMessage failed");
+    zil::local::variables.AddMicroblockConsensusFailedBadly(1);
     return false;
   }
 
   if (!IsShardNode(senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "ProcessMicroBlockConsensus signed by non shard member");
+    zil::local::variables.AddMicroblockConsensusFailedBadly(1);
     return false;
   }
 
@@ -99,13 +152,15 @@ bool Node::ProcessMicroBlockConsensus(
     AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                    from, senderPubKey);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+    LOG_GENERAL(WARNING, m_mediator.m_currentEpochNum <<
               "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
       LOG_GENERAL(WARNING, "Consensus ID in message ("
                                << consensus_id << ") is smaller than current ("
                                << m_mediator.m_consensusID << ")");
+
+      zil::local::variables.AddMicroblockConsensusFailedBadly(1);
       return false;
     } else if (consensus_id > m_mediator.m_consensusID) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -125,6 +180,7 @@ bool Node::ProcessMicroBlockConsensus(
 }
 
 void Node::CommitMicroBlockConsensusBuffer() {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
   for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
@@ -180,6 +236,8 @@ bool Node::ProcessMicroBlockConsensusCore(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
+
+  zil::local::variables.AddMicroblockConsensusMessages(1);
 
   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -334,15 +392,19 @@ bool Node::ProcessMicroBlockConsensusCore(
                   << " error message: "
                   << (m_consensusObject->GetConsensusErrorMsg()));
 
+    zil::local::variables.SetConsensusErrorCode(m_consensusObject->GetConsensusErrorCode());
+
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::MISSING_TXN) {
       // Missing txns in microblock proposed by leader. Will attempt to fetch
       // missing txns from leader, set to a valid state to accept cosig1 and
       // cosig2
       LOG_GENERAL(INFO, "Start pending for fetching missing txns")
+      zil::local::variables.AddErrorsMissingTx(1);
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
+      // TODO: cv fix
       if (cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
