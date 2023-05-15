@@ -395,21 +395,25 @@ def teardown_k8s(ctx):
     print("Destroying minikube cluster .. ")
     run_or_die(config, ["minikube", "delete"])
 
-def localstack_up(config):
-    """ Let helm deploy localstack """
-    run_or_die(config, ["helm", "upgrade", "--install", "localstack", "localstack/localstack"])
-
+def wait_for_helm_pod(config, pod_partial_name):
     while True:
         pods = subprocess.Popen([ "kubectl", "get", "pod", "-o", "json" ], env=config.driver_env, stdout=subprocess.PIPE)
-        localstack_pod_name = sanitise_output(
-            subprocess.check_output([ "jq", "-r", ".items[] | select(.metadata.name | test(\"localstack-\")) | select(.status.phase == \"Running\").metadata.name" ], env=config.driver_env, stdin=pods.stdout)).strip(' ')
+        pod_name = sanitise_output(
+            subprocess.check_output([ "jq", "-r", f".items[] | select(.metadata.name | test(\"{pod_partial_name}\")) | select(.status.phase == \"Running\").metadata.name" ], env=config.driver_env, stdin=pods.stdout)).strip(' ')
         pods.wait()
 
-        if len(localstack_pod_name) == 0:
-            print(f"Waiting for localstack to be ready...")
+        if len(pod_name) == 0:
+            print(f"Waiting for pod to be ready...")
             time.sleep(2)
         else:
             break
+
+    return pod_name
+
+def localstack_up(config):
+    """ Let helm deploy localstack """
+    run_or_die(config, ["helm", "upgrade", "--install", "localstack", "localstack/localstack"])
+    localstack_pod_name = wait_for_helm_pod(config, "localstack-")
 
     bucket_name = 'zilliqa-devnet'
     run_or_die(config, ['kubectl', 'exec', '-it', localstack_pod_name, '--', 'awslocal', 's3', 'mb', f's3://{bucket_name}'])
@@ -417,6 +421,34 @@ def localstack_up(config):
 def localstack_down(config):
     """ Let helm undeploy localstack """
     run_or_die(config, ["helm", "uninstall", "localstack"])
+
+def grafana_up(config, testnet_name):
+    """ Let helm deploy grafana """
+
+    conf = f"""
+ingress:
+  enabled: true
+  hosts:
+    - "{testnet_name}-grafana.localdomain"
+persistence:
+  enabled: true
+  storageClassName: "standard"
+  size: 1Gi
+adminUser: admin
+adminPassword: admin
+            """
+
+    with tempfile.NamedTemporaryFile() as tmpfile:
+        print(tmpfile.name)
+        tmpfile.write(conf.encode('utf-8'))
+        tmpfile.flush()
+        run_or_die(config, ["helm", "upgrade", "--install", "grafana", "grafana/grafana", "-f", tmpfile.name])
+        wait_for_helm_pod(config, "grafana-")
+
+def grafana_down(config):
+    """ Let helm undeploy grafana """
+    run_or_die(config, ["helm", "uninstall", "grafana"])
+
 
 @click.command("up")
 @click.pass_context
@@ -455,6 +487,7 @@ def up(config, zilliqa_image, testnet_name):
     minikube = get_minikube_ip(config)
     write_testnet_configuration(config, zilliqa_image, testnet_name)
     localstack_up(config)
+    grafana_up(config, testnet_name)
     start_testnet(config, testnet_name)
     start_proxy(config, testnet_name)
     show_proxy(config, testnet_name)
@@ -615,6 +648,7 @@ def down_cmd(ctx):
 def down(config):
     stop_testnet(config, config.testnet_name)
     stop_proxy(config, config.testnet_name)
+    grafana_down(config)
     localstack_down(config)
     wait_for_termination(config)
 
