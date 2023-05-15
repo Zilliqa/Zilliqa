@@ -42,8 +42,11 @@ SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 
+def is_osx():
+    return sys.platform == "darwin"
+
 def default_driver():
-    return "docker" if sys.platform == "darwin" else "kvm2"
+    return "docker" if is_osx() else "kvm2"
 
 def using_podman(config):
     return config.driver == "podman"
@@ -52,7 +55,6 @@ class Config:
     def __init__(self):
         self.default_env = { "LOCALDEV" : "1" , "FAST_BUILD" : "1"}
         self.cache_dir = os.path.join(pathlib.Path.home(), ".cache", "zilliqa_localdev");
-        self.is_osx = sys.platform == "darwin"
 
         #  if self.is_osx:
             #print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
@@ -161,7 +163,7 @@ def setup_colima(ctx, cpus, memory, disk_size):
     Sets up colima.
     """
     config = get_config(ctx)
-    run_or_die(config, ["colima", "start", f"--cpus={cpus}", f"--memory={int(memory / 1024)}", f"--disk-size={disk_size}", "--runtime=docker"])
+    run_or_die(config, ["colima", "start", f"--cpu={cpus}", f"--memory={int(memory / 1024)}", f"--disk={disk_size}", "--runtime=docker"])
 
 @click.command("teardown-podman")
 @click.pass_context
@@ -170,14 +172,14 @@ def teardown_podman(ctx):
     Tear down podman (on OS X only)
     """
     config = get_config(ctx)
-    if config.is_osx:
+    if is_osx():
         run_or_die(config, ["podman", "machine", "stop"])
         run_or_die(config, ["podman", "machine", "rm", "-f"])
 
 def get_minikube_ip(config):
     # On OS X it's not possible to use the real minikube IP, and instead 127.0.0.1 must
     # be used as well as running 'minikube tunnel'.
-    result = "127.0.0.1" if config.is_osx else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
+    result = "127.0.0.1" if is_osx() else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
     return result
 
 def get_registry_ip(config):
@@ -224,7 +226,7 @@ systemctl restart systemd-resolved
 """ + """
 Run:
     sudo minikube tunnel
-""" if config.is_osx else "")
+""" if is_osx() else "")
 
 @click.command("start-k8s")
 @click.pass_context
@@ -286,7 +288,7 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
               help="The minikube driver to use")
 @click.option("--cpus",
               required=False,
-              callback=lambda ctx, param, value: value if value else 8 if ctx.params["driver"] == "podman" else "max",
+              callback=lambda ctx, param, value: value if value else "max" if ctx.params["driver"] == "docker" and sys.platform != "darwin" else 8,
               help="The number of CPUs in the guest VM")
 @click.option("--memory",
               required=False,
@@ -323,10 +325,10 @@ def setup(ctx, driver, cpus, memory, disk_size, container_runtime):
     # podman/colima VM so we need to reduce the memory & disk size it's allocated.
     if adjust_minikube_specs:
         try:
-            memory = memory * 0.8
+            memory = int(memory * 0.8)
         except:
             pass
-        disk_size = disk_size * 0.75
+        disk_size = int(disk_size * 0.75)
 
     setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime)
 
@@ -393,6 +395,29 @@ def teardown_k8s(ctx):
     print("Destroying minikube cluster .. ")
     run_or_die(config, ["minikube", "delete"])
 
+def localstack_up(config):
+    """ Let helm deploy localstack """
+    run_or_die(config, ["helm", "upgrade", "--install", "localstack", "localstack/localstack"])
+
+    while True:
+        pods = subprocess.Popen([ "kubectl", "get", "pod", "-o", "json" ], env=config.driver_env, stdout=subprocess.PIPE)
+        localstack_pod_name = sanitise_output(
+            subprocess.check_output([ "jq", "-r", ".items[] | select(.metadata.name | test(\"localstack-\")) | select(.status.phase == \"Running\").metadata.name" ], env=config.driver_env, stdin=pods.stdout)).strip(' ')
+        pods.wait()
+
+        if len(localstack_pod_name) == 0:
+            print(f"Waiting for localstack to be ready...")
+            time.sleep(2)
+        else:
+            break
+
+    bucket_name = 'zilliqa-devnet'
+    run_or_die(config, ['kubectl', 'exec', '-it', localstack_pod_name, '--', 'awslocal', 's3', 'mb', f's3://{bucket_name}'])
+
+def localstack_down(config):
+    """ Let helm undeploy localstack """
+    run_or_die(config, ["helm", "uninstall", "localstack"])
+
 @click.command("up")
 @click.pass_context
 @click.option("--driver",
@@ -401,34 +426,35 @@ def teardown_k8s(ctx):
               show_default=True,
               help="The minikube driver to use")
 @click.option("--zilliqa-image",
-              required=True,
-              help="the zilliqz image to use when building the zilliqa image")
+              required=False,
+              help="The zilliqz image to use when building the zilliqa image. If none is specified scilla & zillqa will be built with a new tag and used to bring up the test network.")
 @click.option("--testnet-name",
               required=True,
               default='localdev',
               show_default=True,
-              help="the test network's name")
+              help="The test network's name")
 @click.option("--persistence", help="A persistence directory to start the network with. Has no effect without also passing `--key-file`.")
 @click.option("--key-file", help="A `.tar.gz` generated by `./testnet.sh back-up auto` containing the keys used to start this network. Has no effect without also passing `--persistence`.")
 def up_cmd(ctx, driver, zilliqa_image, testnet_name, persistence, key_file):
     """
-    Build Zilliqa (via a process equivalent to the build_lite command), write configuration files for a
+    Build Zilliqa (via a process equivalent to the build-zilliqa & build-scilla commands), write configuration files for a
     testnet named localdev, run `localdev/config.sh up`, and start a proxy to allow the user to monitor traffic
     on the API ports.
     """
     config = get_config(ctx)
-    adjust_config(config, driver)
+    if not zilliqa_image:
+        zilliqa_image = build_zilliqa(config, driver, None, None)
+    else:
+        adjust_config(config, driver)
+
     config.persistence = persistence
     config.key_file = key_file
     up(config, zilliqa_image, testnet_name)
 
 def up(config, zilliqa_image, testnet_name):
     minikube = get_minikube_ip(config)
-    #  tag = gen_tag()
-    #  zilliqa_tag_name = f"{minikube}:5000/zilliqa:{tag}"
-    #  scilla_tag_name = f"{minikube}:5000/scilla:{tag}"
-    #  build_lite(config, zilliqa_tag_name)
     write_testnet_configuration(config, zilliqa_image, testnet_name)
+    localstack_up(config)
     start_testnet(config, testnet_name)
     start_proxy(config, testnet_name)
     show_proxy(config, testnet_name)
@@ -497,7 +523,7 @@ def isolated(config, enable_evm = True, block_time_ms = None):
     # Copy scilla recursively
     shutil.copytree(os.path.join(src_workspace, "scilla"), os.path.join(target_workspace, "scilla"), dirs_exist_ok = True)
     # Now, on OS X we need to patch rpath for the scilla executables ..
-    if config.is_osx:
+    if is_osx():
         print("> On OS X, patching rpath for Scilla .. ")
         tgt_bin = os.path.join(target_workspace, "scilla", "bin")
         tgt_lib = os.path.join(target_workspace,  "lib")
@@ -589,6 +615,7 @@ def down_cmd(ctx):
 def down(config):
     stop_testnet(config, config.testnet_name)
     stop_proxy(config, config.testnet_name)
+    localstack_down(config)
     wait_for_termination(config)
 
 def stop_testnet(config, testnet_name):
@@ -598,16 +625,6 @@ def stop_testnet(config, testnet_name):
 def write_testnet_configuration(config, zilliqa_image, testnet_name):
     instance_dir = os.path.join(TESTNET_DIR, testnet_name)
     minikube_ip = get_minikube_ip(config)
-
-    registry_cluster_ip = run_or_die(config, ["kubectl",
-                          "get",
-                          "services",
-                          "-n",
-                          "kube-system",
-                          "registry",
-                          "--template",
-                          "'{{.spec.clusterIP}}'"],
-                         capture_output = True)
 
     if os.path.exists(instance_dir):
         print(f"Removing old testnet configuration ..")
@@ -626,6 +643,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name):
         "--host-network", "false",
         "--https", "localdomain",
         "--seed-multiplier", "true",
+        "--localstack", "true",
         "-f",
     ]
     if config.persistence is not None and config.key_file is not None:
@@ -844,6 +862,16 @@ def log_snapshot(config, recency):
             f.write(logs)
     print(f"Logs in {log_name}")
 
+def build_scilla(config, driver, tag):
+    adjust_config(config, driver)
+
+    build_env = config.driver_env.copy()
+    build_env["DOCKER_BUILDKIT"] = "1"
+
+    image_name = "scilla:" + (tag if tag else gen_tag())
+    run_or_die(config, [config.docker_binary, "build", ".", "-t", image_name, "-f", os.path.join(SCILLA_DIR, "docker", "Dockerfile")], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = False)
+    return image_name
 
 @click.command("build-scilla")
 @click.option("--driver",
@@ -855,19 +883,26 @@ def log_snapshot(config, recency):
               required=False,
               help="The scilla image tag. Will be generated if not given.")
 @click.pass_context
-def build_scilla(ctx, driver, tag):
+def build_scilla_cmd(ctx, driver, tag):
     """
     Builds a scilla image.
     """
     config = get_config(ctx)
-    adjust_config(config, driver)
+    build_scilla(config, driver, tag)
+
+def build_zilliqa(config, driver, scilla_image, tag):
+    if not scilla_image:
+        scilla_image = build_scilla(config, driver, None)
+    else:
+        adjust_config(config, driver)
 
     build_env = config.driver_env.copy()
     build_env["DOCKER_BUILDKIT"] = "1"
 
-    tag = "scilla:" + (tag if tag else gen_tag())
-    run_or_die(config, [config.docker_binary, "build", ".", "-t", tag, "-f", os.path.join(SCILLA_DIR, "docker", "Dockerfile")], in_dir = SCILLA_DIR, env = build_env,
+    image_name = "zilliqa:" + (tag if tag else gen_tag())
+    run_or_die(config, [config.docker_binary, "build", ".", "--build-arg", f"SCILLA_IMAGE={scilla_image}", "-t", image_name, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
                capture_output = False)
+    return image_name
 
 @click.command("build-zilliqa")
 @click.option("--driver",
@@ -882,19 +917,12 @@ def build_scilla(ctx, driver, tag):
               required=False,
               help="The zilliqa image tag. Will be generated if not given.")
 @click.pass_context
-def build_zilliqa(ctx, driver, scilla_image, tag):
+def build_zilliqa_cmd(ctx, driver, scilla_image, tag):
     """
     Builds a zilliqa image.
     """
     config = get_config(ctx)
-    adjust_config(config, driver)
-
-    build_env = config.driver_env.copy()
-    build_env["DOCKER_BUILDKIT"] = "1"
-
-    tag = "zilliqa:" + (tag if tag else gen_tag())
-    run_or_die(config, [config.docker_binary, "build", ".", "--build-arg", f"SCILLA_IMAGE={scilla_image}", "-t", tag, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
-               capture_output = False)
+    build_zilliqa(config, driver, scilla_image, tag)
 
 def get_pod_names(config, node_type = None):
     cmd =  ["kubectl",
@@ -1114,8 +1142,8 @@ cli.add_command(teardown_podman)
 cli.add_command(start_k8s_cmd)
 cli.add_command(teardown_k8s)
 cli.add_command(setup)
-cli.add_command(build_scilla)
-cli.add_command(build_zilliqa)
+cli.add_command(build_scilla_cmd)
+cli.add_command(build_zilliqa_cmd)
 cli.add_command(up_cmd)
 cli.add_command(down_cmd)
 cli.add_command(show_proxy_cmd)
