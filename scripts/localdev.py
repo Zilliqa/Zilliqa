@@ -367,13 +367,14 @@ def up(config):
 @click.command("isolated")
 @click.option("--enable-evm", is_flag = True, help="Disable the EVM so you can start it yourself - instructions will appear in the log")
 @click.option("--disable-evm", is_flag = True, help="Disable the EVM so you can start it yourself - instructions will appear in the log")
+@click.option("--block-time-ms", help="Block time in ms", default=10000)
 @click.pass_context
-def isolated_cmd(ctx, enable_evm, disable_evm):
+def isolated_cmd(ctx, enable_evm, disable_evm, block_time_ms):
     """
     Run an isolated server
     """
     config = get_config(ctx)
-    isolated(config, enable_evm = enable_evm or not disable_evm)
+    isolated(config, enable_evm = enable_evm or not disable_evm, block_time_ms = block_time_ms)
 
 def xml_get_element(doc, parent, name):
     elems = parent.getElementsByTagName(name)
@@ -398,7 +399,7 @@ def copy_everything_in_dir(src, dest):
         if os.path.isfile(full_src):
             shutil.copy(full_src, os.path.join(dest, f))
 
-def isolated(config, enable_evm = True):
+def isolated(config, enable_evm = True, block_time_ms = None):
     build_native_to_workspace(config)
     #workspace = os.path.join(ZILLIQA_DIR, "_localdev", "isolated")
     config_file = xml.dom.minidom.parse(os.path.join(ZILLIQA_DIR, "constants.xml"))
@@ -453,6 +454,8 @@ def isolated(config, enable_evm = True):
     #old_path = new_env.get("DYLD_LIBRARY_PATH", "")
     #new_env["DYLD_LIBRARY_PATH"] = f"{target_workspace}/lib:{old_path}"
     cmd = [ "./bin/isolatedServer", "-f", "isolated-server-accounts.json", "-u", "999" ]
+    if block_time_ms is not None:
+        cmd.extend(["--time", str(block_time_ms)])
     print(f"Running isolated server in {target_workspace} with ${new_env}.. ")
     print(f"EVM logs will appear in /tmp/evm.log")
     run_or_die(config, cmd, in_dir = target_workspace, env = new_env)
