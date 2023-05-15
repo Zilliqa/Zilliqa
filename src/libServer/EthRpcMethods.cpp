@@ -1101,6 +1101,12 @@ std::string EthRpcMethods::GetEthChainId() {
   return (boost::format("0x%x") % ETH_CHAINID).str();
 }
 
+std::string EthRpcMethods::GetNetVersion() {
+  INC_CALLS(GetInvocationsCounter());
+
+  return (boost::format("%d") % ETH_CHAINID).str();
+}
+
 Json::Value EthRpcMethods::GetEthSyncing() {
   INC_CALLS(GetInvocationsCounter());
 
