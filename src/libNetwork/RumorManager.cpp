@@ -104,7 +104,8 @@ class RumourManagerVariables {
         result.Set(rumoursReceived, {{"counter", "RumoursReceived"}});
         result.Set(rumoursSendMessage, {{"counter", "RumoursSendMessage"}});
         result.Set(rumoursSendMessages, {{"counter", "RumoursSendMessages"}});
-        result.Set(rumourLengthTwoOrMore, {{"counter", "RumoursLengthTwoOrMore"}});
+        result.Set(rumourLengthTwoOrMore,
+                   {{"counter", "RumoursLengthTwoOrMore"}});
         result.Set(rumourTypes[0], {{"counter", "Undefined"}});
         result.Set(rumourTypes[1], {{"counter", "Push"}});
         result.Set(rumourTypes[2], {{"counter", "Pull"}});
@@ -256,13 +257,11 @@ bool RumorManager::Initialize(const VectorOfNode& peers, const Peer& myself,
                                : KEEP_RAWMSG_FROM_LAST_N_ROUNDS *
                                      (ROUND_TIME_IN_MS);  // milliseconds
 
-
   return true;
 }
 
 void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
                                   const PubKey& pubKey) {
-
   std::lock_guard<std::mutex> guard(m_mutex);  // critical section
   auto it = m_pubKeyPeerBiMap.left.find(pubKey);
   if (it != m_pubKeyPeerBiMap.left.end()) {
@@ -532,7 +531,6 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
-
   zil::local::variables.AddRumoursReceived(1);
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
@@ -693,7 +691,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
                                 << " EMPTY_PULL or LAZY_PULL Messages");
 
   zil::local::variables.SetRumoursLength(pullMsgs.second.size());
-  if(pullMsgs.second.size() > 1) {
+  if (pullMsgs.second.size() > 1) {
     zil::local::variables.AddRumoursLengthTwoOrMore(1);
   }
 

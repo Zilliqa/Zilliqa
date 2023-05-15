@@ -639,19 +639,19 @@ const Json::Value JSONConversion::convertTxtoJson(
   // this should only happen when old style API calls (GetTransaction) are made
   // that hit on new eth-style TXs
   if (!code.empty()) {
-    if(!DataConversion::ContainsAllAscii(code) && twr.GetTransaction().IsEth()) {
+    if (!DataConversion::ContainsAllAscii(code) &&
+        twr.GetTransaction().IsEth()) {
       _json["code"] = DataConversion::Uint8VecToHexStrRet(code);
     } else {
-      _json["code"] =
-          DataConversion::CharArrayToString(code);
+      _json["code"] = DataConversion::CharArrayToString(code);
     }
   }
   if (!data.empty()) {
-    if(!DataConversion::ContainsAllAscii(data) && twr.GetTransaction().IsEth()) {
+    if (!DataConversion::ContainsAllAscii(data) &&
+        twr.GetTransaction().IsEth()) {
       _json["data"] = DataConversion::Uint8VecToHexStrRet(data);
     } else {
-    _json["data"] =
-        DataConversion::CharArrayToString(data);
+      _json["data"] = DataConversion::CharArrayToString(data);
     }
   }
 

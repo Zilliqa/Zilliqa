@@ -58,7 +58,8 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS,
+                                          "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
@@ -72,7 +73,7 @@ class DSVariables {
 static DSVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -423,7 +424,6 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
-
   zil::local::variables.SetDSState(int(state));
 
   if (LOOKUP_NODE_MODE) {
@@ -702,7 +702,8 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   if (fetchShardingStruct) {
     // Ask for the sharding structure from lookup
     {
-      std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+      std::unique_lock<std::mutex> cv_lk(
+          m_mediator.m_lookup->m_mutexShardStruct);
       m_mediator.m_lookup->m_shardStructSignal = false;
     }
     m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();

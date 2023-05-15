@@ -93,7 +93,7 @@ class Server : public ServerBase {
     response = this->GetPrevDifficulty();
   }
   inline virtual void GetVersionI(const Json::Value& request,
-                                    Json::Value& response) {
+                                  Json::Value& response) {
     (void)request;
     response = this->GetVersion();
   }

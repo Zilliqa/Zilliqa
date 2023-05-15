@@ -37,12 +37,13 @@ Z_I64METRIC& GetCallsCounter() {
 }
 
 const std::vector<std::string>& GetEvmDaemonArgs() {
-  static const std::vector<std::string> args = {"--socket",
-    EVM_SERVER_SOCKET_PATH,
-    "--zil-scaling-factor",
-    std::to_string(EVM_ZIL_SCALING_FACTOR),
-    "--log4rs",
-    EVM_LOG_CONFIG};
+  static const std::vector<std::string> args = {
+      "--socket",
+      EVM_SERVER_SOCKET_PATH,
+      "--zil-scaling-factor",
+      std::to_string(EVM_ZIL_SCALING_FACTOR),
+      "--log4rs",
+      EVM_LOG_CONFIG};
   return args;
 }
 
@@ -139,15 +140,17 @@ void EvmClient::Init() {
   if (LAUNCH_EVM_DAEMON) {
     CleanupPreviousInstances();
   } else {
-    // There is a lot of junk on stackoverflow about how to do this, but for us, this will do..
+    // There is a lot of junk on stackoverflow about how to do this, but for us,
+    // this will do..
     const std::vector<std::string>& args(GetEvmDaemonArgs());
     std::ostringstream cmdLine;
     cmdLine << EVM_SERVER_BINARY;
-    for (auto &arg : args) {
+    for (auto& arg : args) {
       cmdLine << " " << arg;
     }
     LOG_GENERAL(INFO, "Not launching evm due to config flag");
-    LOG_GENERAL(INFO, "To launch it yourself, from " << std::filesystem::current_path() << " :");
+    LOG_GENERAL(INFO, "To launch it yourself, from "
+                          << std::filesystem::current_path() << " :");
     LOG_GENERAL(INFO, cmdLine.str());
   }
 }

@@ -439,8 +439,10 @@ const unsigned int CONNECTION_ALL_TIMEOUT{
     ReadConstantNumeric("CONNECTION_ALL_TIMEOUT", "node.jsonrpc.")};
 const unsigned int CONNECTION_CALLBACK_TIMEOUT{
     ReadConstantNumeric("CONNECTION_CALLBACK_TIMEOUT", "node.jsonrpc.")};
-const size_t REQUEST_PROCESSING_THREADS{ReadConstantNumeric("REQUEST_PROCESSING_THREADS", "node.jsonrpc.", 64)};
-const size_t REQUEST_QUEUE_SIZE{ReadConstantNumeric("REQUEST_QUEUE_SIZE", "node.jsonrpc.", 65536)};
+const size_t REQUEST_PROCESSING_THREADS{
+    ReadConstantNumeric("REQUEST_PROCESSING_THREADS", "node.jsonrpc.", 64)};
+const size_t REQUEST_QUEUE_SIZE{
+    ReadConstantNumeric("REQUEST_QUEUE_SIZE", "node.jsonrpc.", 65536)};
 
 // Network composition constants
 const unsigned int COMM_SIZE{

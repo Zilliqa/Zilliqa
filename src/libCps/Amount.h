@@ -31,9 +31,7 @@ class Amount final {
   constexpr static Amount fromQa(const uint256_t& qa) {
     return Amount{qa * EVM_ZIL_SCALING_FACTOR};
   }
-  constexpr uint256_t toWei() const {
-    return m_value;
-  }
+  constexpr uint256_t toWei() const { return m_value; }
   constexpr uint128_t toQa() const {
     return uint128_t{m_value / EVM_ZIL_SCALING_FACTOR};
   }

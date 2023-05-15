@@ -89,7 +89,7 @@ class LookupVariables {
 static LookupVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 namespace {
 
@@ -214,9 +214,8 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
     GetTxBlockFromSeedNodes(txBlockNum, 0);
     std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
     if (!cv_setRejoinRecovery.wait_for(
-            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL), [this]() {
-              return m_rejoinRecoverySignal.load();
-            })) {
+            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL),
+            [this]() { return m_rejoinRecoverySignal.load(); })) {
       if (m_rejoinInProgress) {
         break;
       }
@@ -935,8 +934,8 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
     SendMessageToRandomL2lDataProvider(getmessage);
     unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
     if (!cv_vcFinalBlockProcessed.wait_for(
-                                           lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
-                                           [this]() { return m_vcFinalBlockProcessed; }) &&
+            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
+            [this]() { return m_vcFinalBlockProcessed; }) &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetVCFinalBlockFromL2lDataProvider Timeout... may be "
@@ -3094,8 +3093,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
       {
-          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-          m_rejoinRecoverySignal = true;
+        std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+        m_rejoinRecoverySignal = true;
       }
       cv_setRejoinRecovery.notify_all();
       return false;
@@ -3296,8 +3295,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         ComposeAndSendGetCosigsRewardsFromSeed(txblk_num);
         std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
         if (!cv_setCosigRewardsFromSeed.wait_for(
-                cv_lk,
-                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
+                cv_lk, std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
                 [this]() { return m_setCosigRewardsFromSeedSignal; })) {
           LOG_GENERAL(WARNING,
                       "[Retry: " << retry

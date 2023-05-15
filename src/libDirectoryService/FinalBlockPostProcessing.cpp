@@ -54,8 +54,9 @@ class FinalBlockPostProcessingVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "finalblockpostproc.gauge",
-                                          "Final block post processing state", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "finalblockpostproc.gauge",
+          "Final block post processing state", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(mbInFinal, {{"counter", "MbInFinal"}});
@@ -677,7 +678,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mediator.m_node->m_mutexCVMicroBlockMissingTxn);
-      // TODO: cv fix      
+      // TODO: cv fix
       if (m_mediator.m_node->cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {

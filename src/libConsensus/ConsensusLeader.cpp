@@ -26,8 +26,8 @@
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
-#include "libUtils/IPConverter.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libUtils/RandomGenerator.h"
 
@@ -57,8 +57,9 @@ class LeaderVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.leader.other.gauge",
-                                          "Consensus leader state", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "consensus.leader.other.gauge",
+          "Consensus leader state", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(consensusState, {{"counter", "ConsensusState"}});
@@ -473,7 +474,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
       TracedIds::GetInstance().GetConsensusSpanIds());
   auto attrBase = boost::to_lower_copy(std::string{spanName});
   span.SetAttribute(attrBase + ".backup_id", static_cast<uint64_t>(backupID));
-  span.SetAttribute(attrBase + ".from_ip", IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
+  span.SetAttribute(attrBase + ".from_ip",
+                    IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
 
   // 33-byte commit
   m_commitPoints.emplace_back(commitPoints);
@@ -538,7 +540,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
   span.SetAttribute("commit_failure.backup_id",
                     static_cast<uint64_t>(backupID));
   span.SetAttribute("commit_failure.block_number", m_blockNumber);
-  span.SetAttribute("commit_failure.from_ip", IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
+  span.SetAttribute("commit_failure.from_ip",
+                    IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
 
   if (m_commitFailureMap.find(backupID) != m_commitFailureMap.end()) {
     LOG_GENERAL(WARNING, "Backup already sent commit failure message");
@@ -666,7 +669,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       TracedIds::GetInstance().GetConsensusSpanIds());
   auto attrBase = boost::to_lower_copy(std::string{spanName});
   span.SetAttribute(attrBase + ".backup_id", static_cast<uint64_t>(backupID));
-  span.SetAttribute(attrBase + ".from_ip", IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
+  span.SetAttribute(attrBase + ".from_ip",
+                    IPConverter::ToStrFromNumericalIP(from.m_ipAddress));
 
   // Check the IP belongs to the backup with that backupID (check for valid
   // backupID range is already done in Messenger)
@@ -992,8 +996,9 @@ ConsensusLeader::ConsensusLeader(
                        vector<CommitPoint>(m_numOfSubsets, CommitPoint())) {
   LOG_MARKER();
 
-  m_gaugeNumForConsensus = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.leader.gauge",
-                                          "Consensus leader", "calls", true);
+  m_gaugeNumForConsensus =
+      std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.leader.gauge",
+                                   "Consensus leader", "calls", true);
 
   m_gaugeNumForConsensus->SetCallback([this](auto&& result) {
     result.Set(int(m_state), {{"counter", "ConsensusLeaderState"}});

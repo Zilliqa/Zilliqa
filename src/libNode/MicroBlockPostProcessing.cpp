@@ -79,8 +79,10 @@ class MicroBlockPostProcessingVariables {
       temp->SetCallback([this](auto&& result) {
         result.Set(consensusErrorCode, {{"counter", "ConsensusErrorCode"}});
         result.Set(errorsMissingTx, {{"counter", "ErrorsMissingTx"}});
-        result.Set(microblockConsensusMessages, {{"counter", "MicroblockConsensusMessages"}});
-        result.Set(microblockConsensusFailedBadly, {{"counter", "MicroblockConsensusFailedBadly"}});
+        result.Set(microblockConsensusMessages,
+                   {{"counter", "MicroblockConsensusMessages"}});
+        result.Set(microblockConsensusFailedBadly,
+                   {{"counter", "MicroblockConsensusFailedBadly"}});
       });
     }
   }
@@ -152,8 +154,9 @@ bool Node::ProcessMicroBlockConsensus(
     AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                    from, senderPubKey);
 
-    LOG_GENERAL(WARNING, m_mediator.m_currentEpochNum <<
-              "Process micro block arrived early, saved to buffer");
+    LOG_GENERAL(WARNING,
+                m_mediator.m_currentEpochNum
+                    << "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
       LOG_GENERAL(WARNING, "Consensus ID in message ("
@@ -392,7 +395,8 @@ bool Node::ProcessMicroBlockConsensusCore(
                   << " error message: "
                   << (m_consensusObject->GetConsensusErrorMsg()));
 
-    zil::local::variables.SetConsensusErrorCode(m_consensusObject->GetConsensusErrorCode());
+    zil::local::variables.SetConsensusErrorCode(
+        m_consensusObject->GetConsensusErrorCode());
 
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::MISSING_TXN) {

@@ -53,8 +53,9 @@ class BackupVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.backup.gauge",
-                                          "Consensus bacup state", "calls", true);
+      temp =
+          std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.backup.gauge",
+                                       "Consensus backup state", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(consensusState, {{"counter", "ConsensusState"}});
@@ -148,7 +149,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
         // Unicast to the leader
         // =====================
-        LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce)");
+        LOG_GENERAL(WARNING,
+                    "Uni-casting response to leader (message announce)");
         P2PComm::GetInstance().SendMessage(
             GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
@@ -475,7 +477,9 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
       // Unicast to the leader
       // =====================
-      LOG_GENERAL(WARNING, "Uni-casting response to leader (message collective sig core)");
+      LOG_GENERAL(
+          WARNING,
+          "Uni-casting response to leader (message collective sig core)");
       P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                          finalcommit);
     }

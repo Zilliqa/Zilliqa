@@ -48,7 +48,6 @@ class ThreadPoolVariables {
     jobs = job;
   }
 
-
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "threadpool.gauge",

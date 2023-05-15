@@ -231,7 +231,8 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   span.SetAttribute("Estimate", isEstimate);
   span.SetAttribute("EthCall", isEthCall);
   span.SetAttribute("Failure", isFailure);
-  LOG_GENERAL(INFO, "Estimate: " << isEstimate << ", EthCall: " << isEthCall << ", Failure: " << isFailure);
+  LOG_GENERAL(INFO, "Estimate: " << isEstimate << ", EthCall: " << isEthCall
+                                 << ", Failure: " << isFailure);
 
   const auto usedGasCore = givenGasCore - gasRemainingCore;
 
@@ -244,7 +245,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     if (isFailure) {
       LOG_GENERAL(INFO, "Call failed");
       if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
-        auto const &result = std::get<evm::EvmResult>(runResult.result);
+        auto const& result = std::get<evm::EvmResult>(runResult.result);
         LOG_GENERAL(INFO, EvmUtils::ExitReasonString(result.exit_reason()));
       } else {
         LOG_GENERAL(WARNING, "EVM call returned a Scilla result");
@@ -272,8 +273,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
       // Convert here because we deducted in eth units.
       if (!SafeMath<uint128_t>::mul(
               GasConv::GasUnitsFromCoreToEth(usedGasCore),
-              CpsExecuteValidator::GetGasPriceWei(clientContext),
-              gasCost)) {
+              CpsExecuteValidator::GetGasPriceWei(clientContext), gasCost)) {
         return {TxnStatus::ERROR, false, {}};
       }
       const auto amount = Amount::fromWei(gasCost);
@@ -344,9 +344,8 @@ void CpsExecutor::TakeGasFromAccount(
     // of core units.
     // - rrw 2023-04-22
     uint256_t gasLimitRounded =
-        GasConv::GasUnitsFromCoreToEth(
-            GasConv::GasUnitsFromEthToCore(
-                evmCtx.GetTransaction().GetGasLimitEth()));
+        GasConv::GasUnitsFromCoreToEth(GasConv::GasUnitsFromEthToCore(
+            evmCtx.GetTransaction().GetGasLimitEth()));
     if (!SafeMath<uint256_t>::mul(gasLimitRounded,
                                   CpsExecuteValidator::GetGasPriceWei(evmCtx),
                                   gasDepositWei)) {
@@ -367,7 +366,9 @@ void CpsExecutor::TakeGasFromAccount(
     amount = Amount::fromQa(gasDepositQa);
   }
 
-  LOG_GENERAL(INFO, "Take " << amount.toWei().str() << " Wei (" << amount.toQa().str() << " Qa) from " << address << " for gas deposit");
+  LOG_GENERAL(INFO, "Take " << amount.toWei().str() << " Wei ("
+                            << amount.toQa().str() << " Qa) from " << address
+                            << " for gas deposit");
   // This is in Wei!
   mAccountStore.DecreaseBalanceAtomic(address, amount);
 }
