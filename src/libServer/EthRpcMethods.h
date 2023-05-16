@@ -282,7 +282,7 @@ class EthRpcMethods {
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->GetEthChainId();
+    response = this->GetNetVersion();
   }
 
   /**
@@ -617,6 +617,7 @@ class EthRpcMethods {
   std::string GetNetPeerCount();
   std::string GetProtocolVersion();
   std::string GetEthChainId();
+  std::string GetNetVersion();
   Json::Value GetEthSyncing();
   Json::Value GetEthTransactionByHash(const std::string& hash);
   Json::Value GetEmptyResponse();
