@@ -418,6 +418,7 @@ def localstack_up(config):
 
     bucket_name = 'zilliqa-devnet'
     run_or_die(config, ['kubectl', 'exec', '-it', localstack_pod_name, '--', 'awslocal', 's3', 'mb', f's3://{bucket_name}'])
+    run_or_die(config, ['kubectl', 'exec', '-it', localstack_pod_name, '--', 'awslocal', 's3', 'mb', f's3://tempo'])
 
 def localstack_down(config):
     """ Let helm undeploy localstack """
@@ -436,6 +437,11 @@ datasources:
       url: http://prometheus-server.default.svc.cluster.local
       access: proxy
       isDefault: true
+    - name: Tempo
+      type: tempo
+      url: http://tempo.default.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
 ingress:
   enabled: true
   hosts:
@@ -511,6 +517,41 @@ def prometheus_down(config):
     """ Let helm undeploy prometheus """
     run_or_die(config, ["helm", "uninstall", "prometheus"])
 
+def tempo_up(config, testnet_name):
+    """ Let helm deploy tempo """
+    conf = """
+tempo:
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: tempo
+        endpoint: localstack.default.svc.cluster.local:4566
+        access_key: test
+        secret_key: test
+        insecure: true
+  receivers:
+    jaeger:
+    opencensus:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+"""
+
+    print(conf)
+    with tempfile.NamedTemporaryFile() as tmpfile:
+        tmpfile.write(conf.encode('utf-8'))
+        tmpfile.flush()
+        run_or_die(config, ["helm", "upgrade", "--install", "tempo", "grafana/tempo", "-f", tmpfile.name])
+        wait_for_helm_pod(config, "tempo-")
+
+def tempo_down(config):
+    """ Let helm undeploy tempo """
+    run_or_die(config, ["helm", "uninstall", "tempo"])
+
 @click.command("up")
 @click.pass_context
 @click.option("--driver",
@@ -551,6 +592,7 @@ def up(config, zilliqa_image, testnet_name):
     grafana_up(config, testnet_name)
     start_testnet(config, testnet_name)
     prometheus_up(config, testnet_name)
+    tempo_up(config, testnet_name)
     #  start_proxy(config, testnet_name)
     #  show_proxy(config, testnet_name)
     restart_ingress(config);
@@ -710,6 +752,7 @@ def down_cmd(ctx):
 def down(config):
     stop_testnet(config, config.testnet_name)
     stop_proxy(config, config.testnet_name)
+    tempo_down(config)
     prometheus_down(config)
     grafana_down(config)
     localstack_down(config)
@@ -754,8 +797,13 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name):
     constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
     config_file = xml.dom.minidom.parse(constants_xml_target_path)
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
-    #  xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
+    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
+    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
+    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
+    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
+    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
+    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
+    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
     output_config = config_file.toprettyxml(newl='')
     with open(constants_xml_target_path, 'w') as f:
         f.write(output_config)
