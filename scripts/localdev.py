@@ -35,6 +35,7 @@ import time
 import string
 import click
 import datetime
+import ipaddress
 import xml.dom.minidom
 
 ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -426,6 +427,15 @@ def grafana_up(config, testnet_name):
     """ Let helm deploy grafana """
 
     conf = f"""
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server.default.svc.cluster.local
+      access: proxy
+      isDefault: true
 ingress:
   enabled: true
   hosts:
@@ -439,7 +449,6 @@ adminPassword: admin
             """
 
     with tempfile.NamedTemporaryFile() as tmpfile:
-        print(tmpfile.name)
         tmpfile.write(conf.encode('utf-8'))
         tmpfile.flush()
         run_or_die(config, ["helm", "upgrade", "--install", "grafana", "grafana/grafana", "-f", tmpfile.name])
@@ -449,6 +458,58 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     run_or_die(config, ["helm", "uninstall", "grafana"])
 
+def prometheus_up(config, testnet_name, count = 23):
+    """ Let helm deploy prometheus """
+    ips = []
+    while True:
+        pods = subprocess.Popen([ "kubectl", "get", "pod", "-o", "json" ], env=config.driver_env, stdout=subprocess.PIPE)
+        output = sanitise_output(
+            subprocess.check_output([ "jq", "-r", f".items[] | select(.metadata.name | test(\"{testnet_name}-\")) | select(.status.phase == \"Running\") | .metadata.name, .status.podIP" ], env=config.driver_env, stdin=pods.stdout)).strip(' ').split('\n')
+        pods.wait()
+
+        ips = []
+        # Iterate the output until IPs have been assigned to all the testnet pods
+        for pod_name, pod_ip in zip(output[::2], output[1::2]):
+            if pod_name == 'null':
+                break
+
+            # Skip the origin/explorer/multiplier pods so we can count the IPs correctly
+            if pod_name.find('-origin-') != -1 or pod_name.find('-explorer-') != -1 or pod_name.find('-multiplier-') != -1:
+                continue
+
+            # Parse the IP to make sure it's valid
+            try:
+                ipaddress.IPv4Address(pod_ip)
+            except:
+                break
+
+            ips.append(pod_ip)
+
+        if len(ips) != count:
+            print(f"Waiting for all pods to be assigned an IP...")
+            time.sleep(2)
+        else:
+            break
+
+    conf = """
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+        - targets:
+""" + '\n'.join(['            - ' + ip + ':8090' for ip in ips])
+
+    print(conf)
+    with tempfile.NamedTemporaryFile() as tmpfile:
+        tmpfile.write(conf.encode('utf-8'))
+        tmpfile.flush()
+        run_or_die(config, ["helm", "upgrade", "--install", "prometheus", "prometheus-community/prometheus", "-f", tmpfile.name])
+        wait_for_helm_pod(config, "prometheus-")
+
+def prometheus_down(config):
+    """ Let helm undeploy prometheus """
+    run_or_die(config, ["helm", "uninstall", "prometheus"])
 
 @click.command("up")
 @click.pass_context
@@ -489,8 +550,9 @@ def up(config, zilliqa_image, testnet_name):
     localstack_up(config)
     grafana_up(config, testnet_name)
     start_testnet(config, testnet_name)
-    start_proxy(config, testnet_name)
-    show_proxy(config, testnet_name)
+    prometheus_up(config, testnet_name)
+    #  start_proxy(config, testnet_name)
+    #  show_proxy(config, testnet_name)
     restart_ingress(config);
     print("Ingress restarted; you should be ready to go...");
 
@@ -648,6 +710,7 @@ def down_cmd(ctx):
 def down(config):
     stop_testnet(config, config.testnet_name)
     stop_proxy(config, config.testnet_name)
+    prometheus_down(config)
     grafana_down(config)
     localstack_down(config)
     wait_for_termination(config)
@@ -665,7 +728,6 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name):
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube",
-        #  "--constants-from-file", os.path.join(ZILLIQA_DIR, "constants_local.xml"),
         "--image", zilliqa_image,
         "-c", "master",
         "-n", "20",
@@ -687,6 +749,16 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name):
             "--recover-key-files", config.key_file,
         ])
     run_or_die(config, cmd, in_dir = TESTNET_DIR)
+    run_or_die(config, ["cp", os.path.join(ZILLIQA_DIR, "constants_local.xml"), f"{testnet_name}/configmap/constants.xml"] , in_dir = TESTNET_DIR)
+
+    constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
+    config_file = xml.dom.minidom.parse(constants_xml_target_path)
+    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
+    #  xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
+    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
+    output_config = config_file.toprettyxml(newl='')
+    with open(constants_xml_target_path, 'w') as f:
+        f.write(output_config)
 
 def kill_mitmweb(config, pidfile_name):
     pidfile = Pidfile(config, pidfile_name)
