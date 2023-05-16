@@ -40,6 +40,7 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/AddressChecksum.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
@@ -384,6 +385,56 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, nullptr),
       &EthRpcMethods::GetDSLeaderTxnPoolI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("erigon_getHeaderByNumber", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetHeaderByNumberI
+  );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getApiLevel", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetOtterscanApiLevelI
+  );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_BOOLEAN,
+                       "param01", jsonrpc::JSON_STRING,
+                       "param02", jsonrpc::JSON_STRING,
+                       NULL),
+    &EthRpcMethods::HasCodeI
+  );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetBlockDetailsI
+  );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getBlockTransactions", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_INTEGER,
+                       "param02", jsonrpc::JSON_INTEGER,
+                       "param03", jsonrpc::JSON_INTEGER,
+                       NULL),
+    &EthRpcMethods::GetBlockTransactionsI
+  );
+
+  m_lookupServer->bindAndAddExternalMethod(
+    jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
+                       jsonrpc::JSON_OBJECT,
+                       "param01", jsonrpc::JSON_STRING,
+                       NULL),
+    &EthRpcMethods::GetContractCreatorI
+  );
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1974,4 +2025,108 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
+}
+
+Json::Value EthRpcMethods::GetHeaderByNumber(const uint64_t blockNumber) {
+  // Erigon headers are a subset of a full block - So just return the full block.
+  return EthRpcMethods::GetEthBlockByNumber(std::to_string(blockNumber), false);
+}
+
+bool EthRpcMethods::HasCode(const std::string& address, const std::string& /*block*/) {
+  // TODO: Respect block parameter - We can probably do this by finding the contract creation transaction and comparing
+  // the block numbers.
+  Address addr{address, Address::FromHex};
+  unique_lock<shared_timed_mutex> lock(
+      AccountStore::GetInstance().GetPrimaryMutex());
+  AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+    return AccountStore::GetInstance().GetPrimaryWriteAccess();
+  });
+
+  const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
+  if (account) {
+    return !account->GetCode().empty();
+  } else {
+    return false;
+  }
+}
+
+Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
+  Json::Value response;
+
+  auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
+  bool isVacuous = CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
+  uint128_t rewards = (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR : 0);
+  uint128_t fees = (isVacuous ? 0 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
+  auto jsonBlock = GetEthBlockCommon(txBlock, false);
+
+  jsonBlock.removeMember("transactions");
+  jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
+  jsonBlock["logsBloom"] = Json::nullValue;
+  response["block"] = jsonBlock;
+
+  response["issuance"]["blockReward"] = rewards.str();
+  response["issuance"]["uncleReward"] = 0;
+  response["issuance"]["issuance"] = rewards.str();
+
+  response["totalFees"] = fees.str();
+  return response;
+}
+
+Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, const uint32_t pageNumber, const uint32_t pageSize) {
+  Json::Value response;
+
+  auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
+  auto jsonBlock = GetEthBlockCommon(txBlock, true);
+
+  auto transactions = jsonBlock["transactions"];
+
+  auto start = pageNumber * pageSize;
+  auto end = std::min(transactions.size(), (pageNumber + 1) * pageSize);
+
+  std::vector<Json::Value> receipts;
+  for (Json::Value::ArrayIndex i = start; i < end; i++) {
+    auto transaction = transactions[i];
+    // TODO: Truncate input to 4 bytes (plus 0x) - Work out why the 0x is optional
+
+    auto receipt = EthRpcMethods::GetEthTransactionReceipt(transaction["hash"].asString());
+    receipt["logs"] = Json::nullValue;
+    receipt["logsBloom"] = Json::nullValue;
+    receipts.push_back(receipt);
+  }
+
+  response["fullblock"] = jsonBlock;
+
+  for (auto r : receipts) {
+    response["receipts"].append(r);
+  }
+
+  return response;
+}
+
+Json::Value EthRpcMethods::GetContractCreator(const std::string& address) {
+  Address addr{address, Address::FromHex};
+
+  dev::h256 creationTxn = BlockStorage::GetBlockStorage().GetContractCreator(addr);
+
+  if (creationTxn == dev::h256()) {
+    return Json::nullValue;
+  }
+
+  TxBodySharedPtr txnBodyPtr;
+  bool isPresent =
+    BlockStorage::GetBlockStorage().GetTxBody(creationTxn, txnBodyPtr);
+  if (!isPresent) {
+    LOG_GENERAL(WARNING, "Contract creator transaction doesn't exist");
+    return Json::nullValue;
+  }
+  const TransactionWithReceipt& txnBody = *txnBodyPtr;
+
+  Json::Value response = Json::objectValue;
+
+  response["hash"] = "0x" + creationTxn.hex();
+  // FIXME: This is wrong for deployer contracts.
+  // "For deployer contracts, i.e., the contract is created as a result of a method call, this corresponds to the address of the contract who created it."
+  response["creator"] = "0x" + txnBody.GetTransaction().GetSenderAddr().hex();
+
+  return response;
 }
