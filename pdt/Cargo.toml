@@ -1,0 +1,25 @@
+[package]
+name = "pdt"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pdtlib"
+path = "src/lib.rs"
+test = true
+
+[[bin]]
+name = "pdt"
+path = "src/bin/pdt.rs"
+test = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aws-config = "0.55.2"
+aws-sdk-s3 = "0.27.0"
+aws-sig-auth = "0.55.2"
+aws-smithy-http = "0.55.2"
+eyre = "0.6.8"
+tokio = { version = "1.28.1", features = [ "macros", "rt-multi-thread" ] }
+
