@@ -9,6 +9,7 @@ use crate::precompiles::scilla_common::{
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
 use ethabi::{decode, encode, Address, Bytes, Uint};
+use log::info;
 use serde_json::Value;
 
 // TODO: revisit these consts
@@ -29,45 +30,58 @@ pub(crate) fn scilla_read(
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let gas_needed = match required_gas(input) {
         Ok(i) => i,
-        Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
+        Err(err) => {
+            info!("Not enough gas given for scilla_read");
+            return Err(PrecompileFailure::Error { exit_status: err })
+        },
     };
 
     if let Some(gas_limit) = gas_limit {
         if gas_limit < gas_needed {
+            info!("Not enough gas given (2) for scilla_read");
             return Err(PrecompileFailure::Error {
                 exit_status: ExitError::OutOfGas,
             });
         }
     }
-
+    info!("Trying to get contract addr and name");
     let (code_address, passed_field_name) = get_contract_addr_and_name(input)?;
 
+    info!("Fetching code from backend for given addr: {:}", code_address);
     let code = backend.code_as_json(code_address);
     if code.is_empty() {
+        info!("Got empty code for given address: {:}", code_address);
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("There no code under given address")),
         });
     }
     let Ok(code) = serde_json::from_slice::<Value>(&code) else {
+        info!("Unable to parse code json: {:#}", hex::encode(&code));
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Unable to parse scilla contract code")),
         });
     };
 
+    info!("Querying fields");
     let fields = code["contract_info"]["fields"].to_owned();
+    info!("Querying field types");
     let field_type = get_field_type_by_name(&passed_field_name, &fields)?;
+    info!("Decoding field type of interest");
     let scilla_field = decode_indices(input, &field_type)?;
 
+    info!("Getting substate for indices: {:#}", &scilla_field.indices.join(","));
     let substate_json =
         backend.substate_as_json(code_address, &passed_field_name, &scilla_field.indices);
 
     let Ok(substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
+        info!("Unable to parse json substate");
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Unable to parse substate json")),
         });
     };
 
     let Ok(result) = extract_substate_from_json(&substate_json, &passed_field_name, &scilla_field) else {
+        info!("Unable to extract substate from json");
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Unable to extract return value")),
         });

@@ -281,10 +281,13 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
 
   string query = base64_decode(request["query"].asString());
   if (!fetchExternalStateValue(address.hex(), query, code, found, type)) {
+    LOG_GENERAL(WARNING,
+                "Unable to query external state with given query: " << query);
     return;
   }
   std::string rootVersion;
   if (!ScillaUtils::PrepareRootPathWVersion(0, rootVersion)) {
+    LOG_GENERAL(WARNING, "Can't prepare scilla root path with version");
     return;
   }
   constexpr auto GAS_LIMIT = std::numeric_limits<uint32_t>::max();
@@ -294,8 +297,11 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
   if (!ScillaClient::GetInstance().CallChecker(
           0, ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT),
           interprinterPrint)) {
+    LOG_GENERAL(WARNING,
+                "Call checker failed with print: " << interprinterPrint);
     return;
   }
+  LOG_GENERAL(WARNING, "Got json with size: " << interprinterPrint.size());
   JSONUtils::GetInstance().convertStrtoJson(interprinterPrint, response);
 }
 
