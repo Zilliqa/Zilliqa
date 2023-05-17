@@ -1,7 +1,8 @@
 /** Download historical data
  */
 use crate::context::{Context, PERSISTENCE_SNAPSHOT_NAME};
-use eyre::Result;
+use crate::download;
+use eyre::{eyre, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -37,16 +38,55 @@ impl<'a> Historical<'a> {
         }
         println!("object key {:?}", object_key);
         let entry = self.ctx.list_object(&object_key).await?;
-        // Now we have a range we want.
+        let mut main_file = dest_dir.clone();
+        let mut meta_file = dest_dir.clone();
+        main_file.push(file_name);
+        meta_file.push(format!("{}.meta.json", self.ctx.network_name));
+        let mut down = download::Downloadable::new(
+            &self.ctx.bucket_name.to_string(),
+            &object_key,
+            main_file.as_path(),
+            meta_file.as_path(),
+            entry.size,
+            entry.e_tag,
+            download::DEFAULT_DOWNLOAD_BYTES,
+        )?;
+        let segs = down.get_outstanding_segments();
+        println!("There are {} segments to download .. ", segs.len());
+        let mut seg_ptr = 0;
+        while seg_ptr < segs.len() {
+            let mut handles = Vec::new();
+            let mut segments: Vec<i64> = Vec::new();
+            for _task in 0..4 {
+                if seg_ptr < segs.len() {
+                    let my_clone = Box::new(down.clone());
+                    let to_retrieve = segs[seg_ptr];
+                    let ctx = Context::duplicate(&self.ctx).await?;
+                    println!("Fetching {}", segs[seg_ptr]);
+                    handles.push(tokio::spawn(async move {
+                        match my_clone.fetch_segment(&ctx, to_retrieve).await {
+                            Ok(b) => Ok(b),
+                            Err(_) => Err(eyre!("Cannot fetch")),
+                        }
+                    }));
+                    segments.push(segs[seg_ptr]);
+                    seg_ptr += 1;
+                }
+            }
+            let results = futures::future::join_all(handles).await;
+            for res in results {
+                match res? {
+                    Err(x) => return Err(x),
+                    Ok(false) => return Err(eyre!("File has changed")),
+                    _ => (),
+                }
+            }
 
-        // Find the size of the object and its etag
-        //let attrs = self.ctx.get_attributes(&object_key).await?;
-        //println!(
-        //"Length {:?} , etag {:?}",
-        //attrs.e_tag(),
-        //attrs.object_size()
-        //);
-        // What segments already exist?
+            segments.iter().try_for_each(|x| down.signal_filled(*x));
+            down.write_status();
+        }
+        println!("All done");
+
         Ok(())
     }
 }

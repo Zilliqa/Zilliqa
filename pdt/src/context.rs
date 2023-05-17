@@ -1,6 +1,7 @@
-use aws_config::meta::region::RegionProviderChain;
 /** Context for downloads
  */
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_s3::operation::get_object::GetObjectOutput;
 use aws_sdk_s3::operation::get_object_attributes::GetObjectAttributesOutput;
 use aws_sdk_s3::{config::Region, Client};
 use eyre::{eyre, Result};
@@ -29,6 +30,9 @@ pub struct Entry {
 }
 
 impl Context {
+    pub async fn duplicate(old: &Context) -> Result<Self> {
+        Context::new(&old.bucket_name, &old.network_name, &old.target_path).await
+    }
     pub async fn new(bucket_name: &str, network_name: &str, target_path: &str) -> Result<Self> {
         let region_provider = RegionProviderChain::first_try(Region::new("us-west-2")); // FIXME
         let config = aws_config::from_env().region(region_provider).load().await;
@@ -85,6 +89,26 @@ impl Context {
             .get_object_attributes()
             .bucket(self.bucket_name.clone())
             .key(object_key)
+            .customize()
+            .await?
+            .map_operation(make_unsigned)?
+            .send()
+            .await?;
+        Ok(res)
+    }
+
+    pub async fn get_byte_range(
+        &self,
+        object_key: &str,
+        offset: i64,
+        nr_bytes: i64,
+    ) -> Result<GetObjectOutput> {
+        let res = self
+            .client
+            .get_object()
+            .bucket(self.bucket_name.clone())
+            .key(object_key)
+            .range(format!("bytes={}-{}", offset, offset + nr_bytes - 1))
             .customize()
             .await?
             .map_operation(make_unsigned)?

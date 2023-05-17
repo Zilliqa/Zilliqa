@@ -21,5 +21,9 @@ aws-sdk-s3 = "0.27.0"
 aws-sig-auth = "0.55.2"
 aws-smithy-http = "0.55.2"
 eyre = "0.6.8"
+futures = "0.3.28"
+serde = { version = "1.0.163", features = [ "derive" ]}
+serde_json = { version = "1.0.96" }
 tokio = { version = "1.28.1", features = [ "macros", "rt-multi-thread" ] }
+tokio-stream = "0.1.14"
 
