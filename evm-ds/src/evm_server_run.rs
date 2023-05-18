@@ -5,10 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::CallContext;
 use evm::executor::stack::MemoryStackSubstate;
-use evm::{
-    backend::Apply,
-    executor::stack::{MemoryStackState, StackSubstateMetadata},
-};
+use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}, ExitSucceed};
 use evm::{Machine, Runtime};
 
 use log::{debug, error, info};
@@ -49,10 +46,10 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        debug!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}",
+        info!(
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}, data: {:0X?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate, enable_cps, tx_trace);
+            backend.extras, estimate, enable_cps, tx_trace, data);
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -157,7 +154,12 @@ pub async fn run_evm_impl(
                 listener.finished_call();
 
                 match exit_reason {
-                    evm::ExitReason::Succeed(_) => {}
+                    evm::ExitReason::Succeed(exit_succeeded) => {
+                        if exit_succeeded == ExitSucceed::Suicided {
+                            eprintln!("huehue");
+                            eprintln!("apparent value: {:?}", &context.apparent_value)
+                        }
+                    }
                     _ => {
                         debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
                                runtime.machine().position(),
@@ -165,17 +167,28 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
+
+                eprintln!("Normal exit: {:?}", exit_reason);
+
                 build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas, is_static, continuations)
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.state().substate());
+
+                eprintln!("call interrupt exit: ");
                 build_call_result(executor, &runtime, &backend, i, &listener, remaining_gas, is_static, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
+
+                eprintln!("create interrupt exit: ");
                 build_create_result(&runtime, i, &listener, remaining_gas, cont_id)
             }
         };
+
+        // Log the result if it is a suicide
+        //if result.get_exit_reason()
+
         info!(
             "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
             evm_context, backend.origin, address, gas_limit, apparent_value,
@@ -322,6 +335,11 @@ fn build_call_result(
     context.set_apparent_value(interrupt.context.apparent_value.into());
     context.set_caller(interrupt.context.caller.into());
     context.set_destination(interrupt.context.address.into());
+
+    eprintln!("apparent value: {:?}", interrupt.context.apparent_value);
+    eprintln!("caller: {:?}", interrupt.context.caller);
+    eprintln!("destination: {:?}", interrupt.context.address);
+
     trap_data_call.set_context(context);
 
     if let Some(tran) = interrupt.transfer {

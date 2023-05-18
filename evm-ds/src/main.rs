@@ -27,6 +27,7 @@ use evm_server::EvmServer;
 
 use log::info;
 use std::fmt::Debug;
+use evm::Opcode;
 
 use jsonrpc_core::IoHandler;
 use jsonrpc_server_utils::codecs;
@@ -114,6 +115,7 @@ struct StructLog {
 struct LoggingEventListener {
     call_tracer: Vec<CallContext>,
     raw_tracer: StructLogTopLevel,
+    internal_tracer: Vec<InternalOperationOtter>,
     enabled: bool,
 }
 
@@ -126,11 +128,27 @@ struct StructLogTopLevel {
     pub struct_logs: Vec<StructLog>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct InternalOperationOtter {
+    #[serde(rename = "type")]
+    pub call_type: u64,
+    pub from: String,
+    pub to: String,
+    pub value: String,
+}
+
+
+//type - transfer (0), self-destruct (1), create (2) or create2 (3).
+//from - the ETH sender, contract creator or contract address being self-destructed.
+//to - the ETH receiver, newly created contract address or the target ETH receiver resulting of the self-destruction.
+//value - the amount of ETH transferred.
+
 impl LoggingEventListener {
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
             call_tracer: Default::default(),
             raw_tracer: Default::default(),
+            internal_tracer: Default::default(),
             enabled,
         }
     }
@@ -147,9 +165,16 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             ..Default::default()
         };
 
+        let mut intern_trace = InternalOperationOtter {
+            call_type: 0,
+            from: "0x0".to_string(),
+            to: "0x0".to_string(),
+            value: "0".to_string()
+        };
+
         match event {
             evm::runtime::tracing::Event::Step {
-                context: _,
+                context: context,
                 opcode,
                 position,
                 stack,
@@ -161,6 +186,98 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 for sta in stack.data() {
                     struct_log.stack.push(format!("{sta:?}"));
                 }
+
+                eprintln!("opcode is: {:?}", opcode.to_string());
+
+                match opcode {
+                    Opcode::SUICIDE => {
+                        eprintln!("suicide occuring...");
+                        // print the amount returned via suicide
+                        // print the apparent value of suicide:
+                        eprintln!("Apparent value: {:?}", context.apparent_value);
+                        eprintln!("Apparent value X: {:0X?}", context.apparent_value);
+                    },
+                    _ => {}
+                }
+
+                //print the opcode
+//                match opcode {
+//                    Opcode::ADD => {
+//                        struct_log.op = "ADD".to_string();
+//                    }
+//                    Opcode::MUL => {
+//                        struct_log.op = "MUL".to_string();
+//                    }
+//                    Opcode::SUB => {
+//                        struct_log.op = "SUB".to_string();
+//                    }
+//                    Opcode::DIV => {
+//                        struct_log.op = "DIV".to_string();
+//                    }
+//                    Opcode::SDIV => {
+//                        struct_log.op = "SDIV".to_string();
+//                    }
+//                    Opcode::MOD => {
+//                        struct_log.op = "MOD".to_string();
+//                    }
+//                    Opcode::SMOD => {
+//                        struct_log.op = "SMOD".to_string();
+//                    }
+//                    Opcode::ADDMOD => {
+//                        struct_log.op = "ADDMOD".to_string();
+//                    }
+//                    Opcode::MULMOD => {
+//                        struct_log.op = "MULMOD".to_string();
+//                    }
+//                    Opcode::EXP => {
+//                        struct_log.op = "EXP".to_string();
+//                    }
+//                    Opcode::SIGNEXTEND => {
+//                        struct_log.op = "SIGNEXTEND".to_string();
+//                    }
+//                    Opcode::LT => {
+//                        struct_log.op = "LT".to_string();
+//                    }
+//                    Opcode::GT => {
+//                        struct_log.op = "GT".to_string();
+//                    }
+//                    Opcode::SLT => {
+//                        struct_log.op = "SLT".to_string();
+//                    }
+//                    Opcode::SGT => {
+//                        struct_log.op = "SGT".to_string();
+//                    }
+//                    Opcode::EQ => {
+//                        struct_log.op = "EQ".to_string();
+//                    }
+//                    Opcode::ISZERO => {
+//                        struct_log.op = "ISZERO".to_string();
+//                    }
+//                    Opcode::AND => {
+//                        struct_log.op = "AND".to_string();
+//                    }
+//                    Opcode::OR => {
+//                        struct_log.op = "OR".to_string();
+//                    }
+//                    Opcode::XOR => {
+//                        struct_log.op = "XOR".to_string();
+//                    }
+//                    Opcode::NOT => {
+//                        struct_log.op = "NOT".to_string();
+//                    }
+//                    Opcode::BYTE => {
+//                        struct_log.op = "BYTE".to_string();
+//                    }
+//                    Opcode::SHL => {
+//                        struct_log.op = "SHL".to_string();
+//                    }
+//                    Opcode::SHR => {
+//                        struct_log.op = "SHR".to_string();
+//                    }
+//                    Opcode::SAR => {
+//                        struct
+
+                //if opcode == Opcode::TRA
             }
             evm::runtime::tracing::Event::StepResult {
                 result,
@@ -185,9 +302,8 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             }
         }
 
-        if self.raw_tracer.struct_logs.len() < 5 {
-            self.raw_tracer.struct_logs.push(struct_log);
-        }
+        self.raw_tracer.struct_logs.push(struct_log);
+        self.internal_tracer.push(intern_trace);
     }
 }
 

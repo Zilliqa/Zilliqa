@@ -465,6 +465,56 @@ void IsolatedServer::BindAllEvmMethods() {
                            "param01", jsonrpc::JSON_STRING, "param02",
                            jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::DebugTraceBlockByNumberI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("erigon_getHeaderByNumber", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetHeaderByNumberI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getApiLevel", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetOtterscanApiLevelI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_BOOLEAN,
+                           "param01", jsonrpc::JSON_STRING,
+                           "param02", jsonrpc::JSON_STRING,
+                           NULL),
+        &EthRpcMethods::HasCodeI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetBlockDetailsI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getBlockTransactions", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_INTEGER,
+                           "param02", jsonrpc::JSON_INTEGER,
+                           "param03", jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetBlockTransactionsI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_STRING,
+                           NULL),
+        &EthRpcMethods::GetContractCreatorI
+    );
   }
 }
 
