@@ -23,6 +23,7 @@
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
+#include "libData/AccountStore/AccountStore.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
@@ -71,8 +72,10 @@ void ScillaBCInfo::SetUp(const uint64_t curBlockNum,
   m_scillaVersion = scillaVersion;
 }
 
-ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
-    : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {
+ScillaIPCServer::ScillaIPCServer(AccountStore &parent,
+                                 AbstractServerConnector &conn)
+    : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2),
+      m_parent(parent) {
   // These JSON signatures match that of the actual functions below.
   bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
                              "query", JSON_STRING, NULL),
@@ -285,18 +288,51 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
                 "Unable to query external state with given query: " << query);
     return;
   }
+  auto *account = m_parent.GetAccount(address);
+  if (account == nullptr) {
+    LOG_GENERAL(WARNING,
+                "Unable to find account with given address: " << address.hex());
+    return;
+  }
+
+  std::vector<Address> extlibs;
+  bool isLibrary = false;
+  uint32_t scillaVersion;
+  if (!account->GetContractAuxiliaries(isLibrary, scillaVersion, extlibs)) {
+    LOG_GENERAL(WARNING, "Failed to retrieve auxiliaries for contract address: "
+                             << address.hex());
+    return;
+  }
+  std::map<Address, std::pair<std::string, std::string>> extlibsExports;
+  if (!ScillaUtils::PopulateExtlibsExports(m_parent, scillaVersion, extlibs,
+                                           extlibsExports)) {
+    LOG_GENERAL(WARNING, "Unable to populate extlibs for contract address: "
+                             << address.hex());
+    return;
+  }
+
   std::string rootVersion;
-  if (!ScillaUtils::PrepareRootPathWVersion(0, rootVersion)) {
+  if (!ScillaUtils::PrepareRootPathWVersion(scillaVersion, rootVersion)) {
     LOG_GENERAL(WARNING, "Can't prepare scilla root path with version");
     return;
   }
+
+  if (!ScillaUtils::ExportCreateContractFiles(
+          account->GetCode(), account->GetInitData(), isLibrary, rootVersion,
+          scillaVersion, extlibsExports)) {
+    LOG_GENERAL(WARNING, "Failed to export contract create files");
+    return;
+  }
   constexpr auto GAS_LIMIT = std::numeric_limits<uint32_t>::max();
-  const auto checkerJson =
-      ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT);
   std::string interprinterPrint;
-  if (!ScillaClient::GetInstance().CallChecker(
-          0, ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT),
-          interprinterPrint)) {
+  const auto callCheckerInput =
+      ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT);
+  std::string jsonAsString;
+  JSONUtils::GetInstance().convertJsontoStr(callCheckerInput);
+  LOG_GENERAL(WARNING,
+              "Calling Scilla checker with input: " << callCheckerInput);
+  if (!ScillaClient::GetInstance().CallChecker(0, callCheckerInput,
+                                               interprinterPrint)) {
     LOG_GENERAL(WARNING,
                 "Call checker failed with print: " << interprinterPrint);
     return;
