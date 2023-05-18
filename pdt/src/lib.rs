@@ -3,5 +3,6 @@
 pub mod context;
 pub mod download;
 pub mod historical;
+pub mod incremental;
 pub mod range;
 pub mod utils;

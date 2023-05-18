@@ -28,7 +28,7 @@ impl<'a> Historical<'a> {
         );
         // Download it, resuming if necessary.
         let mut dest_dir = Path::new(&self.ctx.target_path).to_path_buf();
-        dest_dir.push("buffer");
+        dest_dir.push("historical-data");
         // Let's make sure the directory exists.
         {
             let dest_path = dest_dir.as_path();

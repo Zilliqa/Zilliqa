@@ -7,6 +7,7 @@ use aws_sdk_s3::{config::Region, Client};
 use eyre::{eyre, Result};
 
 pub const PERSISTENCE_SNAPSHOT_NAME: &str = "blockchain-data";
+pub const INCREMENTAL_NAME: &str = "incremental";
 
 pub struct Context {
     /// The S3 client to fetch with.
@@ -47,16 +48,24 @@ impl Context {
 
     /// Because of the way we do our bucket permissions, this needs to list the
     /// object and then assert there is only one of it.
-    pub async fn list_object(&self, key: &str) -> Result<Entry> {
+    pub async fn maybe_list_object(&self, key: &str) -> Result<Option<Entry>> {
         let listing = self.list_objects(key).await?;
-        if listing.len() == 1 {
-            Ok(listing[0].clone())
+        match listing.len() {
+            0 => Ok(None),
+            1 => Ok(Some(listing[0].clone())),
+            _ => Err(eyre!(
+                "More than one possibility ({}) for key {}",
+                listing.len(),
+                key
+            )),
+        }
+    }
+
+    pub async fn list_object(&self, key: &str) -> Result<Entry> {
+        if let Some(val) = self.maybe_list_object(key).await? {
+            Ok(val)
         } else {
-            Err(eyre!(
-                "Expected a single object for key {}, but found {}",
-                key,
-                listing.len()
-            ))
+            Err(eyre!("No object for key {}", key))
         }
     }
 
@@ -95,6 +104,26 @@ impl Context {
             .send()
             .await?;
         Ok(res)
+    }
+
+    pub async fn get_object(&self, object_key: &str) -> Result<GetObjectOutput> {
+        let res = self
+            .client
+            .get_object()
+            .bucket(self.bucket_name.clone())
+            .key(object_key)
+            .customize()
+            .await?
+            .map_operation(make_unsigned)?
+            .send()
+            .await?;
+        Ok(res)
+    }
+
+    pub async fn get_key_as_string(&self, object_key: &str) -> Result<String> {
+        let the_object = self.get_object(object_key).await?;
+        let the_bytes = the_object.body.collect().await?;
+        Ok(std::str::from_utf8(&the_bytes.into_bytes())?.to_string())
     }
 
     pub async fn get_byte_range(
