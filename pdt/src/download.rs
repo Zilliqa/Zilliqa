@@ -2,6 +2,7 @@ use crate::{context::Context, utils};
 use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::Seek;
@@ -28,6 +29,47 @@ pub struct Downloadable {
     file_name: PathBuf,
     meta_name: PathBuf,
     status: Status,
+}
+
+#[derive(Clone)]
+pub struct Immediate {
+    file_name: PathBuf,
+}
+
+impl Immediate {
+    pub async fn download(ctx: &Context, key: &str, dest_file: &Path) -> Result<()> {
+        // Unlink the destination
+        let _ = fs::remove_file(dest_file);
+
+        println!("dest {:?}", dest_file);
+        // Create the directory
+        let mut parent_dir = PathBuf::from(dest_file);
+        parent_dir.pop();
+        std::fs::create_dir_all(parent_dir.as_path())?;
+        // Write to a temp file
+        let mut tmp_file = PathBuf::from(dest_file);
+        let file_name = dest_file
+            .file_name()
+            .ok_or(eyre!("Fish"))?
+            .to_str()
+            .ok_or(eyre!("Filename is not UTF-8"))?
+            .to_string();
+        let tmp_file_name: String = format!("{}.part", file_name);
+        tmp_file.pop();
+        tmp_file.push(&tmp_file_name.to_string());
+
+        let mut result = ctx.get_object(key).await?;
+        let mut output_file = File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(tmp_file.as_path())?;
+        while let Some(bytes) = result.body.try_next().await? {
+            output_file.write(&bytes)?;
+        }
+        fs::rename(tmp_file.as_path(), dest_file)?;
+        Ok(())
+    }
 }
 
 impl Status {

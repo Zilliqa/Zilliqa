@@ -4,7 +4,7 @@ use crate::context::{Context, PERSISTENCE_SNAPSHOT_NAME};
 use crate::download;
 use eyre::{eyre, Result};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub struct Historical<'a> {
     ctx: &'a Context,

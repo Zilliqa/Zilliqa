@@ -76,6 +76,9 @@ impl Context {
             .list_objects_v2()
             .bucket(self.bucket_name.clone())
             .prefix(prefix.to_string())
+            .customize()
+            .await?
+            .map_operation(make_unsigned)?
             .send()
             .await?;
         if let Some(objects) = res.contents {

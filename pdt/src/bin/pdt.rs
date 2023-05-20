@@ -17,10 +17,14 @@ async fn main() -> Result<()> {
         "/tmp/test",
     )
     .await?;
-    //let historical = Historical::new(&ctx)?;
-    //    historical.download().await?;
-    let incremental = Incremental::new(&ctx)?;
-    println!("Max block {}", incremental.get_max_block().await?);
+    println!("Download history ..");
+    let historical = Historical::new(&ctx)?;
+    historical.download().await?;
+    println!("Download persistence .. ");
+    let incr = Incremental::new(&ctx)?;
+    incr.download_persistence().await?;
+    incr.download_incr_persistence().await?;
+    println!("Max block {}", incr.get_max_block().await?);
     println!("Hello, pdt!");
     Ok(())
 }
