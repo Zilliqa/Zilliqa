@@ -82,8 +82,8 @@ impl<'a> Historical<'a> {
                 }
             }
 
-            segments.iter().try_for_each(|x| down.signal_filled(*x));
-            down.write_status();
+            segments.iter().try_for_each(|x| down.signal_filled(*x))?;
+            down.write_status()?;
         }
         println!("All done");
 

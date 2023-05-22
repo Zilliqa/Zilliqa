@@ -2,6 +2,7 @@ use eyre::Result;
 use pdtlib::context::Context;
 use pdtlib::historical::Historical;
 use pdtlib::incremental::Incremental;
+use pdtlib::render::Renderer;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,6 +26,12 @@ async fn main() -> Result<()> {
     incr.download_persistence().await?;
     incr.download_incr_persistence().await?;
     println!("Max block {}", incr.get_max_block().await?);
+
+    let render = Renderer::new("testnet-901", "/tmp/test", "/tmp/unpacked")?;
+    let blocks = render.list_incrementals()?;
+    println!("Incrementals : {:?} ", blocks);
+    render.unpack(&blocks)?;
+
     println!("Hello, pdt!");
     Ok(())
 }

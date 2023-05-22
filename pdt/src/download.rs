@@ -32,9 +32,7 @@ pub struct Downloadable {
 }
 
 #[derive(Clone)]
-pub struct Immediate {
-    file_name: PathBuf,
-}
+pub struct Immediate {}
 
 impl Immediate {
     pub async fn download(ctx: &Context, key: &str, dest_file: &Path) -> Result<()> {
@@ -127,7 +125,7 @@ impl Downloadable {
 
         // Make sure the output file exists and is the right size.
         {
-            let mut data_file = File::options()
+            let data_file = File::options()
                 .read(true)
                 .write(true)
                 .create(true)
@@ -137,7 +135,7 @@ impl Downloadable {
                 println!("Size mismatch: {} vs {} - redownloading", file_size, size);
                 reuse_status = false;
             }
-            data_file.set_len(u64::try_from(status.nr_bytes)?);
+            data_file.set_len(u64::try_from(status.nr_bytes)?)?;
         }
 
         if reuse_status {
@@ -209,9 +207,9 @@ impl Downloadable {
                 .read(true)
                 .write(true)
                 .open(&self.file_name)?;
-            data_file.seek(std::io::SeekFrom::Start(u64::try_from(start_byte)?));
+            data_file.seek(std::io::SeekFrom::Start(u64::try_from(start_byte)?))?;
             while let Some(bytes) = result.body.try_next().await? {
-                data_file.write(&bytes);
+                data_file.write(&bytes)?;
             }
         }
 

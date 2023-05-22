@@ -8,5 +8,6 @@ pub mod download;
 pub mod historical;
 pub mod incremental;
 pub mod range;
+pub mod render;
 pub mod sync;
 pub mod utils;

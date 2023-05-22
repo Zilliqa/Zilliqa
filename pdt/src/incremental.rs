@@ -2,6 +2,7 @@
 use crate::context::{Context, INCREMENTAL_NAME};
 use crate::download;
 use crate::sync;
+use crate::utils;
 use eyre::{eyre, Result};
 use std::path::Path;
 
@@ -42,20 +43,22 @@ impl<'a> Incremental<'a> {
         Ok(data.parse::<i64>()?)
     }
 
-    // Download the persistence increment tarfiles
+    // Download the incremental state deltas
+
+    // Download the persistence increment tarfiles, removing any that no longer exist.
     pub async fn download_incr_persistence(&self) -> Result<()> {
         let object_root = format!("{}/{}", INCREMENTAL_NAME, self.ctx.network_name);
         println!("Here!");
         let mut target_path = Path::new(&self.ctx.target_path).to_path_buf();
-        target_path.push("diff_persistence");
+        target_path.push(utils::DIR_PERSISTENCE_DIFFS);
         // List all the persistence diffs
         let entries = self
             .ctx
-            .list_objects(&format!("{}/diff_persistence", object_root))
+            .list_objects(&format!("{}/{}", object_root, "diff_persistence"))
             .await?;
         // Now sync them
         let mut sync = sync::Sync::new(16)?;
-        sync.sync_keys(self.ctx, &object_root, &target_path, &entries)
+        sync.sync_keys(self.ctx, &object_root, &target_path, &entries, true)
             .await?;
         Ok(())
     }
@@ -70,7 +73,7 @@ impl<'a> Incremental<'a> {
         let mut target_path = Path::new(&self.ctx.target_path).to_path_buf();
         target_path.push("persistence");
         let mut sync = sync::Sync::new(16)?;
-        sync.sync(self.ctx, &object_root, target_path.as_path())
+        sync.sync(self.ctx, &object_root, target_path.as_path(), true)
             .await
     }
 }

@@ -41,7 +41,7 @@ impl Finder {
         let base_name = Path::new(prefix)
             .file_name()
             .ok_or(eyre!("Invalid prefix"))?;
-        let mut dir = fs::read_dir(dir_name)?;
+        let dir = fs::read_dir(dir_name)?;
         for maybe_entry in dir {
             if let Ok(entry) = maybe_entry {
                 if let Some(the_range) = range_from_path(&entry.path(), prefix)? {
