@@ -1664,7 +1664,11 @@ dev::h256 BlockStorage::GetContractCreator(const dev::h160 address) {
   }
 
   lock_guard<mutex> g(m_contractCreatorMutex);
-  return dev::h256(reinterpret_cast<const unsigned char*>(m_contractCreatorDB->Lookup(address.asBytes()).c_str()), dev::h256::ConstructFromPointerType::ConstructFromPointer);
+  std::string contractCreator = m_contractCreatorDB->Lookup(address.asBytes());
+  if (contractCreator.empty()) {
+    return dev::h256();
+  }
+  return dev::h256(reinterpret_cast<const unsigned char*>(contractCreator.c_str()), dev::h256::ConstructFromPointerType::ConstructFromPointer);
 }
 
 bool BlockStorage::ResetDB(DBTYPE type) {
