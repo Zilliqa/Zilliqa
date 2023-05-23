@@ -214,7 +214,7 @@ class BlockStorage : boost::noncopyable {
 
   /// Retrieves the mappings of address touched to TX.
   bool PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum);
-  std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before);
+  std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore);
   //std::shared_ptr<LevelDB> GetOtterTxAddressMappingDb();
 
   /// Retrieves the mappings of address touched to TX.

@@ -2086,8 +2086,9 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
   try {
     //TxnHash tranHash(txHash);
 
+    bool wasMore = false;
     const auto res =
-        BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before); // nathan
+        BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before, wasMore); // nathan
 
     // Perhaps this should just return empty array
     if (res.empty()) {
@@ -2110,8 +2111,12 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
 
     response["txs"] = txs;
     response["receipts"] = receipts;
-    response["firstPage"] = true;
-    response["lastPage"] = false;
+
+    // Otterscan docs. If results are less than pagesize, results returned as-is.
+    if (!(res.size() < pageSize)) {
+      response["firstPage"] = before || !wasMore;
+      response["lastPage"] = !before || !wasMore;
+    }
 
     return response;
   } catch (exception &e) {

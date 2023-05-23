@@ -2210,7 +2210,7 @@ bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::se
   return true;
 }
 
-std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before) {
+std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore) {
 
   std::vector<std::string> addresses;
   lock_guard<mutex> g(m_mutexTxBody);
@@ -2245,9 +2245,28 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
   ZilliqaMessage::OtterscanTraceAddressMapping otterTxAddressMapping;
   otterTxAddressMapping.ParseFromString(ret);
 
-  for(auto item : otterTxAddressMapping.hashes()) {
-    if(addresses.size() >= pageSize) {
+  auto hashes = otterTxAddressMapping.hashes();
+
+  // If we are searching before the block number,
+  // we need to reverse the order of the hashes so we are searching downward
+  if(before) {
+    std::reverse(hashes.begin(), hashes.end());
+  }
+
+  uint64_t stopOnBlock = -1;
+
+  for(int i = 0; i < hashes.size();i++) {
+    auto item = hashes.Get(i);
+
+    if (item.blocknum() == stopOnBlock) {
+      wasMore = true;
       break;
+    }
+
+    // The otter docs indicate
+    if(addresses.size() >= pageSize) {
+      stopOnBlock = item.blocknum();
+      stopOnBlock = before ? stopOnBlock - 1 : stopOnBlock + 1;
     }
 
     if(before) {
@@ -2259,6 +2278,12 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
         addresses.push_back(item.hash());
       }
     }
+  }
+
+  // Results should always be descending, so they need to be reversed
+  // if the search was 'after'
+  if(!before) {
+    std::reverse(addresses.begin(), addresses.end());
   }
 
   return addresses;
