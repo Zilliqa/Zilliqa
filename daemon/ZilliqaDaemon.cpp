@@ -89,7 +89,7 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
           m_failedMonitorProcessCount[name]++;
         }
         if (m_failedMonitorProcessCount[name] >= MONITORING_FAIL_COUNT) {
-          StartNewProcess(true);
+          StartNewProcess();
           m_failedMonitorProcessCount[name] = 0;
         }
       }
@@ -308,9 +308,10 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
 
     if (!bSuspend && cleanPersistence) {
       ZilliqaDaemon::LOG(m_log, "Start to run command: rm -rf persistence");
-      ZilliqaDaemon::LOG(
-          m_log,
-          "\" " + Execute("cd " + m_curPath + "; rm -rf persistence") + " \"");
+      ZilliqaDaemon::LOG(m_log, "Chetan, Not removing persistence");
+      //ZilliqaDaemon::LOG(
+      //    m_log,
+      //    "\" " + Execute("cd " + m_curPath + "; rm -rf persistence") + " \"");
     }
 
     string identity = m_nodeType + "-" + std::to_string(m_nodeIndex);
