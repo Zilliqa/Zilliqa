@@ -257,7 +257,7 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
     logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
-    // remove unsupported keys in receipt objects
+    // remove unsupported/add missing keys in receipt objects
     logEntry.removeMember("params");
     logEntry.removeMember("_eventname");
     if (!logEntry.isMember("topics")) {

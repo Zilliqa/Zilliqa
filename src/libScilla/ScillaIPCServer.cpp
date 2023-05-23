@@ -327,17 +327,11 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
   std::string interprinterPrint;
   const auto callCheckerInput =
       ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT);
-  std::string jsonAsString;
   JSONUtils::GetInstance().convertJsontoStr(callCheckerInput);
-  LOG_GENERAL(WARNING,
-              "Calling Scilla checker with input: " << callCheckerInput);
   if (!ScillaClient::GetInstance().CallChecker(0, callCheckerInput,
                                                interprinterPrint)) {
-    LOG_GENERAL(WARNING,
-                "Call checker failed with print: " << interprinterPrint);
     return;
   }
-  LOG_GENERAL(WARNING, "Got json with size: " << interprinterPrint.size());
   JSONUtils::GetInstance().convertStrtoJson(interprinterPrint, response);
 }
 
