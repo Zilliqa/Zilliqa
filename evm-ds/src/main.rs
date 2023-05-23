@@ -151,12 +151,6 @@ struct InternalOperationOtter {
     pub value: String,
 }
 
-
-//type - transfer (0), self-destruct (1), create (2) or create2 (3).
-//from - the ETH sender, contract creator or contract address being self-destructed.
-//to - the ETH receiver, newly created contract address or the target ETH receiver resulting of the self-destruction.
-//value - the amount of ETH transferred.
-
 impl LoggingEventListener {
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
@@ -170,18 +164,6 @@ impl LoggingEventListener {
         }
     }
 }
-
-//impl evm::tracing::EventListener for LoggingEventListener {
-//    fn event(&mut self, event: evm::tracing::Event) {
-//        if !self.enabled {
-//            return;
-//        }
-//
-//        // print the event
-//        eprintln!(" other event!{:?}", event);
-//        eprintln!(" other event!{:?}", event);
-//    }
-//}
 
 impl evm::runtime::tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: evm::runtime::tracing::Event) {
@@ -212,24 +194,6 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 for sta in stack.data() {
                     struct_log.stack.push(format!("{sta:?}"));
                 }
-
-                //eprintln!("opcode is: {:?}", opcode.to_string());
-
-                match opcode {
-                    Opcode::SUICIDE => {
-                        eprintln!("suicide occuring...");
-                        // print the amount returned via suicide
-                        // print the apparent value of suicide:
-                        eprintln!("Apparent value: {:?}", context.apparent_value);
-                        eprintln!("Apparent value X: {:0X?}", context.apparent_value);
-                        eprintln!("target X: {:0X?}", context.apparent_value);
-
-                        //eprintln!("target: {:0X?}", stack.tar);
-                        //eprintln!("addr: {:0X?}", context.apparent_value);
-                        //eprintln!("balance: {:0X?}", context.apparent_value);
-                    },
-                    _ => {}
-                }
             }
             evm::runtime::tracing::Event::StepResult {
                 result,
@@ -259,8 +223,6 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 balance: balance,
                 input: input,
             } => {
-                eprintln!("**** it happened transfer! {:?} {:?} {:?}", address, target, balance);
-
                 intern_trace = Some(InternalOperationOtter {
                     call_type: call_depth,
                     from: format!("{:?}", address),
@@ -288,8 +250,6 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 target: target,
                 balance: balance,
             } => {
-                eprintln!("**** it happened! {:?} {:?} {:?}", address, target, balance);
-
                 intern_trace = Some(InternalOperationOtter {
                     call_type: 1,
                     from: format!("{:?}", address),
@@ -313,8 +273,6 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 is_create2: is_create2,
                 input: input,
             } => {
-                eprintln!("**** it happened Create! {:?} {:?} {:?} {:?}", address, target, balance, is_create2);
-
                 intern_trace = Some(InternalOperationOtter {
                     call_type: if is_create2 { 3 } else { 2 },
                     from: format!("{:?}", address),
@@ -336,11 +294,10 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 if !self.otter_addresses_called.contains(&to_add) {
                     self.otter_addresses_called.push(to_add);
                 }
-                //self.otter_addresses_called.push(format!("{:?}", target));
             }
         }
 
-        //self.raw_tracer.struct_logs.push(struct_log); // todo: undelete this
+        self.raw_tracer.struct_logs.push(struct_log);
 
         if let Some(intern_trace) = intern_trace {
             self.otter_internal_tracer.push(intern_trace);
@@ -372,7 +329,7 @@ impl LoggingEventListener {
         // Now we have constructed our new call context, it gets added to the end of
         // the stack (if we want to do tracing)
         if self.enabled {
-            self.call_tracer.push(context); // todo: undelete
+            self.call_tracer.push(context);
         }
     }
 }

@@ -154,8 +154,6 @@ class EthRpcMethods {
       rawTx.erase(0, 2);
     }
 
-    std::cerr << rawTx << std::endl;
-
     auto pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {

@@ -285,7 +285,6 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
 }
 
 std::string stripTxTraceOut(const std::string &trace) {
-  //std::string stripped;
 
   Json::Value trace_json;
   JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
@@ -295,9 +294,6 @@ std::string stripTxTraceOut(const std::string &trace) {
   trace_json.removeMember("raw_tracer");
 
   return trace_json.toStyledString();
-
-  //auto const item = trace_json["otter_addresses_called"];
-  //parsed = item;
 }
 
 void getAddressesFromTrace(const std::string &trace, std::set<std::string> &addresses) {
@@ -377,9 +373,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     std::set<std::string> addresses_touched;
     addresses_touched.insert(m_originAddr.hex());
-    std::cerr << "og addr: " << m_originAddr.hex() << std::endl;
     addresses_touched.insert(m_curContractAddr.hex());
-    std::cerr << "contract addr: " << m_curContractAddr.hex() << std::endl;
 
     if (std::holds_alternative<evm::EvmResult>(cpsRunResult.result) &&
         ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
@@ -388,9 +382,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
       if (!traces.empty() && evmContext.GetTranID()) {
         LOG_GENERAL(INFO,
-                    "***** Putting in TX trace for: " << evmContext.GetTranID());
-
-        std::cout << traces << std::endl;
+                    "Putting in TX trace for: " << evmContext.GetTranID());
 
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {
@@ -407,19 +399,13 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         // permanently and the rest is huge
         auto const trace_stripped = stripTxTraceOut(traces);
 
-        std::cerr << trace_stripped << std::endl;
-
         if (!BlockStorage::GetBlockStorage().PutOtterTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,
                       "FAIL: Put otter trace failed " << evmContext.GetTranID());
         }
-      } else {
-        LOG_GENERAL(INFO, "No tx trace to put in..." << evmContext.GetTranID());
       }
     }
-
-    std::cerr << "we are here..." << std::endl;
 
     // This needs to be outside the above as needs to include possibility of non evm tx
     if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {

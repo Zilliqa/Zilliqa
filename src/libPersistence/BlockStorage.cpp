@@ -2076,9 +2076,6 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   }
 }
 
-
-///// nathan
-
 // Tx traces are put in storage, and each time one is inserted, the oldest is
 // pruned, so long as it is over TX_TRACES_TO_STORE ago.
 // To do this, at the null address is an array/ring buffer of trace hashes
@@ -2199,8 +2196,6 @@ bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::se
     internal.set_blocknum(blocknum);
     ret.mutable_hashes()->Add(std::move(internal));
 
-    std::cerr << "Adding txid " << txId << " to address " << address << std::endl;
-
     zbytes ser(ret.ByteSizeLong());
     ret.SerializeToArray(ser.data(), ser.size());
 
@@ -2238,7 +2233,6 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
   std::string ret = m_otterTxAddressMappingDB->Lookup(address);
 
   if (ret.empty()) {
-    std::cerr << "nothing at: " << address << std::endl;
     return {};
   }
 
@@ -2318,7 +2312,6 @@ bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t no
 
   // Create lookup key as concatenation of address and nonce
   std::string key = address + std::to_string(nonce);
-  cerr  << "otter insert key: " << key << " with nonce " << nonce << endl;
 
   lock_guard<mutex> g(m_mutexTxBody);
 
@@ -2355,9 +2348,6 @@ std::string BlockStorage::GetOtterAddressNonceLookup(std::string address, uint64
   }
 
   std::string key = address + std::to_string(nonce);
-
-  cerr << "otter lookup key: " << key << endl;
-
   std::string ret = m_otterAddressNonceLookup->Lookup(key);
 
   ZilliqaMessage::OtterscanAddressNonceLookup txnId;

@@ -210,12 +210,10 @@ class BlockStorage : boost::noncopyable {
   /// Retrieves the requested transaction trace for otterscan.
   bool PutOtterTrace(const dev::h256& key, const std::string& trace);
   bool GetOtterTrace(const dev::h256& key, std::string& trace);
-  //std::shared_ptr<LevelDB> GetOtterTraceDb();
 
   /// Retrieves the mappings of address touched to TX.
   bool PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum);
   std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore);
-  //std::shared_ptr<LevelDB> GetOtterTxAddressMappingDb();
 
   /// Retrieves the mappings of address touched to TX.
   bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address);

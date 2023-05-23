@@ -2084,11 +2084,9 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
   }
 
   try {
-    //TxnHash tranHash(txHash);
-
     bool wasMore = false;
     const auto res =
-        BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before, wasMore); // nathan
+        BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before, wasMore);
 
     // Perhaps this should just return empty array
     if (res.empty()) {
@@ -2215,8 +2213,6 @@ Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   uint128_t rewards = (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR : 0);
   uint128_t fees = (isVacuous ? 0 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
   auto jsonBlock = GetEthBlockCommon(txBlock, false);
-
-  std::cerr << "gas lim: " << jsonBlock["gasLimit"] << std::endl;
 
   jsonBlock["gasLimit"] = "0x1";
 
