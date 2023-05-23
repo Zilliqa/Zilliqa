@@ -1,0 +1,1250 @@
+syntax = "proto3";
+
+package ZilliqaMessage;
+
+message ByteArray
+{
+    bytes data = 1;
+}
+
+// ============================================================================
+// Primitives that are used for persistent storage
+//
+// NOTE:
+//   Only append new fields to the end of these messages.
+//   This means that if a field is to be deprecated, do not remove it.
+// ============================================================================
+
+// Used in database "blockLinks"
+message ProtoBlockLink
+{
+    oneof oneof1 { uint32 version   = 1; } // Added in: v1.0, Deprecated in: N/A
+    oneof oneof2 { uint64 index     = 2; } // Added in: v1.0, Deprecated in: N/A
+    oneof oneof3 { uint64 dsindex   = 3; } // Added in: v1.0, Deprecated in: N/A
+    oneof oneof4 { uint32 blocktype = 4; } // Added in: v1.0, Deprecated in: N/A
+    bytes blockhash  = 5; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in databases "dsBlocks", "microBlocks", "txBlocks", "VCBlocks"
+message ProtoBlockBase
+{
+    message CoSignatures
+    {
+        ByteArray cs1   = 1;               // Added in: v1.0, Deprecated in: N/A
+        repeated bool b1         = 2 [packed=true]; // Added in: v1.0, Deprecated in: N/A
+        ByteArray cs2   = 3;               // Added in: v1.0, Deprecated in: N/A
+        repeated bool b2         = 4 [packed=true]; // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    bytes blockhash     = 1;               // Added in: v1.0, Deprecated in: N/A
+    CoSignatures cosigs = 2;               // Added in: v1.0, Deprecated in: N/A
+    uint64 timestamp    = 3;               // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in "dsBlockHeader", "microBlockHeader", "txBlockHeader", and "VCBlockHeader"
+message ProtoBlockHeaderBase
+{
+    uint32 version      = 1;   // Added in: v1.0, Deprecated in: N/A
+    bytes committeehash = 2;   // Added in: v1.0, Deprecated in: N/A
+    bytes prevhash      = 3;   // Added in: v1.0, Deprecated in: N/A
+}
+
+// Used in database "dsBlocks"
+message ProtoDSBlock
+{
+    message DSBlockHashSet
+    {
+        bytes shardinghash     = 1;  // Added in: v1.0, Deprecated in: N/A
+        bytes reservedfield    = 2;  // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    message DSBlockHeader
+    {
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        uint32 dsdifficulty                  = 2;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        uint32 difficulty                    = 3;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        bytes prevhash                       = 4;  // Added in: v1.0, Deprecated in: N/A, 32 bytes
+        ByteArray leaderpubkey               = 5;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof6 { uint64 blocknum       = 6; } // Added in: v1.0, Deprecated in: N/A
+        oneof oneof7 { uint64 epochnum       = 7; } // Added in: v1.0, Deprecated in: N/A
+        ByteArray gasprice                   = 8;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray swinfo                     = 9;  // Added in: v1.0, Deprecated in: N/A
+        message PowDSWinners
+        {
+            ByteArray key      = 1;  // Added in: v1.0, Deprecated in: N/A
+            ByteArray val      = 2;  // Added in: v1.0, Deprecated in: N/A
+            // Add new members here
+        }
+        repeated PowDSWinners dswinners = 10; // Added in: v1.0, Deprecated in: N/A
+        DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
+        repeated ByteArray dsremoved    = 12; // Added in: v2.0, Deprecated in: N/A
+        // Add new members here
+        message Vote
+        {
+            uint32 value = 1;
+            uint32 count = 2;
+        }
+        message Proposal
+        {
+            uint32 proposalid           = 1;
+            repeated Vote dsvotes       = 2;
+            repeated Vote minervotes    = 3;
+        }
+        repeated Proposal proposals      = 13;
+    }
+    DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase   = 2;  // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "dsCommittee"
+message ProtoDSNode
+{
+    ByteArray pubkey = 1; // Added in: v1.0, Deprecated in: N/A
+    ByteArray peer   = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "dsCommittee"
+message ProtoDSCommittee
+{
+    uint32 version      = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated ProtoDSNode dsnodes = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "microBlocks"
+message ProtoMicroBlock
+{
+    message MicroBlockHeader
+    {
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof2 { uint32 shardid        = 2; } // Added in: v1.0, Deprecated in: N/A
+        uint64 gaslimit                      = 3;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof4 { uint64 gasused        = 4; } // Added in: v1.0, Deprecated in: N/A
+        ByteArray rewards                    = 5;  // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 6;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof7 { uint64 epochnum       = 7; } // Added in: v1.0, Deprecated in: N/A
+        bytes txroothash                     = 8;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof9 { uint32 numtxs         = 9; } // Added in: v1.0, Deprecated in: N/A
+        ByteArray minerpubkey                = 10; // Added in: v1.0, Deprecated in: N/A
+        uint64 dsblocknum                    = 11; // Added in: v1.0, Deprecated in: N/A
+        bytes statedeltahash                 = 12; // Added in: v1.0, Deprecated in: N/A
+        bytes tranreceipthash                = 13; // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    MicroBlockHeader header   = 1;  // Added in: v1.0, Deprecated in: N/A
+    repeated bytes tranhashes          = 2;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase  = 3;  // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "shardStructure"
+message ProtoShardingStructure
+{
+    message Member
+    {
+        ByteArray pubkey   = 1; // Added in: v1.0, Deprecated in: N/A
+        ByteArray peerinfo = 2; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof3 { uint32 reputation  = 3; } // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    message Shard
+    {
+        repeated Member members     = 1; // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    uint32 version         = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated Shard shards           = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "txBlocks"
+message ProtoMbInfo
+{
+    bytes mbhash   = 1; // Added in: v1.0, Deprecated in: N/A
+    bytes txroot   = 2; // Added in: v1.0, Deprecated in: N/A
+    oneof oneof3 { uint32 shardid = 3; } // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "txBlocks"
+message ProtoTxBlock
+{
+    message TxBlockHashSet
+    {
+        bytes stateroothash   = 1;  // Added in: v1.0, Deprecated in: N/A
+        bytes statedeltahash  = 2;  // Added in: v1.0, Deprecated in: N/A
+        bytes mbinfohash      = 3;  // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    message TxBlockHeader
+    {
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        uint64 gaslimit                      = 2;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof3 { uint64 gasused        = 3;} // Added in: v1.0, Deprecated in: N/A
+        ByteArray rewards                    = 4;  // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 5;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof6 {uint64 blocknum        = 6;} // Added in: v1.0, Deprecated in: N/A
+        TxBlockHashSet hash                  = 7;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof8 { uint32 numtxs         = 8;} // Added in: v1.0, Deprecated in: N/A
+        ByteArray minerpubkey                = 9;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof10 {uint64 dsblocknum     = 10;}// Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    TxBlockHeader header      = 1;  // Added in: v1.0, Deprecated in: N/A
+    repeated ProtoMbInfo mbinfos       = 2;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase  = 3;  // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "VCBlocks"
+message ProtoVCBlock
+{
+    message VCBlockHeader
+    {
+        ProtoBlockHeaderBase blockheaderbase = 1; // Added in: v1.0, Deprecated in: N/A
+        uint64 viewchangedsepochno           = 2; // Added in: v1.0, Deprecated in: N/A
+        uint64 viewchangeepochno             = 3; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof4 { uint32 viewchangestate = 4; } // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        ByteArray candidateleadernetworkinfo = 5; // Added in: v1.0, Deprecated in: N/A
+        ByteArray candidateleaderpubkey      = 6; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof7 { uint32 vccounter      = 7; } // Added in: v1.0, Deprecated in: N/A
+        repeated ProtoDSNode faultyleaders            = 8; // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 9; // Added in: v1.0, Deprecated in: N/A
+        // Add new members here
+    }
+    VCBlockHeader header                     = 1; // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase                 = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "diagnosticNodes"
+message ProtoDiagnosticDataNodes
+{
+    ProtoShardingStructure shards = 1; // Added in: v1.0, Deprecated in: N/A
+    ProtoDSCommittee dscommittee  = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "diagnosticCoinb"
+message ProtoDiagnosticDataCoinbase
+{
+  ByteArray nodecount          = 1;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray sigcount           = 2;  // Added in: v1.0, Deprecated in: N/A
+  uint32 lookupcount           = 3;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray totalreward        = 4;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray basereward         = 5;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray baserewardeach     = 6;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray lookupreward       = 7;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray rewardeachlookup   = 8;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray nodereward         = 9;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray rewardeach         = 10; // Added in: v1.0, Deprecated in: N/A
+  ByteArray balanceleft        = 11; // Added in: v1.0, Deprecated in: N/A
+  ByteArray luckydrawwinnerkey = 12; // Added in: v1.0, Deprecated in: N/A
+  bytes luckydrawwinneraddr    = 13; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "minerInfoDSComm"
+message ProtoMinerInfoDSComm
+{
+    message Node
+    {
+        ByteArray pubkey         = 1;
+    }
+    repeated Node dsnodes        = 1;
+    repeated Node dsnodesejected = 2;
+    // Add new members here
+}
+
+// Used in database "minerInfoShards"
+message ProtoMinerInfoShards
+{
+    message Node
+    {
+        ByteArray pubkey         = 1;
+    }
+    message Shard
+    {
+        uint32 shardsize         = 1;
+        repeated Node shardnodes = 2;
+    }
+    repeated Shard shards        = 1;
+    // Add new members here
+}
+
+// Used in database "microBlocks"
+message ProtoMicroBlockKey
+{
+    uint64 epochnum = 1;
+    uint32 shardid  = 2;
+}
+
+// Used in database "txEpochs"
+message ProtoTxEpoch
+{
+    uint64 epochnum = 1;
+}
+
+// ============================================================================
+// Primitives
+// ============================================================================
+
+message ProtoAccountBase
+{
+    uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
+    ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
+    oneof oneof3 { uint64 nonce = 3; } // Added in: v1.0, Deprecated in: N/A
+    bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
+    bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
+}
+
+message ProtoAccount
+{
+    ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
+
+    bytes code                      = 2; // Added in: v1.0, Deprecated in: N/A
+    bool numbersign                 = 4; // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
+    message StorageData2
+    {
+        string key        = 1; // Added in: v1.1, Deprecated in: N/A
+        bytes data        = 2; // Added in: v1.1, Deprecated in: N/A
+    }
+    repeated StorageData2 storage2  = 5; // Added in: v1.1, Deprecated in: N/A
+    repeated string todelete        = 6; // Added in: v1.1, Deprecated in: N/A
+    bytes initdata                  = 7; // Added in: v1.1, Deprecated in: N/A
+}
+
+message ProtoStateIndex
+{
+    repeated bytes index = 1;
+}
+
+message ProtoStateData
+{
+    uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
+    string vname   = 2; // Added in: v1.0, Deprecated in: N/A
+    bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
+    string type    = 4; // Added in: v1.0, Deprecated in: N/A
+    string value   = 5; // Added in: v1.0, Deprecated in: N/A
+}
+
+message ProtoAccountStore
+{
+    message AddressAccount
+    {
+        bytes address        = 1;
+        ProtoAccount account = 2;
+    }
+    repeated AddressAccount entries   = 3;
+}
+
+message ProtoPeer
+{
+    ByteArray ipaddress    = 1;
+    oneof oneof2 { uint32 listenporthost  = 2; }
+}
+
+message ProtoPoWSolution
+{
+    uint64 nonce        = 1;
+    bytes result        = 2;
+    bytes mixhash       = 3;
+    oneof oneof4 { uint32 lookupid     = 4; }
+    ByteArray gasprice  = 5;
+    GovernanceData govdata  = 6;
+}
+
+message ProtoCommittee
+{
+    repeated ByteArray members = 1;
+}
+
+message ProtoShardingStructureWithPoWSolns
+{
+    message Member
+    {
+        ByteArray pubkey         = 1;
+        ByteArray peerinfo       = 2;
+        oneof oneof3 { uint32 reputation = 3; }
+        ProtoPoWSolution powsoln = 4;
+    }
+    message Shard
+    {
+        repeated Member members           = 1;
+    }
+    repeated Shard shards                 = 1;
+}
+
+message ProtoDSWinnerPoW
+{
+     ByteArray pubkey         = 1;
+     ProtoPoWSolution powsoln = 2;
+}
+
+message ProtoTransactionCoreInfo
+{
+    uint32 version         = 1;
+    oneof oneof2 { uint64 nonce = 2; }
+    bytes toaddr           = 3;
+    ByteArray senderpubkey = 4;
+    ByteArray amount       = 5;
+    ByteArray gasprice     = 6;
+    uint64 gaslimit        = 7;
+    oneof oneof8 { bytes code = 8; }
+    oneof oneof9 { bytes data = 9; }
+}
+
+message ProtoTransaction
+{
+    bytes tranid                  = 1;
+    ProtoTransactionCoreInfo info = 2;
+    ByteArray signature           = 3;
+}
+
+message ProtoTxnFileOffset
+{
+    repeated uint32 offsetinfile = 1;
+}
+
+message ProtoTransactionArray
+{
+    repeated ProtoTransaction transactions = 1;
+}
+
+
+message ProtoTransactionReceipt
+{
+    bytes receipt    = 1;
+    oneof oneof2 { uint64 cumgas = 2; }
+}
+
+message ProtoTransactionWithReceipt
+{
+    ProtoTransaction transaction    = 1;
+    ProtoTransactionReceipt receipt = 2;
+}
+
+message ProtoBloomFilter
+{
+    repeated uint32 salt           = 1;
+    bytes bittable                = 2;
+    uint32 saltcount              = 3;
+    uint64 tablesize              = 4;
+    uint64 projectedelementcount = 5;
+    uint64 insertedelementcount  = 6;
+    uint64 randomseed             = 7;
+    double probability             = 8;
+}
+
+message ProtoSWInfo
+{
+    uint32 zilliqamajorversion        = 1;
+    uint32 zilliqaminorversion        = 2;
+    uint32 zilliqafixversion          = 3;
+    uint64 zilliqaupgradeds           = 4;
+    uint32 zilliqacommit              = 5;
+    uint32 scillamajorversion         = 6;
+    uint32 scillaminorversion         = 7;
+    uint32 scillafixversion           = 8;
+    uint64 scillaupgradeds            = 9;
+    uint32 scillacommit               = 10;
+}
+
+message ProtoSingleDirectoryBlock
+{
+    oneof directoryblock
+    {
+        ProtoDSBlock dsblock                                     = 1;
+        ProtoVCBlock vcblock                                     = 2;
+    }
+}
+
+// ============================================================================
+// Peer Manager messages
+// ============================================================================
+
+message PMHello
+{
+    message Data
+    {
+        ByteArray pubkey  = 1;
+        uint32 listenport = 2;
+    }
+    Data data             = 1;
+    ByteArray signature   = 2;
+}
+
+// ============================================================================
+// Governance message
+// ============================================================================
+
+message GovernanceData
+{
+    uint32 proposalid   = 1;
+    uint32 votevalue    = 2;
+}
+
+// ============================================================================
+// Directory Service messages
+// ============================================================================
+
+message DSPoWSubmission
+{
+    message Data
+    {
+        uint64 blocknumber          = 1;
+        uint32 difficultylevel      = 2; // only LSB used
+        ByteArray submitterpeer     = 3;
+        ByteArray submitterpubKey   = 4;
+        uint64 nonce                = 5;
+        string resultinghash        = 6;
+        string mixhash              = 7;
+        uint32 lookupid             = 8;
+        ByteArray gasprice          = 9;
+        GovernanceData govdata      = 10;
+        string version              = 11;
+    }
+    Data data                       = 1;
+    ByteArray signature             = 2;
+}
+
+message DSPoWPacketSubmission
+{
+    message Data
+    {
+        repeated DSPoWSubmission dsPowSubmissions    = 1;
+    }
+    Data data                               = 1;
+    ByteArray pubkey                        = 2;
+    ByteArray signature                     = 3;
+}
+
+message DSMicroBlockSubmission
+{
+    message Data
+    {
+        uint32 microblocktype       = 1; // only LSB used
+        uint64 epochnumber          = 2;
+        repeated ProtoMicroBlock microblocks = 3;
+        repeated bytes statedeltas           = 4;
+    }
+    Data data                       = 1;
+    ByteArray pubkey                = 2;
+    ByteArray signature             = 3;
+}
+
+message DSDSBlockAnnouncement
+{
+    ProtoDSBlock dsblock                        = 1;
+    ProtoShardingStructureWithPoWSolns sharding = 2;
+    repeated ProtoDSWinnerPoW dswinnerpows               = 3;
+}
+
+message DSFinalBlockAnnouncement
+{
+    ProtoTxBlock txblock       = 1;
+    ProtoMicroBlock microblock = 2;
+}
+
+message DSVCBlockAnnouncement
+{
+    ByteArray vcblock = 1;
+}
+
+message DSMissingMicroBlocksErrorMsg
+{
+    repeated bytes mbhashes    = 1;
+    uint64 epochnum   = 2;
+    uint32 listenport = 3;
+}
+
+// ============================================================================
+// Node messages
+// ============================================================================
+
+message NodeDSBlock
+{
+    uint32 shardid                        = 1;
+    ProtoDSBlock dsblock                  = 2;
+    repeated ProtoVCBlock vcblocks                 = 3;
+    ProtoShardingStructure sharding       = 4;
+}
+
+message NodeFinalBlock
+{
+    uint64 dsblocknumber = 1;
+    uint32 consensusid   = 2;
+    ProtoTxBlock txblock = 3;
+    bytes statedelta     = 4;
+    repeated uint32 shardids      = 5;
+}
+
+message NodeVCFinalBlock
+{
+    uint64 dsblocknumber = 1;
+    uint32 consensusid   = 2;
+    ProtoTxBlock txblock = 3;
+    bytes statedelta     = 4;
+    repeated ProtoVCBlock vcblocks  = 5;
+}
+
+message NodeMBnForwardTransaction
+{
+    ProtoMicroBlock microblock          = 1;
+    repeated ByteArray txnswithreceipt  = 2;
+}
+
+message NodePendingTxn
+{
+    message Data
+    {
+        message Pair
+        {
+            bytes txnhash          = 1;
+            uint32 code            = 2;
+        }
+        repeated Pair hashcodepair = 1;
+        uint64 epochnumber         = 2;
+        uint32 shardid             = 3;
+        ByteArray pubkey           = 4;
+        bytes txnlisthash          = 5;
+    }
+    Data data             = 1;
+    ByteArray signature   = 2;
+}
+
+message NodeVCBlock
+{
+    ProtoVCBlock vcblock = 1;
+}
+
+message NodeForwardTxnBlock
+{
+    uint64 epochnumber            = 1;
+    uint64 dsblocknum             = 2;
+    uint32 shardid                = 3;
+    ByteArray pubkey              = 4;
+    repeated ProtoTransaction transactions = 5;
+    ByteArray signature           = 6;
+}
+
+message NodeMicroBlockAnnouncement
+{
+    ProtoMicroBlock microblock = 1;
+}
+
+message NodeMissingTxnsErrorMsg
+{
+    repeated bytes txnhashes   = 1;
+    uint64 epochnum   = 2;
+    uint32 listenport = 3;
+}
+
+message NodeGetVersion
+{
+    uint32 listenport = 1;
+}
+
+message NodeSetVersion
+{
+    string version = 1;
+}
+
+// ============================================================================
+// Lookup messages
+// ============================================================================
+
+message LookupGetSeedPeers
+{
+    uint32 listenport = 1;
+}
+
+message LookupSetSeedPeers
+{
+    repeated ByteArray candidateseeds = 1;
+    ByteArray pubkey         = 2;
+    ByteArray signature      = 3;
+}
+
+// From normal node to lookup nodes.
+message LookupGetDSInfoFromSeed
+{
+    uint32 listenport =        1;
+    bool initialds =           2;
+}
+
+// From DS leader to lookup nodes and from lookup nodes to normal nodes.
+message LookupSetDSInfoFromSeed
+{
+    ProtoDSCommittee dscommittee = 1;
+    ByteArray pubkey             = 2;
+    ByteArray signature          = 3;
+    bool initialds               = 4;
+}
+
+// From new join lookup node or new join normal node to existing lookup node.
+message LookupGetDSBlockFromSeed
+{
+    uint64 lowblocknum            = 1;
+    uint64 highblocknum           = 2;
+    uint32 listenport             = 3;
+    bool includeminerinfo         = 4;
+}
+
+// From lookup nodes to new join lookup node or new join normal node.
+message LookupSetDSBlockFromSeed
+{
+    message Data
+    {
+        uint64 lowblocknum    = 1;
+        uint64 highblocknum   = 2;
+        repeated ProtoDSBlock dsblocks = 3;
+    }
+    Data data             = 1;
+    ByteArray pubkey      = 2;
+    ByteArray signature   = 3;
+}
+
+// From lookup nodes to new join lookup node.
+message LookupSetMinerInfoFromSeed
+{
+    message MinerInfo
+    {
+        ProtoMinerInfoDSComm minerinfodscomm = 1;
+        ProtoMinerInfoShards minerinfoshards = 2;
+    }
+    message Data
+    {
+        map<uint64, MinerInfo> minerinfoperds = 1;
+    }
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
+}
+
+// From new join lookup node or new join normal node to existing lookup node.
+message LookupGetTxBlockFromSeed
+{
+    uint64 lowblocknum     = 1;
+    uint64 highblocknum    = 2;
+    uint32 listenport      = 3;
+}
+
+// From lookup nodes to new join lookup node or new join normal node.
+message LookupSetTxBlockFromSeed
+{
+    message Data
+    {
+        uint64 lowblocknum    = 1;
+        uint64 highblocknum   = 2;
+        repeated ProtoTxBlock txblocks = 3;
+    }
+    Data data             = 1;
+    ByteArray pubkey      = 2;
+    ByteArray signature   = 3;
+}
+
+message LookupGetStateDeltaFromSeed
+{
+    uint64 blocknum     = 1;
+    uint32 listenport   = 2;
+}
+
+message LookupGetStateDeltasFromSeed
+{
+    uint64 lowblocknum  = 1;
+    uint64 highblocknum = 2;
+    uint32 listenport   = 3;
+}
+
+message LookupSetStateDeltaFromSeed
+{
+    message Data
+    {
+        uint64 blocknum     = 1;
+        bytes statedelta    = 2;
+    }
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
+}
+
+message LookupSetStateDeltasFromSeed
+{
+    message Data
+    {
+        uint64 lowblocknum    = 1;
+        uint64 highblocknum   = 2;
+        repeated bytes statedeltas = 3;
+    }
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
+}
+
+// msgtype is used to prevent replay attacks
+message LookupSetLookupOffline
+{
+    message Data
+    {
+        uint32 msgtype     = 1; // Only LSB used
+        uint32 listenport  = 2;
+    }
+    Data data              = 1;
+    ByteArray pubkey       = 2;
+    ByteArray signature    = 3;
+}
+
+// msgtype and blocknumber are used to prevent replay attacks
+message LookupSetLookupOnline
+{
+    message Data
+    {
+        uint32 msgtype     = 1; // Only LSB used
+        uint32 listenport  = 2;
+    }
+    Data data              = 1;
+    ByteArray pubkey       = 2;
+    ByteArray signature    = 3;
+}
+
+message LookupGetOfflineLookups
+{
+    uint32 listenport = 1;
+}
+
+message LookupSetOfflineLookups
+{
+    repeated ByteArray nodes     = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
+}
+
+// From archival node to lookup node.
+message LookupGetShardsFromSeed
+{
+    uint32 listenport = 1;
+}
+
+// From lookup node to archival node.
+message LookupSetShardsFromSeed
+{
+    ProtoShardingStructure sharding = 1;
+    ByteArray pubkey                = 2;
+    ByteArray signature             = 3;
+}
+
+message LookupGetMicroBlockFromLookup
+{
+    uint32 portno            = 1;
+    repeated bytes mbhashes  = 2;
+}
+
+message LookupSetMicroBlockFromLookup
+{
+    repeated ProtoMicroBlock microblocks = 1;
+    ByteArray pubkey                     = 2;
+    ByteArray signature                  = 3;
+}
+
+message LookupGetMicroBlockFromL2l
+{
+    message Data
+    {
+        uint32 portno            = 1;
+        repeated bytes mbhashes  = 2;
+    }
+    Data data                    = 1;
+    ByteArray pubkey             = 2;
+    ByteArray signature          = 3;
+}
+
+message LookupForwardTxnsFromSeed
+{
+    ProtoTransactionArray shardtransactions = 1;
+    ProtoTransactionArray dstransactions    = 2;
+}
+
+message LookupGetTxnsFromLookup
+{
+    uint32 portno            = 1;
+    bytes mbhash             = 2;
+    repeated bytes txnhashes = 3;
+}
+
+message LookupGetTxnsFromL2l
+{
+    message Data
+    {
+        uint32 portno            = 1;
+        bytes mbhash             = 2;
+        repeated bytes txnhashes = 3;
+    }
+    Data data                    = 1;
+    ByteArray pubkey             = 2;
+    ByteArray signature          = 3;
+}
+
+message LookupSetTxnsFromLookup
+{
+    bytes mbhash                    = 1;
+    repeated ByteArray transactions = 2;
+    ByteArray pubkey                = 3;
+    ByteArray signature             = 4;
+}
+
+message LookupGetDirectoryBlocksFromSeed
+{
+    uint32 portno         = 1;
+    uint64 indexnum       = 2;
+    bool includeminerinfo = 3;
+}
+
+message LookupSetDirectoryBlocksFromSeed
+{
+    message Data
+    {
+        uint64 indexnum                     = 1;
+        repeated ProtoSingleDirectoryBlock dirblocks = 2;
+    }
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
+}
+
+// ============================================================================
+// Consensus messages
+// ============================================================================
+
+message ConsensusAnnouncement
+{
+    message ConsensusInfo
+    {
+        uint32 consensusid           = 1;
+        uint64 blocknumber           = 2;
+        bytes blockhash              = 3; // 32 bytes
+        uint32 leaderid              = 4; // only lower 2 bytes used
+    }
+    ConsensusInfo consensusinfo      = 1;
+    ByteArray pubkey                 = 2;
+    ByteArray signature              = 3; // The signature of the consensus info
+    oneof announcement
+    {
+        DSDSBlockAnnouncement dsblock         = 4;
+        NodeMicroBlockAnnouncement microblock = 5;
+        DSFinalBlockAnnouncement finalblock   = 6;
+        DSVCBlockAnnouncement vcblock         = 7;
+    }
+    ByteArray finalsignature         = 9;
+}
+
+message ConsensusCommit
+{
+    message CommitInfo
+    {
+        ByteArray commitpoint     = 1;
+        ByteArray commitpointhash = 2;
+    }
+    message ConsensusInfo
+    {
+        uint32 consensusid        = 1;
+        uint64 blocknumber        = 2;
+        bytes blockhash           = 3; // 32 bytes
+        uint32 backupid           = 4; // only lower 2 bytes used
+        repeated CommitInfo commitinfo       = 5;
+    }
+    ConsensusInfo consensusinfo   = 1;
+    ByteArray pubkey              = 2;
+    ByteArray signature           = 3;
+}
+
+message ConsensusChallenge
+{
+    message SubsetInfo
+    {
+        ByteArray aggregatedcommit = 1;
+        ByteArray aggregatedkey    = 2;
+        ByteArray challenge        = 3;
+    }
+    message ConsensusInfo
+    {
+        uint32 consensusid         = 1;
+        uint64 blocknumber         = 2;
+        bytes blockhash            = 3; // 32 bytes
+        uint32 leaderid            = 4; // only lower 2 bytes used
+        repeated SubsetInfo subsetinfo      = 5;
+    }
+    ConsensusInfo consensusinfo    = 1;
+    ByteArray pubkey               = 2;
+    ByteArray signature            = 3;
+}
+
+message ConsensusResponse
+{
+    message SubsetInfo
+    {
+        ByteArray response      = 1;
+    }
+    message ConsensusInfo
+    {
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 backupid         = 4; // only lower 2 byte used
+        repeated SubsetInfo subsetinfo   = 5;
+    }
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+}
+
+message ConsensusCollectiveSig
+{
+    message ConsensusInfo
+    {
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 leaderid         = 4; // only lower 2 bytes used
+        ByteArray collectivesig = 5;
+        repeated bool bitmap             = 6 [packed=true];
+    }
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+    bytes newannouncement       = 4;
+    ByteArray finalsignature    = 5;    
+}
+
+message ConsensusCommitFailure
+{
+    message ConsensusInfo
+    {
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 backupid         = 4; // only lower 2 bytes used
+        bytes errormsg          = 5;
+    }
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+}
+
+message ConsensusConsensusFailure
+{
+    message ConsensusInfo
+    {
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 leaderid         = 4; // only lower 2 bytes used
+    }
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+}
+
+// ============================================================================
+// View change pre check messages
+// ============================================================================
+
+// From node undergoing vc pre check to fetch latest blocks
+message LookupGetDSTxBlockFromSeed
+{
+    uint64 dslowblocknum            = 1;
+    uint64 dshighblocknum           = 2;
+    uint64 txlowblocknum            = 3;
+    uint64 txhighblocknum           = 4;
+    uint32 listenport               = 5;
+}
+
+// From lookup nodes to node under going vc pre check
+message VCNodeSetDSTxBlockFromSeed
+{
+    message Data
+    {
+        repeated ProtoDSBlock dsblocks   = 1;
+        repeated ProtoTxBlock txblocks   = 2;
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// ============================================================================
+// Shard node identity update
+// ============================================================================
+
+// From shard node to lookup/dsCommittee. New shard node network info.
+message NodeSetShardNodeNetworkInfoUpdate
+{
+    message Data
+    {
+        uint64 dsepochnumber               = 1;
+        ByteArray shardnodepubkey          = 2;
+        ProtoPeer shardnodenewnetworkinfo  = 3;
+        uint64 timestamp                   = 4;
+    }
+    Data data                              = 1;
+    ByteArray signature                    = 2;
+}
+
+// ============================================================================
+// DS Guard identity update
+// ============================================================================
+
+// From DS Guard to lookup. New DS guard node network info.
+message DSLookupSetDSGuardNetworkInfoUpdate
+{
+    message Data
+    {
+        uint64 dsepochnumber               = 1;
+        ByteArray dsguardpubkey            = 2;
+        ProtoPeer dsguardnewnetworkinfo    = 3;
+        uint64 timestamp                   = 4;
+    }
+    Data data                              = 1;
+    ByteArray signature                    = 2;
+}
+
+// To update shard node of guard node's network info change
+message NodeGetGuardNodeNetworkInfoUpdate
+{
+    message Data
+    {
+        uint32 portno          = 1;
+        uint64 dsepochnumber   = 2;
+    }
+    Data data                  = 1;
+    ByteArray pubkey           = 2;
+    ByteArray signature        = 3;
+}
+
+message ProtoDSGuardUpdateStruct
+{
+    ByteArray dsguardpubkey            = 1;
+    ProtoPeer dsguardnewnetworkinfo    = 2;
+    uint64 timestamp                   = 3;
+}
+
+// From sending New DS guard node network info to requesing shard node
+message NodeSetGuardNodeNetworkInfoUpdate
+{
+    message Data
+    {
+        repeated ProtoDSGuardUpdateStruct dsguardupdatestruct = 1;
+    }
+    Data data                              = 1;
+    ByteArray lookuppubkey                 = 2;
+    ByteArray signature                    = 3;
+}
+
+// For removing sender from local blacklist
+message NodeRemoveFromBlacklist
+{
+    message Data
+    {
+        ByteArray ipAddress    = 1;
+        uint64 dsepochnumber   = 2;
+    }
+    Data data                  = 1;
+    ByteArray pubkey           = 2;
+    ByteArray signature        = 3;
+}
+
+// Holds cosigs and rewards structure for specific shard of specific epoch
+message ProtoCosigsRewardsStructure
+{
+    uint64 epochnumber         = 1;
+    int32 shardid              = 2;
+    ProtoBlockBase blockbase   = 3;
+    ByteArray rewards          = 4;
+}
+
+// From DS node for fetching cosig/rewards from Lookup
+message LookupGetCosigsRewardsFromSeed
+{
+    message Data
+    {
+        uint32 portno           = 1;
+        uint64 epochnumber      = 2;
+    }
+    Data data                   = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+}
+
+// Lookup set cosigs/rewards for ds node
+message LookupSetCosigsRewardsFromSeed
+{
+    message Data
+    {
+        repeated ProtoCosigsRewardsStructure cosigsrewards  = 1;
+    }
+    Data data                                               = 1;
+    ByteArray pubkey                                        = 2;
+    ByteArray signature                                     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetVCFinalBlockFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        ProtoPeer sender    = 2;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetDSBlockFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        ProtoPeer sender    = 2;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetMBnForwardTxnFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        uint32 shardId      = 2;  
+        ProtoPeer sender    = 3;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetPendingTxnFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        uint32 shardId      = 2;
+        ProtoPeer sender    = 3;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}

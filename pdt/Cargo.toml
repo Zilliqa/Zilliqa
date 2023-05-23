@@ -16,15 +16,30 @@ test = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.71"
 aws-config = "0.55.2"
 aws-sdk-s3 = "0.27.0"
 aws-sig-auth = "0.55.2"
 aws-smithy-http = "0.55.2"
+clap =  { version="4.3.0", features=["derive"] }
+eth_trie = { git = "https://github.com/carver/eth-trie.rs" }
 eyre = "0.6.8"
 futures = "0.3.28"
+hex =  { version = "0.4.3", features = ["serde"] }
+indicatif = "0.17.3"
+primitive-types = { version="0.11.1", features = ["serde"] }
+prost = "0.11.9"
+rlp = "0.5.2"
+rs-leveldb = "0.1.5"
+rustc-hex = "2.1.0"
 serde = { version = "1.0.163", features = [ "derive" ]}
 serde_json = { version = "1.0.96" }
-tokio = { version = "1.28.1", features = [ "macros", "rt-multi-thread" ] }
+sha2 = "0.10.6"
+sha3 = "0.10.8"
+thiserror = "1.0.40"
+tokio = { version = "1.28.1", features = [ "macros", "rt-multi-thread", "fs", "process" ] }
 tokio-stream = "0.1.14"
 walkdir = "2.3.3"
 
+[build-dependencies]
+prost-build = "0.11.6"
