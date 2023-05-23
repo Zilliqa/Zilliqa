@@ -70,6 +70,9 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
     m_txTraceDB = std::make_shared<LevelDB>("txTraces");
+    m_otterTraceDB = std::make_shared<LevelDB>("otterTraces");
+    m_otterTxAddressMappingDB = std::make_shared<LevelDB>("otterTxAddressMappings");
+    m_otterAddressNonceLookup = std::make_shared<LevelDB>("otterAddressNonceLookup");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -2071,4 +2074,269 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   } else {
     LOG_GENERAL(WARNING, "There was nothing to catchup");
   }
+}
+
+
+///// nathan
+
+// Tx traces are put in storage, and each time one is inserted, the oldest is
+// pruned, so long as it is over TX_TRACES_TO_STORE ago.
+// To do this, at the null address is an array/ring buffer of trace hashes
+//
+bool BlockStorage::PutOtterTrace(const dev::h256& key, const std::string& trace) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    LOG_GENERAL(
+        WARNING,
+        "This should only be triggered when archival lookup is enabled!.");
+    return false;
+  }
+
+  if (!key) {
+    LOG_GENERAL(WARNING, "Setting with a zero hash is not allowed");
+    return false;
+  }
+
+  ZilliqaMessage::OtterscanTrace toWrite;
+  toWrite.set_trace(trace);
+
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  // Store txn hash and epoch inside txEpochs DB
+  if (m_otterTraceDB->Insert(key, toWrite.SerializeAsString()) != 0) {
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
+        << " key=" << key);
+    return false;
+  }
+
+  return true;
+}
+
+bool BlockStorage::GetOtterTrace(const dev::h256& key, std::string& trace) {
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  trace = m_otterTraceDB->Lookup(keyBytes);
+
+  if (trace.empty()) {
+    return false;
+  }
+
+  ZilliqaMessage::OtterscanTrace otterTrace;
+  otterTrace.ParseFromString(trace);
+  trace = otterTrace.trace();
+
+  return true;
+}
+
+// Tx txAddressMappings are put in storage, and each time one is inserted, the oldest is
+// pruned, so long as it is over TX_TxAddressMappingS_TO_STORE ago.
+// To do this, at the null address is an array/ring buffer of txAddressMapping hashes
+//
+bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    LOG_GENERAL(
+        WARNING,
+        "This should only be triggered when archival lookup is enabled!.");
+    return false;
+  }
+
+  if (!txId) {
+    LOG_GENERAL(WARNING, "Setting with a zero txid is not allowed");
+    return false;
+  }
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  // for each address, add to the tx hashes and block number that touched them
+  for (auto address : addresses) {
+
+    // lowercase address
+    std::transform(address.begin(), address.end(), address.begin(), ::tolower);
+
+    // if address has 0x prefix, remove it
+    if (address.substr(0,2) == "0x") {
+      address = address.substr(2);
+    }
+
+    // if address is all zeroes, do not want it inserted
+    if (address == "0000000000000000000000000000000000000000") {
+      continue;
+    }
+
+    if (address.size() != 40) {
+      LOG_GENERAL(WARNING, "Address " << address << " is not 40 characters long");
+      continue;
+    }
+
+    ZilliqaMessage::OtterscanTraceAddressMapping ret;
+    ZilliqaMessage::OtterscanTraceAddressMapping_TxHashInfo internal;
+
+    auto res = m_otterTxAddressMappingDB->Lookup(address);
+
+    if(!res.empty()) {
+      ret.ParseFromString(res);
+    }
+
+    // Now add to the internal list
+    internal.set_hash(txId.hex());
+    internal.set_blocknum(blocknum);
+    ret.mutable_hashes()->Add(std::move(internal));
+
+    std::cerr << "Adding txid " << txId << " to address " << address << std::endl;
+
+    zbytes ser(ret.ByteSizeLong());
+    ret.SerializeToArray(ser.data(), ser.size());
+
+    m_otterTxAddressMappingDB->Insert(address, ser);
+  }
+
+  return true;
+}
+
+std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before) {
+
+  std::vector<std::string> addresses;
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterTxAddressMappingDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return {};
+  }
+
+  // lowercase the query
+  std::transform(address.begin(), address.end(), address.begin(), ::tolower);
+
+  // remove 0x prefix from address if exists
+  if (address.substr(0,2) == "0x") {
+    address = address.substr(2);
+  }
+
+  if (address.size() != 40) {
+    LOG_GENERAL(WARNING, "Address " << address << " is not 40 characters long");
+    return {};
+  }
+
+  std::string ret = m_otterTxAddressMappingDB->Lookup(address);
+
+  if (ret.empty()) {
+    std::cerr << "nothing at: " << address << std::endl;
+    return {};
+  }
+
+  ZilliqaMessage::OtterscanTraceAddressMapping otterTxAddressMapping;
+  otterTxAddressMapping.ParseFromString(ret);
+
+  for(auto item : otterTxAddressMapping.hashes()) {
+    if(addresses.size() >= pageSize) {
+      break;
+    }
+
+    if(before) {
+      if(item.blocknum() < blockNumber) {
+        addresses.push_back(item.hash());
+      }
+    } else {
+      if(item.blocknum() > blockNumber) {
+        addresses.push_back(item.hash());
+      }
+    }
+  }
+
+  return addresses;
+}
+
+
+// nathan2
+bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    LOG_GENERAL(
+        WARNING,
+        "This should only be triggered when archival lookup is enabled!.");
+    return false;
+  }
+
+  if (!txId) {
+    LOG_GENERAL(WARNING, "Setting with a zero txid is not allowed");
+    return false;
+  }
+
+  std::transform(address.begin(), address.end(), address.begin(), ::tolower);
+
+  // remove 0x prefix from address if exists
+  if (address.substr(0,2) == "0x") {
+    address = address.substr(2);
+  }
+
+  if (address.size() != 40) {
+    LOG_GENERAL(WARNING, "Address " << address << " is not 40 characters long");
+    return {};
+  }
+
+  // Create lookup key as concatenation of address and nonce
+  std::string key = address + std::to_string(nonce);
+  cerr  << "otter insert key: " << key << " with nonce " << nonce << endl;
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  ZilliqaMessage::OtterscanAddressNonceLookup insert;
+  insert.set_hash("0x" + txId.hex());
+
+  zbytes ser(insert.ByteSizeLong());
+  insert.SerializeToArray(ser.data(), ser.size());
+
+  return m_otterAddressNonceLookup->Insert(key, ser) == 0;
+}
+
+std::string BlockStorage::GetOtterAddressNonceLookup(std::string address, uint64_t nonce) {
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterAddressNonceLookup) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return {};
+  }
+
+  // remove 0x prefix from address if exists, make lowercase
+  std::transform(address.begin(), address.end(), address.begin(), ::tolower);
+
+  if (address.substr(0,2) == "0x") {
+    address = address.substr(2);
+  }
+
+  if (address.size() != 40) {
+    LOG_GENERAL(WARNING, "Address " << address << " is not 40 characters long");
+    return {};
+  }
+
+  std::string key = address + std::to_string(nonce);
+
+  cerr << "otter lookup key: " << key << endl;
+
+  std::string ret = m_otterAddressNonceLookup->Lookup(key);
+
+  ZilliqaMessage::OtterscanAddressNonceLookup txnId;
+  txnId.ParseFromString(ret);
+
+  return txnId.hash();
 }

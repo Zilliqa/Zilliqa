@@ -36,6 +36,7 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
@@ -283,6 +284,42 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   return status;
 }
 
+std::string stripTxTraceOut(const std::string &trace) {
+  //std::string stripped;
+
+  Json::Value trace_json;
+  JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
+
+  //Json::Value parsed;
+  trace_json.removeMember("call_tracer");
+  trace_json.removeMember("raw_tracer");
+
+  return trace_json.toStyledString();
+
+  //auto const item = trace_json["otter_addresses_called"];
+  //parsed = item;
+}
+
+void getAddressesFromTrace(const std::string &trace, std::set<std::string> &addresses) {
+  Json::Value trace_json;
+  JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
+
+  Json::Value parsed;
+
+  auto const item = trace_json["otter_addresses_called"];
+  parsed = item;
+
+  // non 0x prefixed addresses - strip if present
+  for (auto const &address : parsed) {
+    auto addr = address.asString();
+    if (addr.substr(0, 2) == "0x") {
+      addresses.insert(addr);
+    } else {
+      addresses.insert(addr.substr(2));
+    }
+  }
+}
+
 bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        const unsigned int &numShards,
                                        const bool &isDS,
@@ -338,6 +375,12 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
 
+    std::set<std::string> addresses_touched;
+    addresses_touched.insert(m_originAddr.hex());
+    std::cerr << "og addr: " << m_originAddr.hex() << std::endl;
+    addresses_touched.insert(m_curContractAddr.hex());
+    std::cerr << "contract addr: " << m_curContractAddr.hex() << std::endl;
+
     if (std::holds_alternative<evm::EvmResult>(cpsRunResult.result) &&
         ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
       auto const &context = std::get<evm::EvmResult>(cpsRunResult.result);
@@ -345,14 +388,45 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
       if (!traces.empty() && evmContext.GetTranID()) {
         LOG_GENERAL(INFO,
-                    "Putting in TX trace for: " << evmContext.GetTranID());
+                    "***** Putting in TX trace for: " << evmContext.GetTranID());
 
         std::cout << traces << std::endl;
+
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
+
+        // Attempt to parse the addresses called to fulfil ots_searchTransactions*
+        // The tx has reported all addresses it has touched via call or transfer
+        // and we can use this to populate the address->tx mapping
+        getAddressesFromTrace(traces, addresses_touched);
+
+        // we want a version with only otter stuff since we store it
+        // permanently and the rest is huge
+        auto const trace_stripped = stripTxTraceOut(traces);
+
+        std::cerr << trace_stripped << std::endl;
+
+        if (!BlockStorage::GetBlockStorage().PutOtterTrace(evmContext.GetTranID(),
+                                                        traces)) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put otter trace failed " << evmContext.GetTranID());
+        }
+      } else {
+        LOG_GENERAL(INFO, "No tx trace to put in..." << evmContext.GetTranID());
+      }
+    }
+
+    std::cerr << "we are here..." << std::endl;
+
+    // This needs to be outside the above as needs to include possibility of non evm tx
+    if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(evmContext.GetTranID(),
+                                                                    addresses_touched, blockNum)) {
+        LOG_GENERAL(INFO,
+                    "FAIL: Put otter addr mapping failed " << evmContext.GetTranID());
       }
     }
 

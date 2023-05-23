@@ -63,6 +63,17 @@ struct Args {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+struct OtterscanCallContext {
+    #[serde(rename = "type")]
+    pub call_type: String,
+    pub depth: usize,
+    pub from: String,
+    pub to: String,
+    pub value: String,
+    pub input: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct CallContext {
     #[serde(rename = "type")]
     pub call_type: String, // only 'call' (not create, delegate, static)
@@ -115,7 +126,10 @@ struct StructLog {
 struct LoggingEventListener {
     call_tracer: Vec<CallContext>,
     raw_tracer: StructLogTopLevel,
-    internal_tracer: Vec<InternalOperationOtter>,
+    otter_internal_tracer: Vec<InternalOperationOtter>,
+    otter_call_tracer: Vec<OtterscanCallContext>,
+    otter_transaction_error: String,
+    otter_addresses_called: Vec<String>,
     enabled: bool,
 }
 
@@ -131,7 +145,7 @@ struct StructLogTopLevel {
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct InternalOperationOtter {
     #[serde(rename = "type")]
-    pub call_type: u64,
+    pub call_type: usize,
     pub from: String,
     pub to: String,
     pub value: String,
@@ -148,11 +162,26 @@ impl LoggingEventListener {
         LoggingEventListener {
             call_tracer: Default::default(),
             raw_tracer: Default::default(),
-            internal_tracer: Default::default(),
+            otter_internal_tracer: Default::default(),
+            otter_call_tracer: Default::default(),
+            otter_transaction_error: "0x".to_string(),
+            otter_addresses_called: Default::default(),
             enabled,
         }
     }
 }
+
+//impl evm::tracing::EventListener for LoggingEventListener {
+//    fn event(&mut self, event: evm::tracing::Event) {
+//        if !self.enabled {
+//            return;
+//        }
+//
+//        // print the event
+//        eprintln!(" other event!{:?}", event);
+//        eprintln!(" other event!{:?}", event);
+//    }
+//}
 
 impl evm::runtime::tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: evm::runtime::tracing::Event) {
@@ -160,17 +189,14 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             return;
         }
 
+        let call_depth = self.call_tracer.len() - 1;
+
         let mut struct_log = StructLog {
-            depth: self.call_tracer.len() - 1,
+            depth: call_depth,
             ..Default::default()
         };
 
-        let mut intern_trace = InternalOperationOtter {
-            call_type: 0,
-            from: "0x0".to_string(),
-            to: "0x0".to_string(),
-            value: "0".to_string()
-        };
+        let mut intern_trace = None;
 
         match event {
             evm::runtime::tracing::Event::Step {
@@ -187,7 +213,7 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                     struct_log.stack.push(format!("{sta:?}"));
                 }
 
-                eprintln!("opcode is: {:?}", opcode.to_string());
+                //eprintln!("opcode is: {:?}", opcode.to_string());
 
                 match opcode {
                     Opcode::SUICIDE => {
@@ -196,88 +222,14 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                         // print the apparent value of suicide:
                         eprintln!("Apparent value: {:?}", context.apparent_value);
                         eprintln!("Apparent value X: {:0X?}", context.apparent_value);
+                        eprintln!("target X: {:0X?}", context.apparent_value);
+
+                        //eprintln!("target: {:0X?}", stack.tar);
+                        //eprintln!("addr: {:0X?}", context.apparent_value);
+                        //eprintln!("balance: {:0X?}", context.apparent_value);
                     },
                     _ => {}
                 }
-
-                //print the opcode
-//                match opcode {
-//                    Opcode::ADD => {
-//                        struct_log.op = "ADD".to_string();
-//                    }
-//                    Opcode::MUL => {
-//                        struct_log.op = "MUL".to_string();
-//                    }
-//                    Opcode::SUB => {
-//                        struct_log.op = "SUB".to_string();
-//                    }
-//                    Opcode::DIV => {
-//                        struct_log.op = "DIV".to_string();
-//                    }
-//                    Opcode::SDIV => {
-//                        struct_log.op = "SDIV".to_string();
-//                    }
-//                    Opcode::MOD => {
-//                        struct_log.op = "MOD".to_string();
-//                    }
-//                    Opcode::SMOD => {
-//                        struct_log.op = "SMOD".to_string();
-//                    }
-//                    Opcode::ADDMOD => {
-//                        struct_log.op = "ADDMOD".to_string();
-//                    }
-//                    Opcode::MULMOD => {
-//                        struct_log.op = "MULMOD".to_string();
-//                    }
-//                    Opcode::EXP => {
-//                        struct_log.op = "EXP".to_string();
-//                    }
-//                    Opcode::SIGNEXTEND => {
-//                        struct_log.op = "SIGNEXTEND".to_string();
-//                    }
-//                    Opcode::LT => {
-//                        struct_log.op = "LT".to_string();
-//                    }
-//                    Opcode::GT => {
-//                        struct_log.op = "GT".to_string();
-//                    }
-//                    Opcode::SLT => {
-//                        struct_log.op = "SLT".to_string();
-//                    }
-//                    Opcode::SGT => {
-//                        struct_log.op = "SGT".to_string();
-//                    }
-//                    Opcode::EQ => {
-//                        struct_log.op = "EQ".to_string();
-//                    }
-//                    Opcode::ISZERO => {
-//                        struct_log.op = "ISZERO".to_string();
-//                    }
-//                    Opcode::AND => {
-//                        struct_log.op = "AND".to_string();
-//                    }
-//                    Opcode::OR => {
-//                        struct_log.op = "OR".to_string();
-//                    }
-//                    Opcode::XOR => {
-//                        struct_log.op = "XOR".to_string();
-//                    }
-//                    Opcode::NOT => {
-//                        struct_log.op = "NOT".to_string();
-//                    }
-//                    Opcode::BYTE => {
-//                        struct_log.op = "BYTE".to_string();
-//                    }
-//                    Opcode::SHL => {
-//                        struct_log.op = "SHL".to_string();
-//                    }
-//                    Opcode::SHR => {
-//                        struct_log.op = "SHR".to_string();
-//                    }
-//                    Opcode::SAR => {
-//                        struct
-
-                //if opcode == Opcode::TRA
             }
             evm::runtime::tracing::Event::StepResult {
                 result,
@@ -300,10 +252,99 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             } => {
                 struct_log.op = "SStore".to_string();
             }
+            evm::runtime::tracing::Event::TransactTransfer {
+                call_type: call_type,
+                address: address,
+                target: target,
+                balance: balance,
+                input: input,
+            } => {
+                eprintln!("**** it happened transfer! {:?} {:?} {:?}", address, target, balance);
+
+                intern_trace = Some(InternalOperationOtter {
+                    call_type: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                });
+
+                self.otter_call_tracer.push(OtterscanCallContext{
+                    call_type: call_type.to_string(),
+                    depth: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                    input: input.to_string(),});
+
+                let to_add = format!("{:?}", target);
+
+                // only push if doesn't exist in otter_addresses_called
+                if !self.otter_addresses_called.contains(&to_add) {
+                    self.otter_addresses_called.push(to_add);
+                }
+            }
+            evm::runtime::tracing::Event::TransactSuicide {
+                address: address,
+                target: target,
+                balance: balance,
+            } => {
+                eprintln!("**** it happened! {:?} {:?} {:?}", address, target, balance);
+
+                intern_trace = Some(InternalOperationOtter {
+                    call_type: 1,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                });
+
+                self.otter_call_tracer.push(OtterscanCallContext{
+                    call_type: "SELFDESTRUCT".to_string(),
+                    depth: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                    input: "".to_string(),});
+            }
+            evm::runtime::tracing::Event::TransactCreate {
+                call_type: call_type,
+                address: address,
+                target: target,
+                balance: balance,
+                is_create2: is_create2,
+                input: input,
+            } => {
+                eprintln!("**** it happened Create! {:?} {:?} {:?} {:?}", address, target, balance, is_create2);
+
+                intern_trace = Some(InternalOperationOtter {
+                    call_type: if is_create2 { 3 } else { 2 },
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                });
+
+                self.otter_call_tracer.push(OtterscanCallContext{
+                    call_type: call_type.to_string(),
+                    depth: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                    input: input.to_string(),});
+
+                let to_add = format!("{:?}", target);
+
+                // only push if doesn't exist in otter_addresses_called
+                if !self.otter_addresses_called.contains(&to_add) {
+                    self.otter_addresses_called.push(to_add);
+                }
+                //self.otter_addresses_called.push(format!("{:?}", target));
+            }
         }
 
-        self.raw_tracer.struct_logs.push(struct_log);
-        self.internal_tracer.push(intern_trace);
+        //self.raw_tracer.struct_logs.push(struct_log); // todo: undelete this
+
+        if let Some(intern_trace) = intern_trace {
+            self.otter_internal_tracer.push(intern_trace);
+        }
     }
 }
 
@@ -331,7 +372,7 @@ impl LoggingEventListener {
         // Now we have constructed our new call context, it gets added to the end of
         // the stack (if we want to do tracing)
         if self.enabled {
-            self.call_tracer.push(context);
+            self.call_tracer.push(context); // todo: undelete
         }
     }
 }

@@ -47,9 +47,9 @@ pub async fn run_evm_impl(
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
         info!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}, data: {:0X?}",
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?} is_continuation: {:?}, cps: {:?}, \ntx_trace: {:?}, \ndata: {:02X?}, \ncode: {:02X?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate, enable_cps, tx_trace, data);
+            backend.extras, estimate, node_continuation.is_none(), enable_cps, tx_trace, data, code);
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -157,8 +157,11 @@ pub async fn run_evm_impl(
                     evm::ExitReason::Succeed(exit_succeeded) => {
                         if exit_succeeded == ExitSucceed::Suicided {
                             eprintln!("huehue");
-                            eprintln!("apparent value: {:?}", &context.apparent_value)
+                            //eprintln!("apparent value: {:?}", &context.apparent_value)
                         }
+                    }
+                    evm::ExitReason::Revert(exit_revert) => {
+                        listener.otter_transaction_error = u8_vec_to_hex(&runtime.machine().return_value(), true);
                     }
                     _ => {
                         debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
@@ -433,3 +436,17 @@ fn handle_panic(trace: String, remaining_gas: u64, reason: &str) -> EvmProto::Ev
     result.set_remaining_gas(remaining_gas);
     result
 }
+
+fn u8_vec_to_hex(to_convert: &Vec<u8>, add_0x: bool) -> String {
+    let mut hex_string = String::new();
+
+    if add_0x {
+        hex_string.push_str("0x");
+    }
+
+    for byte in to_convert {
+        hex_string.push_str(&format!("{:02x}", byte));
+    }
+    hex_string
+}
+

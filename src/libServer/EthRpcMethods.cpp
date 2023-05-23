@@ -375,6 +375,36 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("ots_getInternalOperations", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::OtterscanGetInternalOperationsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("ots_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::OtterscanTraceTransactionI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("ots_searchTransactionsBefore", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::OtterscanSearchTransactionsBeforeI);
+  
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("ots_searchTransactionsBefore", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::OtterscanSearchTransactionsBeforeI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("ots_getTransactionBySenderAndNonce", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::OtterscanGetTransactionBySenderAndNonceI);
+
+  m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceBlockByNumber",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, "param02",
@@ -713,10 +743,19 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
     } else if (tracer.compare("raw") == 0) {
       auto const item = trace_json["raw_tracer"];
       parsed = item;
+    } else if (tracer.compare("otter_internal_tracer") == 0) {
+      auto const item = trace_json["otter_internal_tracer"];
+      parsed = item;
+    } else if (tracer.compare("otter_call_tracer") == 0) {
+      auto const item = trace_json["otter_call_tracer"];
+      parsed = item;
+    } else if (tracer.compare("otter_transaction_error") == 0) {
+      auto const item = trace_json["otter_transaction_error"];
+      parsed = item;
     } else {
       throw JsonRpcException(
           ServerBase::RPC_MISC_ERROR,
-          std::string("Only callTracer and raw are supported. Received: ") +
+          std::string("Only callTracer, internal_tracer, otter_call_tracer, otter_transaction_error, and raw are supported. Received: ") +
               tracer);
     }
   } catch (exception &e) {
@@ -2021,6 +2060,119 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
     }
 
     return extractTracer(json["tracer"].asString(), trace);
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+}
+
+
+Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& address, unsigned long blockNumber, unsigned long pageSize, bool before) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store otter internal operations");
+  }
+
+  if (!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store otter internal operations");
+  }
+
+  // if blocnumber is 0 and it's a before search, then we need to get the latest block number
+  if (blockNumber == 0 && before) {
+    blockNumber = m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  }
+
+  try {
+    //TxnHash tranHash(txHash);
+
+    const auto res =
+        BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before); // nathan
+
+    // Perhaps this should just return empty array
+    if (res.empty()) {
+      LOG_GENERAL(INFO, "Otterscan trace request failed! ");
+      return Json::nullValue;
+    }
+
+    Json::Value response = Json::objectValue;
+    Json::Value txs = Json::arrayValue;
+    Json::Value receipts = Json::arrayValue;
+
+    for(const auto& hash : res) {
+      // Get Tx result
+      auto const txByHash = GetEthTransactionByHash(hash);
+      auto const txReceipt = GetEthTransactionReceipt(hash);
+
+      txs.append(txByHash);
+      receipts.append(txReceipt);
+    }
+
+    response["txs"] = txs;
+    response["receipts"] = receipts;
+    response["firstPage"] = true;
+    response["lastPage"] = false;
+
+    return response;
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << address);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+}
+
+Json::Value EthRpcMethods::OtterscanGetTransactionBySenderAndNonce(const std::string& address, uint64_t nonce) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store otter internal operations");
+  }
+
+  if (!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store otter internal operations");
+  }
+
+  try {
+    const auto res =
+        BlockStorage::GetBlockStorage().GetOtterAddressNonceLookup(address, nonce);
+
+    // Perhaps this should just return empty array
+    if (res.empty()) {
+      LOG_GENERAL(INFO, "Otterscan addr nonce request failed! ");
+      return Json::nullValue;
+    }
+
+    return res;
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << address);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+}
+
+Json::Value EthRpcMethods::OtterscanGetInternalOperations(const std::string &txHash, const std::string &tracer) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store otter internal operations");
+  }
+
+  if (!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store otter internal operations");
+  }
+
+  std::string trace;
+
+  try {
+    TxnHash tranHash(txHash);
+
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetOtterTrace(tranHash, trace); // nathan
+
+    if (!isPresent) {
+      LOG_GENERAL(INFO, "Otterscan trace request failed! ");
+      return Json::nullValue;
+    }
+
+    return extractTracer(tracer, trace);
   } catch (exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");

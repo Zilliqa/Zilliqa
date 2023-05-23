@@ -37,6 +37,7 @@
 #include "libCps/CpsExecutor.h"
 #include "libData/AccountStore/AccountStoreSC.h"
 #include "libMetrics/Api.h"
+#include "libPersistence/BlockStorage.h"
 
 namespace {
 
@@ -263,6 +264,8 @@ bool AccountStoreSC::UpdateAccounts(
       cpsRunResult.isSuccess = true;
     }
     error_code = cpsRunResult.txnStatus;
+
+
     return cpsRunResult.isSuccess;
   }
 

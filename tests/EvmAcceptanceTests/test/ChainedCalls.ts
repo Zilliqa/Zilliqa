@@ -25,6 +25,8 @@ describe("Chained Contract Calls Functionality", function () {
 
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
+      console.log("did the thing...");
+
       // Now call contract one, passing in the addresses of contracts two and three
       let tracer = {tracer: "callTracer"};
 

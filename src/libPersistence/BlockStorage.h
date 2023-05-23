@@ -87,6 +87,9 @@ class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
   std::shared_ptr<LevelDB> m_txTraceDB;
+  std::shared_ptr<LevelDB> m_otterTraceDB;
+  std::shared_ptr<LevelDB> m_otterTxAddressMappingDB;
+  std::shared_ptr<LevelDB> m_otterAddressNonceLookup;
   std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
@@ -203,6 +206,20 @@ class BlockStorage : boost::noncopyable {
   bool PutTxTrace(const dev::h256& key, const std::string& trace);
   bool GetTxTrace(const dev::h256& key, std::string& trace);
   std::shared_ptr<LevelDB> GetTxTraceDb();
+
+  /// Retrieves the requested transaction trace for otterscan.
+  bool PutOtterTrace(const dev::h256& key, const std::string& trace);
+  bool GetOtterTrace(const dev::h256& key, std::string& trace);
+  //std::shared_ptr<LevelDB> GetOtterTraceDb();
+
+  /// Retrieves the mappings of address touched to TX.
+  bool PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum);
+  std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before);
+  //std::shared_ptr<LevelDB> GetOtterTxAddressMappingDb();
+
+  /// Retrieves the mappings of address touched to TX.
+  bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address);
+  std::string GetOtterAddressNonceLookup(std::string address, uint64_t nonce);
 
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
