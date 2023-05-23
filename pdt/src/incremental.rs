@@ -1,3 +1,4 @@
+use crate::context;
 /// Retrieve the incremental db.
 use crate::context::{Context, INCREMENTAL_NAME};
 use crate::download;
@@ -44,11 +45,22 @@ impl<'a> Incremental<'a> {
     }
 
     // Download the incremental state deltas
+    pub async fn download_incr_state(&self) -> Result<()> {
+        let object_root = format!("{}/{}", context::STATEDELTA_NAME, self.ctx.network_name);
+        let target_path = Path::new(&self.ctx.target_path).join(utils::DIR_STATEDELTA);
+        let entries = self
+            .ctx
+            .list_objects(&format!("{}/{}", object_root, "stateDelta"))
+            .await?;
+        let mut sync = sync::Sync::new(16)?;
+        sync.sync_keys(self.ctx, &object_root, &target_path, &entries, true)
+            .await?;
+        Ok(())
+    }
 
     // Download the persistence increment tarfiles, removing any that no longer exist.
     pub async fn download_incr_persistence(&self) -> Result<()> {
         let object_root = format!("{}/{}", INCREMENTAL_NAME, self.ctx.network_name);
-        println!("Here!");
         let mut target_path = Path::new(&self.ctx.target_path).to_path_buf();
         target_path.push(utils::DIR_PERSISTENCE_DIFFS);
         // List all the persistence diffs

@@ -3,7 +3,7 @@
  */
 use crate::utils;
 use eyre::{eyre, Result};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{fs, path};
@@ -24,6 +24,17 @@ pub struct Renderer {
     unpack_dir: String,
 }
 
+pub enum IncrementalKind {
+    Persistence,
+    StateDelta,
+}
+
+pub struct RecoveryPoints {
+    pub persistence_blocks: Vec<i64>,
+    pub state_delta_blocks: Vec<i64>,
+    pub recovery_points: Vec<i64>,
+}
+
 impl Renderer {
     pub fn new(network_name: &str, download_dir: &str, unpack_dir: &str) -> Result<Self> {
         Ok(Renderer {
@@ -33,8 +44,11 @@ impl Renderer {
         })
     }
 
-    fn get_file_map(&self) -> Result<HashMap<i64, PathBuf>> {
-        let diff_dir = Path::new(&self.download_dir).join(utils::DIR_PERSISTENCE_DIFFS);
+    fn get_file_map(&self, kind: IncrementalKind) -> Result<HashMap<i64, PathBuf>> {
+        let diff_dir = Path::new(&self.download_dir).join(match kind {
+            IncrementalKind::Persistence => utils::DIR_PERSISTENCE_DIFFS,
+            IncrementalKind::StateDelta => utils::DIR_STATEDELTA,
+        });
         let paths = fs::read_dir(diff_dir)?;
         let mut result: HashMap<i64, PathBuf> = HashMap::new();
 
@@ -46,9 +60,10 @@ impl Renderer {
                     let file_name_maybe = file_name_as_osstr.to_os_string().into_string();
                     if let Ok(file_name) = file_name_maybe {
                         // Phew!
-                        if let Some(blk_trail) =
-                            file_name.strip_prefix(utils::PERSISTENCE_DIFF_FILE_PREFIX)
-                        {
+                        if let Some(blk_trail) = file_name.strip_prefix(match kind {
+                            IncrementalKind::Persistence => utils::PERSISTENCE_DIFF_FILE_PREFIX,
+                            IncrementalKind::StateDelta => utils::STATE_DELTA_DIFF_FILE_PREFIX,
+                        }) {
                             // OK. We're a valid file.
                             let splits: Vec<_> = blk_trail.split('.').collect();
                             if splits.len() > 0 {
@@ -78,9 +93,32 @@ impl Renderer {
         Ok(())
     }
 
+    // Unpack the state delta for block `block`
+    pub fn unpack_statedelta(&self, block: i64) -> Result<()> {
+        let map = self.get_file_map(IncrementalKind::StateDelta)?;
+        let path = map
+            .get(&block)
+            .ok_or(eyre!("Cannot find path for state delta {}", block))?;
+        let path_str = utils::path_to_str(path)?;
+        let tgt_dir = Path::new(&self.unpack_dir).join("stateDelta");
+        println!("Unpacking {}", &path_str);
+        let out = Command::new("tar")
+            .args([
+                "-C",
+                &utils::path_to_str(&tgt_dir)?,
+                "--strip-components",
+                "1",
+                "-xvzf",
+                &path_str,
+            ])
+            .output()?;
+        println!("{:}", std::str::from_utf8(&out.stdout)?);
+        Ok(())
+    }
+
     // Unpack blocks into the target.
-    pub fn unpack_blocks(&self, blocks: &Vec<i64>) -> Result<()> {
-        let map = self.get_file_map()?;
+    pub fn unpack_persistence_deltas(&self, blocks: &Vec<i64>) -> Result<()> {
+        let map = self.get_file_map(IncrementalKind::Persistence)?;
         for blk in blocks {
             // What's the filename?
             let path = map.get(blk).ok_or(eyre!(
@@ -137,19 +175,62 @@ impl Renderer {
     }
 
     /// List incremental .tar.gz files in block order.
-    pub fn list_incrementals(&self) -> Result<Vec<i64>> {
-        let map = self.get_file_map()?;
+    pub fn list_incremental_blocks(&self, which: IncrementalKind) -> Result<Vec<i64>> {
+        let map = self.get_file_map(which)?;
         let mut result: Vec<i64> = map.into_keys().collect();
         result.sort();
         Ok(result)
     }
 
-    /// Unpack
-    pub fn unpack(&self, blocks: &Vec<i64>) -> Result<()> {
+    pub fn get_recovery_points(&self) -> Result<RecoveryPoints> {
+        let persistence_blocks = self.list_incremental_blocks(IncrementalKind::Persistence)?;
+        let state_delta_blocks = self.list_incremental_blocks(IncrementalKind::StateDelta)?;
+        let state_delta_set: HashSet<i64> = HashSet::from_iter(state_delta_blocks.iter().cloned());
+
+        // All persistence blocks also in the state delta set are recovery points.
+        let recovery_points = persistence_blocks
+            .iter()
+            .filter(|x| state_delta_set.contains(x))
+            .cloned()
+            .collect::<Vec<i64>>();
+
+        Ok(RecoveryPoints {
+            persistence_blocks,
+            state_delta_blocks,
+            recovery_points,
+        })
+    }
+
+    /** Unpack.
+     *
+     * @param recover_from a block to recover from, or None for the latest.
+     */
+    pub fn unpack(
+        &self,
+        recovery_points: &RecoveryPoints,
+        recover_from: Option<i64>,
+    ) -> Result<()> {
+        // Build a set of recovery blocks.
+        let recover_blk = match recover_from {
+            Some(x) => x,
+            None => {
+                *(recovery_points
+                    .recovery_points
+                    .last()
+                    .ok_or(eyre!("no valid recovery points"))?)
+            }
+        };
+
+        let delta_blocks = recovery_points
+            .persistence_blocks
+            .iter()
+            .filter_map(|x| if *x <= recover_blk { Some(*x) } else { None })
+            .collect::<Vec<i64>>();
+
         self.clean_output()?;
-        self.unpack_history()?;
         self.copy_current()?;
-        self.unpack_blocks(blocks)?;
+        self.unpack_persistence_deltas(&delta_blocks)?;
+        self.unpack_statedelta(recover_blk)?;
         Ok(())
     }
 }

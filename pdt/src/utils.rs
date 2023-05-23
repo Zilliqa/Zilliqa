@@ -8,6 +8,8 @@ pub const DIR_PERSISTENCE_DIFFS: &str = "diff_persistence";
 pub const DIR_PERSISTENCE: &str = "persistence";
 pub const DIR_HISTORICAL_DATA: &str = "historical-data";
 pub const PERSISTENCE_DIFF_FILE_PREFIX: &str = "diff_persistence_";
+pub const STATE_DELTA_DIFF_FILE_PREFIX: &str = "stateDelta_";
+pub const DIR_STATEDELTA: &str = "statedelta";
 
 /** Check if an Entry is synced to a file. */
 pub fn is_synced(entry: &context::Entry, file: &Path) -> Result<bool> {

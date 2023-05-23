@@ -12,10 +12,12 @@ async fn main() -> Result<()> {
     //"/tmp/test",
     //).await?;
 
+    let download_dir = "/home/rrw/tmp/test";
+    let unpack_dir = "/home/rrw/tmp/unpacked";
     let ctx = Context::new(
         "301978b4-0c0a-4b6b-ad7b-3a2f63c5182c",
         "testnet-901",
-        "/tmp/test",
+        &download_dir,
     )
     .await?;
     println!("Download history ..");
@@ -25,12 +27,18 @@ async fn main() -> Result<()> {
     let incr = Incremental::new(&ctx)?;
     incr.download_persistence().await?;
     incr.download_incr_persistence().await?;
+    incr.download_incr_state().await?;
     println!("Max block {}", incr.get_max_block().await?);
 
-    let render = Renderer::new("testnet-901", "/tmp/test", "/tmp/unpacked")?;
-    let blocks = render.list_incrementals()?;
-    println!("Incrementals : {:?} ", blocks);
-    render.unpack(&blocks)?;
+    let render = Renderer::new("testnet-901", download_dir, unpack_dir)?;
+    let recovery_points = render.get_recovery_points()?;
+    println!(
+        "persistence blocks: {:?} , state blocks: {:?}",
+        recovery_points.persistence_blocks, recovery_points.state_delta_blocks
+    );
+    println!("RP : {:?} ", recovery_points.recovery_points);
+
+    render.unpack(&recovery_points, None)?;
 
     println!("Hello, pdt!");
     Ok(())

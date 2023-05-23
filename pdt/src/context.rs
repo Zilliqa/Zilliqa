@@ -6,8 +6,11 @@ use aws_sdk_s3::operation::get_object_attributes::GetObjectAttributesOutput;
 use aws_sdk_s3::{config::Region, Client};
 use eyre::{eyre, Result};
 
+// Locations in the bucket.
+
 pub const PERSISTENCE_SNAPSHOT_NAME: &str = "blockchain-data";
 pub const INCREMENTAL_NAME: &str = "incremental";
+pub const STATEDELTA_NAME: &str = "statedelta";
 
 pub struct Context {
     /// The S3 client to fetch with.
