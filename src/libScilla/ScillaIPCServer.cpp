@@ -72,7 +72,7 @@ void ScillaBCInfo::SetUp(const uint64_t curBlockNum,
   m_scillaVersion = scillaVersion;
 }
 
-ScillaIPCServer::ScillaIPCServer(AccountStore &parent,
+ScillaIPCServer::ScillaIPCServer(AccountStore *parent,
                                  AbstractServerConnector &conn)
     : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2),
       m_parent(parent) {
@@ -288,7 +288,7 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
                 "Unable to query external state with given query: " << query);
     return;
   }
-  auto *account = m_parent.GetAccount(address);
+  auto *account = m_parent->GetAccount(address);
   if (account == nullptr) {
     LOG_GENERAL(WARNING,
                 "Unable to find account with given address: " << address.hex());
@@ -304,7 +304,7 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
     return;
   }
   std::map<Address, std::pair<std::string, std::string>> extlibsExports;
-  if (!ScillaUtils::PopulateExtlibsExports(m_parent, scillaVersion, extlibs,
+  if (!ScillaUtils::PopulateExtlibsExports(*m_parent, scillaVersion, extlibs,
                                            extlibsExports)) {
     LOG_GENERAL(WARNING, "Unable to populate extlibs for contract address: "
                              << address.hex());
