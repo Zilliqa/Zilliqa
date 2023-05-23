@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::CallContext;
 use evm::executor::stack::MemoryStackSubstate;
-use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}, ExitSucceed};
+use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}};
 use evm::{Machine, Runtime};
 
 use log::{debug, error, info};
@@ -154,7 +154,7 @@ pub async fn run_evm_impl(
                 listener.finished_call();
 
                 match exit_reason {
-                    evm::ExitReason::Revert(exit_revert) => {
+                    evm::ExitReason::Revert(_) => {
                         listener.otter_transaction_error = u8_vec_to_hex(&runtime.machine().return_value(), true);
                     }
                     _ => {

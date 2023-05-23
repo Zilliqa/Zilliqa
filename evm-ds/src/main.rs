@@ -27,7 +27,6 @@ use evm_server::EvmServer;
 
 use log::info;
 use std::fmt::Debug;
-use evm::Opcode;
 
 use jsonrpc_core::IoHandler;
 use jsonrpc_server_utils::codecs;
@@ -182,7 +181,7 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
 
         match event {
             evm::runtime::tracing::Event::Step {
-                context: context,
+                context: _,
                 opcode,
                 position,
                 stack,
@@ -217,11 +216,11 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 struct_log.op = "SStore".to_string();
             }
             evm::runtime::tracing::Event::TransactTransfer {
-                call_type: call_type,
-                address: address,
-                target: target,
-                balance: balance,
-                input: input,
+                call_type,
+                address,
+                target,
+                balance,
+                input,
             } => {
                 intern_trace = Some(InternalOperationOtter {
                     call_type: call_depth,
@@ -246,9 +245,9 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 }
             }
             evm::runtime::tracing::Event::TransactSuicide {
-                address: address,
-                target: target,
-                balance: balance,
+                address,
+                target,
+                balance,
             } => {
                 intern_trace = Some(InternalOperationOtter {
                     call_type: 1,
@@ -266,12 +265,12 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                     input: "".to_string(),});
             }
             evm::runtime::tracing::Event::TransactCreate {
-                call_type: call_type,
-                address: address,
-                target: target,
-                balance: balance,
-                is_create2: is_create2,
-                input: input,
+                call_type,
+                address,
+                target,
+                balance,
+                is_create2,
+                input,
             } => {
                 intern_trace = Some(InternalOperationOtter {
                     call_type: if is_create2 { 3 } else { 2 },
