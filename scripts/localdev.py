@@ -837,7 +837,8 @@ def get_mitm_instances(testnet_name):
              "api" : { "host" : f"{testnet_name}-api.localdomain", "port" : 5301 },
              "l2api" : { "host" : f"{testnet_name}-l2api.localdomain", "port" : 5302 },
              "newapi" : { "host" : f"{testnet_name}-newapi.localdomain", "port" : 5303 },
-             "origin" : { "host" : f"{testnet_name}-origin.localdomain", "port" : 5304 } }
+             "origin" : { "host" : f"{testnet_name}-origin.localdomain", "port" : 5304 },
+             "grafana" : { "host" : f"{testnet_name}-grafana.localdomain", "port" : 5305 } }
 
 def stop_proxy(config, testnet_name):
     mitm_instances = get_mitm_instances(testnet_name)
