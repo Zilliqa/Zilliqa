@@ -118,7 +118,7 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test 2>&1 > npx.out
+    DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test --bail 2>&1 > npx.out
 
     retVal=$?
 
