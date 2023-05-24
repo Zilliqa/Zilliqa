@@ -122,6 +122,7 @@ else
 
     retVal=$?
 
+    pkill -9 isolatedServer
     cat npx.out
     if [ $retVal -ne 0 ]; then
         echo "!!!!!! Error with JS integration test !!!!!!"
