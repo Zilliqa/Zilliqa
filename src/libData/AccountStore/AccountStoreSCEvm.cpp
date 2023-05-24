@@ -384,6 +384,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         LOG_GENERAL(INFO,
                     "Putting in TX trace for: " << evmContext.GetTranID());
 
+        std::cerr << traces << std::endl;
+
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,

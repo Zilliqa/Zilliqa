@@ -2168,7 +2168,7 @@ Json::Value EthRpcMethods::OtterscanGetInternalOperations(const std::string &txH
     TxnHash tranHash(txHash);
 
     bool isPresent =
-        BlockStorage::GetBlockStorage().GetOtterTrace(tranHash, trace); // nathan
+        BlockStorage::GetBlockStorage().GetOtterTrace(tranHash, trace);
 
     if (!isPresent) {
       LOG_GENERAL(INFO, "Otterscan trace request failed! ");

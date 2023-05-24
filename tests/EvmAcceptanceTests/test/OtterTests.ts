@@ -67,8 +67,6 @@ describe("Otterscan api tests", function () {
     await sendJsonRpcRequest(METHOD, 1, [tx.deployTransaction.hash], (result, status) => {
       assert.equal(status, 200, "has status code");
 
-      console.log(result);
-
       let jsonObject = result.result;
 
       assert.equal(jsonObject[0]["type"], 0, "has correct type for transfer");
@@ -111,47 +109,26 @@ describe("Otterscan api tests", function () {
       ethers.Wallet.createRandom().connect(ethers.provider)
     );
 
-    //const addresses = accounts.map((signer) => signer.address);
-
-    //const tx = await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-    //  value: ACCOUNTS_COUNT * ACCOUNT_VALUE
-    //});
-
-    //const balances = await Promise.all(accounts.map((account) => account.getBalance()));
-    //balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
     const acctAddr = accounts[0].address;
-
-    console.log("TX count: ");
-    console.log(await accounts[0].getTransactionCount());
 
     const [owner] = await ethers.getSigners();
     let txRawFromOwner = {
         to: acctAddr,
         value: ethers.utils.parseEther("1")
     }
-    console.log("here0");
     await owner.sendTransaction(txRawFromOwner);
-    console.log("here0.5");
-
-    console.log("TX count: ");
-    console.log(await accounts[0].getTransactionCount());
 
     // Create a transaction object
     let txRaw = {
         to: owner.address,
         value: ethers.utils.parseEther("0.45")
     }
-    console.log("here1");
     const txid0 = await accounts[0].sendTransaction(txRaw);
     const txid1 = await accounts[0].sendTransaction(txRaw);
-
-    console.log(txid0.hash);
-    console.log(txid1.hash);
 
     await sendJsonRpcRequest(METHOD, 1, [acctAddr, 0], (result, status) => {
       assert.equal(status, 200, "has status code");
 
-      console.log(result);
       let jsonObject = result.result;
 
       assert.equal(jsonObject, txid0.hash, "has correct hash");
@@ -160,7 +137,6 @@ describe("Otterscan api tests", function () {
     await sendJsonRpcRequest(METHOD, 1, [acctAddr, 1], (result, status) => {
       assert.equal(status, 200, "has status code");
 
-      console.log(result);
       let jsonObject = result.result;
 
       assert.equal(jsonObject, txid1.hash, "has correct hash");
