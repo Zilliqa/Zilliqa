@@ -387,15 +387,15 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::OtterscanTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_searchTransactionsBefore", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
+      jsonrpc::Procedure("ots_searchTransactionsBefore",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
       &EthRpcMethods::OtterscanSearchTransactionsBeforeI);
   
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_searchTransactionsAfter", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
+      jsonrpc::Procedure("ots_searchTransactionsAfter",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
       &EthRpcMethods::OtterscanSearchTransactionsAfterI);
 
   m_lookupServer->bindAndAddExternalMethod(

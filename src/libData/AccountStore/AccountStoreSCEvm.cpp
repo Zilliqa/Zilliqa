@@ -399,8 +399,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         // permanently and the rest is huge
         auto const trace_stripped = stripTxTraceOut(traces);
 
-        std::cout << "Putting otter trace: " << trace_stripped << std::endl;
-
         if (!BlockStorage::GetBlockStorage().PutOtterTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,
