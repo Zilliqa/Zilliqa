@@ -228,16 +228,6 @@ Run:
     sudo minikube tunnel
 """ if is_osx() else "")
 
-@click.command("start-k8s")
-@click.pass_context
-def start_k8s_cmd(ctx):
-    """
-    Restart minikube after a reboot or after you've stopped it for some other reason
-    """
-    config = get_config(ctx)
-    print("Starting minikube .. ")
-    run_or_die(config, ["minikube", "start"])
-
 def minikube_env(config, driver):
     driver_env = os.environ.copy()
     if driver == "docker" or driver == "podman":
@@ -386,14 +376,6 @@ def push_to_local_registry(config, tag):
         cmd = [ config.docker_binary, "push", tag ]
         cmd.extend(extra_flags)
         run_or_die(config, cmd, env=config.driver_env, in_dir = ZILLIQA_DIR, capture_output = False)
-
-@click.command("teardown-k8s")
-@click.pass_context
-def teardown_k8s(ctx):
-    """ Tear down k8s cluster; when you restart it you will need to rewrite your host lookups """
-    config = get_config(ctx)
-    print("Destroying minikube cluster .. ")
-    run_or_die(config, ["minikube", "delete"])
 
 def wait_for_helm_pod(config, pod_partial_name):
     while True:
@@ -748,14 +730,19 @@ def wait_for_termination(config):
 
 @click.command("down")
 @click.pass_context
-def down_cmd(ctx):
+@click.option("--testnet-name",
+              required=True,
+              default='localdev',
+              show_default=True,
+              help="The test network's name")
+def down_cmd(ctx, testnet_name):
     """ Bring the testnet down and stop the proxies """
     config = get_config(ctx)
-    down(config)
+    down(config, testnet_name)
 
-def down(config):
-    stop_testnet(config, config.testnet_name)
-    stop_proxy(config, config.testnet_name)
+def down(config, testnet_name):
+    stop_testnet(config, testnet_name)
+    stop_proxy(config, testnet_name)
     tempo_down(config)
     prometheus_down(config)
     grafana_down(config)
@@ -1133,22 +1120,45 @@ def restart_ingress_cmd(ctx):
 
 @click.command("reup")
 @click.pass_context
-def reup_cmd(ctx):
+@click.option("--driver",
+              required=True,
+              default=default_driver(),
+              show_default=True,
+              help="The minikube driver to use")
+@click.option("--zilliqa-image",
+              required=False,
+              help="The zilliqz image to use when building the zilliqa image. If none is specified scilla & zillqa will be built with a new tag and used to bring up the test network.")
+@click.option("--testnet-name",
+              required=True,
+              default='localdev',
+              show_default=True,
+              help="The test network's name")
+@click.option("--isolated-server-accounts",
+              is_flag=True,
+              default=False,
+              show_default=True,
+              help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
+def reup_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts):
     """
     Equivalent to `localdev down && localdev up`
     """
     config = get_config(ctx)
     down(config)
-    up(config)
+    up(config, zilliqa_image, testnet_name, isolated_server_accounts)
 
 @click.command("show-proxy")
 @click.pass_context
-def show_proxy_cmd(ctx):
+@click.option("--testnet-name",
+              required=True,
+              default='localdev',
+              show_default=True,
+              help="The test network's name")
+def show_proxy_cmd(ctx, testnet_name):
     """
     Show proxy settings
     """
     config = get_config(ctx)
-    show_proxy(config, config.testnet_name)
+    show_proxy(config, testnet_name)
 
 @click.command("log-snapshot")
 @click.pass_context
@@ -1178,25 +1188,42 @@ def which_pod_said_cmd(ctx, nodetype, recency, term):
 
 @click.command("start-proxy")
 @click.pass_context
-def start_proxy_cmd(ctx):
+@click.option("--testnet-name",
+              required=True,
+              default='localdev',
+              show_default=True,
+              help="The test network's name")
+def start_proxy_cmd(ctx, testnet_name):
     """
     Start the mitm proxies
     """
     config = get_config(ctx)
-    start_proxy(config, config.testnet_name)
-    show_proxy(config, config.testnet_name)
+    start_proxy(config, testnet_name)
+    show_proxy(config, testnet_name)
 
 @click.command("write-testnet-config")
 @click.pass_context
-@click.argument("tag")
-def write_testnet_config_cmd(ctx, tag):
+@click.option("--zilliqa-image",
+              required=False,
+              help="The zilliqz image to use when building the zilliqa image. If none is specified scilla & zillqa will be built with a new tag and used to bring up the test network.")
+@click.option("--testnet-name",
+              required=True,
+              default='localdev',
+              show_default=True,
+              help="The test network's name")
+@click.option("--isolated-server-accounts",
+              is_flag=True,
+              default=False,
+              show_default=True,
+              help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
+def write_testnet_config_cmd(ctx, zilliqa_image, testnet_name, isolated_server_accounts):
     """
     Write config for the testnet
 
     TAG is the tag for the Zilliqa docker image to run.
     """
     config = get_config(ctx)
-    write_testnet_configuration(config, tag, config.testnet_name)
+    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts)
 
 @click.command("print-config-advice")
 @click.pass_context
@@ -1274,20 +1301,19 @@ def cli(ctx):
     zilliqa/       - from git@github.com:zilliqa/zilliqa
     testnet/       - from git@github.com:zilliqa/testnet
 
-    You may need the ZIL_5135_localdev branch of testnet if it hasn't yet
+    You need the local-dev-minikube branch of testnet if it hasn't yet
     been merged.
 
     You will need to have built scilla.
 
     localdev.py runs in stages:
-     setup-podman    - on OS X only, sets up podman
-     setup-k8s       - Sets up k8s (currently via minikube)
-     up              - Brings the system up.
-     teardown-k8s    - Bring down k8s
+     setup           - Sets up k8s (through minikube, and colima on OS X)
+     up              - Brings the system up (compiling images if needed).
+     down            - Brings the system down.
      teardown-podman - On OS X only, tears down podman
 
-    If you reboot your machine, `localdev.py start-k8s` will restart
-    minikube for you.
+    If you reboot your machine, remember to: [`colima start` (on OS X)] `minikube start`.
+    If you want to delete the environment or create a new one, do: `minikube delete`.
 
     There are also commands to collect logs, and one to restart the
     ingress, since it sometimes sticks.
@@ -1299,8 +1325,6 @@ def cli(ctx):
     ctx.obj.setup()
 
 cli.add_command(teardown_podman)
-cli.add_command(start_k8s_cmd)
-cli.add_command(teardown_k8s)
 cli.add_command(setup)
 cli.add_command(build_scilla_cmd)
 cli.add_command(build_zilliqa_cmd)
