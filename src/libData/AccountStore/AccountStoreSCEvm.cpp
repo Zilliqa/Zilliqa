@@ -384,8 +384,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         LOG_GENERAL(INFO,
                     "Putting in TX trace for: " << evmContext.GetTranID());
 
-        std::cerr << traces << std::endl;
-
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,
@@ -400,6 +398,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         // we want a version with only otter stuff since we store it
         // permanently and the rest is huge
         auto const trace_stripped = stripTxTraceOut(traces);
+
+        std::cout << "Putting otter trace: " << trace_stripped << std::endl;
 
         if (!BlockStorage::GetBlockStorage().PutOtterTrace(evmContext.GetTranID(),
                                                         traces)) {
