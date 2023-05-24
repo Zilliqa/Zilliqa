@@ -6,20 +6,6 @@ import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
 
-  let contractOne: Contract;
-  let contractTwo: Contract;
-  let contractThree: Contract;
-
-  before(async function () {
-
-    contractOne = await parallelizer.deployContract("ContractOne");
-    contractTwo = await parallelizer.deployContract("ContractTwo");
-    contractThree = await parallelizer.deployContract("ContractThree");
-
-    const Contract = await ethers.getContractFactory("Revert");
-    this.contract = await Contract.deploy();
-  });
-
   it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
     const REVERT_MESSAGE = "Transaction too old";
@@ -27,9 +13,14 @@ describe("Otterscan api tests", function () {
     const abi = ethers.utils.defaultAbiCoder;
     const MESSAGE_ENCODED = "0x08c379a0" + abi.encode(["string"], [REVERT_MESSAGE]).split('x')[1];
 
+    const Contract = await ethers.getContractFactory("Revert");
+    this.contract = await Contract.deploy();
+
     // In order to make a tx that fails at runtime and not estimate gas time, we estimate the gas of
     // a similar passing call and use this (+30% leeway) to override the gas field
     const estimatedGas = await this.contract.estimateGas.requireCustom(true, REVERT_MESSAGE);
+
+    console.log("Estimated gas: ", estimatedGas);
 
     const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, { gasLimit: estimatedGas.mul(130).div(100) })
 
@@ -77,6 +68,10 @@ describe("Otterscan api tests", function () {
 
   it("We can get the otter trace transaction", async function () {
     const METHOD = "ots_traceTransaction";
+
+    let contractOne = await parallelizer.deployContract("ContractOne");
+    let contractTwo = await parallelizer.deployContract("ContractTwo");
+    let contractThree = await parallelizer.deployContract("ContractThree");
 
     let addrOne = contractOne.address.toLowerCase();
     let addrTwo = contractTwo.address.toLowerCase();

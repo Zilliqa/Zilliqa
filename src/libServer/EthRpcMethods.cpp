@@ -393,16 +393,21 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::OtterscanSearchTransactionsBeforeI);
   
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_searchTransactionsBefore", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("ots_searchTransactionsAfter", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
-      &EthRpcMethods::OtterscanSearchTransactionsBeforeI);
+      &EthRpcMethods::OtterscanSearchTransactionsAfterI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_getTransactionBySenderAndNonce", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("ots_getTransactionBySenderAndNonce", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER,  NULL),
+      &EthRpcMethods::OtterscanGetTransactionBySenderAndNonceI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("ots_getTransactionError", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
-      &EthRpcMethods::OtterscanGetTransactionBySenderAndNonceI);
+      &EthRpcMethods::OtterscanGetTransactionErrorI);
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceBlockByNumber",
