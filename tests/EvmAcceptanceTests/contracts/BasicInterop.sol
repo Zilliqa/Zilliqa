@@ -14,6 +14,7 @@ pragma abicoder v2;
 // Returned value is encoded via abi so you should call abi.decode() with proper type to obtain underlying value
 
 contract BasicInterop {
+  event ResultWas(bool);
 
     function callSimpleMap(address contract_address, string memory tran_name, address recipient, uint128 amount) public {
         bytes memory encodedArgs = abi.encode(contract_address, tran_name, recipient, amount);
@@ -114,5 +115,26 @@ contract BasicInterop {
 
         (retVal) = abi.decode(output, (string));
         return retVal;
+    }
+
+    function callAndIgnoreResult(address contract_address, string memory tran_name) external returns (bool) {
+      bytes memory encodedArgs = abi.encode(contract_address, tran_name);
+      uint256 argsLength = encodedArgs.length;
+      bool success;
+      assembly {
+     success := call(21000, 0x5a494c52, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            }
+      emit  ResultWas(success);
+      return success;
+    }
+
+    function callIndirectAndIgnoreResult(address contract_address, address other_contract_address, string memory tran_name, string memory second_tran_name)
+        external returns (bool) {
+      bytes memory encodedArgs = abi.encode(contract_address, tran_name, other_contract_address, second_tran_name);
+      uint256 argsLength = encodedArgs.length;
+      bool success;
+      assembly { success := call(21000, 0x5a494c52, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0) }
+      emit ResultWas(success);
+      return success;
     }
 }

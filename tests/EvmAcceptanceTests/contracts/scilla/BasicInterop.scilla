@@ -1,5 +1,13 @@
 scilla_version 0
 
+library BasicInteropLib
+
+let one_msg = fun (msg: Message) =>
+  let nil_msg = Nil {Message} in
+  Cons {Message} msg nil_msg
+
+let one_uint128 = Uint128 1
+
 contract BasicInterop()
 
 field simpleMap: Map ByStr20 Uint128 
@@ -10,6 +18,13 @@ field nestedMap: Map ByStr20 (Map ByStr20 Uint128)
 
 field uintField: Uint128 = Uint128 0
 field strField: String  = ""
+
+
+procedure IncByOne()
+  val <- uintField;
+  new_val = builtin add val one_uint128;
+  uintField := new_val
+end
 
 transition setSimpleMap(to: ByStr20, amount: Uint128)
     simpleMap[to] := amount
@@ -25,4 +40,76 @@ end
 
 transition setUint(str: Uint128)
     uintField := str
+end
+
+transition sendAMessage()
+  msg = { _recipient: _sender; _tag: "TestMessage"; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg;
+  IncByOne
+end
+
+transition fail()
+  IncByOne;
+  val = Int32 -2;
+  e = { _exception: "Error"; code: val };
+  throw e;
+  IncByOne
+end
+
+transition failAndSendMessage()
+  IncByOne;
+  msg = { _recipient: _sender; _tag: "TestMessage"; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg;
+  IncByOne;
+  val = Int32 -3;
+  e = { _exception: "Error"; code: val };
+  throw e;
+  IncByOne
+end
+
+transition failAndSendBoth()
+  IncByOne;
+  msg = { _recipient: _sender; _tag: "TestMessage2"; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg;
+  ev = { _eventname: "TestEvent"; initiator: _sender };
+  event ev;
+  IncByOne;
+  val = Int32 -3;
+  e = { _exception: "Error"; code: val };
+  throw e;
+  IncByOne
+end
+
+transition Indirect(who: ByStr20, what: String)
+  IncByOne;
+  msg = { _recipient: who; _tag: what; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg
+end
+
+transition Indirect2(who: ByStr20, what: String)
+  IncByOne;
+  msg = { _recipient: who; _tag: what; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg;
+  msg = { _recipient: who; _tag: "doNothing"; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg
+end
+
+transition Indirect3(who: ByStr20, what: String)
+  IncByOne;
+  msg = { _recipient: who; _tag: what; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg;
+  msg = { _recipient: who; _tag: "fail"; _amount: Uint128 0 };
+  as_msg = one_msg msg;
+  send as_msg
+end
+
+transition doNothing()
+  IncByOne
 end
