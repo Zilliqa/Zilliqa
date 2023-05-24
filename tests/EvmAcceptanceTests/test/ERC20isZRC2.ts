@@ -4,6 +4,9 @@ import hre from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../helpers";
 
+// Useful when testing in mainnet so you can remember to fund the accounts.
+const DUMP_SIGNERS = false;
+
 describe("ERC20 Is ZRC2", function () {
   let zrc2_contract: ScillaContract;
   let erc20_contract: Contract;
@@ -14,6 +17,9 @@ describe("ERC20 Is ZRC2", function () {
   before(async function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
+    }
+    if (DUMP_SIGNERS) {
+      console.log(`${JSON.stringify(await ethers.getSigners())}`);
     }
 
     contractOwner = await parallelizer.takeSigner();
