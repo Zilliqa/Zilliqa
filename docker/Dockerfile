@@ -240,6 +240,7 @@ COPY --from=builder /usr/local/lib/*.so* /usr/local/lib/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /zilliqa/evm-ds/target/release/evm-ds /usr/local/bin/
 COPY --from=builder /zilliqa/evm-ds/log4rs.yml /usr/local/etc/
+COPY --from=builder /zilliqa/isolated-server-accounts.json /zilliqa/scripts/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
