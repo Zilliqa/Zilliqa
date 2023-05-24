@@ -212,4 +212,3 @@ describe("Otterscan api tests", function () {
   });
 
 });
-
