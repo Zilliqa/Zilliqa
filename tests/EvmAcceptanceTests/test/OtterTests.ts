@@ -182,7 +182,7 @@ describe("Otterscan api tests", function () {
       assert.equal(status, 200, "has status code");
 
       let jsonObject = result.result;
-      assert.equal(jsonObject, null, "Can find the TX which send funds to this addr");
+      assert.equal(jsonObject.txs.length, 0, "Can not find the TX which send funds to this addr");
     });
 
   });

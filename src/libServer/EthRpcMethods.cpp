@@ -2088,12 +2088,6 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
     const auto res =
         BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before, wasMore);
 
-    // Perhaps this should just return empty array
-    if (res.empty()) {
-      LOG_GENERAL(INFO, "Otterscan trace request failed! ");
-      return Json::nullValue;
-    }
-
     Json::Value response = Json::objectValue;
     Json::Value txs = Json::arrayValue;
     Json::Value receipts = Json::arrayValue;
@@ -2101,7 +2095,11 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
     for(const auto& hash : res) {
       // Get Tx result
       auto const txByHash = GetEthTransactionByHash(hash);
-      auto const txReceipt = GetEthTransactionReceipt(hash);
+      auto txReceipt = GetEthTransactionReceipt(hash);
+
+      // For some reason otterscan expects a timestamp in the receipts...
+      auto const block = GetEthBlockByNumber(txReceipt["blockNumber"].asString(), false);
+      txReceipt["timestamp"] = block["timestamp"];
 
       txs.append(txByHash);
       receipts.append(txReceipt);
