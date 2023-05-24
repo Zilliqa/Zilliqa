@@ -296,7 +296,9 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             }
         }
 
-        self.raw_tracer.struct_logs.push(struct_log);
+        if self.raw_tracer.struct_logs.len() < 5 {
+            self.raw_tracer.struct_logs.push(struct_log);
+        }
 
         if let Some(intern_trace) = intern_trace {
             self.otter_internal_tracer.push(intern_trace);
