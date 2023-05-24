@@ -23,7 +23,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 
 ## Zilliqa Mainnet
 
-The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.2) and Scilla [v0.11.1](https://github.com/Zilliqa/scilla/releases/tag/v0.11.1).
+The current live version on the Zilliqa Mainnet is Zilliqa [v9.0.1](https://github.com/Zilliqa/Zilliqa/releases/tag/v9.0.1) and Scilla [v0.13.1](https://github.com/Zilliqa/scilla/releases/tag/v0.13.1).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -32,7 +32,7 @@ The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.2](https://gith
 
 ## Developer Testnet
 
-The current live version on the Developer Testnet is Zilliqa [v8.5.0rc0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.5.0rc0) and Scilla [v0.13.1-alpha](https://github.com/Zilliqa/scilla/releases/tag/v0.13.1-alpha).
+The current live version on the Developer Testnet is Zilliqa [v9.0.1](https://github.com/Zilliqa/Zilliqa/releases/tag/v9.0.1) and Scilla [v0.13.1](https://github.com/Zilliqa/scilla/releases/tag/v0.13.1).
 
 |          | URL(s) |
 |:---------|:-------|
