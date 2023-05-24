@@ -160,7 +160,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   // Required by ethers
   retJson["extraData"] = "0x";
   retJson["nonce"] = "0x0";
-  retJson["receiptsRoot"] = "0x0";
+  retJson["receiptsRoot"] = "0x";
   retJson["transactionsRoot"] = "0x0";
 
   Eth::LogBloom logBloom{};
