@@ -155,7 +155,7 @@ pub async fn run_evm_impl(
 
                 match exit_reason {
                     evm::ExitReason::Revert(_) => {
-                        listener.otter_transaction_error = format!("0x{}", hex::encode(&runtime.machine().return_value());
+                        listener.otter_transaction_error = format!("0x{}", hex::encode(&runtime.machine().return_value()));
                     }
                     _ => {
                         debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
