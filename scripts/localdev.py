@@ -761,9 +761,9 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         print(f"Removing old testnet configuration ..")
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
-    cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube",
+    cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
+        os.path.join(ZILLIQA_DIR, "constants.xml"),
         "--image", zilliqa_image,
-        "-c", "master",
         "-n", "20",
         "-d", "5",
         "-l", "1",
@@ -784,7 +784,6 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
             "--recover-key-files", config.key_file,
         ])
     run_or_die(config, cmd, in_dir = TESTNET_DIR)
-    run_or_die(config, ["cp", os.path.join(ZILLIQA_DIR, "constants.xml"), f"{testnet_name}/configmap/constants.xml"] , in_dir = TESTNET_DIR)
 
     constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
     config_file = xml.dom.minidom.parse(constants_xml_target_path)
@@ -866,7 +865,7 @@ def start_proxy(config, testnet_name):
         print(f"Starting {k} on port {port}, webserver {port+3000} .. ")
         mitm_cmd = ["mitmweb",
                     "--mode",
-                    f"reverse:http://{lb_addr}:80",
+                    f"reverse:http://127.0.0.1:3500",
                     "--modify-headers",
                     f"/~q/Host/{v['host']}",
                     "--no-web-open-browser",
