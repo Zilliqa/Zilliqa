@@ -165,6 +165,24 @@ transition Transfer(to: ByStr20, amount: Uint128)
   send msgs
 end
 
+(* We expect this call to revert entire transaction                                 *)
+(* @dev: Moves an amount tokens from _sender to the recipient. Used by token_owner. *)
+(* @dev: Balance of recipient will increase. Balance of _sender will decrease.      *)
+(* @param to:  Address of the recipient whose balance is increased.                 *)
+(* @param amount:     Amount of tokens to be sent.                                  *)
+transition TransferFailed(to: ByStr20, amount: Uint128)
+  AuthorizedMoveIfSufficientBalance _sender to amount;
+  e = {_eventname : "TransferSuccess"; sender : _sender; recipient : to; amount : amount};
+  event e;
+  (* Prevent sending to a contract address that does not support transfers of token *)
+  msg_to_recipient = {_tag : "RecipientAcceptTransfer"; _recipient : to; _amount : zero;
+                      sender : _sender; recipient : to; amount : amount; _EvmCall: "foo"};
+  msg_to_sender = {_tag : "TransferSuccessCallBack"; _recipient : _sender; _amount : zero;
+                  sender : _sender; recipient : to; amount : amount; _EvmCall: "bar"};
+  msgs = two_msgs msg_to_recipient msg_to_sender;
+  send msgs
+end
+
 (* @dev: Move a given amount of tokens from one address to another using the allowance mechanism. The caller must be an approved_spender. *)
 (* @dev: Balance of recipient will increase. Balance of token_owner will decrease.                                                        *)
 (* @param from:    Address of the token_owner whose balance is decreased.                                                                 *)

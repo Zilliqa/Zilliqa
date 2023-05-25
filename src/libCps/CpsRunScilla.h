@@ -38,6 +38,11 @@ struct ScillaInvokeResult {
   std::string returnVal;
 };
 
+struct ScillaArgExtras {
+  using Address = dev::h160;
+  Address scillaReceiverAddress;
+};
+
 struct ScillaArgs {
   using Address = dev::h160;
   struct CodeData {
@@ -52,6 +57,7 @@ struct ScillaArgs {
   uint32_t edge = 0;
   uint32_t depth = 0;
   uint64_t gasLimit = 0;
+  std::optional<ScillaArgExtras> extras = std::nullopt;
 };
 
 class CpsRunScilla final : public CpsRun {

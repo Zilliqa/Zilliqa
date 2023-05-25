@@ -14,13 +14,14 @@ pragma abicoder v2;
 // Returned value is encoded via abi so you should call abi.decode() with proper type to obtain underlying value
 
 contract BasicInterop {
+  event ResultWas(bool);
 
-    function callSimpleMap(address contract_address, string memory tran_name, address recipient, uint128 amount) public {
-        bytes memory encodedArgs = abi.encode(contract_address, tran_name, recipient, amount);
+    function callSimpleMap(address contract_address, string memory tran_name, uint256 keep_origin, address recipient, uint128 amount) public {
+        bytes memory encodedArgs = abi.encode(contract_address, tran_name, keep_origin, recipient, amount);
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -39,13 +40,13 @@ contract BasicInterop {
 
     }
 
-    function callNestedMap(address contract_address, string memory tran_name, address idx1, address idx2, uint128 amount) public {
-        bytes memory encodedArgs = abi.encode(contract_address, tran_name, idx1, idx2, amount);
+    function callNestedMap(address contract_address, string memory tran_name, uint256 keep_origin, address idx1, address idx2, uint128 amount) public {
+        bytes memory encodedArgs = abi.encode(contract_address, tran_name, keep_origin, idx1, idx2, amount);
 
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -64,13 +65,13 @@ contract BasicInterop {
 
     }
 
-    function callUint(address contract_address, string memory tran_name, uint128 amount) public {
-        bytes memory encodedArgs = abi.encode(contract_address, tran_name, amount);
+    function callUint(address contract_address, string memory tran_name, uint256 keep_origin, uint128 amount) public {
+        bytes memory encodedArgs = abi.encode(contract_address, tran_name, keep_origin, amount);
 
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
@@ -90,13 +91,13 @@ contract BasicInterop {
         return funds;
     }
 
-    function callString(address contract_address, string memory tran_name, string memory value) public {
-        bytes memory encodedArgs = abi.encode(contract_address, tran_name, value);
+    function callString(address contract_address, string memory tran_name, uint256 keep_origin, string memory value) public {
+        bytes memory encodedArgs = abi.encode(contract_address, tran_name, keep_origin, value);
 
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
