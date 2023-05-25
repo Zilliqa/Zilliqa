@@ -38,74 +38,24 @@ namespace libCps {
 constexpr auto MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 void ScillaHelpers::ExportCommonFiles(
-    CpsAccountStoreInterface &acc_store, std::ofstream &os,
-    const Address &contract,
+    const std::vector<uint8_t> &contract_init_data, std::ofstream &os,
     const std::map<Address, std::pair<std::string, std::string>>
         &extlibs_exports) {
-  os.open(INIT_JSON);
-  if (LOG_SC) {
-    LOG_GENERAL(INFO,
-                "init data to export: " << DataConversion::CharArrayToString(
-                    acc_store.GetContractInitData(contract)));
-  }
-  os << DataConversion::CharArrayToString(
-      acc_store.GetContractInitData(contract));
-  os.close();
-
-  for (const auto &extlib_export : extlibs_exports) {
-    std::string code_path =
-        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
-    code_path += LIBRARY_CODE_EXTENSION;
-    boost::filesystem::remove(code_path);
-
-    os.open(code_path);
-    os << extlib_export.second.first;
-    os.close();
-
-    std::string init_path =
-        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
-    boost::filesystem::remove(init_path);
-
-    os.open(init_path);
-    os << extlib_export.second.second;
-    os.close();
-  }
+  return ScillaUtils::ExportCommonFiles(contract_init_data, os,
+                                        extlibs_exports);
 }
 
 bool ScillaHelpers::ExportCreateContractFiles(
-    CpsAccountStoreInterface &acc_store, const Address &address,
-    bool is_library, uint32_t scilla_version,
+    const std::vector<uint8_t> &contract_code,
+    const std::vector<uint8_t> &contract_init_data, bool is_library,
+    std::string &scilla_root_version, uint32_t scilla_version,
     const std::map<Address, std::pair<std::string, std::string>>
         &extlibs_exports) {
   LOG_MARKER();
 
-  boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
-
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
-  }
-
-  if (!ScillaUtils::PrepareRootPathWVersion(scilla_version,
-                                            acc_store.GetScillaRootVersion())) {
-    LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
-    return false;
-  }
-
-  try {
-    // Scilla code
-    std::ofstream os(INPUT_CODE + (is_library ? LIBRARY_CODE_EXTENSION
-                                              : CONTRACT_FILE_EXTENSION));
-    os << DataConversion::CharArrayToString(acc_store.GetContractCode(address));
-    os.close();
-
-    ExportCommonFiles(acc_store, os, address, extlibs_exports);
-  } catch (const std::exception &e) {
-    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
-    return false;
-  }
-
-  return true;
+  return ScillaUtils::ExportCreateContractFiles(
+      contract_code, contract_init_data, is_library, scilla_root_version,
+      scilla_version, extlibs_exports);
 }
 
 bool ScillaHelpers::ExportContractFiles(
@@ -223,7 +173,8 @@ void ScillaHelpers::CreateScillaCodeFiles(
   os << DataConversion::CharArrayToString(acc_store.GetContractCode(contract));
   os.close();
 
-  ExportCommonFiles(acc_store, os, contract, extlibs_exports);
+  ExportCommonFiles(acc_store.GetContractInitData(contract), os,
+                    extlibs_exports);
 }
 
 bool ScillaHelpers::ParseContractCheckerOutput(

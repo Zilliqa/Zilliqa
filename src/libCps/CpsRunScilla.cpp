@@ -148,9 +148,11 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
-  if (!ScillaHelpers::ExportCreateContractFiles(mAccountStore, mArgs.dest,
-                                                isLibrary, scillaVersion,
-                                                extlibsExports)) {
+  if (!ScillaHelpers::ExportCreateContractFiles(
+          mAccountStore.GetContractCode(mArgs.dest),
+          mAccountStore.GetContractInitData(mArgs.dest), isLibrary,
+          mAccountStore.GetScillaRootVersion(), scillaVersion,
+          extlibsExports)) {
     span.SetError("Unable to export create contract files");
     return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
