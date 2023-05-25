@@ -6,7 +6,7 @@ import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
 
-  xit("When we revert the TX, we can get the tx error ", async function () {
+  it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
     const REVERT_MESSAGE = "Transaction too old";
 
@@ -33,7 +33,7 @@ describe("Otterscan api tests", function () {
     });
   });
 
-  xit("We can get the otter internal operations", async function () {
+  it("We can get the otter internal operations", async function () {
     const METHOD = "ots_getInternalOperations";
 
     // Check we can for example detect a suicide with correct value.
@@ -66,7 +66,7 @@ describe("Otterscan api tests", function () {
 
   });
 
-  xit("We can get the otter trace transaction", async function () {
+  it("We can get the otter trace transaction", async function () {
     const METHOD = "ots_traceTransaction";
 
     let contractOne = await parallelizer.deployContract("ContractOne");
@@ -91,7 +91,7 @@ describe("Otterscan api tests", function () {
 
   });
 
-  xit("We can get the otter search for sender by nonce", async function () {
+  it("We can get the otter search for sender by nonce", async function () {
     const METHOD = "ots_getTransactionBySenderAndNonce";
 
     // To test this, send money to an account then have it send it back.
@@ -139,7 +139,7 @@ describe("Otterscan api tests", function () {
 
   });
 
-  xit("We can get the otter search TX before and after", async function () {
+  it("We can get the otter search TX before and after", async function () {
     const METHOD_BEFORE = "ots_searchTransactionsBefore";
     const METHOD_AFTER = "ots_searchTransactionsAfter";
 

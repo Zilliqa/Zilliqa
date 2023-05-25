@@ -2076,10 +2076,6 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   }
 }
 
-// Tx traces are put in storage, and each time one is inserted, the oldest is
-// pruned, so long as it is over TX_TRACES_TO_STORE ago.
-// To do this, at the null address is an array/ring buffer of trace hashes
-//
 bool BlockStorage::PutOtterTrace(const dev::h256& key, const std::string& trace) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(
@@ -2142,10 +2138,6 @@ bool BlockStorage::GetOtterTrace(const dev::h256& key, std::string& trace) {
   return true;
 }
 
-// Tx txAddressMappings are put in storage, and each time one is inserted, the oldest is
-// pruned, so long as it is over TX_TxAddressMappingS_TO_STORE ago.
-// To do this, at the null address is an array/ring buffer of txAddressMapping hashes
-//
 bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(
@@ -2284,7 +2276,6 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
 }
 
 
-// nathan2
 bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(
