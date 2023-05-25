@@ -419,17 +419,3 @@ fn handle_panic(trace: String, remaining_gas: u64, reason: &str) -> EvmProto::Ev
     result.set_remaining_gas(remaining_gas);
     result
 }
-
-fn u8_vec_to_hex(to_convert: &Vec<u8>, add_0x: bool) -> String {
-    let mut hex_string = String::new();
-
-    if add_0x {
-        hex_string.push_str("0x");
-    }
-
-    for byte in to_convert {
-        hex_string.push_str(&format!("{:02x}", byte));
-    }
-    hex_string
-}
-
