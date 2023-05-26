@@ -399,7 +399,7 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto sender = (jsonData["keep_origin"].isBool() &&
                        jsonData["keep_origin"].asBool() == true)
-                          ? mCpsContext.origSender.hex()
+                          ? ProtoToAddress(mProtoArgs.caller()).hex()
                           : ProtoToAddress(mProtoArgs.address()).hex();
 
   jsonData.removeMember("keep_origin");
