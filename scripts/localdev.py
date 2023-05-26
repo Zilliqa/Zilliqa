@@ -67,8 +67,8 @@ class Config:
         #  else:
             #  self.using_podman = True
             #  self.docker_binary = "podman"
-        self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
-        self.testnet_name = "localdev"
+        #  self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
+        #  self.testnet_name = "localdev"
         self.strip_binaries = False
 
     def setup(self):
@@ -277,21 +277,17 @@ def setup_k8s(ctx, cpus, memory, disk_size, driver, container_runtime):
               show_default=True,
               help="The minikube driver to use")
 @click.option("--cpus",
-              required=False,
               callback=lambda ctx, param, value: value if value else "max" if ctx.params["driver"] == "docker" and sys.platform != "darwin" else 8,
               help="The number of CPUs in the guest VM")
 @click.option("--memory",
-              required=False,
               default=12288,
               show_default=True,
               help="The amount of memory allocated to the guest VM (in MB)")
 @click.option("--disk-size",
-              required=False,
               default=128,
               show_default=True,
               help="The disk size (in GB) in the guest VM")
 @click.option("--container-runtime",
-              required=False,
               callback=lambda ctx, param, value: value if value else "cri-o" if ctx.params["driver"] == "podman" else "docker",
               help="The minikube container runtime to use")
 @click.pass_context
@@ -541,7 +537,6 @@ def tempo_down(config):
               show_default=True,
               help="The minikube driver to use")
 @click.option("--zilliqa-image",
-              required=False,
               help="The zilliqz image to use when building the zilliqa image. If none is specified scilla & zillqa will be built with a new tag and used to bring up the test network.")
 @click.option("--testnet-name",
               required=True,
@@ -567,16 +562,14 @@ def up_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts, p
     else:
         adjust_config(config, driver)
 
-    config.persistence = persistence
-    config.key_file = key_file
-    up(config, zilliqa_image, testnet_name, isolated_server_accounts)
+    up(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file)
 
-def up(config, zilliqa_image, testnet_name, isolated_server_accounts):
+def up(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file):
     minikube = get_minikube_ip(config)
-    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts)
+    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file)
     localstack_up(config)
     grafana_up(config, testnet_name)
-    start_testnet(config, testnet_name)
+    start_testnet(config, testnet_name, persistence)
     prometheus_up(config, testnet_name)
     tempo_up(config, testnet_name)
     #  start_proxy(config, testnet_name)
@@ -686,31 +679,34 @@ def isolated(config, enable_evm = True, block_time_ms = None):
     # except:
     #     pass
 
-def start_testnet(config, testnet_name):
+def start_testnet(config, testnet_name, persistence):
     run_or_die(config, ["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
-    if config.persistence is not None:
+
+    # Port forward localstack so we can talk to it
+    run_or_die(config, ["kubectl", "port-forward", "deployment/localstack", "4566:4566"], in_background=True)
+
+    if persistence is not None:
         # Create a tarball of persistence.
-        with tarfile.open("_localdev/devnet-persistence.tar.gz", "w:gz") as tar:
-            tar.add(config.persistence, arcname="persistence")
+        with tarfile.open(f"_{testnet_name}/{testnet_name}-persistence.tar.gz", "w:gz") as tar:
+            tar.add(persistence, arcname="persistence")
 
         # Wait for localstack to be running
         run_or_die(config, ["kubectl", "rollout", "status", "deployment", "localstack"])
-        # Port forward localstack so we can talk to it
-        run_or_die(config, ["kubectl", "port-forward", "deployment/localstack", "4566:4566"], in_background=True)
 
-        with open(f"_localdev/.currentTxBlk", "w") as f:
+        with open(f"_{testnet_name}/.currentTxBlk", "w") as f:
             f.write("123") # FIXME: Set a real value?
         def aws(cmd):
             run_or_die(config, ["aws", "--endpoint-url=http://localhost:4566"] + cmd, env={"PATH": os.environ["PATH"], "AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"})
 
         # Copy persistence to S3 in localstack. Each of the subdirectories in S3 are meant to contain only a subset of
         # persistence, but we choose to just copy everything into everywhere.
-        aws(["s3", "sync", f"{config.persistence}/", "s3://devnet-bucket/blockchain-data/localdev/"])
-        aws(["s3", "sync", f"{config.persistence}/", "s3://devnet-bucket/incremental/localdev/persistence/"])
-        aws(["s3", "cp", "_localdev/.currentTxBlk", "s3://devnet-bucket/incremental/localdev/"])
-        aws(["s3", "cp", "devnet-persistence.tar.gz", "s3://devnet-bucket/persistence/"])
+        bucket_name = "zilliqa-devnet"
+        aws(["s3", "sync", f"{persistence}/", f"s3://{bucket_name}/blockchain-data/{testnet_name}/"])
+        aws(["s3", "sync", f"{persistence}/", f"s3://{bucket_name}/incremental/localdev/persistence/"])
+        aws(["s3", "cp", f"_{testnet_name}/.currentTxBlk", f"s3://{bucket_name}/incremental/{testnet_name}/"])
+        aws(["s3", "cp", f"{testnet_name}-persistence.tar.gz", f"s3://{bucket_name}/persistence/"])
 
-def wait_for_termination(config):
+def wait_for_termination(config, keep_persistence):
     """
     Wait for the localdev network to die so we can restart it
     """
@@ -722,7 +718,7 @@ def wait_for_termination(config):
         podx = sanitise_output(pod_data)
         pods = podx.split(" ")
         # Annoyingly, splitting a zero-length list causes an array of length 1 ..
-        if len(podx) == 0 or len(pods) == 0:
+        if len(podx) == 0 or len(pods) == 0 or (keep_persistence and len(pods) == 1 and pods[0].startswith('localstack')):
             break
         else:
             print(f": {' '.join(pods)}")
@@ -735,25 +731,32 @@ def wait_for_termination(config):
               default='localdev',
               show_default=True,
               help="The test network's name")
-def down_cmd(ctx, testnet_name):
+@click.option("--keep-persistence",
+              is_flag=True,
+              default=False,
+              show_default=True,
+              help="A flag indicating whether to delete the persistence or not")
+def down_cmd(ctx, testnet_name, keep_persistence):
     """ Bring the testnet down and stop the proxies """
     config = get_config(ctx)
-    down(config, testnet_name)
+    down(config, testnet_name, keep_persistence)
 
-def down(config, testnet_name):
+def down(config, testnet_name, keep_persistence):
     stop_testnet(config, testnet_name)
     stop_proxy(config, testnet_name)
     tempo_down(config)
     prometheus_down(config)
     grafana_down(config)
-    localstack_down(config)
-    wait_for_termination(config)
+    if not keep_persistence:
+        localstack_down(config)
+
+    wait_for_termination(config, keep_persistence)
 
 def stop_testnet(config, testnet_name):
     # tediously, testnet.sh has a habit of returning non-zero error codes when eg. the testnet has already been destroyed :-(
     run_or_die(config, ["sh", "-c", "echo localdev | ./testnet.sh down"], in_dir=os.path.join(TESTNET_DIR, testnet_name), allow_failure = True)
 
-def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts):
+def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file):
     instance_dir = os.path.join(TESTNET_DIR, testnet_name)
     minikube_ip = get_minikube_ip(config)
 
@@ -777,11 +780,12 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         "--isolated-server-accounts", "true" if isolated_server_accounts else "false",
         "-f",
     ]
-    if config.persistence is not None and config.key_file is not None:
+    if persistence is not None and key_file is not None:
+        bucket_name = "zilliqa-devnet"
         cmd.extend([
-            "--bucket", "devnet-bucket",
-            "--recover-from-s3", "s3://devnet-bucket/persistence/devnet-persistence.tar.gz",
-            "--recover-key-files", config.key_file,
+            "--bucket", bucket_name,
+            "--recover-from-s3", f"s3://{bucket_name}/persistence/{testnet_name}-persistence.tar.gz",
+            "--recover-key-files", key_file,
         ])
     run_or_die(config, cmd, in_dir = TESTNET_DIR)
 
@@ -1026,7 +1030,6 @@ def build_scilla(config, driver, tag):
               show_default=True,
               help="The minikube driver to use")
 @click.option("--tag",
-              required=False,
               help="The scilla image tag. Will be generated if not given.")
 @click.pass_context
 def build_scilla_cmd(ctx, driver, tag):
@@ -1060,7 +1063,6 @@ def build_zilliqa(config, driver, scilla_image, tag):
               required=True,
               help="the scilla image to use when building the zilliqa image (i.e. scilla:<tag>)")
 @click.option("--tag",
-              required=False,
               help="The zilliqa image tag. Will be generated if not given.")
 @click.pass_context
 def build_zilliqa_cmd(ctx, driver, scilla_image, tag):
@@ -1125,7 +1127,6 @@ def restart_ingress_cmd(ctx):
               show_default=True,
               help="The minikube driver to use")
 @click.option("--zilliqa-image",
-              required=False,
               help="The zilliqz image to use when building the zilliqa image. If none is specified scilla & zillqa will be built with a new tag and used to bring up the test network.")
 @click.option("--testnet-name",
               required=True,
@@ -1137,13 +1138,20 @@ def restart_ingress_cmd(ctx):
               default=False,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
-def reup_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts):
+@click.option("--keep-persistence",
+              is_flag=True,
+              default=False,
+              show_default=True,
+              help="A flag indicating whether to delete the persistence or not")
+@click.option("--persistence", help="A persistence directory to start the network with. Has no effect without also passing `--key-file`.")
+@click.option("--key-file", help="A `.tar.gz` generated by `./testnet.sh back-up auto` containing the keys used to start this network. Has no effect without also passing `--persistence`.")
+def reup_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts, keep_persistence, persistence, key_file):
     """
     Equivalent to `localdev down && localdev up`
     """
     config = get_config(ctx)
-    down(config)
-    up(config, zilliqa_image, testnet_name, isolated_server_accounts)
+    down(config, testnet_name, keep_persistence)
+    up(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file)
 
 @click.command("show-proxy")
 @click.pass_context
@@ -1203,7 +1211,6 @@ def start_proxy_cmd(ctx, testnet_name):
 @click.command("write-testnet-config")
 @click.pass_context
 @click.option("--zilliqa-image",
-              required=False,
               help="The zilliqz image to use when building the zilliqa image. If none is specified scilla & zillqa will be built with a new tag and used to bring up the test network.")
 @click.option("--testnet-name",
               required=True,
@@ -1255,12 +1262,17 @@ def wait_for_running_pod_cmd(ctx, prefix, namespace):
 
 @click.command("wait-for-termination")
 @click.pass_context
-def wait_for_termination_cmd(ctx):
+@click.option("--keep-persistence",
+              is_flag=True,
+              default=False,
+              show_default=True,
+              help="A flag indicating whether to delete the persistence or not")
+def wait_for_termination_cmd(ctx, keep_persistence):
     """
     Wait for running pods to terminate so we can start a new network
     """
     config = get_config(ctx)
-    wait_for_termination(config)
+    wait_for_termination(config, keep_persistence)
 
 @click.command("rfc3339")
 @click.argument("recency")
