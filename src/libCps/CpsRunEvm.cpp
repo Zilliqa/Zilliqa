@@ -244,9 +244,9 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
           LOG_GENERAL(INFO,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
-              thisContractAddress,
-              DataConversion::StringToCharArray(sit.key()), 0,
-              DataConversion::StringToCharArray(sit.value()), 0)) {
+                  thisContractAddress,
+                  DataConversion::StringToCharArray(sit.key()), 0,
+                  DataConversion::StringToCharArray(sit.value()), 0)) {
           }
         }
 
@@ -639,7 +639,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
       logJson["topics"] = topics_array;
       entry.append(logJson);
     }
-    receipt.AddJsonEntry(entry);
+    receipt.AppendJsonEntry(entry);
   }
 
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
@@ -719,14 +719,15 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     // Funds is what we want our contract to become/be modified to.
     // Check that the contract funds plus the current funds in our account
     // is equal to this value
-    if(funds != recipientPreFunds + currentContractFunds) {
-        std::string error =
-            "Possible zil mint. Funds in destroyed account: " +
-            currentContractFunds.toWei().convert_to<std::string>() +
-            ", requested: " + (funds - recipientPreFunds).toWei().convert_to<std::string>();
+    if (funds != recipientPreFunds + currentContractFunds) {
+      std::string error =
+          "Possible zil mint. Funds in destroyed account: " +
+          currentContractFunds.toWei().convert_to<std::string>() +
+          ", requested: " +
+          (funds - recipientPreFunds).toWei().convert_to<std::string>();
 
-        LOG_GENERAL(WARNING, "ERROR IN DESTUCT! " << error);
-        span.SetError(error);
+      LOG_GENERAL(WARNING, "ERROR IN DESTUCT! " << error);
+      span.SetError(error);
     }
 
     mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
