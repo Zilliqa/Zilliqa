@@ -4,7 +4,7 @@ use crate::context::{Context, INCREMENTAL_NAME};
 use crate::download;
 use crate::sync;
 use crate::utils;
-use eyre::{eyre, Result};
+use anyhow::{anyhow, Result};
 use std::path::Path;
 
 pub struct Incremental<'a> {
@@ -36,12 +36,12 @@ impl<'a> Incremental<'a> {
             .is_some())
     }
 
-    pub async fn get_max_block(&self) -> Result<i64> {
+    pub async fn get_max_block(&self) -> Result<u64> {
         let data = self
             .ctx
             .get_key_as_string(&self.current_tx_block_key())
             .await?;
-        Ok(data.parse::<i64>()?)
+        Ok(data.parse::<u64>()?)
     }
 
     // Download the incremental state deltas

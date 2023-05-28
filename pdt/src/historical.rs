@@ -2,7 +2,7 @@
  */
 use crate::context::{Context, PERSISTENCE_SNAPSHOT_NAME};
 use crate::download;
-use eyre::{eyre, Result};
+use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::Path;
 
@@ -66,7 +66,7 @@ impl<'a> Historical<'a> {
                     handles.push(tokio::spawn(async move {
                         match my_clone.fetch_segment(&ctx, to_retrieve).await {
                             Ok(b) => Ok(b),
-                            Err(_) => Err(eyre!("Cannot fetch")),
+                            Err(_) => Err(anyhow!("Cannot fetch")),
                         }
                     }));
                     segments.push(segs[seg_ptr]);
@@ -77,7 +77,7 @@ impl<'a> Historical<'a> {
             for res in results {
                 match res? {
                     Err(x) => return Err(x),
-                    Ok(false) => return Err(eyre!("File has changed")),
+                    Ok(false) => return Err(anyhow!("File has changed")),
                     _ => (),
                 }
             }

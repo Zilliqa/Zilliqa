@@ -1,5 +1,6 @@
-use eyre::Result;
+use anyhow::Result;
 use pdtlib::context::Context;
+use pdtlib::exporter::Exporter;
 use pdtlib::historical::Historical;
 use pdtlib::incremental::Incremental;
 use pdtlib::render::Renderer;
@@ -28,7 +29,8 @@ async fn main() -> Result<()> {
     incr.download_persistence().await?;
     incr.download_incr_persistence().await?;
     incr.download_incr_state().await?;
-    println!("Max block {}", incr.get_max_block().await?);
+    let max_block = incr.get_max_block().await?;
+    println!("Max block {}", max_block);
 
     let render = Renderer::new("testnet-901", download_dir, unpack_dir)?;
     let recovery_points = render.get_recovery_points()?;
@@ -39,6 +41,11 @@ async fn main() -> Result<()> {
     println!("RP : {:?} ", recovery_points.recovery_points);
 
     render.unpack(&recovery_points, None)?;
+
+    // OK. Now.
+    let exporter = Exporter::new(&unpack_dir)?;
+
+    exporter.import_txns(4, max_block, None);
 
     println!("Hello, pdt!");
     Ok(())

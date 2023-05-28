@@ -1,7 +1,7 @@
 use crate::download;
 /** Synchronise files */
 use crate::{context, context::Context, utils};
-use eyre::{eyre, Result};
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::convert::TryFrom;
@@ -56,7 +56,7 @@ impl Sync {
         self.jobs.spawn(async move {
             match download::Immediate::download(&new_context, &new_key, &new_path).await {
                 Ok(b) => Ok(b),
-                Err(e) => Err(eyre!("Cannot fetch {:?}", e)),
+                Err(e) => Err(anyhow!("Cannot fetch {:?}", e)),
             }
         });
         Ok(())
@@ -98,10 +98,6 @@ impl Sync {
                 self.download(ctx, &entry.key, &path.as_path()).await?;
             }
         }
-        // Remove any files not in the list.
-        self.remove_keys_not_in(entries, source_key, target_path)
-            .await?;
-
         // We're at the end; wait for all jobs to be finished.
         while !self.jobs.is_empty() {
             println!("Waiting for {} jobs remaining", self.jobs.len());
@@ -114,6 +110,10 @@ impl Sync {
                 val??;
             }
         }
+        // Remove any files not in the list. Need to do this last, or it will
+        // unlink any .part files we were half-way through downloading.
+        self.remove_keys_not_in(entries, source_key, target_path)
+            .await?;
         Ok(())
     }
 
@@ -142,10 +142,12 @@ impl Sync {
                     if !should_be_here {
                         println!("Garbage collecting {}", canonical);
                         let _ = std::fs::remove_file(canonical);
+                        println!("Fish");
                     }
                 }
             }
         }
+        println!("Done remove_keys_not_in");
         Ok(())
     }
 }

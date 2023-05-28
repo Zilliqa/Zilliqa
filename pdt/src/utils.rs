@@ -1,6 +1,6 @@
 // Utilities
 use crate::context;
-use eyre::{eyre, Result};
+use anyhow::{anyhow, Result};
 use std::path::{Path, PathBuf};
 
 /* Where do we store persistence diffs? */
@@ -24,7 +24,7 @@ pub fn is_synced(entry: &context::Entry, file: &Path) -> Result<bool> {
 pub fn path_to_str(path: &Path) -> Result<String> {
     Ok(path
         .to_str()
-        .ok_or(eyre!("Could not convert path"))?
+        .ok_or(anyhow!("Could not convert path"))?
         .to_string())
 }
 
@@ -36,7 +36,7 @@ pub fn path_to_canonical_str(path: &Path) -> Result<String> {
 */
 pub fn relocate_key(base: &str, key: &str, to: &Path) -> Result<PathBuf> {
     // This is pretty trivial
-    let rest = key.strip_prefix(base).ok_or(eyre!("Invalid key!"))?;
+    let rest = key.strip_prefix(base).ok_or(anyhow!("Invalid key!"))?;
     let mut buf = to.to_path_buf();
     buf.push(Path::new(&format!("./{}", &rest)));
     Ok(buf)

@@ -2,7 +2,7 @@
  *
  */
 use crate::utils;
-use eyre::{eyre, Result};
+use anyhow::{anyhow, Result};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -84,7 +84,7 @@ impl Renderer {
             .join(format!("{}.tar.gz", self.network_name));
         let source_str = source_file
             .to_str()
-            .ok_or(eyre!("Cannot render path for historical data"))?;
+            .ok_or(anyhow!("Cannot render path for historical data"))?;
         let out = Command::new("tar")
             .args(["-C", &self.unpack_dir, "-xvzf", &source_str])
             .output()?;
@@ -98,7 +98,7 @@ impl Renderer {
         let map = self.get_file_map(IncrementalKind::StateDelta)?;
         let path = map
             .get(&block)
-            .ok_or(eyre!("Cannot find path for state delta {}", block))?;
+            .ok_or(anyhow!("Cannot find path for state delta {}", block))?;
         let path_str = utils::path_to_str(path)?;
         let tgt_dir = Path::new(&self.unpack_dir).join("stateDelta");
         println!("Unpacking {}", &path_str);
@@ -121,13 +121,13 @@ impl Renderer {
         let map = self.get_file_map(IncrementalKind::Persistence)?;
         for blk in blocks {
             // What's the filename?
-            let path = map.get(blk).ok_or(eyre!(
+            let path = map.get(blk).ok_or(anyhow!(
                 "Cannot find path for incremental persistence {}",
                 blk
             ))?;
             let path_str = path
                 .to_str()
-                .ok_or(eyre!("Cannot render path for block {}", blk))?;
+                .ok_or(anyhow!("Cannot render path for block {}", blk))?;
             // OK. Now unpack it.
             println!("Unpacking {}", &path_str);
             let out = Command::new("tar")
@@ -167,7 +167,7 @@ impl Renderer {
                 "-ir",
                 source_dir
                     .to_str()
-                    .ok_or(eyre!("Cannot render source path"))?,
+                    .ok_or(anyhow!("Cannot render source path"))?,
                 &self.unpack_dir,
             ])
             .output()?;
@@ -217,7 +217,7 @@ impl Renderer {
                 *(recovery_points
                     .recovery_points
                     .last()
-                    .ok_or(eyre!("no valid recovery points"))?)
+                    .ok_or(anyhow!("no valid recovery points"))?)
             }
         };
 
@@ -228,6 +228,7 @@ impl Renderer {
             .collect::<Vec<i64>>();
 
         self.clean_output()?;
+        self.unpack_history()?;
         self.copy_current()?;
         self.unpack_persistence_deltas(&delta_blocks)?;
         self.unpack_statedelta(recover_blk)?;

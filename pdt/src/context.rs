@@ -1,10 +1,10 @@
+use anyhow::{anyhow, Result};
 /** Context for downloads
  */
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::operation::get_object::GetObjectOutput;
 use aws_sdk_s3::operation::get_object_attributes::GetObjectAttributesOutput;
 use aws_sdk_s3::{config::Region, Client};
-use eyre::{eyre, Result};
 
 // Locations in the bucket.
 
@@ -56,7 +56,7 @@ impl Context {
         match listing.len() {
             0 => Ok(None),
             1 => Ok(Some(listing[0].clone())),
-            _ => Err(eyre!(
+            _ => Err(anyhow!(
                 "More than one possibility ({}) for key {}",
                 listing.len(),
                 key
@@ -68,7 +68,7 @@ impl Context {
         if let Some(val) = self.maybe_list_object(key).await? {
             Ok(val)
         } else {
-            Err(eyre!("No object for key {}", key))
+            Err(anyhow!("No object for key {}", key))
         }
     }
 

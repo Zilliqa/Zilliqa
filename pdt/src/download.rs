@@ -1,5 +1,5 @@
-use crate::{context::Context, utils};
-use eyre::{eyre, Result};
+use crate::{context, utils};
+use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fs;
@@ -35,7 +35,7 @@ pub struct Downloadable {
 pub struct Immediate {}
 
 impl Immediate {
-    pub async fn download(ctx: &Context, key: &str, dest_file: &Path) -> Result<()> {
+    pub async fn download(ctx: &context::Context, key: &str, dest_file: &Path) -> Result<()> {
         // Unlink the destination
         let _ = fs::remove_file(dest_file);
 
@@ -43,14 +43,15 @@ impl Immediate {
         // Create the directory
         let mut parent_dir = PathBuf::from(dest_file);
         parent_dir.pop();
-        std::fs::create_dir_all(parent_dir.as_path())?;
+        std::fs::create_dir_all(parent_dir.as_path())
+            .context(format!("Creating {:?}", parent_dir))?;
         // Write to a temp file
         let mut tmp_file = PathBuf::from(dest_file);
         let file_name = dest_file
             .file_name()
-            .ok_or(eyre!("Fish"))?
+            .ok_or(anyhow!("Cannot get file name"))?
             .to_str()
-            .ok_or(eyre!("Filename is not UTF-8"))?
+            .ok_or(anyhow!("Filename is not UTF-8"))?
             .to_string();
         let tmp_file_name: String = format!("{}.part", file_name);
         tmp_file.pop();
@@ -65,7 +66,11 @@ impl Immediate {
         while let Some(bytes) = result.body.try_next().await? {
             output_file.write(&bytes)?;
         }
-        fs::rename(tmp_file.as_path(), dest_file)?;
+        fs::rename(tmp_file.as_path(), dest_file).context(format!(
+            "Cannot rename {:?} to {:?}",
+            tmp_file.as_path(),
+            dest_file
+        ))?;
         Ok(())
     }
 }
@@ -168,7 +173,7 @@ impl Downloadable {
 
     /// Fetch a segment
     /// @return true if the fetch succeeded, false if the file has changed and we need to redownload.
-    pub async fn fetch_segment(&self, ctx: &Context, seg: i64) -> Result<bool> {
+    pub async fn fetch_segment(&self, ctx: &context::Context, seg: i64) -> Result<bool> {
         let idx = seg as usize;
         // If we've already filled it, we're good.
         if self.status.filled[idx] {
