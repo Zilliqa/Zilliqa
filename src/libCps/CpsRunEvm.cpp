@@ -626,8 +626,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
   if (result.logs_size() > 0) {
-    Json::Value entry = Json::arrayValue;
-
     for (const auto& log : result.logs()) {
       Json::Value logJson;
       logJson["address"] = "0x" + ProtoToAddress(log.address()).hex();
@@ -637,9 +635,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         topics_array.append("0x" + ProtoToH256(topic).hex());
       }
       logJson["topics"] = topics_array;
-      entry.append(logJson);
+      receipt.AppendJsonEntry(logJson);
     }
-    receipt.AppendJsonEntry(entry);
   }
 
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
