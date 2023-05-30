@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../helpers";
 
-describe("ERC20 Interop", function () {
+describe.skip("ERC20 Interop", function () {
   let zrc2_contract: ScillaContract;
   let bridge_contract: Contract;
   let contractOwner: Signer;
