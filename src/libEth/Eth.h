@@ -69,6 +69,9 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const Json::Value &transactionIndex,
                          uint32_t logIndex);
 
+Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents);
+std::string ConvertScillaEventToEthAbi(const std::string &event);
+
 LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt);
 Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt);
 
