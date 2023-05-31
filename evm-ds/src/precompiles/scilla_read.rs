@@ -39,7 +39,6 @@ pub(crate) fn scilla_read(
             });
         }
     }
-
     let (code_address, passed_field_name) = get_contract_addr_and_name(input)?;
 
     let code = backend.code_as_json(code_address);
