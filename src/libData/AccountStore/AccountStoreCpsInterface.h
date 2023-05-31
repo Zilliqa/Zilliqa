@@ -276,6 +276,14 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     mAccountStore.m_newLibrariesCreated.push_back(address);
   }
 
+  virtual bool isAccountEvmContract(const Address& address) const override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account == nullptr) {
+      return false;
+    }
+    return account->isContract() && EvmUtils::isEvm(account->GetCode());
+  }
+
  private:
   AccountStoreSC& mAccountStore;
   std::string mScillaRootVersion;

@@ -90,6 +90,7 @@ struct CpsAccountStoreInterface {
   virtual void MarkNewLibraryCreated(const Address& address) = 0;
   virtual CpsAccountStoreInterface::AccountType GetAccountType(
       const Address& address) = 0;
+  virtual bool isAccountEvmContract(const Address& address) const = 0;
 };
 }  // namespace libCps
 

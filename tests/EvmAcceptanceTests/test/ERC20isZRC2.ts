@@ -81,4 +81,17 @@ describe.skip("ERC20 Is ZRC2", function () {
     const bobTokens = await erc20_contract.balanceOf(await bob.getAddress());
     expect(bobTokens).to.be.eq(50);
   });
+
+  it("Should be able to transfer to evm contract", async function() {
+
+    expect(await erc20_contract.connect(contractOwner).transfer(erc20_contract.address, 150)).not.to.be.reverted;
+    const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
+    expect(zrc2Tokens).to.be.eq(150);
+  });
+
+  it("Should not be able to transfer to evm contract when _EvmCall tag is present", async function() {
+    expect(erc20_contract.connect(contractOwner).transferFailed(erc20_contract.address, 150)).to.be.reverted;
+    const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
+    expect(zrc2Tokens).to.be.eq(150);
+  });
 });

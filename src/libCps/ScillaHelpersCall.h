@@ -32,13 +32,16 @@ struct ScillaCallParseResult {
   // if contract accepted sent amount from a call (should be succeeded by a
   // transfer)
   bool accepted = false;
+  enum FailureType { RECOVERABLE = 0, NON_RECOVERABLE };
+  FailureType failureType = FailureType::RECOVERABLE;
+
   struct SingleResult {
     Json::Value nextInputMessage;
     Address nextAddress;
     Amount amount;
     bool isNextContract = false;
   };
-  std::vector<SingleResult> entries;
+  std::vector<SingleResult> entries = {};
 };
 
 class ScillaHelpersCall final {
