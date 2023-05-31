@@ -399,7 +399,7 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto sender = (jsonData["keep_origin"].isBool() &&
                        jsonData["keep_origin"].asBool() == true)
-                          ? mCpsContext.origSender.hex()
+                          ? ProtoToAddress(mProtoArgs.caller()).hex()
                           : ProtoToAddress(mProtoArgs.address()).hex();
 
   jsonData.removeMember("keep_origin");
@@ -450,14 +450,16 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto destAddress = jsonData["_address"].asString();
 
-  ScillaArgs scillaArgs = {.from = ProtoToAddress(mProtoArgs.address()),
-                           .dest = Address{destAddress},
-                           .origin = mCpsContext.origSender,
-                           .value = Amount{},
-                           .calldata = jsonData,
-                           .edge = 0,
-                           .depth = 0,
-                           .gasLimit = remainingGas};
+  ScillaArgs scillaArgs = {
+      .from = ProtoToAddress(mProtoArgs.address()),
+      .dest = Address{destAddress},
+      .origin = mCpsContext.origSender,
+      .value = Amount{},
+      .calldata = jsonData,
+      .edge = 0,
+      .depth = 0,
+      .gasLimit = remainingGas,
+      .extras = ScillaArgExtras{.scillaReceiverAddress = Address{}}};
 
   auto nextRun = std::make_shared<CpsRunScilla>(
       std::move(scillaArgs), mExecutor, mCpsContext, CpsRun::TrapScillaCall);
