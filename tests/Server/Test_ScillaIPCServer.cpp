@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_SUITE(scillaipc)
 // Connection sanity test.
 BOOST_AUTO_TEST_CASE(test_connection) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.StartListening();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: server is now listening.");
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(test_connection) {
 // Simple non-map query.
 BOOST_AUTO_TEST_CASE(test_query_simple) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
 // Simple map query.
 BOOST_AUTO_TEST_CASE(test_query_map_1) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
 // insert, delete and query empty string key.
 BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
 // Nested map queries.
 BOOST_AUTO_TEST_CASE(test_query_map_2) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -476,7 +476,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
 // Add an empty map, and then replace it with a non-empty map.
 BOOST_AUTO_TEST_CASE(test_query_empty_map) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -559,7 +559,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
 // Delete key in a map to make it empty and then query the map.
 BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -621,7 +621,7 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
 // Tests updating empty nested maps.
 BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -709,7 +709,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
 // This test is extracted from Scilla's in-place map contract.
 BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -793,7 +793,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
 // This test is extracted from Scilla's earmarked coin contract.
 BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -901,7 +901,7 @@ BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
   }
 
   rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  ScillaIPCServer server(s);
+  ScillaIPCServer server(nullptr, s);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.StartListening();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: server is now listening.");

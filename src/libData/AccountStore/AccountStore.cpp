@@ -106,7 +106,7 @@ AccountStore::AccountStore()
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
-        make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
+        make_shared<ScillaIPCServer>(this, m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
