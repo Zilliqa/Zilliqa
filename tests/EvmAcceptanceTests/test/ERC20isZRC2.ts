@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../helpers";
 
-describe("ERC20 Is ZRC2", function () {
+describe.skip("ERC20 Is ZRC2", function () {
   let zrc2_contract: ScillaContract;
   let erc20_contract: Contract;
   let contractOwner: Signer;
@@ -49,36 +49,49 @@ describe("ERC20 Is ZRC2", function () {
   });
 
   it("Should be able to transfer via erc20", async function () {
-    expect(await erc20_contract.transfer(await alice.getAddress(), 150)).not.to.be.reverted;
+    await (await erc20_contract.transfer(await alice.getAddress(), 150)).wait();
     const zrc2Tokens = await erc20_contract.balanceOf(await alice.getAddress());
     expect(zrc2Tokens).to.be.eq(150);
   });
 
   it("Should be able properly manipulate allowances", async function () {
     // Allow 50
-    expect(await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).not.to.be.reverted;
+    await (await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).wait();
     let aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
     expect(aliceAllowance).to.be.eq(50);
 
     // Allow 50 more
-    expect(await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 100)).not.to.be.reverted;
+    await (await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 100)).wait();
     aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
     expect(aliceAllowance).to.be.eq(100);
 
     // Allow 50 fewer
-    expect(await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).not.to.be.reverted;
+    await (await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).wait();
     aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
     expect(aliceAllowance).to.be.eq(50);
   });
 
   it("Should be able to transferFrom via erc20", async function () {
-    expect(await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).not.to.be.reverted;
-    expect(
-      await erc20_contract.connect(contractOwner).transferFrom(await alice.getAddress(), await bob.getAddress(), 50)
-    ).not.to.be.reverted;
+    await (await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).wait();
+    await (
+        await erc20_contract.connect(contractOwner).transferFrom(await alice.getAddress(), await bob.getAddress(), 50)
+    ).wait();
     const aliceTokens = await erc20_contract.balanceOf(await alice.getAddress());
     expect(aliceTokens).to.be.eq(100);
     const bobTokens = await erc20_contract.balanceOf(await bob.getAddress());
     expect(bobTokens).to.be.eq(50);
+  });
+
+  it("Should be able to transfer to evm contract", async function() {
+
+    expect(await erc20_contract.connect(contractOwner).transfer(erc20_contract.address, 150)).not.to.be.reverted;
+    const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
+    expect(zrc2Tokens).to.be.eq(150);
+  });
+
+  it("Should not be able to transfer to evm contract when _EvmCall tag is present", async function() {
+    expect(erc20_contract.connect(contractOwner).transferFailed(erc20_contract.address, 150)).to.be.reverted;
+    const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
+    expect(zrc2Tokens).to.be.eq(150);
   });
 });

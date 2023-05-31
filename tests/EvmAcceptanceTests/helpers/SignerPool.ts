@@ -34,11 +34,11 @@ export default class SignerPool {
     const newSigners = Array.from({length: 10}, (v, k) => Wallet.createRandom().connect(ethers.provider));
     const BatchTransferContract = await ethers.getContractFactory("BatchTransfer");
     const batchTransfer = await BatchTransferContract.connect(signer).deploy({
-      value: ethers.utils.parseUnits("10", "ether")
+      value: ethers.utils.parseUnits("100", "ether")
     });
     await batchTransfer.deployed();
     const addresses = newSigners.map((signer) => signer.address);
-    await batchTransfer.batchTransfer(addresses, ethers.utils.parseUnits("1", "ether"));
+    await batchTransfer.batchTransfer(addresses, ethers.utils.parseUnits("10", "ether"));
 
     this.signers.push(...newSigners);
   }

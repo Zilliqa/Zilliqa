@@ -244,9 +244,9 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
           LOG_GENERAL(INFO,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
-              thisContractAddress,
-              DataConversion::StringToCharArray(sit.key()), 0,
-              DataConversion::StringToCharArray(sit.value()), 0)) {
+                  thisContractAddress,
+                  DataConversion::StringToCharArray(sit.key()), 0,
+                  DataConversion::StringToCharArray(sit.value()), 0)) {
           }
         }
 
@@ -399,7 +399,7 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto sender = (jsonData["keep_origin"].isBool() &&
                        jsonData["keep_origin"].asBool() == true)
-                          ? mCpsContext.origSender.hex()
+                          ? ProtoToAddress(mProtoArgs.caller()).hex()
                           : ProtoToAddress(mProtoArgs.address()).hex();
 
   jsonData.removeMember("keep_origin");
@@ -450,14 +450,16 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto destAddress = jsonData["_address"].asString();
 
-  ScillaArgs scillaArgs = {.from = ProtoToAddress(mProtoArgs.address()),
-                           .dest = Address{destAddress},
-                           .origin = mCpsContext.origSender,
-                           .value = Amount{},
-                           .calldata = jsonData,
-                           .edge = 0,
-                           .depth = 0,
-                           .gasLimit = remainingGas};
+  ScillaArgs scillaArgs = {
+      .from = ProtoToAddress(mProtoArgs.address()),
+      .dest = Address{destAddress},
+      .origin = mCpsContext.origSender,
+      .value = Amount{},
+      .calldata = jsonData,
+      .edge = 0,
+      .depth = 0,
+      .gasLimit = remainingGas,
+      .extras = ScillaArgExtras{.scillaReceiverAddress = Address{}}};
 
   auto nextRun = std::make_shared<CpsRunScilla>(
       std::move(scillaArgs), mExecutor, mCpsContext, CpsRun::TrapScillaCall);
@@ -626,8 +628,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
   if (result.logs_size() > 0) {
-    Json::Value entry = Json::arrayValue;
-
     for (const auto& log : result.logs()) {
       Json::Value logJson;
       logJson["address"] = "0x" + ProtoToAddress(log.address()).hex();
@@ -637,9 +637,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         topics_array.append("0x" + ProtoToH256(topic).hex());
       }
       logJson["topics"] = topics_array;
-      entry.append(logJson);
+      receipt.AppendJsonEntry(logJson);
     }
-    receipt.AddJsonEntry(entry);
   }
 
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
@@ -719,14 +718,15 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     // Funds is what we want our contract to become/be modified to.
     // Check that the contract funds plus the current funds in our account
     // is equal to this value
-    if(funds != recipientPreFunds + currentContractFunds) {
-        std::string error =
-            "Possible zil mint. Funds in destroyed account: " +
-            currentContractFunds.toWei().convert_to<std::string>() +
-            ", requested: " + (funds - recipientPreFunds).toWei().convert_to<std::string>();
+    if (funds != recipientPreFunds + currentContractFunds) {
+      std::string error =
+          "Possible zil mint. Funds in destroyed account: " +
+          currentContractFunds.toWei().convert_to<std::string>() +
+          ", requested: " +
+          (funds - recipientPreFunds).toWei().convert_to<std::string>();
 
-        LOG_GENERAL(WARNING, "ERROR IN DESTUCT! " << error);
-        span.SetError(error);
+      LOG_GENERAL(WARNING, "ERROR IN DESTUCT! " << error);
+      span.SetError(error);
     }
 
     mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,

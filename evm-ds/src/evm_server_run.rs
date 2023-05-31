@@ -233,7 +233,13 @@ fn build_exit_result(
                         // Is this call static? if so, we don't want to modify other continuations' state
                         let storage_proto = storage
                             .into_iter()
-                            .map(|(k, v)| { continuations.lock().unwrap().update_states(address, k, v, is_static); backend.encode_storage(k, v).into()})
+                            .map(|(k, v)| {
+                                continuations
+                                    .lock()
+                                    .unwrap()
+                                    .update_states(address, k, v, is_static);
+                                backend.encode_storage(k, v).into()
+                            })
                             .collect();
 
                         modify.set_storage(storage_proto);

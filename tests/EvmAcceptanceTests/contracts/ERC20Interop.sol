@@ -56,6 +56,8 @@ contract ERC20Interop is ZRC2ERC20Interface, SafeMath {
 
     address private _contract_owner;
     address private _zrc2_address;
+
+    uint256 private constant CALL_MODE = 1;
  
     constructor(address zrc2_address) {
         _contract_owner = msg.sender;
@@ -157,21 +159,21 @@ contract ERC20Interop is ZRC2ERC20Interface, SafeMath {
     // Private functions used for accessing ZRC2 contract
 
     function _call_scilla_two_args(string memory tran_name, address recipient, uint128 amount) private {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, recipient, amount);
+        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, CALL_MODE, recipient, amount);
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
 
     function _call_scilla_three_args(string memory tran_name, address from, address to, uint128 amount) private {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, from, to, amount);
+        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, CALL_MODE, from, to, amount);
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c51, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }

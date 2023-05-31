@@ -148,9 +148,11 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
-  if (!ScillaHelpers::ExportCreateContractFiles(mAccountStore, mArgs.dest,
-                                                isLibrary, scillaVersion,
-                                                extlibsExports)) {
+  if (!ScillaHelpers::ExportCreateContractFiles(
+          mAccountStore.GetContractCode(mArgs.dest),
+          mAccountStore.GetContractInitData(mArgs.dest), isLibrary,
+          mAccountStore.GetScillaRootVersion(), scillaVersion,
+          extlibsExports)) {
     span.SetError("Unable to export create contract files");
     return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
@@ -328,7 +330,13 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
       mAccountStore, mArgs, runnerResult.returnVal, receipt, scillaVersion);
 
   if (!parseCallResults.success) {
+    // Revert in case of non-recoverable failures
+    if (parseCallResults.failureType ==
+        ScillaCallParseResult::NON_RECOVERABLE) {
+      return {TxnStatus::NOT_PRESENT, false, retScillaVal};
+    }
     // Allow TrapScilla call to fail and let EVM handle errored run accordingly
+    // (only for recoverable failures)
     if (GetType() == CpsRun::TrapScillaCall) {
       return {TxnStatus::NOT_PRESENT, true, retScillaVal};
     }
