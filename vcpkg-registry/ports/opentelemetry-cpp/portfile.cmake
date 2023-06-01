@@ -5,8 +5,8 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO open-telemetry/opentelemetry-cpp
-    REF v1.9.0
-    SHA512 a0f11641d6955df42845689ee8dc3ddb564ed58f8180a8536fa7f834659d72d4d62f550d3fd67d98c39cc645f48d8dc96d82fd88805f037c369014da737349d1
+    REF v1.8.3
+    SHA512 eb7dde38134fd9f51f22a2288a3a1db9eeec3dce3889c02fea82e20738a697449be73d632c3d1889ff159f0274d57bfd066db506149b221fe6ced8f18fdc1237
     HEAD_REF main
     PATCHES
         mac-fix.patch
