@@ -73,24 +73,3 @@ index 585e2539..7f5ec0c7 100644
  
      list(APPEND OPENTELEMETRY_OTLP_TARGETS opentelemetry_exporter_otlp_http_log)
  
-diff --git a/ext/src/http/client/curl/CMakeLists.txt b/ext/src/http/client/curl/CMakeLists.txt
-index 6684c5f8..5a208cb2 100644
---- a/ext/src/http/client/curl/CMakeLists.txt
-+++ b/ext/src/http/client/curl/CMakeLists.txt
-@@ -11,14 +11,14 @@ set_target_properties(opentelemetry_http_client_curl
- if(TARGET CURL::libcurl)
-   target_link_libraries(
-     opentelemetry_http_client_curl
--    PUBLIC opentelemetry_ext
-+    PUBLIC opentelemetry_ext opentelemetry_common
-     PRIVATE CURL::libcurl)
- else()
-   target_include_directories(opentelemetry_http_client_curl
-                              INTERFACE "${CURL_INCLUDE_DIRS}")
-   target_link_libraries(
-     opentelemetry_http_client_curl
--    PUBLIC opentelemetry_ext
-+    PUBLIC opentelemetry_ext opentelemetry_common
-     PRIVATE ${CURL_LIBRARIES})
- endif()
- 
