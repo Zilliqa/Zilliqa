@@ -201,7 +201,7 @@ RUN strip /usr/local/bin/zilliqad \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
 
-FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
+FROM ${SCILLA_IMAGE} AS scilla
 
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
