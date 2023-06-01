@@ -20,6 +20,7 @@
 #include "BlocksCache.h"
 
 #include "FiltersUtils.h"
+#include "libEth/Eth.h"
 #include "libUtils/Logger.h"
 
 namespace evmproj {
@@ -110,6 +111,8 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
+
+  logs = Eth::ConvertScillaEventsToEvm(logs);
   for (const auto &event : logs) {
     ++ctx.totalLogs;
 
@@ -120,6 +123,8 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
     if (log.address.empty()) {
       LOG_GENERAL(WARNING, "Error extracting address of event log: " << error);
     }
+
+    LOG_GENERAL(WARNING, "Adding Address: " << log.address);
 
     auto json_topics = ExtractArrayFromJsonObj(event, TOPICS_STR, error);
     if (!error.empty()) {
@@ -133,6 +138,7 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
         log.topics.clear();
         break;
       }
+      LOG_GENERAL(WARNING, "Adding topic: " << t.asString());
       log.topics.emplace_back(t.asString());
     }
 

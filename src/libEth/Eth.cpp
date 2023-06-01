@@ -266,20 +266,25 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
   Json::Value convertedEvents = Json::arrayValue;
 
   for (const auto &event : evmEvents) {
+    const std::string str = JSONUtils::GetInstance().convertJsontoStr(event);
+    LOG_GENERAL(WARNING, "Single event string: " << str);
+
     // Evm event
-    if (!evmEvents.isMember("_eventname")) {
+    if (!event.isMember("_eventname")) {
       convertedEvents.append(event);
+      continue;
     }
 
     Json::Value converted{};
     converted["address"] =
         event.isMember("address") ? event["address"].asString() : "0x";
     converted["topics"] = Json::arrayValue;
-    const auto eventName = event["_eventname"].asString();
+    const auto eventName =
+        event["_eventname"].asString() + std::string("(string)");
     const auto ethhash =
         ethash_keccak256(reinterpret_cast<const uint8_t *>(eventName.data()),
                          std::size(eventName));
-    std::string topic0;
+    std::string topic0 = "0x";
     boost::algorithm::hex(std::cbegin(ethhash.bytes), std::cend(ethhash.bytes),
                           std::back_inserter(topic0));
     converted["topics"].append(topic0);
