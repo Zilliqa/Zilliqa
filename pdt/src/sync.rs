@@ -55,7 +55,11 @@ impl Sync {
         // Spawn a job to download the file.
         self.jobs.spawn(async move {
             match download::Immediate::download(&new_context, &new_key, &new_path).await {
-                Ok(b) => Ok(b),
+                Ok(b) => {
+                    println!("Marking {:?} as synced with {:?}", new_path, b);
+                    utils::mark_synced(new_path.as_path(), &b)?;
+                    Ok(())
+                }
                 Err(e) => Err(anyhow!("Cannot fetch {:?}", e)),
             }
         });
@@ -137,6 +141,15 @@ impl Sync {
         // Walk our directory tree.
         for entry in WalkDir::new(target_path).into_iter().filter_map(|s| s.ok()) {
             if entry.file_type().is_file() {
+                let file_name = entry
+                    .file_name()
+                    .to_str()
+                    .ok_or(anyhow!("Cannot convert file name to string"))?;
+                if file_name.starts_with(".etag_") || file_name == "meta.json" {
+                    // This is an etag marker
+                    continue;
+                }
+
                 if let Ok(canonical) = utils::path_to_canonical_str(entry.path()) {
                     let should_be_here = whitelist.contains(&canonical);
                     if !should_be_here {

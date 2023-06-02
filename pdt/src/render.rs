@@ -1,3 +1,4 @@
+use crate::meta;
 /** Facilities for rendering downloaded persistence deltas.
  *
  */
@@ -161,14 +162,21 @@ impl Renderer {
             .join(utils::DIR_PERSISTENCE)
             .join(".");
 
+        let dest_dir = Path::new(&self.unpack_dir)
+            .join(utils::DIR_PERSISTENCE)
+            .join(".");
+        let _ = std::fs::create_dir_all(&dest_dir);
+
         // Now Copy persistence into it.
-        Command::new("cp")
+        // Because ldb modifies databases on open, you can't cp -i, you have
+        // to rsync :-(
+        Command::new("rsync")
             .args([
-                "-ir",
+                "-az",
                 source_dir
                     .to_str()
                     .ok_or(anyhow!("Cannot render source path"))?,
-                &self.unpack_dir,
+                &utils::path_to_str(&dest_dir)?,
             ])
             .output()?;
         Ok(())
@@ -226,12 +234,14 @@ impl Renderer {
             .iter()
             .filter_map(|x| if *x <= recover_blk { Some(*x) } else { None })
             .collect::<Vec<i64>>();
+        let metadata = meta::Meta::load(Path::new(&self.download_dir))?;
 
         self.clean_output()?;
         self.unpack_history()?;
         self.copy_current()?;
         self.unpack_persistence_deltas(&delta_blocks)?;
         self.unpack_statedelta(recover_blk)?;
+        metadata.save(Path::new(&self.unpack_dir))?;
         Ok(())
     }
 }

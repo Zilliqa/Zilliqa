@@ -2,6 +2,7 @@ use crate::context;
 /// Retrieve the incremental db.
 use crate::context::{Context, INCREMENTAL_NAME};
 use crate::download;
+use crate::meta;
 use crate::sync;
 use crate::utils;
 use anyhow::{anyhow, Result};
@@ -87,5 +88,11 @@ impl<'a> Incremental<'a> {
         let mut sync = sync::Sync::new(16)?;
         sync.sync(self.ctx, &object_root, target_path.as_path(), true)
             .await
+    }
+
+    pub fn save_meta(&self, max_block: u64) -> Result<()> {
+        let metadata = meta::Meta::from_data(max_block)?;
+        metadata.save(Path::new(&self.ctx.target_path))?;
+        Ok(())
     }
 }

@@ -21,31 +21,44 @@ async fn main() -> Result<()> {
         &download_dir,
     )
     .await?;
-    println!("Download history ..");
-    let historical = Historical::new(&ctx)?;
-    historical.download().await?;
-    println!("Download persistence .. ");
-    let incr = Incremental::new(&ctx)?;
-    incr.download_persistence().await?;
-    incr.download_incr_persistence().await?;
-    incr.download_incr_state().await?;
-    let max_block = incr.get_max_block().await?;
-    println!("Max block {}", max_block);
+    if (false) {
+        println!("Download history ..");
+        let historical = Historical::new(&ctx)?;
+        historical.download().await?;
+        println!("Download persistence .. ");
+        let incr = Incremental::new(&ctx)?;
+        let max_block = incr.get_max_block().await?;
+        incr.download_persistence().await?;
+        incr.download_incr_persistence().await?;
+        incr.download_incr_state().await?;
+        incr.save_meta(max_block)?;
+        println!("Max block {}", max_block);
 
-    let render = Renderer::new("testnet-901", download_dir, unpack_dir)?;
-    let recovery_points = render.get_recovery_points()?;
-    println!(
-        "persistence blocks: {:?} , state blocks: {:?}",
-        recovery_points.persistence_blocks, recovery_points.state_delta_blocks
-    );
-    println!("RP : {:?} ", recovery_points.recovery_points);
+        let render = Renderer::new("testnet-901", download_dir, unpack_dir)?;
+        let recovery_points = render.get_recovery_points()?;
+        println!(
+            "persistence blocks: {:?} , state blocks: {:?}",
+            recovery_points.persistence_blocks, recovery_points.state_delta_blocks
+        );
+        println!("RP : {:?} ", recovery_points.recovery_points);
 
-    render.unpack(&recovery_points, None)?;
+        render.unpack(&recovery_points, None)?;
 
+        println!("Rendered .. ");
+    }
     // OK. Now.
     let exporter = Exporter::new(&unpack_dir)?;
+    let max_block = exporter.get_max_block();
+    println!("max_block is {}", max_block);
 
-    exporter.import_txns(4, max_block, None);
+    // exporter.import_txns(4, max_block, None);
+    for val in exporter.micro_blocks(1, max_block, None)? {
+        if let Ok((key, blk)) = val {
+            println!("Blk! at {}/{}", key.epochnum, key.shardid);
+        } else {
+            println!("Error!");
+        }
+    }
 
     println!("Hello, pdt!");
     Ok(())

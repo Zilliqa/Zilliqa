@@ -35,7 +35,12 @@ pub struct Downloadable {
 pub struct Immediate {}
 
 impl Immediate {
-    pub async fn download(ctx: &context::Context, key: &str, dest_file: &Path) -> Result<()> {
+    /** Download a file and return the etag we downloaded */
+    pub async fn download(
+        ctx: &context::Context,
+        key: &str,
+        dest_file: &Path,
+    ) -> Result<Option<String>> {
         // Unlink the destination
         let _ = fs::remove_file(dest_file);
 
@@ -58,6 +63,7 @@ impl Immediate {
         tmp_file.push(&tmp_file_name.to_string());
 
         let mut result = ctx.get_object(key).await?;
+        let e_tag = result.e_tag().map(|x| x.to_string());
         let mut output_file = File::options()
             .read(true)
             .write(true)
@@ -71,7 +77,7 @@ impl Immediate {
             tmp_file.as_path(),
             dest_file
         ))?;
-        Ok(())
+        Ok(e_tag)
     }
 }
 

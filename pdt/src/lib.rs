@@ -9,6 +9,7 @@ pub mod download;
 pub mod exporter;
 pub mod historical;
 pub mod incremental;
+pub mod meta;
 pub mod proto;
 pub mod range;
 pub mod render;
