@@ -4,6 +4,7 @@ use pdtlib::exporter::Exporter;
 use pdtlib::historical::Historical;
 use pdtlib::incremental::Incremental;
 use pdtlib::render::Renderer;
+use primitive_types::H256;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -55,6 +56,13 @@ async fn main() -> Result<()> {
     for val in exporter.micro_blocks(1, max_block, None)? {
         if let Ok((key, blk)) = val {
             println!("Blk! at {}/{}", key.epochnum, key.shardid);
+            for (hash, maybe_txn) in exporter.txns(&key, &blk)? {
+                if let Some(txn) = maybe_txn {
+                    if let Some(actually_txn) = txn.transaction {
+                        println!("Txn {}", H256::from_slice(&actually_txn.tranid));
+                    }
+                }
+            }
         } else {
             println!("Error!");
         }

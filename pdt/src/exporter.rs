@@ -42,15 +42,20 @@ impl Exporter {
         })
     }
 
-    pub fn txns(
-        &self,
-        nr_shards: u32,
-        nr_blks: u64,
-        start_after: Option<u64>,
-    ) -> Result<Transactions> {
-        Ok(Transactions {
-            mb: self.micro_blocks(nr_shards, nr_blks, start_after)?,
-        })
+    pub fn txns<'a>(
+        &'a self,
+        key: &ProtoMicroBlockKey,
+        mb: &'a ProtoMicroBlock,
+    ) -> Result<Box<dyn Iterator<Item = (H256, Option<ProtoTransactionWithReceipt>)> + 'a>> {
+        let blk_id = key.epochnum;
+        Ok(Box::new(mb.tranhashes.iter().map(move |x| {
+            let hash = H256::from_slice(&x);
+            if let Ok(maybe_txn) = self.db.get_tx_body(blk_id, hash) {
+                (hash, maybe_txn)
+            } else {
+                (hash, None)
+            }
+        })))
     }
 }
 
@@ -95,52 +100,40 @@ impl<'a> Iterator for MicroBlocks<'a> {
         }
     }
 }
+// this is a bit weird, because only some elements of history
+// are preserved.
+// Start at epoch 1.
+// We're done.
+// loop {
 
-pub struct Transactions<'a> {
-    mb: MicroBlocks<'a>,
-}
-
-impl<'a> Iterator for Transactions<'a> {
-    type Item = Result<ProtoTransactionWithReceipt>;
-
-    fn next(&mut self) -> Option<Result<ProtoTransactionWithReceipt>> {
-        // this is a bit weird, because only some elements of history
-        // are preserved.
-        // Start at epoch 1.
-        // We're done.
-        // loop {
-
-        //     if self.blk_id >= self.nr_blks {
-        //         return None;
-        //     }
-        //     if self.shard >= self.nr_shards {
-        //         self.shard = 0;
-        //     }
-        //     let the_key = ProtoMicroBlockKey {
-        //         epochnum: blk_id,
-        //         shardid: shard,
-        //     };
-        //     if let Some(block) = self.db.get_micro_block(&the_key)? {
-        //         println!(
-        //             "Got block {}, shard {} hashes {}",
-        //             blk_id,
-        //             shard,
-        //             block.tranhashes.len()
-        //         );
-        //         // retrieve the transaction hashes
-        //         for hash_bytes in block.tranhashes {
-        //             let hash = H256::from_slice(&hash_bytes);
-        //             if let Ok(maybe_txn) = self.db.get_tx_body(blk_id, hash) {
-        //                 if let Some(txn) = maybe_txn {
-        //                     if let Some(pt) = txn.transaction {
-        //                             println!("Got txn {:?}", pt.tranid);
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        None
-    }
-}
+//     if self.blk_id >= self.nr_blks {
+//         return None;
+//     }
+//     if self.shard >= self.nr_shards {
+//         self.shard = 0;
+//     }
+//     let the_key = ProtoMicroBlockKey {
+//         epochnum: blk_id,
+//         shardid: shard,
+//     };
+//     if let Some(block) = self.db.get_micro_block(&the_key)? {
+//         println!(
+//             "Got block {}, shard {} hashes {}",
+//             blk_id,
+//             shard,
+//             block.tranhashes.len()
+//         );
+//         // retrieve the transaction hashes
+//         for hash_bytes in block.tranhashes {
+//             let hash = H256::from_slice(&hash_bytes);
+//             if let Ok(maybe_txn) = self.db.get_tx_body(blk_id, hash) {
+//                 if let Some(txn) = maybe_txn {
+//                     if let Some(pt) = txn.transaction {
+//                             println!("Got txn {:?}", pt.tranid);
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
