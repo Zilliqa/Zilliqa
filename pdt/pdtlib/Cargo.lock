@@ -755,15 +755,6 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfcf0ed7fe52a17a03854ec54a9f76d6d84508d1c0e66bc1793301c73fc8493c"
 dependencies = [
- "static_assertions",
-]
-
-[[package]]
-name = "fixed-hash"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "835c052cb0c08c1acf6ffd71c022172e18723949c8282f2b9f27efbc51e64534"
-dependencies = [
  "byteorder",
  "rand",
  "rustc-hex",
@@ -1068,9 +1059,9 @@ dependencies = [
 
 [[package]]
 name = "impl-serde"
-version = "0.4.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebc88fc67028ae3db0c853baa36269d398d5f45b6982f95549ff5def78c935cd"
+checksum = "4551f042f3438e64dbd6226b20527fc84a6e1fe65688b58746a2f53623f25f5c"
 dependencies = [
  "serde",
 ]
@@ -1185,7 +1176,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82bc5d5ca345b067619615f62ac6f93e7daa67eb82d080bc380ed480708ec9e3"
 dependencies = [
- "primitive-types 0.11.1",
+ "primitive-types",
  "tiny-keccak",
 ]
 
@@ -1388,7 +1379,7 @@ dependencies = [
  "futures",
  "hex",
  "indicatif",
- "primitive-types 0.12.1",
+ "primitive-types",
  "prost",
  "prost-build",
  "rlp",
@@ -1489,17 +1480,7 @@ version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e28720988bff275df1f51b171e1b2a18c30d194c4d2b61defdacecd625a5d94a"
 dependencies = [
- "fixed-hash 0.7.0",
- "uint",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f3486ccba82358b11a77516035647c34ba167dfa53312630de83b12bd4f3d66"
-dependencies = [
- "fixed-hash 0.8.0",
+ "fixed-hash",
  "impl-codec",
  "impl-serde",
  "uint",
