@@ -1,0 +1,12 @@
+[package]
+name = "pdtbq"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "4.2.4"
+eyre = "0.6.8"
+tokio = "1.27.0"
+gcp-bigquery-client = "0.16.7"
