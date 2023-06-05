@@ -400,7 +400,6 @@ bool Match(const EventFilterParams &filter, const Address &address,
     // the filter to 16 addresses, this is acceptable.
     auto v = filter.address;
     if (std::find_if(v.begin(), v.end(), [&address](const auto &a) {
-          LOG_GENERAL(WARNING, "COMPARINGA: " << address << " " << a);
           return boost::iequals(address, a);
         }) == v.end()) {
       return false;
@@ -426,8 +425,6 @@ bool Match(const EventFilterParams &filter, const Address &address,
 
     bool found = false;
     for (const auto &t : topicMatch) {
-      LOG_GENERAL(WARNING,
-                  "COMPARINGT: " << topic << " " << boost::to_lower_copy(t));
       if (boost::iequals(t, topic)) {
         found = true;
         break;

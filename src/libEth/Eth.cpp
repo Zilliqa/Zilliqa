@@ -266,9 +266,6 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
   Json::Value convertedEvents = Json::arrayValue;
 
   for (const auto &event : evmEvents) {
-    const std::string str = JSONUtils::GetInstance().convertJsontoStr(event);
-    LOG_GENERAL(WARNING, "Single event string: " << str);
-
     // Evm event
     if (!event.isMember("_eventname")) {
       convertedEvents.append(event);
