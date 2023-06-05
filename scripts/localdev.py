@@ -202,13 +202,13 @@ Run:
 
 def minikube_env(config, driver):
     driver_env = os.environ.copy()
-    if driver == "docker" or driver == "podman":
+    if driver == "docker" or driver == "podman" or driver == "kvm2":
         for p in map(
             # Skip the 'export ' and split at '=' into a tuple
             lambda x: x[7:].split('='),
             re.findall(
                 r'export [A-Z_]+="[^"]*"',
-                run_or_die(config, ["minikube", driver + "-env"], capture_output=True).decode('utf-8'))):
+                run_or_die(config, ["minikube", ("podman" if driver == "podman" else "docker") + "-env"], capture_output=True).decode('utf-8'))):
             driver_env[p[0]] = p[1][1:-1]
 
     return driver_env
@@ -335,6 +335,9 @@ def localstack_up(config):
     """ Let helm deploy localstack """
     run_or_die(config, ["helm", "upgrade", "--install", "localstack", "localstack/localstack"])
     localstack_pod_name = wait_for_helm_pod(config, "localstack-")
+
+    # Port forward localstack so we can talk to it
+    run_or_die(config, ["kubectl", "port-forward", "deployment/localstack", "4566:4566"], in_background=True)
 
     bucket_name = 'zilliqa-devnet'
     run_or_die(config, ['kubectl', 'exec', '-it', localstack_pod_name, '--', 'awslocal', 's3', 'mb', f's3://{bucket_name}'])
@@ -622,9 +625,6 @@ def isolated(config, enable_evm = True, block_time_ms = None):
 
 def start_testnet(config, testnet_name, persistence):
     run_or_die(config, ["./testnet.sh", "up"], in_dir=os.path.join(TESTNET_DIR, testnet_name))
-
-    # Port forward localstack so we can talk to it
-    run_or_die(config, ["kubectl", "port-forward", "deployment/localstack", "4566:4566"], in_background=True)
 
     if persistence is not None:
         # Create a tarball of persistence.
