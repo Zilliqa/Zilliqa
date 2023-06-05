@@ -29,7 +29,7 @@ impl Meta {
         let my_name = Path::new(to_dir).join(META_FILE_NAME);
         let file = File::create(my_name)?;
         let writer = BufWriter::new(file);
-        serde_json::to_writer(writer, self);
+        serde_json::to_writer(writer, self)?;
         Ok(())
     }
 

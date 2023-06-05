@@ -1479,6 +1479,8 @@ name = "pdt"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "clap",
+ "pdtbq",
  "pdtlib",
  "primitive-types",
  "tokio",
@@ -1488,9 +1490,13 @@ dependencies = [
 name = "pdtbq"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "clap",
- "eyre",
  "gcp-bigquery-client",
+ "hex",
+ "pdtlib",
+ "primitive-types",
+ "serde",
  "tokio",
 ]
 

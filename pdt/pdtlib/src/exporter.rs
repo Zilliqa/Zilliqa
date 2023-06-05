@@ -6,6 +6,7 @@ use primitive_types::H256;
 use std::path::Path;
 
 pub struct Exporter {
+    #[allow(dead_code)]
     persistence_dir: String,
     db: Db,
     meta: meta::Meta,
