@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (C) 2019 Zilliqa
+# Copyright (C) 2023 Zilliqa
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ def is_osx():
     return sys.platform == "darwin"
 
 def default_driver():
-    return "docker" if is_osx() else "kvm2"
+    return "docker"
 
 def using_podman(config):
     return config.driver == "podman"
@@ -55,20 +55,6 @@ class Config:
     def __init__(self):
         self.default_env = { "LOCALDEV" : "1" , "FAST_BUILD" : "1"}
         self.cache_dir = os.path.join(pathlib.Path.home(), ".cache", "zilliqa_localdev");
-
-        #  if self.is_osx:
-            #print(f"You are running on OS X .. using podman by setting \nexport KIND_EXPERIMENTAL_PROVIDER=podman\n");
-            #self.default_env['KIND_EXPERIMENTAL_PROVIDER'] = "podman"
-            # This allows localstack to start - otherwise it gets weird chwon / subuid errors.
-            #  self.default_env["PODMAN_USERNS"] = "host"
-            #  self.default_env["BUILDAH_LAYERS"] = "true"
-            #  self.using_podman = False
-            #  self.docker_binary = "docker"
-        #  else:
-            #  self.using_podman = True
-            #  self.docker_binary = "podman"
-        #  self.keep_workspace = True # "KEEP_WORKSPACE" in os.environ
-        #  self.testnet_name = "localdev"
         self.strip_binaries = False
 
     def setup(self):
@@ -160,7 +146,7 @@ def setup_podman(ctx, cpus, memory, disk_size):
 
 def setup_colima(ctx, cpus, memory, disk_size):
     """
-    Sets up colima.
+    Sets up colima (on OS X only).
     """
     config = get_config(ctx)
     run_or_die(config, ["colima", "start", f"--cpu={cpus}", f"--memory={int(memory / 1024)}", f"--disk={disk_size}", "--runtime=docker"])
@@ -169,7 +155,7 @@ def setup_colima(ctx, cpus, memory, disk_size):
 @click.pass_context
 def teardown_podman(ctx):
     """
-    Tear down podman (on OS X only)
+    Tear down podman.
     """
     config = get_config(ctx)
     if is_osx():
@@ -181,9 +167,6 @@ def get_minikube_ip(config):
     # be used as well as running 'minikube tunnel'.
     result = "127.0.0.1" if is_osx() else sanitise_output(run_or_die(config, ["minikube", "ip"], capture_output = True))
     return result
-
-def get_registry_ip(config):
-    return "127.0.0.1"
 
 def gen_tag():
     """
@@ -208,17 +191,6 @@ def print_config_advice(config):
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
     print(f"Minikube is at {ip}")
     print(f"""Please add
-
-[Resolver]
-DNS={ip}
-Domains=~localdomain
-
-    to your /etc/systemd/resolved.conf
-    And run
-
-systemctl restart systemd-resolved
-
-    Or add
 
 {hosts}
 
@@ -343,35 +315,6 @@ def wait_for_running_pod(config, podname_prefix, namespace):
 
 def pull_container(config, container):
     run_or_die(config, [ config.docker_binary, "pull" , container], env=config.driver_env)
-
-def pull_containers(config):
-    # Pre-emptively grab busybox and nginx
-    ip = get_registry_ip(config)
-    remote_registry = f"{ip}:5000"
-    for container in [ 'docker.io/localstack/localstack:latest',
-                       'docker.io/library/nginx:latest',
-                       'docker.io/library/busybox:latest',
-                       'docker.io/zilliqa/devex:a532d82' ]:
-        pull_container(config, container)
-        if container.startswith('docker.io/library'):
-            local_tag = container.split('/')[-1]
-        elif container.startswith('docker.io/'):
-            local_tag = '/'.join(container.split('/')[1:])
-        local_tag = f"{remote_registry}/{local_tag}"
-        print(f"Retagging {container} as {local_tag} .. ")
-        run_or_die(config, [config.docker_binary, "tag", container, local_tag], env=config.driver_env)
-        push_to_local_registry(config, local_tag)
-
-def push_to_local_registry(config, tag):
-    if using_podman(config):
-        extra_flags = [ "--tls-verify=false" ]
-    else:
-        extra_flags = [ ]
-    if tag.find('/') != -1:
-        print(f"> Pushing to local registry")
-        cmd = [ config.docker_binary, "push", tag ]
-        cmd.extend(extra_flags)
-        run_or_die(config, cmd, env=config.driver_env, in_dir = ZILLIQA_DIR, capture_output = False)
 
 def wait_for_helm_pod(config, pod_partial_name):
     while True:
@@ -572,8 +515,6 @@ def up(config, zilliqa_image, testnet_name, isolated_server_accounts, persistenc
     start_testnet(config, testnet_name, persistence)
     prometheus_up(config, testnet_name)
     tempo_up(config, testnet_name)
-    #  start_proxy(config, testnet_name)
-    #  show_proxy(config, testnet_name)
     restart_ingress(config);
     print("Ingress restarted; you should be ready to go...");
 
