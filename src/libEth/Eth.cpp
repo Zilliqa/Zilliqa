@@ -298,8 +298,9 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
 
 std::string ConvertScillaEventToEthAbi(const std::string &scillaEventString) {
   zbytes encoded;
+  constexpr auto OFFSET = 32;
   // Specify offset where real data starts
-  encoded = dev::toBigEndian(dev::u256{32});
+  encoded = dev::toBigEndian(dev::u256{OFFSET});
   // Add len
   const auto encodedLen =
       dev::toBigEndian(dev::u256{std::size(scillaEventString)});
@@ -309,9 +310,11 @@ std::string ConvertScillaEventToEthAbi(const std::string &scillaEventString) {
   if (std::empty(scillaEventString)) {
     return DataConversion::Uint8VecToHexStrRet(encoded);
   }
-
+  constexpr auto LENGTH_IN_BYTES = 32;
   const auto padZeroBytes =
-      32 - ((std::size(encodedLen) + std::size(scillaEventString)) % 32);
+      LENGTH_IN_BYTES -
+      ((std::size(encodedLen) + std::size(scillaEventString)) %
+       LENGTH_IN_BYTES);
   encoded.insert(std::end(encoded), std::cbegin(scillaEventString),
                  std::cend(scillaEventString));
   encoded.insert(std::end(encoded), padZeroBytes, uint8_t{0});
