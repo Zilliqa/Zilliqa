@@ -718,7 +718,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         "--https", "localdomain",
         "--seed-multiplier", "true",
         "--localstack", "true"]
-    cmd = cmd + [ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else []
+    cmd = cmd + ([ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else [])
     cmd = cmd + [ "-f" ]
     if persistence is not None and key_file is not None:
         bucket_name = "zilliqa-devnet"
