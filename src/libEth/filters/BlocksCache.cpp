@@ -20,6 +20,7 @@
 #include "BlocksCache.h"
 
 #include "FiltersUtils.h"
+#include "libEth/Eth.h"
 #include "libUtils/Logger.h"
 
 namespace evmproj {
@@ -110,6 +111,8 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
+
+  logs = Eth::ConvertScillaEventsToEvm(logs);
   for (const auto &event : logs) {
     ++ctx.totalLogs;
 
