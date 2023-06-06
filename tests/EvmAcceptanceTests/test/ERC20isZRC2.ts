@@ -53,9 +53,6 @@ describe("ERC20 Is ZRC2", function () {
     );
 
     erc165_contract = await parallelizer.deployContractWithSigner(contractOwner, "ContractSupportingScillaReceiver");
-
-    const Contract = await ethers.getContractFactory("Revert");
-    this.contract = await Contract.deploy();
   });
 
   it("Interop Should be deployed successfully", async function () {
