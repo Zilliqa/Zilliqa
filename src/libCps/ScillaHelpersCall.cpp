@@ -246,7 +246,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
 
     if (acc_store.isAccountEvmContract(recipient)) {
       // Workaround before we have full interop: treat EVM contracts as EOA
-      // accounts only if there's receiver_address set to 0x0, otherwise revert
+      // accounts only if there's no handler, otherwise revert
       if (CpsRunEvm::ProbeERC165Interface(acc_store, cpsContext,
                                           scillaArgs.dest, recipient)) {
         return ScillaCallParseResult{
