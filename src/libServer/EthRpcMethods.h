@@ -596,6 +596,40 @@ class EthRpcMethods {
         this->DebugTraceBlockByNumber(request[0u].asString(), request[1u]);
   }
 
+  inline virtual void GetHeaderByNumberI(const Json::Value& request,
+                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetHeaderByNumber(request[0u].asUInt64());
+  }
+
+  inline virtual void GetOtterscanApiLevelI(const Json::Value& request,
+                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = 8;
+  }
+
+  inline virtual void HasCodeI(const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->HasCode(request[0u].asString(), request[1u].asString());
+  }
+
+  inline virtual void GetBlockDetailsI(const Json::Value& request,
+                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetBlockDetails(request[0u].asUInt64());
+  }
+
+  inline virtual void GetBlockTransactionsI(const Json::Value& request,
+                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetBlockTransactions(request[0u].asUInt64(), boost::numeric_cast<uint32_t>(request[1u].asUInt64()), boost::numeric_cast<uint32_t>(request[2u].asUInt64()));
+  }
+
+  inline virtual void GetContractCreatorI(const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetContractCreator(request[0u].asString());
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
@@ -676,6 +710,12 @@ class EthRpcMethods {
                                     const Json::Value& json);
   Json::Value DebugTraceBlockByNumber(const std::string& blockNum,
                                       const Json::Value& json);
+
+  Json::Value GetHeaderByNumber(const uint64_t blockNumber);
+  bool HasCode(const std::string& address, const std::string& block);
+  Json::Value GetBlockDetails(const uint64_t blockNumber);
+  Json::Value GetBlockTransactions(const uint64_t blockNumber, const uint32_t pageNumber, const uint32_t pageSize);
+  Json::Value GetContractCreator(const std::string& address);
 
   Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
