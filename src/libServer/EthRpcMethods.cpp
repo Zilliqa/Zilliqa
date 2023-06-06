@@ -411,7 +411,7 @@ std::string EthRpcMethods::CreateTransactionEth(
   auto tx = GetTxFromFields(fields, pubKey, ret);
   // When we see TXs being submitted to this seedpub/lookup, we add it to the
   // pending TXn pool if we are in extended mode
-  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+  if (ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     m_sharedMediator.AddPendingTxn(tx);
   }
 
@@ -588,7 +588,6 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
   auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
 
-
   INC_CALLS(GetInvocationsCounter());
 
   try {
@@ -624,10 +623,8 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
 }
 
 string EthRpcMethods::GetEthCallZil(const Json::Value &_json) {
-
   auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
-
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -702,28 +699,33 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
                               tracerType);
 }
 
-// See https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/accounts/abi/abi.go#L242
-bool EthRpcMethods::UnpackRevert(const std::string &data_in, std::string &message) {
+// See
+// https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/accounts/abi/abi.go#L242
+bool EthRpcMethods::UnpackRevert(const std::string &data_in,
+                                 std::string &message) {
   zbytes data(data_in.begin(), data_in.end());
   // 68 bytes is the minimum: 4 prefix + 32 offset + 32 string length.
   if (data.size() < 68 ||
       // Keccack-256("Error(string)")[:4] == 0x08c379a0
-      !(data[0] == 0x08 && data[1] == 0xc3 && data[2] == 0x79 && data[3] == 0xa0)) {
+      !(data[0] == 0x08 && data[1] == 0xc3 && data[2] == 0x79 &&
+        data[3] == 0xa0)) {
     TRACE_ERROR("Invalid revert data for unpacking");
     return false;
   }
   // Take offset of the parameter
   zbytes offset_vec(data.begin() + 4, data.begin() + 36);
-  size_t offset = static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(offset_vec));
+  size_t offset =
+      static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(offset_vec));
   zbytes len_vec(data.begin() + 4 + offset, data.begin() + 4 + offset + 32);
-  size_t len = static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(len_vec));
+  size_t len =
+      static_cast<size_t>(dev::fromBigEndian<dev::u256, zbytes>(len_vec));
   message.clear();
   if (data.size() < 4 + offset + 32 + len) {
     TRACE_ERROR("Invalid revert data for unpacking");
     return false;
   }
-  std::copy(data.begin() + 4 + offset + 32, data.begin() + 4 + offset + 32 + len,
-            std::back_inserter(message));
+  std::copy(data.begin() + 4 + offset + 32,
+            data.begin() + 4 + offset + 32 + len, std::back_inserter(message));
   return true;
 }
 
@@ -763,8 +765,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
             : nullptr;
     if (sender == nullptr) {
       TRACE_ERROR("Sender doesn't exist");
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Sender doesn't exist");
+      throw JsonRpcException(
+          ServerBase::RPC_MISC_ERROR,
+          "The sender of the tx doesn't appear to have funds");
     }
     accountFunds = sender->GetBalance();
 
@@ -1308,7 +1311,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       return Json::nullValue;
     } else if (blockNumberStr == "latest" ||    //
                blockNumberStr == "earliest" ||  //
-               blockNumberStr == "pending" ||  //
+               blockNumberStr == "pending" ||   //
                isNumber(blockNumberStr)) {
       // handle latest, earliest and block number requests
       if (blockNumberStr == "latest") {
@@ -1316,23 +1319,25 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       } else if (blockNumberStr == "pending") {
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
 
-        // Special case for pending... modify the last block to fake a pending bloc
+        // Special case for pending... modify the last block to fake a pending
+        // bloc
         auto const pending = m_sharedMediator.GetPendingTxns();
 
         std::vector<TxBodySharedPtr> transactions;
 
-        for (auto const &tx: pending) {
+        for (auto const &tx : pending) {
           auto receipt = TransactionReceipt();
           receipt.update();
-          TxBodySharedPtr item = std::make_shared<TransactionWithReceipt>(tx, receipt);
+          TxBodySharedPtr item =
+              std::make_shared<TransactionWithReceipt>(tx, receipt);
           transactions.push_back(item);
         }
 
         const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
             txBlock.GetHeader().GetDSBlockNum());
 
-        auto toRet = JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 includeFullTransactions);
+        auto toRet = JSONConversion::convertTxBlocktoEthJson(
+            txBlock, dsBlock, transactions, includeFullTransactions);
 
         // Now modify the fields as if this block was in the future
         toRet["hash"] = Json::nullValue;
@@ -1358,7 +1363,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       return Json::nullValue;
     }
 
-    return  GetEthBlockCommon(txBlock, includeFullTransactions);
+    return GetEthBlockCommon(txBlock, includeFullTransactions);
   } catch (const std::exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "
@@ -1695,6 +1700,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 
     auto logs =
         Eth::GetLogsFromReceipt(transactionBodyPtr->GetTransactionReceipt());
+
+    logs = Eth::ConvertScillaEventsToEvm(logs);
 
     const auto baselogIndex =
         Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
