@@ -24,6 +24,7 @@ function validateEvmEvent(evmEventName: string, contractAddress: string, event: 
 describe("ERC20 Is ZRC2", function () {
   let zrc2_contract: ScillaContract;
   let erc20_contract: Contract;
+  let erc165_contract: Contract;
   let contractOwner: Signer;
   let alice: Signer;
   let bob: Signer;
@@ -50,6 +51,11 @@ describe("ERC20 Is ZRC2", function () {
       "ERC20isZRC2",
       zrc2_contract.address?.toLowerCase()
     );
+
+    erc165_contract = await parallelizer.deployContractWithSigner(contractOwner, "ContractSupportingScillaReceiver");
+
+    const Contract = await ethers.getContractFactory("Revert");
+    this.contract = await Contract.deploy();
   });
 
   it("Interop Should be deployed successfully", async function () {
@@ -158,6 +164,12 @@ describe("ERC20 Is ZRC2", function () {
     await receipt.wait();
     await new Promise((r) => setTimeout(r, 2000));
     expect(receivedEvents).to.be.not.empty;
+  });
+
+  it("Should not be able to transfer to evm contract when scilla receiver handler is present", async function() {
+    await expect(erc20_contract.foo(erc165_contract.address, 150)).to.be.rejected;
+    const zrc2Tokens = await erc20_contract.balanceOf(erc165_contract.address);
+    expect(zrc2Tokens).to.be.eq(0);
   });
 
 });
