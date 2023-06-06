@@ -3,6 +3,7 @@ use crate::context;
 use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 /* Where do we store persistence diffs? */
 pub const DIR_PERSISTENCE_DIFFS: &str = "diff_persistence";
@@ -11,6 +12,27 @@ pub const DIR_HISTORICAL_DATA: &str = "historical-data";
 pub const PERSISTENCE_DIFF_FILE_PREFIX: &str = "diff_persistence_";
 pub const STATE_DELTA_DIFF_FILE_PREFIX: &str = "stateDelta_";
 pub const DIR_STATEDELTA: &str = "statedelta";
+
+// Duplicate a directory. The contents of from will appear in to
+// (which will be created if it doesn't exist)
+pub fn dup_directory(from: &str, to: &str) -> Result<()> {
+    let src_dir = Path::new(from).join(".");
+    let dest_dir = Path::new(to);
+    let dest_dir_with_dot = Path::new(to).join(".");
+    let _ = std::fs::create_dir_all(&dest_dir);
+    Command::new("rsync")
+        .args([
+            "-az",
+            src_dir
+                .to_str()
+                .ok_or(anyhow!("Cannot render source path"))?,
+            dest_dir_with_dot
+                .to_str()
+                .ok_or(anyhow!("Cannot render dest path"))?,
+        ])
+        .output()?;
+    Ok(())
+}
 
 pub fn get_etag_name(file: &Path) -> Result<PathBuf> {
     let mut sync_file = PathBuf::from(file);

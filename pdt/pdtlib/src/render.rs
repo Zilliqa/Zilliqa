@@ -156,7 +156,7 @@ impl Renderer {
         Ok(())
     }
 
-    // Copy the current persistence, by hard linking.
+    // Copy the current persistence.
     pub fn copy_current(&self) -> Result<()> {
         let source_dir = Path::new(&self.download_dir)
             .join(utils::DIR_PERSISTENCE)

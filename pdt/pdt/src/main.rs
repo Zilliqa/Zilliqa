@@ -30,6 +30,17 @@ enum Commands {
     DumpPersistence,
     #[command(name = "bq")]
     ImportBq(ImportOptions),
+    #[command(name = "bqmulti")]
+    ImportMulti(MultiOptions),
+}
+
+#[derive(Debug, Args)]
+struct MultiOptions {
+    #[clap(long)]
+    nr_threads: i64,
+
+    #[clap(long)]
+    batch_blocks: i64,
 }
 
 #[derive(Debug, Args)]
@@ -42,6 +53,9 @@ struct ImportOptions {
 
     #[clap(long)]
     machine: i64,
+
+    #[clap(long)]
+    nr_batches: Option<i64>,
 }
 
 async fn download_persistence(download_dir: &str, unpack_dir: &str) -> Result<()> {
@@ -100,12 +114,17 @@ async fn dump_persistence(unpack_dir: &str) -> Result<()> {
     Ok(())
 }
 
+async fn bigquery_import_multi(unpack_dir: &str, opts: &MultiOptions) -> Result<()> {
+    bqimport::multi(unpack_dir, opts.nr_threads, opts.batch_blocks).await
+}
+
 async fn bigquery_import(unpack_dir: &str, opts: &ImportOptions) -> Result<()> {
     bqimport::import(
         unpack_dir,
         opts.nr_machines,
         opts.machine,
         opts.batch_blocks,
+        opts.nr_batches,
     )
     .await
 }
@@ -120,5 +139,6 @@ async fn main() -> Result<()> {
         }
         Commands::DumpPersistence => dump_persistence(&cli.unpack_dir).await,
         Commands::ImportBq(opts) => bigquery_import(&cli.unpack_dir, opts).await,
+        Commands::ImportMulti(opts) => bigquery_import_multi(&cli.unpack_dir, opts).await,
     }
 }

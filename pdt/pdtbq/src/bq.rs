@@ -127,7 +127,7 @@ impl ZilliqaBQProject {
     pub async fn insert_transactions(
         &self,
         req: Inserter<bq_object::Transaction>,
-        blks: Range<i64>,
+        blks: &Range<i64>,
     ) -> Result<(), InsertionErrors> {
         let mut err_rows = Vec::<String>::new();
         if req.req.len() > 0 {
@@ -163,8 +163,11 @@ impl ZilliqaBQProject {
         Ok(())
     }
 
-    pub async fn get_range(&self) -> Result<Option<Range<i64>>> {
-        Ok(self.meta.find_next_range_to_do(&self.bq_client).await?)
+    pub async fn get_range(&self, start_at: i64) -> Result<Option<Range<i64>>> {
+        Ok(self
+            .meta
+            .find_next_range_to_do(&self.bq_client, start_at)
+            .await?)
     }
 
     async fn create_transaction_table(client: &Client, project_id: &str) -> Result<Table> {
@@ -184,6 +187,7 @@ impl ZilliqaBQProject {
                 // This will eventually move to the receipts table.
                 TableFieldSchema::string("receipt"),
                 TableFieldSchema::string("sender_public_key"),
+                TableFieldSchema::string("from_addr"),
                 TableFieldSchema::string("signature"),
                 TableFieldSchema::string("to_addr"),
                 TableFieldSchema::integer("version"),

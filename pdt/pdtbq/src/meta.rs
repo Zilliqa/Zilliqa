@@ -90,8 +90,12 @@ impl Meta {
         Ok(client.table().create(metadata_table).await?)
     }
 
-    pub async fn find_next_range_to_do(&self, client: &Client) -> Result<Option<Range<i64>>> {
-        let mut start_at: i64 = 0;
+    pub async fn find_next_range_to_do(
+        &self,
+        client: &Client,
+        start_at_in: i64,
+    ) -> Result<Option<Range<i64>>> {
+        let mut start_at: i64 = start_at_in;
         loop {
             let next_range = self
                 .find_next_free_range(client, start_at, self.nr_blks)
@@ -108,18 +112,21 @@ impl Meta {
 
             // OK. Does this range overlap one of my batches? The batch starts at (next_range.start/batch_blk*nr_machines)
             // Our next batch is at start + nr * batch_size.
-            let batch_start = next_range.start / (self.batch_blks * self.nr_machines);
+            let batch_start =
+                next_range.start - next_range.start % (self.batch_blks * self.nr_machines);
             let our_next_batch_start = batch_start + (self.machine_id * self.batch_blks);
             let our_next_batch_end = our_next_batch_start + self.batch_blks;
             // Does it overlap?
             println!("ours {} .. {}", our_next_batch_start, our_next_batch_end);
             let start_range = std::cmp::max(next_range.start, our_next_batch_start);
             let end_range = std::cmp::min(next_range.end, our_next_batch_end);
-            if start_range < next_range.end && end_range >= next_range.start {
-                return Ok(Some(Range {
+            if start_range < next_range.end && end_range > next_range.start {
+                let result = Range {
                     start: start_range,
                     end: end_range,
-                }));
+                };
+                println!("OK. Fetching {:?}", result);
+                return Ok(Some(result));
             }
             start_at = next_range.end;
         }
@@ -134,7 +141,7 @@ impl Meta {
         let mut result = client
             .job()
             .query(&self.project_id,
-                   QueryRequest::new(format!("SELECT start_blk, nr_blks FROM {} WHERE start_blk >= {} ORDER BY start_blk ASC, nr_blks DESC LIMIT 1",
+                   QueryRequest::new(format!("SELECT start_blk, nr_blks FROM {} WHERE start_blk >= {} AND nr_blks > 0  ORDER BY start_blk ASC, nr_blks DESC LIMIT 1",
                                              self.table_name, blk_to_find))).await?;
         if result.next_row() {
             let start_blk = result
@@ -175,6 +182,10 @@ impl Meta {
         let mut should_commit_current_run = false;
         let mut result: Option<Range<i64>> = None;
         // Otherwise, we're set up.
+        println!(
+            "find_next_free_range() start at {} max {}",
+            start_at, max_blk
+        );
         while result.is_none() {
             let blk_to_find = match &current_run {
                 Some(val) => val.end,
@@ -192,7 +203,7 @@ impl Meta {
                 }
                 Some(have_run) => {
                     // There is a next range of done blocks. Is it contiguous with the one we have?
-                    println!("Next range {:?}", have_run);
+                    println!("Next range {:?} current {:?}", have_run, current_run);
                     if let Some(current_run_val) = &current_run {
                         if current_run_val.end == have_run.start {
                             // Merge them
@@ -209,6 +220,13 @@ impl Meta {
                         }
                     } else {
                         // There was no current run. make one.
+                        if have_run.start > start_at {
+                            // There's a hole at the beginning
+                            result = Some(Range {
+                                start: start_at,
+                                end: have_run.start,
+                            })
+                        }
                         current_run = Some(have_run);
                         should_commit_current_run = false;
                     }

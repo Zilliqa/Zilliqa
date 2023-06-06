@@ -17,6 +17,7 @@ pub struct Transaction {
     nonce: Option<i64>,
     receipt: Option<String>,
     sender_public_key: Option<String>,
+    from_addr: Option<String>,
     signature: Option<String>,
     to_addr: String,
     version: i64,
@@ -38,7 +39,14 @@ impl Transaction {
         let gas_limit: i64 = <u64>::try_into(core.gaslimit)?;
         let id = H256::from_slice(&txn.tranid);
         let to_addr = H160::from_slice(&core.toaddr);
-        let sender_public_key = core.senderpubkey.and_then(|x| Some(hex::encode(&x.data)));
+        let sender_public_key = core
+            .senderpubkey
+            .as_ref()
+            .and_then(|x| Some(hex::encode(&x.data)));
+        let from_addr = core
+            .senderpubkey
+            .as_ref()
+            .and_then(|x| utils::maybe_hex_address_from_public_key(&x.data));
         let nonce: Option<i64> = if let Some(nonce_val) = core.oneof2 {
             let pdtlib::proto::proto_transaction_core_info::Oneof2::Nonce(actual) = nonce_val;
             Some(<i64>::try_from(actual)?)
@@ -98,7 +106,8 @@ impl Transaction {
             gas_price,
             nonce,
             receipt,
-            sender_public_key: sender_public_key,
+            sender_public_key,
+            from_addr,
             signature,
             to_addr: hex::encode(to_addr.as_bytes()),
             version: i64::from(core.version),
