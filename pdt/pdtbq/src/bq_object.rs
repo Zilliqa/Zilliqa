@@ -40,32 +40,22 @@ impl Transaction {
         let to_addr = H160::from_slice(&core.toaddr);
         let sender_public_key = core.senderpubkey.and_then(|x| Some(hex::encode(&x.data)));
         let nonce: Option<i64> = if let Some(nonce_val) = core.oneof2 {
-            if let pdtlib::proto::proto_transaction_core_info::Oneof2::Nonce(actual) = nonce_val {
-                Some(<i64>::try_from(actual)?)
-            } else {
-                None
-            }
+            let pdtlib::proto::proto_transaction_core_info::Oneof2::Nonce(actual) = nonce_val;
+            Some(<i64>::try_from(actual)?)
         } else {
             None
         };
-        println!("X");
         let code: Option<String> = core.oneof8.and_then(|x| {
-            if let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x {
-                std::str::from_utf8(&y)
-                    .ok()
-                    .and_then(|x| Some(x.to_string()))
-            } else {
-                None
-            }
+            let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x;
+            std::str::from_utf8(&y)
+                .ok()
+                .and_then(|x| Some(x.to_string()))
         });
         let data: Option<String> = core.oneof9.and_then(|x| {
-            if let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x {
-                std::str::from_utf8(&y)
-                    .ok()
-                    .and_then(|x| Some(x.to_string()))
-            } else {
-                None
-            }
+            let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x;
+            std::str::from_utf8(&y)
+                .ok()
+                .and_then(|x| Some(x.to_string()))
         });
 
         let signature = txn
@@ -77,23 +67,19 @@ impl Transaction {
                 .ok()
                 .and_then(|x| Some(x.to_string()))
         });
-        println!("A");
         let cum_gas = val.receipt.as_ref().and_then(|x| {
             x.oneof2.as_ref().and_then(|y| {
-                if let pdtlib::proto::proto_transaction_receipt::Oneof2::Cumgas(z) = y {
-                    <u64>::try_into(*z).ok()
-                } else {
-                    None
-                }
+                let pdtlib::proto::proto_transaction_receipt::Oneof2::Cumgas(z) = y;
+                <u64>::try_into(*z).ok()
             })
         });
-        println!(
-            "C {:?} D {:?}",
-            core.amount.clone().and_then(|x| Some(hex::encode(&x.data))),
-            core.gasprice
-                .clone()
-                .and_then(|x| Some(hex::encode(&x.data)))
-        );
+        // println!(
+        //     "C {:?} D {:?}",
+        //     core.amount.clone().and_then(|x| Some(hex::encode(&x.data))),
+        //     core.gasprice
+        //         .clone()
+        //         .and_then(|x| Some(hex::encode(&x.data)))
+        // );
         let amount = core
             .amount
             .clone()
@@ -102,7 +88,6 @@ impl Transaction {
             .gasprice
             .clone()
             .and_then(|x| utils::u128_string_from_storage(&x));
-        println!("B");
         Ok(Transaction {
             id: hex::encode(id.as_bytes()),
             block: blk,

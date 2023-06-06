@@ -30,13 +30,13 @@ impl Exporter {
     pub fn micro_blocks(
         &self,
         nr_shards: u32,
-        nr_blks: u64,
-        start_after: Option<u64>,
+        end_blk: u64,
+        start_at: Option<u64>,
     ) -> Result<MicroBlocks> {
-        let lower_blk_id: u64 = if let Some(x) = start_after { x } else { 0 };
+        let lower_blk_id: u64 = if let Some(x) = start_at { x } else { 0 };
         Ok(MicroBlocks {
             nr_shards,
-            nr_blks,
+            end_blk,
             blk_id: lower_blk_id,
             shard: 0,
             db: &self.db,
@@ -62,7 +62,7 @@ impl Exporter {
 
 pub struct MicroBlocks<'a> {
     nr_shards: u32,
-    nr_blks: u64,
+    end_blk: u64,
     blk_id: u64,
     shard: u32,
     db: &'a Db,
@@ -78,7 +78,7 @@ impl<'a> Iterator for MicroBlocks<'a> {
                 self.shard = 0;
                 self.blk_id += 1;
             }
-            if self.blk_id >= self.nr_blks {
+            if self.blk_id >= self.end_blk {
                 return None;
             }
             let the_key = ProtoMicroBlockKey {

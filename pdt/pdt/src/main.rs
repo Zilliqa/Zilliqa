@@ -1,7 +1,7 @@
 mod bqimport;
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use pdtlib::context::Context;
 use pdtlib::exporter::Exporter;
 use pdtlib::historical::Historical;
@@ -29,7 +29,19 @@ enum Commands {
     #[command(name = "dump")]
     DumpPersistence,
     #[command(name = "bq")]
-    ImportBq,
+    ImportBq(ImportOptions),
+}
+
+#[derive(Debug, Args)]
+struct ImportOptions {
+    #[clap(long)]
+    nr_machines: i64,
+
+    #[clap(long)]
+    batch_blocks: i64,
+
+    #[clap(long)]
+    machine: i64,
 }
 
 async fn download_persistence(download_dir: &str, unpack_dir: &str) -> Result<()> {
@@ -88,8 +100,14 @@ async fn dump_persistence(unpack_dir: &str) -> Result<()> {
     Ok(())
 }
 
-async fn bigquery_import(unpack_dir: &str) -> Result<()> {
-    bqimport::import(unpack_dir).await
+async fn bigquery_import(unpack_dir: &str, opts: &ImportOptions) -> Result<()> {
+    bqimport::import(
+        unpack_dir,
+        opts.nr_machines,
+        opts.machine,
+        opts.batch_blocks,
+    )
+    .await
 }
 
 #[tokio::main]
@@ -101,6 +119,6 @@ async fn main() -> Result<()> {
             download_persistence(&cli.download_dir, &cli.unpack_dir).await
         }
         Commands::DumpPersistence => dump_persistence(&cli.unpack_dir).await,
-        Commands::ImportBq => bigquery_import(&cli.unpack_dir).await,
+        Commands::ImportBq(opts) => bigquery_import(&cli.unpack_dir, opts).await,
     }
 }
