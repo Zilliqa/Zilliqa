@@ -65,7 +65,7 @@ describe("ERC20 Is ZRC2", function () {
     expect(await erc20_contract.totalSupply()).to.be.eq(1_000);
   });
 
-  it("Should be able to transfer via erc2022", async function () {
+  it("Should be able to transfer via erc20", async function () {
     let receipt = await erc20_contract.transfer(await alice.getAddress(), 150);
     receipt = await receipt.wait();
     const zrc2Tokens = await erc20_contract.balanceOf(await alice.getAddress());
