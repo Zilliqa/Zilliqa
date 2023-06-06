@@ -37,6 +37,10 @@ interface ERC20Interface {
 
     function mint(address recipient, uint128 amount) external returns (bool);
     function burn(address recipient, uint128 amount) external returns (bool);
+
+    event TransferEvent();
+    event IncreasedAllowanceEvent();
+    event DecreasedAllowanceEvent();
 }
 
 contract ERC20isZRC2 is ERC20Interface, SafeMath {
@@ -60,6 +64,7 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
 
     function transfer(address to, uint128 tokens) external returns (bool) {
         _call_scilla_two_args("Transfer", to, tokens);
+        emit TransferEvent();
         return true;
     }
 
@@ -81,9 +86,11 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
         uint128 current_allowance = _read_scilla_nested_map_uint128("allowances", msg.sender, spender);
         if (current_allowance >= new_allowance) {
             _call_scilla_two_args("DecreaseAllowance", spender, current_allowance - new_allowance);
+            emit DecreasedAllowanceEvent();
         }
         else {
             _call_scilla_two_args("IncreaseAllowance", spender, new_allowance - current_allowance);
+            emit IncreasedAllowanceEvent();
         }
         return true;
     }
