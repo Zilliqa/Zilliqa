@@ -32,6 +32,14 @@ enum Commands {
     ImportBq(ImportOptions),
     #[command(name = "bqmulti")]
     ImportMulti(MultiOptions),
+    #[command(name = "reconcile-blocks")]
+    ReconcileBlocks(ReconcileOptions),
+}
+
+#[derive(Debug, Args)]
+struct ReconcileOptions {
+    #[clap(long)]
+    batch_blocks: i64,
 }
 
 #[derive(Debug, Args)]
@@ -129,6 +137,10 @@ async fn bigquery_import(unpack_dir: &str, opts: &ImportOptions) -> Result<()> {
     .await
 }
 
+async fn bigquery_reconcile_blocks(unpack_dir: &str, opts: &ReconcileOptions) -> Result<()> {
+    bqimport::reconcile_blocks(unpack_dir, opts.batch_blocks).await
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -140,5 +152,6 @@ async fn main() -> Result<()> {
         Commands::DumpPersistence => dump_persistence(&cli.unpack_dir).await,
         Commands::ImportBq(opts) => bigquery_import(&cli.unpack_dir, opts).await,
         Commands::ImportMulti(opts) => bigquery_import_multi(&cli.unpack_dir, opts).await,
+        Commands::ReconcileBlocks(opts) => bigquery_reconcile_blocks(&cli.unpack_dir, opts).await,
     }
 }

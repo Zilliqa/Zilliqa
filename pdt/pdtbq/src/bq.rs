@@ -67,11 +67,9 @@ impl ZilliqaBQProject {
         machine_id: i64,
         client_id: &str,
     ) -> Result<Self> {
-        println!("A");
         // Application default creds don't work here because the auth library looks for a service
         // account key in the file you give it and, of course, it's not there ..
         let my_client = Client::from_service_account_key_file(service_account_key_file).await?;
-        println!("B");
         let zq_ds = if let Ok(ds) = my_client.dataset().get(project_id, DATASET_ID).await {
             ds
         } else {
@@ -168,6 +166,14 @@ impl ZilliqaBQProject {
             .meta
             .find_next_range_to_do(&self.bq_client, start_at)
             .await?)
+    }
+
+    /// If a single entry in the meta table contains start  .. start+blks , then return the client id
+    /// that generated it, else return None.
+    pub async fn is_range_covered_by_entry(&self, start: i64, blks: i64) -> Result<Option<String>> {
+        self.meta
+            .is_range_covered_by_entry(&self.bq_client, start, blks)
+            .await
     }
 
     async fn create_transaction_table(client: &Client, project_id: &str) -> Result<Table> {

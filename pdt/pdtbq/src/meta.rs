@@ -90,6 +90,30 @@ impl Meta {
         Ok(client.table().create(metadata_table).await?)
     }
 
+    pub async fn is_range_covered_by_entry(
+        &self,
+        client: &Client,
+        start: i64,
+        nr_blks: i64,
+    ) -> Result<Option<String>> {
+        let query = format!("SELECT start_blk,nr_blks,client_id FROM {} WHERE start_blk <= {} and nr_blks >= {} - start_blk LIMIT 1",
+                            self.table_name, start, nr_blks + start);
+        // println!("Q: {}", query);
+        let mut result = client
+            .job()
+            .query(&self.project_id, QueryRequest::new(&query))
+            .await?;
+        if result.next_row() {
+            Ok(Some(
+                result
+                    .get_string(2)?
+                    .ok_or(anyhow!("No client id in record"))?,
+            ))
+        } else {
+            Ok(None)
+        }
+    }
+
     pub async fn find_next_range_to_do(
         &self,
         client: &Client,
@@ -102,8 +126,8 @@ impl Meta {
                 .await?;
 
             println!(
-                "next_range {:?} start_at {} max_blk {}",
-                next_range, start_at, self.nr_blks
+                "{}: next_range {:?} start_at {} max_blk {}",
+                self.client_id, next_range, start_at, self.nr_blks
             );
             // The next range starts above the max_blk, so we don't really care.
             if next_range.start >= self.nr_blks {
@@ -117,7 +141,10 @@ impl Meta {
             let our_next_batch_start = batch_start + (self.machine_id * self.batch_blks);
             let our_next_batch_end = our_next_batch_start + self.batch_blks;
             // Does it overlap?
-            println!("ours {} .. {}", our_next_batch_start, our_next_batch_end);
+            println!(
+                "{}: ours {} .. {}",
+                self.client_id, our_next_batch_start, our_next_batch_end
+            );
             let start_range = std::cmp::max(next_range.start, our_next_batch_start);
             let end_range = std::cmp::min(next_range.end, our_next_batch_end);
             if start_range < next_range.end && end_range > next_range.start {
@@ -125,7 +152,7 @@ impl Meta {
                     start: start_range,
                     end: end_range,
                 };
-                println!("OK. Fetching {:?}", result);
+                println!("{}: OK. Fetching {:?}", self.client_id, result);
                 return Ok(Some(result));
             }
             start_at = next_range.end;
@@ -183,19 +210,19 @@ impl Meta {
         let mut result: Option<Range<i64>> = None;
         // Otherwise, we're set up.
         println!(
-            "find_next_free_range() start at {} max {}",
-            start_at, max_blk
+            "{}, find_next_free_range() start at {} max {}",
+            self.client_id, start_at, max_blk
         );
         while result.is_none() {
             let blk_to_find = match &current_run {
                 Some(val) => val.end,
                 None => start_at,
             };
-            println!("Find next range above {}", blk_to_find);
+            println!("{}: Find next range above {}", self.client_id, blk_to_find);
             match self.find_next_gap_above(client, blk_to_find).await? {
                 None => {
                     // There is no next range. Commit the current run if we should
-                    println!("No next range");
+                    println!("{}: No next range", self.client_id);
                     result = Some(Range {
                         start: blk_to_find,
                         end: max_blk + 1,
@@ -203,7 +230,10 @@ impl Meta {
                 }
                 Some(have_run) => {
                     // There is a next range of done blocks. Is it contiguous with the one we have?
-                    println!("Next range {:?} current {:?}", have_run, current_run);
+                    println!(
+                        "{}: Next range {:?} current {:?}",
+                        self.client_id, have_run, current_run
+                    );
                     if let Some(current_run_val) = &current_run {
                         if current_run_val.end == have_run.start {
                             // Merge them
@@ -212,11 +242,13 @@ impl Meta {
                                 end: have_run.end,
                             });
                             should_commit_current_run = true;
+                            println!("{}: Extended run to {:?}", self.client_id, current_run);
                         } else {
                             result = Some(Range {
                                 start: current_run_val.end,
                                 end: have_run.start,
                             });
+                            println!("{}: Found a gap at {:?}", self.client_id, result);
                         }
                     } else {
                         // There was no current run. make one.
@@ -225,7 +257,11 @@ impl Meta {
                             result = Some(Range {
                                 start: start_at,
                                 end: have_run.start,
-                            })
+                            });
+                            println!(
+                                "{}: Hole at the start result = {:?}",
+                                self.client_id, result
+                            );
                         }
                         current_run = Some(have_run);
                         should_commit_current_run = false;
@@ -235,13 +271,13 @@ impl Meta {
         }
         if let Some(run_val) = current_run {
             if should_commit_current_run {
-                println!("Commit run {:?}", run_val);
+                println!("{}: Commit run {:?}", self.client_id, run_val);
                 self.commit_run(client, &run_val).await?;
             }
         }
         // Legal because if the result is not present here, something has gone very wrong
         // with our logic.
-        println!("Result {:?}", result);
+        println!("{}: Result {:?}", self.client_id, result);
         Ok(result.unwrap())
     }
 }
