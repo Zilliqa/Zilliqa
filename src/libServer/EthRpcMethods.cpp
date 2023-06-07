@@ -1370,7 +1370,7 @@ Json::Value EthRpcMethods::GetEthCode(std::string const &address,
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
   }
   std::string result{"0x"};
-  boost::algorithm::hex(code.begin(), code.end(), std::back_inserter(result));
+  boost::algorithm::hex_lower(code.begin(), code.end(), std::back_inserter(result));
   return result;
 }
 
