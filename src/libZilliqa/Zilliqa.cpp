@@ -190,6 +190,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
 
       if (!result) {
       // To-do: Error recovery
+        LOG_GENERAL(WARNING, "Why are we here ? ");
 #if 0
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
         span.SetError("dispatch failed");

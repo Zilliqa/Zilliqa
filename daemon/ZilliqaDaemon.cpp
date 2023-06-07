@@ -253,6 +253,9 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
   // Kill running processes ( zilliqa & scilla) if any
   KillProcess(programName[0]);
   KillProcess("scilla-server");
+  // TODO: Amended to solve restart issue
+  KillProcess("evm-ds");
+  // TODO: should probably kill evm-ds
 
   ZilliqaDaemon::LOG(m_log, "Create new Zilliqa process...");
   signal(SIGCHLD, SIG_IGN);
@@ -324,12 +327,18 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
     }
 
     ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+    // TODO: This is where the command is actually executed
     ZilliqaDaemon::LOG(
         m_log, "\" " +
                    Execute("cd " + m_curPath +
                            "; ulimit -Sc unlimited; ulimit -Hc unlimited;" +
                            cmdToRun + " >> ./error_log_zilliqa 2>&1") +
                    " \"");
+    // TODO: Here we could potentially make sure  that the last log entry is the instruction we are looking for
+    // TODO: Check for a specific instruction to do a check for software update
+    // TODO: We could also check a local status file to make sure we have the correct information
+    // TODO: do whatever we want on the filesystem moving binaries around, making backups etc
+    // TODO: Then we can spawn a new process telling the process at what block number it is allowed to go live
     exit(0);
   }
 

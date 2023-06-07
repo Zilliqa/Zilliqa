@@ -119,6 +119,8 @@ class StopWatch {
 
 }  // namespace
 
+// TODO : good place to add a gate to stop processing request - SW
+
 void APIThreadPool::WorkerThread(size_t threadNo) {
   auto threadName = m_name + "-" + std::to_string(threadNo + 1);
   utility::SetThreadName(threadName.c_str());

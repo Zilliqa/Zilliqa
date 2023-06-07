@@ -211,10 +211,25 @@ void AccountStoreSC::InvokeInterpreter(
   }
 }
 
+// This is where we do no processing of data if it occurs within our upgrade range
+
+
 bool AccountStoreSC::UpdateAccounts(
     const uint64_t &blockNum, const unsigned int &numShards, const bool &isDS,
     const Transaction &transaction, const TxnExtras &extras,
     TransactionReceipt &receipt, TxnStatus &error_code) {
+
+#define UPGRADE_START 100
+#define UPGRADE_END 200
+#define ENABLE_UPGRADE false
+
+  uint64_t upgradeStart = 0;
+  uint64_t upgradeEnd = 0;
+  if (ENABLE_UPGRADE) {
+    upgradeStart = UPGRADE_START;
+    upgradeEnd = UPGRADE_END;
+  }
+
   INC_CALLS(GetInvocationsCounter());
 
   LOG_MARKER();
@@ -226,6 +241,12 @@ bool AccountStoreSC::UpdateAccounts(
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
+
+  if (blockNum > upgradeStart && blockNum < upgradeEnd) {
+    LOG_GENERAL(
+        INFO, "Upgrade in progress, skipping txn: " << transaction.GetTranID());
+    return false;
+  }
 
   if (ENABLE_CPS) {
     LOG_GENERAL(WARNING, "Running Scilla in CPS mode");
