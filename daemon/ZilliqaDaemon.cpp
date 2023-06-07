@@ -253,6 +253,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
   // Kill running processes ( zilliqa & scilla) if any
   KillProcess(programName[0]);
   KillProcess("scilla-server");
+  KillProcess("evm-ds");
 
   ZilliqaDaemon::LOG(m_log, "Create new Zilliqa process...");
   signal(SIGCHLD, SIG_IGN);
