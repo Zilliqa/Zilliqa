@@ -28,6 +28,7 @@
 #include "libEth/utils/EthUtils.h"
 #include "libMetrics/Api.h"
 #include "libMetrics/Tracing.h"
+#include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
@@ -74,6 +75,9 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
         TRACE_ERROR("Insufficient Balance");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+      }
+      if (!BlockStorage::GetBlockStorage().PutContractCreator(contractAddress, mCpsContext.scillaExtras.txnHash)) {
+        LOG_GENERAL(WARNING, "Failed to save contract creator");
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {

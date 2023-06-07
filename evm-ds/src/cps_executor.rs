@@ -345,6 +345,14 @@ impl<'a> Handler for CpsExecutor<'a> {
         }
     }
 
+    fn get_create_address(
+        &mut self,
+        scheme: CreateScheme,
+    ) -> H160 {
+        self.stack_executor.create_address(scheme)
+    }
+
+
     /// Invoke a call operation.
     fn call(
         &mut self,
