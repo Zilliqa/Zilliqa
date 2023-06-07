@@ -78,6 +78,29 @@ void ScillaClient::Init() {
   }
 }
 
+bool ScillaClient::isScillaRuning() {
+  std::string cmdStr = "ps aux | awk '{print $2\"\\t\"$11}' | grep \"" +
+                       SCILLA_SERVER_BINARY + "\" | awk '{print $1}'";
+  std::string result;
+  try {
+    if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT, cmdStr, result)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+      return false;
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+    return false;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error encountered");
+    return false;
+  }
+  if (result.empty()) {
+    return false;
+  }
+  return true;
+}
+
 bool ScillaClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
@@ -175,7 +198,15 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
         return CallChecker(version, _json, result, counter - 1);
       }
     } else {
-      result = e.what();
+      if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
+          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
+        LOG_GENERAL(WARNING, "Looks like connection problem");
+        if (!isScillaRuning()) {
+          LOG_GENERAL(WARNING, "Scilla is not running");
+          CheckClient(version,true);
+        }
+        return CallChecker(version, _json, result, counter - 1);
+      }
     }
 
     return false;
@@ -211,7 +242,15 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
         return CallRunner(version, _json, result, counter - 1);
       }
     } else {
-      result = e.what();
+      if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
+          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
+        LOG_GENERAL(WARNING, "Looks like connection problem");
+        if (!isScillaRuning()) {
+          LOG_GENERAL(WARNING, "Scilla is not running");
+          CheckClient(version,true);
+        }
+        return CallChecker(version, _json, result, counter - 1);
+      }
     }
 
     return false;
@@ -248,7 +287,15 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
         return CallDisambiguate(version, _json, result, counter - 1);
       }
     } else {
-      result = e.what();
+      if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
+          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
+        LOG_GENERAL(WARNING, "Looks like connection problem");
+        if (!isScillaRuning()) {
+          LOG_GENERAL(WARNING, "Scilla is not running");
+          CheckClient(version,true);
+        }
+        return CallChecker(version, _json, result, counter - 1);
+      }
     }
 
     return false;
