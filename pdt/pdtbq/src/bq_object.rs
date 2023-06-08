@@ -7,28 +7,30 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
-    id: String,
-    block: i64,
-    amount: Option<String>,
-    code: Option<String>,
-    data: Option<String>,
-    gas_limit: i64,
-    gas_price: Option<String>,
-    nonce: Option<i64>,
-    receipt: Option<String>,
-    sender_public_key: Option<String>,
-    from_addr: Option<String>,
-    signature: Option<String>,
-    to_addr: String,
-    version: i64,
-    cum_gas: Option<i64>,
-    shard_id: Option<i64>,
+    pub id: String,
+    pub block: i64,
+    pub offset_in_block: i64,
+    pub amount: Option<String>,
+    pub code: Option<String>,
+    pub data: Option<String>,
+    pub gas_limit: i64,
+    pub gas_price: Option<String>,
+    pub nonce: Option<i64>,
+    pub receipt: Option<String>,
+    pub sender_public_key: Option<String>,
+    pub from_addr: Option<String>,
+    pub signature: Option<String>,
+    pub to_addr: String,
+    pub version: i64,
+    pub cum_gas: Option<i64>,
+    pub shard_id: Option<i64>,
 }
 
 impl Transaction {
     pub fn from_proto(
         in_val: &ProtoTransactionWithReceipt,
         blk: i64,
+        offset_in_block: i64,
         shard_id: i64,
     ) -> Result<Self> {
         let val = in_val.clone();
@@ -99,6 +101,7 @@ impl Transaction {
         Ok(Transaction {
             id: hex::encode(id.as_bytes()),
             block: blk,
+            offset_in_block,
             amount,
             code,
             data,
@@ -114,5 +117,17 @@ impl Transaction {
             cum_gas,
             shard_id: Some(shard_id),
         })
+    }
+
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string(self)?)
+    }
+
+    /// Guess how many bytes this txn will take when encoded
+    /// If we wanted to be more accurate, we could serialise and measure,
+    /// but that would be quite expensive.
+    pub fn estimate_bytes(&self) -> Result<usize> {
+        // Annoyingly, because of Javascript escaping, this is the only way :-(
+        Ok(self.to_json()?.len())
     }
 }

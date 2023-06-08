@@ -11,8 +11,10 @@ primitive-types = { version="0.11.1", features = ["serde"] }
 clap = "4.2.4"
 tokio = "1.27.0"
 gcp-bigquery-client = "0.16.7"
+#gcp-bigquery-client = { path = "../../../gcp-bigquery-client" }
 anyhow = "1.0.71"
 serde = { version = "1.0.163", features = [ "derive" ] }
 hex = "0.4.3"
 sha2 = "0.10.6"
+serde_json = "1.0.96"
 

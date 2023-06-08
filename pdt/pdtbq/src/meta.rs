@@ -6,6 +6,7 @@ use gcp_bigquery_client::model::{
 };
 use gcp_bigquery_client::Client;
 use std::ops::Range;
+use tokio::time::{sleep, Duration};
 
 pub const DATASET_ID: &str = "zilliqa";
 pub const METADATA_TABLE_ID: &str = "meta";
@@ -87,7 +88,23 @@ impl Meta {
                 TableFieldSchema::integer("nr_blks"),
             ]),
         );
-        Ok(client.table().create(metadata_table).await?)
+        let the_table = client.table().create(metadata_table).await;
+        match the_table {
+            Ok(tbl) => Ok(tbl),
+            Err(_) => {
+                // Wait a bit and then fetch the table.
+                sleep(Duration::from_millis(5_000)).await;
+                Ok(client
+                    .table()
+                    .get(
+                        &self.project_id,
+                        DATASET_ID,
+                        METADATA_TABLE_ID,
+                        Option::None,
+                    )
+                    .await?)
+            }
+        }
     }
 
     pub async fn is_range_covered_by_entry(
@@ -95,8 +112,8 @@ impl Meta {
         client: &Client,
         start: i64,
         nr_blks: i64,
-    ) -> Result<Option<String>> {
-        let query = format!("SELECT start_blk,nr_blks,client_id FROM {} WHERE start_blk <= {} and nr_blks >= {} - start_blk LIMIT 1",
+    ) -> Result<Option<(i64, String)>> {
+        let query = format!("SELECT start_blk,nr_blks,client_id FROM {} WHERE start_blk <= {} and nr_blks >= {} - start_blk ORDER BY nr_blks DESC LIMIT 1",
                             self.table_name, start, nr_blks + start);
         // println!("Q: {}", query);
         let mut result = client
@@ -104,11 +121,12 @@ impl Meta {
             .query(&self.project_id, QueryRequest::new(&query))
             .await?;
         if result.next_row() {
-            Ok(Some(
+            Ok(Some((
+                result.get_i64(1)?.ok_or(anyhow!("No nr_blks in record"))?,
                 result
                     .get_string(2)?
                     .ok_or(anyhow!("No client id in record"))?,
-            ))
+            )))
         } else {
             Ok(None)
         }
@@ -138,7 +156,12 @@ impl Meta {
             // Our next batch is at start + nr * batch_size.
             let batch_start =
                 next_range.start - next_range.start % (self.batch_blks * self.nr_machines);
-            let our_next_batch_start = batch_start + (self.machine_id * self.batch_blks);
+            let mut our_next_batch_start = batch_start + (self.machine_id * self.batch_blks);
+            // Make sure we address a block range above the start of the range of unprocessed blocks
+            // we've found.
+            while our_next_batch_start < next_range.start {
+                our_next_batch_start += self.batch_blks * self.nr_machines;
+            }
             let our_next_batch_end = our_next_batch_start + self.batch_blks;
             // Does it overlap?
             println!(

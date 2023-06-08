@@ -3,7 +3,7 @@ use crate::meta::Meta;
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use gcp_bigquery_client::model::{
-    dataset::Dataset, range_partitioning::RangePartitioning,
+    dataset::Dataset, query_request::QueryRequest, range_partitioning::RangePartitioning,
     range_partitioning_range::RangePartitioningRange, table::Table,
     table_data_insert_all_request::TableDataInsertAllRequest, table_field_schema::TableFieldSchema,
     table_schema::TableSchema,
@@ -13,10 +13,17 @@ use serde::Serialize;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Range;
+use tokio::time::{sleep, Duration};
 
 pub const DATASET_ID: &str = "zilliqa";
 pub const TRANSACTION_TABLE_ID: &str = "transactions";
 pub const METADATA_TABLE_ID: &str = "meta";
+
+// BigQuery imposes a limit of 10MiB per HTTP request.
+pub const MAX_QUERY_BYTES: usize = 9 << 20;
+
+// BigQuery imposes a 50k row limit and recommends 500
+pub const MAX_QUERY_ROWS: usize = 500;
 
 pub struct InsertionErrors {
     pub errors: Vec<String>,
@@ -44,16 +51,19 @@ pub struct ZilliqaBQProject {
     pub ds: Dataset,
     pub transactions: Table,
     pub meta: Meta,
+    pub transaction_table_name: String,
+    pub client_id: String,
 }
 
 pub struct Inserter<T: Serialize> {
     _marker: PhantomData<T>,
-    req: TableDataInsertAllRequest,
+    req: Vec<T>, //req: Vec<TableDataInsertAllRequest>,
 }
 
 impl<T: Serialize> Inserter<T> {
-    pub fn insert_row(&mut self, row: &T) -> Result<()> {
-        Ok(self.req.add_row(None, &row)?)
+    pub fn insert_row(&mut self, row: T) -> Result<()> {
+        self.req.push(row);
+        Ok(())
     }
 }
 
@@ -99,12 +109,15 @@ impl ZilliqaBQProject {
 
         meta.ensure_table(&my_client).await?;
 
+        let ttn = format!("{}.{}.{}", project_id, DATASET_ID, TRANSACTION_TABLE_ID);
         Ok(ZilliqaBQProject {
             project_id: project_id.to_string(),
             bq_client: my_client,
             ds: zq_ds,
             transactions: transaction_table,
             meta,
+            transaction_table_name: ttn,
+            client_id: client_id.to_string(),
         })
     }
 
@@ -117,7 +130,7 @@ impl ZilliqaBQProject {
     pub async fn make_transaction_inserter(&self) -> Result<Inserter<bq_object::Transaction>> {
         Ok(Inserter {
             _marker: PhantomData,
-            req: TableDataInsertAllRequest::new(),
+            req: Vec::new(),
         })
     }
 
@@ -127,13 +140,36 @@ impl ZilliqaBQProject {
         req: Inserter<bq_object::Transaction>,
         blks: &Range<i64>,
     ) -> Result<(), InsertionErrors> {
-        let mut err_rows = Vec::<String>::new();
-        if req.req.len() > 0 {
-            // Insert the transactions
-            let resp = self
-                .bq_client
+        let _txn_table_name = format!(
+            "{}.{}.{}",
+            &self.project_id, DATASET_ID, TRANSACTION_TABLE_ID
+        );
+        // This is a bit horrid. If there is any action at all, we need to check what the highest txn
+        // we successfully inserted was.
+        let mut last_blk: i64 = -1;
+        let mut last_txn: i64 = -1;
+        if req.req.len() > 1 {
+            let last_blks = self.get_last_txn_for_blocks(blks).await;
+            match last_blks {
+                Ok((a, b)) => (last_blk, last_txn) = (a, b),
+                Err(x) => {
+                    return Err(InsertionErrors::from_msg(&format!(
+                        "Cannot find inserted txn ids - {}",
+                        x
+                    )));
+                }
+            }
+        }
+
+        async fn commit_request(
+            client: &Client,
+            project_id: &str,
+            req: TableDataInsertAllRequest,
+        ) -> Result<(), InsertionErrors> {
+            let mut err_rows = Vec::<String>::new();
+            let resp = client
                 .tabledata()
-                .insert_all(&self.project_id, DATASET_ID, TRANSACTION_TABLE_ID, req.req)
+                .insert_all(&project_id, DATASET_ID, TRANSACTION_TABLE_ID, req)
                 .await
                 .or_else(|e| Err(InsertionErrors::from_msg(&format!("Cannot insert - {}", e))))?;
             if let Some(row_errors) = resp.insert_errors {
@@ -150,7 +186,62 @@ impl ZilliqaBQProject {
                     msg: "Insertion failed".to_string(),
                 });
             }
+            Ok(())
         }
+        let mut current_request = TableDataInsertAllRequest::new();
+        let mut current_request_bytes: usize = 0;
+
+        for txn in req.req {
+            if txn.block > last_blk || (txn.block == last_blk && txn.offset_in_block > last_txn) {
+                let nr_bytes = match txn.estimate_bytes() {
+                    Ok(val) => val,
+                    Err(x) => {
+                        return Err(InsertionErrors::from_msg(&format!(
+                            "Cannot get size of transaction - {}",
+                            x
+                        )))
+                    }
+                };
+
+                if current_request_bytes + nr_bytes >= MAX_QUERY_BYTES
+                    || current_request.len() >= MAX_QUERY_ROWS - 1
+                {
+                    println!(
+                        "{}: Inserting {} rows with {} bytes ending at {}/{}",
+                        self.client_id,
+                        current_request.len(),
+                        current_request_bytes,
+                        txn.block,
+                        txn.offset_in_block
+                    );
+
+                    commit_request(&self.bq_client, &self.project_id, current_request).await?;
+                    current_request = TableDataInsertAllRequest::new();
+                    current_request_bytes = 0;
+                }
+
+                current_request_bytes += nr_bytes;
+                // println!("T:{:?}", txn.to_json());
+                match current_request.add_row(None, &txn) {
+                    Ok(_) => (),
+                    Err(x) => {
+                        return Err(InsertionErrors::from_msg(&format!(
+                            "Cannot add row to request - {}",
+                            x
+                        )));
+                    }
+                }
+            }
+        }
+        if current_request.len() > 0 {
+            println!(
+                "{}: [F] Inserting {} rows at end of block",
+                self.client_id,
+                current_request.len(),
+            );
+            commit_request(&self.bq_client, &self.project_id, current_request).await?;
+        }
+
         // Mark that these blocks were done.
         if let Err(e) = self.meta.commit_run(&self.bq_client, &blks).await {
             return Err(InsertionErrors::from_msg(&format!(
@@ -161,6 +252,24 @@ impl ZilliqaBQProject {
         Ok(())
     }
 
+    // Retrieve the last (blk,txnid) pair for the blocks in the range, so we can avoid inserting duplicates.
+    // Since these blocks are assigned to only one thread at a time, we know another thread can't try to insert
+    // them concurrently - but we might have crashed half-way through a block of insert requests earlier.
+    async fn get_last_txn_for_blocks(&self, blks: &Range<i64>) -> Result<(i64, i64)> {
+        let mut result = self.bq_client.job()
+            .query(&self.project_id,
+                   QueryRequest::new(format!("SELECT block,offset_in_block FROM {} WHERE block >= {} AND block < {} ORDER BY block DESC, offset_in_block DESC LIMIT 1",
+                                             self.transaction_table_name, blks.start, blks.end))).await?;
+        if result.next_row() {
+            // There was one!1
+            let blk = result.get_i64(0)?.ok_or(anyhow!("Cannot decode blk"))?;
+            let offset = result.get_i64(1)?.ok_or(anyhow!("Cannot decode offset"))?;
+            Ok((blk, offset))
+        } else {
+            Ok((-1, -1))
+        }
+    }
+
     pub async fn get_range(&self, start_at: i64) -> Result<Option<Range<i64>>> {
         Ok(self
             .meta
@@ -168,9 +277,22 @@ impl ZilliqaBQProject {
             .await?)
     }
 
+    pub fn get_max_insert_bytes(&self) -> usize {
+        MAX_QUERY_BYTES
+    }
+
+    pub fn get_max_query_rows(&self) -> usize {
+        MAX_QUERY_ROWS
+    }
+
     /// If a single entry in the meta table contains start  .. start+blks , then return the client id
     /// that generated it, else return None.
-    pub async fn is_range_covered_by_entry(&self, start: i64, blks: i64) -> Result<Option<String>> {
+    /// Returns a pair (nr_blks, client_id)
+    pub async fn is_range_covered_by_entry(
+        &self,
+        start: i64,
+        blks: i64,
+    ) -> Result<Option<(i64, String)>> {
         self.meta
             .is_range_covered_by_entry(&self.bq_client, start, blks)
             .await
@@ -184,6 +306,7 @@ impl ZilliqaBQProject {
             TableSchema::new(vec![
                 TableFieldSchema::string("id"),
                 TableFieldSchema::integer("block"),
+                TableFieldSchema::integer("offset_in_block"),
                 TableFieldSchema::big_numeric("amount"),
                 TableFieldSchema::string("code"),
                 TableFieldSchema::string("data"),
@@ -212,6 +335,17 @@ impl ZilliqaBQProject {
                 interval: "100000".to_string(),
             }),
         });
-        Ok(client.table().create(transaction_table).await?)
+        let the_table = client.table().create(transaction_table).await;
+        match the_table {
+            Ok(tbl) => Ok(tbl),
+            Err(_) => {
+                // Wait a bit and then fetch the table.
+                sleep(Duration::from_millis(5_000)).await;
+                Ok(client
+                    .table()
+                    .get(project_id, DATASET_ID, TRANSACTION_TABLE_ID, Option::None)
+                    .await?)
+            }
+        }
     }
 }
