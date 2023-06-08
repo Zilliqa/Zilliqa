@@ -227,7 +227,8 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
 
-  if (!BlockStorage::GetBlockStorage().PutContractCreator(mArgs.dest, mCpsContext.scillaExtras.txnHash)) {
+  if (!BlockStorage::GetBlockStorage().PutContractCreator(
+          mArgs.dest, mCpsContext.scillaExtras.txnHash)) {
     LOG_GENERAL(WARNING, "Failed to save contract creator");
   }
 

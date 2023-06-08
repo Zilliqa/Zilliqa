@@ -285,18 +285,18 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
 }
 
 std::string stripTxTraceOut(const std::string &trace) {
-
   Json::Value trace_json;
   JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
 
-  //Json::Value parsed;
+  // Json::Value parsed;
   trace_json.removeMember("call_tracer");
   trace_json.removeMember("raw_tracer");
 
   return trace_json.toStyledString();
 }
 
-void getAddressesFromTrace(const std::string &trace, std::set<std::string> &addresses) {
+void getAddressesFromTrace(const std::string &trace,
+                           std::set<std::string> &addresses) {
   Json::Value trace_json;
   JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
 
@@ -390,29 +390,31 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
 
-        // Attempt to parse the addresses called to fulfil ots_searchTransactions*
-        // The tx has reported all addresses it has touched via call or transfer
-        // and we can use this to populate the address->tx mapping
+        // Attempt to parse the addresses called to fulfil
+        // ots_searchTransactions* The tx has reported all addresses it has
+        // touched via call or transfer and we can use this to populate the
+        // address->tx mapping
         getAddressesFromTrace(traces, addresses_touched);
 
         // we want a version with only otter stuff since we store it
         // permanently and the rest is huge
         auto const trace_stripped = stripTxTraceOut(traces);
 
-        if (!BlockStorage::GetBlockStorage().PutOtterTrace(evmContext.GetTranID(),
-                                                        traces)) {
-          LOG_GENERAL(INFO,
-                      "FAIL: Put otter trace failed " << evmContext.GetTranID());
+        if (!BlockStorage::GetBlockStorage().PutOtterTrace(
+                evmContext.GetTranID(), traces)) {
+          LOG_GENERAL(
+              INFO, "FAIL: Put otter trace failed " << evmContext.GetTranID());
         }
       }
     }
 
-    // This needs to be outside the above as needs to include possibility of non evm tx
-    if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(evmContext.GetTranID(),
-                                                                    addresses_touched, blockNum)) {
-        LOG_GENERAL(INFO,
-                    "FAIL: Put otter addr mapping failed " << evmContext.GetTranID());
+    // This needs to be outside the above as needs to include possibility of non
+    // evm tx
+    if (ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(
+              evmContext.GetTranID(), addresses_touched, blockNum)) {
+        LOG_GENERAL(INFO, "FAIL: Put otter addr mapping failed "
+                              << evmContext.GetTranID());
       }
     }
 

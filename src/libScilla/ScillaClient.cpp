@@ -199,11 +199,11 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
       }
     } else {
       if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
-          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
+          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR) {
         LOG_GENERAL(WARNING, "Looks like connection problem");
         if (!isScillaRuning()) {
           LOG_GENERAL(WARNING, "Scilla is not running");
-          CheckClient(version,true);
+          CheckClient(version, true);
         }
         return CallChecker(version, _json, result, counter - 1);
       }
@@ -244,11 +244,11 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
       }
     } else {
       if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
-          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
+          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR) {
         LOG_GENERAL(WARNING, "Looks like connection problem");
         if (!isScillaRuning()) {
           LOG_GENERAL(WARNING, "Scilla is not running");
-          CheckClient(version,true);
+          CheckClient(version, true);
         }
         return CallChecker(version, _json, result, counter - 1);
       }
@@ -290,11 +290,11 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
       }
     } else {
       if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
-          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
+          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR) {
         LOG_GENERAL(WARNING, "Looks like connection problem");
         if (!isScillaRuning()) {
           LOG_GENERAL(WARNING, "Scilla is not running");
-          CheckClient(version,true);
+          CheckClient(version, true);
         }
         return CallChecker(version, _json, result, counter - 1);
       }

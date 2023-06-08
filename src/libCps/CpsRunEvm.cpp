@@ -76,7 +76,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
         TRACE_ERROR("Insufficient Balance");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
-      if (!BlockStorage::GetBlockStorage().PutContractCreator(contractAddress, mCpsContext.scillaExtras.txnHash)) {
+      if (!BlockStorage::GetBlockStorage().PutContractCreator(
+              contractAddress, mCpsContext.scillaExtras.txnHash)) {
         LOG_GENERAL(WARNING, "Failed to save contract creator");
       }
       // Contract call (non-trap)

@@ -212,11 +212,17 @@ class BlockStorage : boost::noncopyable {
   bool GetOtterTrace(const dev::h256& key, std::string& trace);
 
   /// Retrieves the mappings of address touched to TX.
-  bool PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum);
-  std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore);
+  bool PutOtterTxAddressMapping(const dev::h256& txId,
+                                const std::set<std::string>& addresses,
+                                const uint64_t& blocknum);
+  std::vector<std::string> GetOtterTxAddressMapping(std::string address,
+                                                    unsigned long blockNumber,
+                                                    unsigned long pageSize,
+                                                    bool before, bool& wasMore);
 
   /// Retrieves the mappings of address touched to TX.
-  bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address);
+  bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce,
+                                  std::string address);
   std::string GetOtterAddressNonceLookup(std::string address, uint64_t nonce);
 
   /// Deletes the requested Tx block

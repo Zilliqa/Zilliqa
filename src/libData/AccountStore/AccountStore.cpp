@@ -640,13 +640,14 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  // This needs to be outside the above as needs to include possibility of non evm tx
-  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-
-    if (!BlockStorage::GetBlockStorage().PutOtterAddressNonceLookup(transaction.GetTranID(),
-                                                                    transaction.GetNonce() - 1, transaction.GetSenderAddr().hex())) {
-      LOG_GENERAL(INFO,
-                  "FAIL: Put otter addr mapping failed " << transaction.GetTranID());
+  // This needs to be outside the above as needs to include possibility of non
+  // evm tx
+  if (ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    if (!BlockStorage::GetBlockStorage().PutOtterAddressNonceLookup(
+            transaction.GetTranID(), transaction.GetNonce() - 1,
+            transaction.GetSenderAddr().hex())) {
+      LOG_GENERAL(INFO, "FAIL: Put otter addr mapping failed "
+                            << transaction.GetTranID());
     }
 
     // For when vanilla TX, we still want to log this for otterscan
@@ -655,10 +656,10 @@ bool AccountStore::UpdateAccountsTemp(
       addresses_touched.insert(transaction.GetSenderAddr().hex());
       addresses_touched.insert(transaction.GetToAddr().hex());
 
-      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(transaction.GetTranID(),
-                                                                    addresses_touched, blockNum)) {
-        LOG_GENERAL(INFO,
-                    "FAIL: Put otter addr mapping failed " << transaction.GetTranID());
+      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(
+              transaction.GetTranID(), addresses_touched, blockNum)) {
+        LOG_GENERAL(INFO, "FAIL: Put otter addr mapping failed "
+                              << transaction.GetTranID());
       }
     }
   }

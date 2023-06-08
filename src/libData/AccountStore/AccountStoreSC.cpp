@@ -251,8 +251,7 @@ bool AccountStoreSC::UpdateAccounts(
         .blockTimestamp = extras.block_timestamp,
         .blockDifficulty = extras.block_difficulty,
         .contractType = Transaction::GetTransactionType(transaction),
-        .txnHash = transaction.GetTranID()
-    };
+        .txnHash = transaction.GetTranID()};
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
@@ -264,7 +263,6 @@ bool AccountStoreSC::UpdateAccounts(
       cpsRunResult.isSuccess = true;
     }
     error_code = cpsRunResult.txnStatus;
-
 
     return cpsRunResult.isSuccess;
   }
