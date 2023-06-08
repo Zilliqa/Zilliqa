@@ -87,6 +87,9 @@ class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
   std::shared_ptr<LevelDB> m_txTraceDB;
+  std::shared_ptr<LevelDB> m_otterTraceDB;
+  std::shared_ptr<LevelDB> m_otterTxAddressMappingDB;
+  std::shared_ptr<LevelDB> m_otterAddressNonceLookup;
   std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
@@ -108,6 +111,8 @@ class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> m_minerInfoShardsDB;
   /// used for extseed pub key storage and retrieval
   std::shared_ptr<LevelDB> m_extSeedPubKeysDB;
+  /// stores the hash of the transaction which created a contract
+  std::shared_ptr<LevelDB> m_contractCreatorDB;
 
   BlockStorage(const std::string& path = "", bool diagnostic = false)
       : m_diagnosticDBNodesCounter(0), m_diagnosticDBCoinbaseCounter(0) {
@@ -201,6 +206,18 @@ class BlockStorage : boost::noncopyable {
   bool PutTxTrace(const dev::h256& key, const std::string& trace);
   bool GetTxTrace(const dev::h256& key, std::string& trace);
   std::shared_ptr<LevelDB> GetTxTraceDb();
+
+  /// Retrieves the requested transaction trace for otterscan.
+  bool PutOtterTrace(const dev::h256& key, const std::string& trace);
+  bool GetOtterTrace(const dev::h256& key, std::string& trace);
+
+  /// Retrieves the mappings of address touched to TX.
+  bool PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum);
+  std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore);
+
+  /// Retrieves the mappings of address touched to TX.
+  bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address);
+  std::string GetOtterAddressNonceLookup(std::string address, uint64_t nonce);
 
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
@@ -325,6 +342,12 @@ class BlockStorage : boost::noncopyable {
   /// Retrieves the requested miner info (shards)
   bool GetMinerInfoShards(const uint64_t& dsBlockNum, MinerInfoShards& entry);
 
+  /// Put contract creation transaction hash
+  bool PutContractCreator(const dev::h160 address, const dev::h256 txnHash);
+
+  /// Get a contract creation transaction hash
+  dev::h256 GetContractCreator(const dev::h160 address);
+
   /// Clean a DB
   bool ResetDB(DBTYPE type);
 
@@ -356,6 +379,7 @@ class BlockStorage : boost::noncopyable {
   mutable std::shared_timed_mutex m_mutexMinerInfoDSComm;
   mutable std::shared_timed_mutex m_mutexMinerInfoShards;
   mutable std::shared_timed_mutex m_mutexExtSeedPubKeys;
+  mutable std::mutex m_contractCreatorMutex;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;

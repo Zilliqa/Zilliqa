@@ -37,11 +37,17 @@ interface ERC20Interface {
 
     function mint(address recipient, uint128 amount) external returns (bool);
     function burn(address recipient, uint128 amount) external returns (bool);
+
+    event TransferEvent();
+    event IncreasedAllowanceEvent();
+    event DecreasedAllowanceEvent();
 }
 
 contract ERC20isZRC2 is ERC20Interface, SafeMath {
     address private _contract_owner;
     address private _zrc2_address;
+
+    uint256 private constant CALL_MODE = 1;
 
     constructor(address zrc2_address) {
         _contract_owner = msg.sender;
@@ -58,6 +64,12 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
 
     function transfer(address to, uint128 tokens) external returns (bool) {
         _call_scilla_two_args("Transfer", to, tokens);
+        emit TransferEvent();
+        return true;
+    }
+
+    function transferFailed(address to, uint128 tokens) external returns (bool) {
+        _call_scilla_two_args("TransferFailed", to, tokens);
         return true;
     }
 
@@ -74,9 +86,11 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
         uint128 current_allowance = _read_scilla_nested_map_uint128("allowances", msg.sender, spender);
         if (current_allowance >= new_allowance) {
             _call_scilla_two_args("DecreaseAllowance", spender, current_allowance - new_allowance);
+            emit DecreasedAllowanceEvent();
         }
         else {
             _call_scilla_two_args("IncreaseAllowance", spender, new_allowance - current_allowance);
+            emit IncreasedAllowanceEvent();
         }
         return true;
     }
@@ -96,21 +110,21 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
     // Private functions used for accessing ZRC2 contract
 
     function _call_scilla_two_args(string memory tran_name, address recipient, uint128 amount) private {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, recipient, amount);
+        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, CALL_MODE, recipient, amount);
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c52, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }
 
     function _call_scilla_three_args(string memory tran_name, address from, address to, uint128 amount) private {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, from, to, amount);
+        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, CALL_MODE, from, to, amount);
         uint256 argsLength = encodedArgs.length;
         bool success;
         assembly {
-            success := call(21000, 0x5a494c52, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
+            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
         }
         require(success);
     }

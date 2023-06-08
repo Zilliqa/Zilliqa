@@ -28,6 +28,7 @@
 #include "libEth/utils/EthUtils.h"
 #include "libMetrics/Api.h"
 #include "libMetrics/Tracing.h"
+#include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
@@ -74,6 +75,9 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
         TRACE_ERROR("Insufficient Balance");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+      }
+      if (!BlockStorage::GetBlockStorage().PutContractCreator(contractAddress, mCpsContext.scillaExtras.txnHash)) {
+        LOG_GENERAL(WARNING, "Failed to save contract creator");
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
@@ -399,7 +403,7 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto sender = (jsonData["keep_origin"].isBool() &&
                        jsonData["keep_origin"].asBool() == true)
-                          ? mCpsContext.origSender.hex()
+                          ? ProtoToAddress(mProtoArgs.caller()).hex()
                           : ProtoToAddress(mProtoArgs.address()).hex();
 
   jsonData.removeMember("keep_origin");
@@ -450,14 +454,16 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
 
   const auto destAddress = jsonData["_address"].asString();
 
-  ScillaArgs scillaArgs = {.from = ProtoToAddress(mProtoArgs.address()),
-                           .dest = Address{destAddress},
-                           .origin = mCpsContext.origSender,
-                           .value = Amount{},
-                           .calldata = jsonData,
-                           .edge = 0,
-                           .depth = 0,
-                           .gasLimit = remainingGas};
+  ScillaArgs scillaArgs = {
+      .from = ProtoToAddress(mProtoArgs.address()),
+      .dest = Address{destAddress},
+      .origin = mCpsContext.origSender,
+      .value = Amount{},
+      .calldata = jsonData,
+      .edge = 0,
+      .depth = 0,
+      .gasLimit = remainingGas,
+      .extras = ScillaArgExtras{.scillaReceiverAddress = Address{}}};
 
   auto nextRun = std::make_shared<CpsRunScilla>(
       std::move(scillaArgs), mExecutor, mCpsContext, CpsRun::TrapScillaCall);
@@ -626,8 +632,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
   if (result.logs_size() > 0) {
-    Json::Value entry = Json::arrayValue;
-
     for (const auto& log : result.logs()) {
       Json::Value logJson;
       logJson["address"] = "0x" + ProtoToAddress(log.address()).hex();
@@ -637,9 +641,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         topics_array.append("0x" + ProtoToH256(topic).hex());
       }
       logJson["topics"] = topics_array;
-      entry.append(logJson);
+      receipt.AppendJsonEntry(logJson);
     }
-    receipt.AddJsonEntry(entry);
   }
 
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());

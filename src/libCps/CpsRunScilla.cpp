@@ -25,6 +25,7 @@
 #include "libCps/ScillaHelpersCall.h"
 #include "libCps/ScillaHelpersCreate.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libScilla/ScillaClient.h"
 #include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
@@ -148,9 +149,11 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
 
-  if (!ScillaHelpers::ExportCreateContractFiles(mAccountStore, mArgs.dest,
-                                                isLibrary, scillaVersion,
-                                                extlibsExports)) {
+  if (!ScillaHelpers::ExportCreateContractFiles(
+          mAccountStore.GetContractCode(mArgs.dest),
+          mAccountStore.GetContractInitData(mArgs.dest), isLibrary,
+          mAccountStore.GetScillaRootVersion(), scillaVersion,
+          extlibsExports)) {
     span.SetError("Unable to export create contract files");
     return {TxnStatus::FAIL_SCILLA_LIB, false, failedRetScillaVal};
   }
@@ -223,6 +226,10 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
 
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
+
+  if (!BlockStorage::GetBlockStorage().PutContractCreator(mArgs.dest, mCpsContext.scillaExtras.txnHash)) {
+    LOG_GENERAL(WARNING, "Failed to save contract creator");
+  }
 
   return {TxnStatus::NOT_PRESENT, true, ScillaResult{mArgs.gasLimit}};
 }
@@ -328,7 +335,13 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
       mAccountStore, mArgs, runnerResult.returnVal, receipt, scillaVersion);
 
   if (!parseCallResults.success) {
+    // Revert in case of non-recoverable failures
+    if (parseCallResults.failureType ==
+        ScillaCallParseResult::NON_RECOVERABLE) {
+      return {TxnStatus::NOT_PRESENT, false, retScillaVal};
+    }
     // Allow TrapScilla call to fail and let EVM handle errored run accordingly
+    // (only for recoverable failures)
     if (GetType() == CpsRun::TrapScillaCall) {
       return {TxnStatus::NOT_PRESENT, true, retScillaVal};
     }

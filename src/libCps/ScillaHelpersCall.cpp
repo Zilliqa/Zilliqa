@@ -219,17 +219,15 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
 
     // ZIL-5165: Don't fail if the recipient is a user account.
     {
-      const CpsAccountStoreInterface::AccountType accountType =
-          acc_store.GetAccountType(recipient);
+      const CpsAccountStoreInterface::AccountType accountType = acc_store.GetAccountType(recipient);
       LOG_GENERAL(INFO, "Target is accountType " << accountType);
       if (accountType == CpsAccountStoreInterface::DoesNotExist ||
           accountType == CpsAccountStoreInterface::EOA) {
         LOG_GENERAL(INFO, "Target is EOA: processing.");
-        // Message sent to a non-contract account. Add something to
-        // results.entries so that if this message attempts to transfer funds,
-        // it succeeds.
-        results.entries.emplace_back(
-            ScillaCallParseResult::SingleResult{{}, recipient, amount, false});
+        // Message sent to a non-contract account. Add something to results.entries so that if this
+        // message attempts to transfer funds, it succeeds.
+        results.entries.emplace_back(ScillaCallParseResult::SingleResult{
+            {}, recipient, amount, false});
         continue;
       }
     }
@@ -269,8 +267,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
         std::move(inputMessage), recipient, amount, isNextContract});
   }
 
-  LOG_GENERAL(INFO, "Returning success " << results.success << " entries "
-                                         << results.entries.size());
+  LOG_GENERAL(INFO, "Returning success " << results.success << " entries " << results.entries.size());
   return results;
 }
 

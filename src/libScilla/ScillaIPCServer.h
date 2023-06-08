@@ -51,9 +51,11 @@ class ScillaBCInfo {
                            "Metrics for ScillaBCInfo", "Blocks", true};
 };
 
+class AccountStore;
+
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
-  ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
+  ScillaIPCServer(AccountStore* parent, jsonrpc::AbstractServerConnector& conn);
 
   ~ScillaIPCServer() = default;
   ScillaIPCServer(const ScillaIPCServer&) = delete;
@@ -96,6 +98,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   //                              const std::string& query, std::string& value,
   //                              bool& found, std::string& type);
  private:
+  AccountStore* m_parent;
   ScillaBCInfo m_BCInfo;
 };
 

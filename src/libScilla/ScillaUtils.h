@@ -18,11 +18,19 @@
 #ifndef ZILLIQA_SRC_LIBSCILLA_SCILLAUTILS_H_
 #define ZILLIQA_SRC_LIBSCILLA_SCILLAUTILS_H_
 
+#include "common/FixedHash.h"
+
+#include <fstream>
+
 #include <json/json.h>
 
 #include <boost/multiprecision/cpp_int.hpp>
 
+class AccountStore;
+
 class ScillaUtils {
+  using Address = dev::h160;
+
  public:
   static bool PrepareRootPathWVersion(const uint32_t& scilla_version,
                                       std::string& root_w_version);
@@ -45,6 +53,25 @@ class ScillaUtils {
 
   /// get the command for invoking disambiguate_state_json while calling
   static Json::Value GetDisambiguateJson();
+
+  /// export files that ExportCreateContractFiles and ExportContractFiles
+  /// both needs
+  static void ExportCommonFiles(
+      const std::vector<uint8_t>& contract_init_data, std::ofstream& os,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
+
+  static bool ExportCreateContractFiles(
+      const std::vector<uint8_t>& contract_code,
+      const std::vector<uint8_t>& contract_init_data, bool is_library,
+      std::string& scilla_root_version, uint32_t scilla_version,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
+
+  static bool PopulateExtlibsExports(
+      AccountStore& acc_store, uint32_t scilla_version,
+      const std::vector<Address>& extlibs,
+      std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
 };
 
 #endif  // ZILLIQA_SRC_LIBSCILLA_SCILLAUTILS_H_

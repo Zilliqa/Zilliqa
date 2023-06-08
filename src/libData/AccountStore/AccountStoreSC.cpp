@@ -37,6 +37,7 @@
 #include "libCps/CpsExecutor.h"
 #include "libData/AccountStore/AccountStoreSC.h"
 #include "libMetrics/Api.h"
+#include "libPersistence/BlockStorage.h"
 
 namespace {
 
@@ -249,7 +250,9 @@ bool AccountStoreSC::UpdateAccounts(
         .dsBlockNum = m_curDSBlockNum,
         .blockTimestamp = extras.block_timestamp,
         .blockDifficulty = extras.block_difficulty,
-        .contractType = Transaction::GetTransactionType(transaction)};
+        .contractType = Transaction::GetTransactionType(transaction),
+        .txnHash = transaction.GetTranID()
+    };
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
@@ -261,6 +264,8 @@ bool AccountStoreSC::UpdateAccounts(
       cpsRunResult.isSuccess = true;
     }
     error_code = cpsRunResult.txnStatus;
+
+
     return cpsRunResult.isSuccess;
   }
 

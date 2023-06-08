@@ -425,7 +425,7 @@ bool Match(const EventFilterParams &filter, const Address &address,
 
     bool found = false;
     for (const auto &t : topicMatch) {
-      if (t == topic) {
+      if (boost::iequals(t, topic)) {
         found = true;
         break;
       }
