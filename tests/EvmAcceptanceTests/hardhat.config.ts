@@ -3,6 +3,7 @@ import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
+import semver from "semver";
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
@@ -175,6 +176,12 @@ task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")
   .addFlag("logTxnid", "Log JSON RPC ")
   .setAction((taskArgs, hre, runSuper) => {
+    const node_version = process.version;
+    if (semver.gt(node_version, "17.0.0")) {
+      console.log("⛔️", clc.redBright.bold("Zilliqa-is incompatible with your current node version."), "It should be >13.0.0 & <17.0.0.");
+      return;
+    }
+
     if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
       hre.ethers.provider.on("debug", (info) => {
         if (taskArgs.logJsonrpc) {
