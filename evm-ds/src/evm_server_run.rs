@@ -3,7 +3,7 @@ use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use crate::CallContext;
+use crate::call_context::{CallContext, LoggingEventListener};
 use evm::executor::stack::MemoryStackSubstate;
 use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}};
 use evm::{Machine, Runtime};
@@ -19,7 +19,7 @@ use crate::cps_executor::{CpsCallInterrupt, CpsCreateInterrupt, CpsExecutor, Cps
 use crate::precompiles::get_precompiles;
 use crate::pretty_printer::log_evm_result;
 use crate::protos::Evm as EvmProto;
-use crate::{scillabackend, LoggingEventListener};
+use crate::{scillabackend};
 use protobuf::Message;
 
 #[allow(clippy::too_many_arguments)]
