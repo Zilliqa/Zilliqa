@@ -65,6 +65,14 @@ describe("ERC20 Is ZRC2", function () {
     expect(await erc20_contract.totalSupply()).to.be.eq(1_000);
   });
 
+  it("Should return init supply via bridge contract", async function () {
+    expect(await erc20_contract.initSupply()).to.be.eq(1_000);
+  });
+
+  it("Should return token name via bridge contract", async function () {
+    expect(await erc20_contract.tokenName()).to.be.eq("ERC20isZRC2 Token");
+  });
+
   it("Should be able to transfer via erc20", async function () {
     let receipt = await erc20_contract.transfer(await alice.getAddress(), 150);
     receipt = await receipt.wait();
