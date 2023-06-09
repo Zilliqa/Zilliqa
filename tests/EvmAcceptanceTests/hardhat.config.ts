@@ -177,7 +177,7 @@ task("test")
   .addFlag("logTxnid", "Log JSON RPC ")
   .setAction((taskArgs, hre, runSuper) => {
     const node_version = process.version;
-    if (semver.gt(node_version, "16.0.0")) {
+    if (semver.gt(node_version, "17.0.0")) {
       console.log("⛔️", clc.redBright.bold("️Your node version is not correct."), "It should be >13.0.0 & <17.0.0.");
       return;
     }
