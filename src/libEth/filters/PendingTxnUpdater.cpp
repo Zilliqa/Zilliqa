@@ -43,7 +43,6 @@ PendingTxnUpdater::~PendingTxnUpdater() {
 bool PendingTxnUpdater::Wait() {
   std::unique_lock lk(m_mutex);
   if (!m_stopped) {
-    // TODO: cv fix
     m_cond.wait_for(lk, UPDATE_INTERVAL);
   }
   return !m_stopped;

@@ -771,7 +771,6 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     do {
       m_mediator.m_lookup->GetTxBlockFromSeedNodes(
           m_mediator.m_txBlockChain.GetBlockCount(), 0);
-    // TODO: cv fix
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
@@ -979,7 +978,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
             m_mediator.m_txBlockChain.GetBlockCount(), 0);
         LOG_GENERAL(INFO,
                     "Retrieve final block from lookup node, please wait...");
-        // TODO: cv fix
       } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
@@ -1008,7 +1006,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
                     "wait...");
-        // TODO: cv fix
       } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
@@ -1356,7 +1353,6 @@ bool Node::GetOfflineLookups(bool endless) {
     {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
-      // TODO: cv fix
       if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {

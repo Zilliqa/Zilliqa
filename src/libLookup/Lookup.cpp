@@ -204,19 +204,14 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
     }
     LOG_GENERAL(INFO,
                 "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
-    {
-      std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-      m_rejoinRecoverySignal = false;
-    }
     ComposeAndSendGetDirectoryBlocksFromSeed(
         m_mediator.m_blocklinkchain.GetLatestIndex() + 1, true,
         LOOKUP_NODE_MODE);
     GetTxBlockFromSeedNodes(txBlockNum, 0);
     std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-    if (!cv_setRejoinRecovery.wait_for(
-            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL), [this]() {
-              return m_rejoinRecoverySignal.load();
-            })) {
+    if (m_mediator.m_lookup->cv_setRejoinRecovery.wait_for(
+            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL)) !=
+        std::cv_status::timeout) {
       if (m_rejoinInProgress) {
         break;
       }
@@ -224,15 +219,11 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
   }
   if (!m_rejoinInProgress) {
     // Ask for the sharding structure from lookup
-    {
-      std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-      m_shardStructSignal = false;
-    }
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    if (!cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
-            [this]() { return m_shardStructSignal; })) {
+    if (cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
       LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
     } else {
       ProcessEntireShardingStructure();
@@ -890,21 +881,17 @@ zbytes Lookup::ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
 
 bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
   // loop until ds block is received
-  bool dsBlockProcessed;
-  {
-    unique_lock<mutex> lock(m_mutexVCDSBlockProcessed);
-    dsBlockProcessed = m_vcDsBlockProcessed;
-  }
-  while (!dsBlockProcessed && (GetSyncType() == SyncType::NO_SYNC)) {
+  while (!m_mediator.m_lookup->m_vcDsBlockProcessed &&
+         (GetSyncType() == SyncType::NO_SYNC)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "GetDSBlockFromL2lDataProvider for block " << blockNum);
     SendMessageToRandomL2lDataProvider(
         ComposeGetDSBlockMessageForL2l(blockNum));
 
-    unique_lock<mutex> lock(m_mutexVCDSBlockProcessed);
-    if (!cv_vcDsBlockProcessed.wait_for(
-            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
-            [this]() { return m_vcDsBlockProcessed; }) &&
+    unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCDSBlockProcessed);
+    if (m_mediator.m_lookup->cv_vcDsBlockProcessed.wait_for(
+            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL)) ==
+            std::cv_status::timeout &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetDSBlockFromL2lDataProvider Timeout... may be ds block "
@@ -912,31 +899,23 @@ bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
     } else {
       break;
     }
-    dsBlockProcessed = m_vcDsBlockProcessed;
   }
-  {
-    unique_lock<mutex> lock(m_mutexVCDSBlockProcessed);
-    m_vcDsBlockProcessed = false;
-  }
+  m_mediator.m_lookup->m_vcDsBlockProcessed = false;
   return true;
 }
 
 bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
   // loop until vcfinal block is received
   auto getmessage = ComposeGetVCFinalBlockMessageForL2l(blockNum);
-  bool vcFinalBlockProcessed;
-  {
-    unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
-    vcFinalBlockProcessed = m_vcFinalBlockProcessed;
-  }
-  while (!vcFinalBlockProcessed && (GetSyncType() == SyncType::NO_SYNC)) {
+  while (!m_mediator.m_lookup->m_vcFinalBlockProcessed &&
+         (GetSyncType() == SyncType::NO_SYNC)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "GetVCFinalBlockFromL2lDataProvider for block " << blockNum);
     SendMessageToRandomL2lDataProvider(getmessage);
-    unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
-    if (!cv_vcFinalBlockProcessed.wait_for(
-                                           lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
-                                           [this]() { return m_vcFinalBlockProcessed; }) &&
+    unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCFinalBlockProcessed);
+    if (m_mediator.m_lookup->cv_vcFinalBlockProcessed.wait_for(
+            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL)) ==
+            std::cv_status::timeout &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetVCFinalBlockFromL2lDataProvider Timeout... may be "
@@ -944,12 +923,8 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
     } else {
       break;
     }
-    vcFinalBlockProcessed = m_vcFinalBlockProcessed;
   }
-  {
-    unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
-    m_vcFinalBlockProcessed = false;
-  }
+  m_mediator.m_lookup->m_vcFinalBlockProcessed = false;
   return true;
 }
 
@@ -1591,12 +1566,6 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   zbytes retMsg = {MessageType::DIRECTORY,
                    DSInstructionType::GETDSLEADERTXNPOOL};
 
-  // Clear the DS Leader txn pool message signal state.
-  {
-    unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
-    m_dsLeaderTxnPoolSignal = false;
-  }
-
   if (!Messenger::SetLookupGetDSLeaderTxnPool(
           retMsg, MessageOffset::BODY, m_mediator.m_selfKey,
           m_mediator.m_selfPeer.m_listenPortHost)) {
@@ -1629,9 +1598,10 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   static constexpr const chrono::seconds GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS{
       3};
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
-  if (!cv_dsLeaderTxnPool.wait_for(
-          lock, GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS,
-          [this]() { return m_dsLeaderTxnPoolSignal; })) {
+  if (cv_dsLeaderTxnPool.wait_for(lock,
+                                  GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS) ==
+      std::cv_status::timeout) {
+    // timed out
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Timed out waiting for DS leader txn pool");
     return std::nullopt;
@@ -2302,10 +2272,6 @@ bool Lookup::ProcessSetShardFromSeed(
 
   m_mediator.m_ds->m_shards = std::move(shards);
 
-  {
-    std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    m_shardStructSignal = true;
-  }
   cv_shardStruct.notify_all();
 
   return true;
@@ -2988,10 +2954,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(
   // #ifndef IS_LOOKUP_NODE
 
   if (AlreadyJoinedNetwork()) {
-    {
-      std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-      m_rejoinRecoverySignal = true;
-    }
     cv_setTxBlockFromSeed.notify_all();
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
       cv_setRejoinRecovery.notify_all();
@@ -3081,10 +3043,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         m_mediator.m_ds->RejoinAsDS(false);
       } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
         m_rejoinInProgress = true;
-        {
-          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-          m_rejoinRecoverySignal = true;
-        }
         cv_setRejoinRecovery.notify_all();
         RejoinNetwork();
       }
@@ -3093,10 +3051,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       LOG_GENERAL(INFO,
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
-      {
-          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-          m_rejoinRecoverySignal = true;
-      }
       cv_setRejoinRecovery.notify_all();
       return false;
     }
@@ -3117,10 +3071,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         if (!CommitTxBlocks(txBlocks)) {
           if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
             m_rejoinInProgress = true;
-            {
-              std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-              m_rejoinRecoverySignal = true;
-            }
             cv_setRejoinRecovery.notify_all();
             RejoinNetwork();
           }
@@ -3160,9 +3110,9 @@ bool Lookup::GetDSInfo() {
     while (!m_fetchedDSInfo) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Waiting for DSInfo");
 
-      if (!cv_dsInfoUpdate.wait_for(lock,
-                                    chrono::seconds(NEW_NODE_SYNC_INTERVAL),
-                                    [this]() { return m_fetchedDSInfo; })) {
+      if (cv_dsInfoUpdate.wait_for(lock,
+                                   chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+          std::cv_status::timeout) {
         // timed out
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Timed out waiting for DSInfo");
@@ -3206,16 +3156,12 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     unsigned int retry = 1;
     while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
-      {
-        std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltasFromSeed);
-        m_setStateDeltasFromSeedSignal = false;
-      }
       // Get the state-delta for all txBlocks from random lookup nodes
       GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
       std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltasFromSeed);
-      if (!cv_setStateDeltasFromSeed.wait_for(
-              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS),
-              [this]() { return m_setStateDeltasFromSeedSignal; })) {
+      if (cv_setStateDeltasFromSeed.wait_for(
+              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+          std::cv_status::timeout) {
         LOG_GENERAL(
             WARNING,
             "[Retry: " << retry
@@ -3289,16 +3235,12 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       while (retry <= RETRY_COSIGREWARDS_COUNT) {
         // Get the cosig for this txblock
         auto txblk_num = txBlock.GetHeader().GetBlockNum();
-        {
-          std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
-          m_setCosigRewardsFromSeedSignal = false;
-        }
         ComposeAndSendGetCosigsRewardsFromSeed(txblk_num);
         std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
-        if (!cv_setCosigRewardsFromSeed.wait_for(
+        if (cv_setCosigRewardsFromSeed.wait_for(
                 cv_lk,
-                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
-                [this]() { return m_setCosigRewardsFromSeedSignal; })) {
+                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS)) ==
+            std::cv_status::timeout) {
           LOG_GENERAL(WARNING,
                       "[Retry: " << retry
                                  << "] Didn't receive cosig rewards for txblk "
@@ -3344,15 +3286,11 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // If yes, just keep sycing until vacaous epoch. Don't proceed further.
       if (!m_mediator.m_node->m_confirmedNotInNetwork) {
         // Ask for the sharding structure from lookup
-        {
-          std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-          m_shardStructSignal = false;
-        }
         ComposeAndSendGetShardingStructureFromSeed();
         std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-        if (!cv_shardStruct.wait_for(
-                cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
-                [this]() { return m_shardStructSignal; })) {
+        if (cv_shardStruct.wait_for(
+                cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+            std::cv_status::timeout) {
           LOG_GENERAL(
               WARNING,
               "Didn't receive sharding structure! Try checking next epoch");
@@ -3419,10 +3357,6 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         if (ARCHIVAL_LOOKUP || (!ARCHIVAL_LOOKUP && FinishRejoinAsLookup())) {
           SetSyncType(SyncType::NO_SYNC);
-          {
-            std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-            m_rejoinRecoverySignal = true;
-          }
           m_rejoinInProgress = false;
           m_rejoinNetworkAttempts = 0;  // reset rejoining attempts
           cv_setRejoinRecovery.notify_all();
@@ -3510,10 +3444,6 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     } else {
       LOG_GENERAL(INFO, "GetDsInfo is failed.RejoinNetwork now");
       m_rejoinInProgress = true;
-      {
-        std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-        m_rejoinRecoverySignal = true;
-      }
       cv_setRejoinRecovery.notify_all();
       RejoinNetwork();
     }
@@ -3615,10 +3545,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (AlreadyJoinedNetwork()) {
-    {
-      unique_lock<std::mutex> lock(m_mutexSetStateDeltasFromSeed);
-      m_setStateDeltasFromSeedSignal = true;
-    }
     cv_setStateDeltasFromSeed.notify_all();
     return true;
   }
@@ -3691,7 +3617,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     }
   }
 
-  m_setStateDeltasFromSeedSignal = true;
   cv_setStateDeltasFromSeed.notify_all();
   return true;
 }
@@ -3916,7 +3841,6 @@ bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
 
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
   m_dsLeaderTxnPool = std::move(txns);
-  m_dsLeaderTxnPoolSignal = true;
   cv_dsLeaderTxnPool.notify_all();
 
   return true;
@@ -4379,15 +4303,11 @@ void Lookup::StartSynchronization() {
     }
     // Ask for the sharding structure from lookup (may have got new ds block
     // with new sharding struct)
-    {
-      std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-      m_shardStructSignal = false;
-    }
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    if (!cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS),
-            [this]() { return m_shardStructSignal; })) {
+    if (cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
       LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
     } else {
       ProcessEntireShardingStructure();
@@ -4410,18 +4330,16 @@ bool Lookup::GetDSInfoLoop() {
       return false;
     }
   }*/
-  {
-    unique_lock<mutex> lk(m_mutexDSInfoUpdation);
-    m_fetchedDSInfo = false;
-    while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-      GetDSInfoFromSeedNodes();
-      if (!cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL),
-                                    [this]() { return m_fetchedDSInfo; })) {
-        counter++;
 
-      } else {
-        break;
-      }
+  while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+    GetDSInfoFromSeedNodes();
+    unique_lock<mutex> lk(m_mutexDSInfoUpdation);
+    if (cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+        cv_status::timeout) {
+      counter++;
+
+    } else {
+      break;
     }
   }
   {

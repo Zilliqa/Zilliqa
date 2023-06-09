@@ -266,7 +266,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
 
   if (m_state == FINALBLOCK_CONSENSUS) {
     std::unique_lock<std::mutex> cv_lk(m_MutexCVPOWSubmission);
-    // TODO: cv fix
+
     if (cv_POWSubmission.wait_for(
             cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT)) ==
         std::cv_status::timeout) {

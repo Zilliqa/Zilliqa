@@ -124,7 +124,6 @@ class Lookup : public Executable {
   // Get StateDeltas from seed
   std::mutex m_mutexSetStateDeltasFromSeed;
   std::condition_variable cv_setStateDeltasFromSeed;
-  bool m_setStateDeltasFromSeedSignal;
 
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
@@ -192,7 +191,6 @@ class Lookup : public Executable {
 
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;
-  bool m_shardStructSignal;
 
   void ComposeAndSendGetShardingStructureFromSeed();
 
@@ -530,12 +528,10 @@ class Lookup : public Executable {
   // Get cosigrewards from seed
   std::mutex m_mutexSetCosigRewardsFromSeed;
   std::condition_variable cv_setCosigRewardsFromSeed;
-  bool m_setCosigRewardsFromSeedSignal;
 
   // Seed rejoin recovery
   std::mutex m_mutexCvSetRejoinRecovery;
   std::condition_variable cv_setRejoinRecovery;
-  std::atomic<bool> m_rejoinRecoverySignal{false};
 
   // Enable/Disable jsonrpc port
   std::mutex m_mutexJsonRpc;
@@ -583,7 +579,6 @@ class Lookup : public Executable {
   std::mutex m_mutexDSLeaderTxnPool;
   std::condition_variable cv_dsLeaderTxnPool;
   std::vector<Transaction> m_dsLeaderTxnPool;
-  bool m_dsLeaderTxnPoolSignal = false;
 
   // exit trigger
   std::atomic<bool> m_exitPullThread{};

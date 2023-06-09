@@ -205,7 +205,6 @@ bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
 
   // wait for final block ( with complete microblock ) to be ready
   if (!m_completeFinalBlockReady) {
-    // TODO: cv fix
     if (m_cvCompleteFinalBlockReady.wait_for(
             lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
       // timed out
@@ -1402,7 +1401,6 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // View change will wait for timeout. If conditional variable is notified
     // before timeout, the thread will return without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-    // TODO: cv fix
     if (cv_viewChangeFinalBlock.wait_for(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {
