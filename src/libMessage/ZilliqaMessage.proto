@@ -1272,3 +1272,25 @@ message TxTraceStoredDisk
     uint64          index       = 2;
     string          txTrace     = 3;
 }
+
+message OtterscanTrace
+{
+    string          trace     = 1;
+}
+
+// tx address will map to this and contain all tx hashes
+// associated with that address
+message OtterscanTraceAddressMapping
+{
+    message TxHashInfo
+    {
+        string hash      = 1;
+        uint64 blocknum  = 2;
+    }
+    repeated TxHashInfo hashes = 1;
+}
+
+message OtterscanAddressNonceLookup
+{
+    string hash      = 1;
+}

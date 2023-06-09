@@ -31,6 +31,10 @@ contract Revert {
     revert(revertMessage);
   }
 
+  function requireCustom(bool success, string memory revertMessage) public payable {
+    require(success == true, revertMessage);
+  }
+
   function revertCallWithCustomError() public payable {
     revert FakeError({value: msg.value, sender: msg.sender});
   }

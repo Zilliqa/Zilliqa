@@ -66,6 +66,7 @@ ScillaProcessContext CpsUtils::FromEvmContext(
       .blockDifficulty = 0,
       // Not relevant
       .contractType = Transaction::ContractType::ERROR,
+      .txnHash = evmContext.GetTranID()
   };
 }
 
