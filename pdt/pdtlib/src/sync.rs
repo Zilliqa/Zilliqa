@@ -29,12 +29,14 @@ impl Sync {
         })
     }
 
+    /// Return true if all jobs finished OK, false otherwise (but don't stop!)
     pub async fn download(
         &mut self,
         ctx: &Context,
         source_key: &str,
         target_path: &Path,
-    ) -> Result<()> {
+    ) -> Result<bool> {
+        let mut ok: bool = true;
         // Wait for a task handle
         println!("Jobs len {}", self.jobs.len());
         while self.jobs.len() >= self.job_count {
@@ -43,7 +45,13 @@ impl Sync {
             if let Some(res) = result {
                 let inner = res?;
                 println!("Got result {:?}", inner);
-                let _ = inner?;
+                if let Err(errval) = inner {
+                    println!(
+                        "{:?}: bucket probably changed under us, going round again",
+                        errval
+                    );
+                    ok = false;
+                }
             }
         }
 
@@ -63,7 +71,7 @@ impl Sync {
                 Err(e) => Err(anyhow!("Cannot fetch {:?}", e)),
             }
         });
-        Ok(())
+        Ok(ok)
     }
 
     /** Sync from source key to target directory.
@@ -79,12 +87,19 @@ impl Sync {
         remove_old_files: bool,
     ) -> Result<()> {
         // List the keys
-        let entries = ctx.list_objects(source_key).await?;
-        println!("There are {} entries in {}", entries.len(), source_key);
-        self.sync_keys(ctx, source_key, target_path, &entries, remove_old_files)
-            .await
+        let mut stable = false;
+        while !stable {
+            let entries = ctx.list_objects(source_key).await?;
+            println!("There are {} entries in {}", entries.len(), source_key);
+            stable = self
+                .sync_keys(ctx, source_key, target_path, &entries, remove_old_files)
+                .await?;
+        }
+        Ok(())
     }
 
+    /// Returns a boolean - true if the result was stable (and we could download everything),
+    /// false otherwise.
     pub async fn sync_keys(
         &mut self,
         ctx: &Context,
@@ -92,7 +107,8 @@ impl Sync {
         target_path: &Path,
         entries: &Vec<context::Entry>,
         remove_old_files: bool,
-    ) -> Result<()> {
+    ) -> Result<bool> {
+        let mut stable = true;
         // Now sync each key in turn.
         for entry in entries {
             println!("Downloading {}", entry.key);
@@ -110,15 +126,18 @@ impl Sync {
                 break;
             }
             if let Some(val) = ended {
-                // @TODO: retry on error.
-                val??;
+                let errval = val?;
+                if let Err(err) = errval {
+                    println!("{:?} : bucket changed beneath us; round again!", err);
+                    stable = false;
+                }
             }
         }
         // Remove any files not in the list. Need to do this last, or it will
         // unlink any .part files we were half-way through downloading.
         self.remove_keys_not_in(entries, source_key, target_path)
             .await?;
-        Ok(())
+        Ok(stable)
     }
 
     pub async fn remove_keys_not_in(

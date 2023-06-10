@@ -1,5 +1,6 @@
 use crate::utils;
 use anyhow::{anyhow, Result};
+use base64::Engine;
 use hex;
 use pdtlib::proto::ProtoTransactionWithReceipt;
 use primitive_types::{H160, H256};
@@ -12,7 +13,9 @@ pub struct Transaction {
     pub offset_in_block: i64,
     pub amount: Option<String>,
     pub code: Option<String>,
+    pub code_base64: Option<String>,
     pub data: Option<String>,
+    pub data_base64: Option<String>,
     pub gas_limit: i64,
     pub gas_price: Option<String>,
     pub nonce: Option<i64>,
@@ -55,18 +58,17 @@ impl Transaction {
         } else {
             None
         };
-        let code: Option<String> = core.oneof8.and_then(|x| {
-            let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x;
-            std::str::from_utf8(&y)
-                .ok()
-                .and_then(|x| Some(x.to_string()))
-        });
-        let data: Option<String> = core.oneof9.and_then(|x| {
-            let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x;
-            std::str::from_utf8(&y)
-                .ok()
-                .and_then(|x| Some(x.to_string()))
-        });
+        
+        let (code, code_base64): (Option<String>, Option<String>) =
+            core.oneof8.map_or((None, None), |x| {
+                let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x;
+                encode_u8(&y)
+            });
+        let (data, data_base64): (Option<String>, Option<String>) =
+            core.oneof9.map_or((None, None), |x| {
+                let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x;
+                encode_u8(&y)
+            });
 
         let signature = txn
             .signature
@@ -105,6 +107,8 @@ impl Transaction {
             amount,
             code,
             data,
+            code_base64,
+            data_base64,
             gas_limit,
             gas_price,
             nonce,
@@ -129,5 +133,17 @@ impl Transaction {
     pub fn estimate_bytes(&self) -> Result<usize> {
         // Annoyingly, because of Javascript escaping, this is the only way :-(
         Ok(self.to_json()?.len())
+    }
+}
+
+fn encode_u8(y: &[u8]) -> (Option<String>, Option<String>) {
+    match std::str::from_utf8(y) {
+        Ok(val) => (Some(val.to_string()), None),
+        Err(_) => {
+            let encoded = base64::engine::general_purpose::STANDARD
+                .encode(y)
+                .to_string();
+            (None, Some(encoded))
+        }
     }
 }

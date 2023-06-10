@@ -310,10 +310,11 @@ impl ZilliqaBQProject {
                 TableFieldSchema::big_numeric("amount"),
                 TableFieldSchema::string("code"),
                 TableFieldSchema::string("data"),
+                TableFieldSchema::string("code_base64"),
+                TableFieldSchema::string("data_base64"),
                 TableFieldSchema::integer("gas_limit"),
                 TableFieldSchema::big_numeric("gas_price"),
                 TableFieldSchema::integer("nonce"),
-                // This will eventually move to the receipts table.
                 TableFieldSchema::string("receipt"),
                 TableFieldSchema::string("sender_public_key"),
                 TableFieldSchema::string("from_addr"),

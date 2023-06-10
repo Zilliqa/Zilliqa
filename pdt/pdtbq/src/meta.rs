@@ -154,15 +154,24 @@ impl Meta {
 
             // OK. Does this range overlap one of my batches? The batch starts at (next_range.start/batch_blk*nr_machines)
             // Our next batch is at start + nr * batch_size.
-            let batch_start =
-                next_range.start - next_range.start % (self.batch_blks * self.nr_machines);
+
+            // skip_blocks is the gap between one of our batches and the next one.
+            let skip_blocks = self.batch_blks * self.nr_machines;
+            let batch_start = next_range.start - next_range.start % (skip_blocks);
             let mut our_next_batch_start = batch_start + (self.machine_id * self.batch_blks);
+            let mut our_next_batch_end = our_next_batch_start + self.batch_blks;
+            println!(
+                "batch_start {} our_next_batch_start {} our_next_batch_end {}",
+                batch_start, our_next_batch_start, our_next_batch_end
+            );
             // Make sure we address a block range above the start of the range of unprocessed blocks
-            // we've found.
-            while our_next_batch_start < next_range.start {
-                our_next_batch_start += self.batch_blks * self.nr_machines;
+            // we've found. Compare the end of the batch, because otherwise if we end up in the middle
+            // of one of our batches, we'll never process the end of it.
+            while our_next_batch_end <= next_range.start {
+                our_next_batch_start += skip_blocks;
+                our_next_batch_end += skip_blocks;
             }
-            let our_next_batch_end = our_next_batch_start + self.batch_blks;
+
             // Does it overlap?
             println!(
                 "{}: ours {} .. {}",

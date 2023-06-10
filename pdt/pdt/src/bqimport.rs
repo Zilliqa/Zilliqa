@@ -12,7 +12,12 @@ const PROJECT_ID: &str = "rrw-bigquery-test-id";
 const SERVICE_ACCOUNT_KEY_FILE: &str =
     "/home/rrw/work/zilliqa/src/secrets/rrw-bigquery-test-id-8401353b2800.json";
 
-pub async fn multi(unpack_dir: &str, nr_threads: i64, batch_blocks: i64) -> Result<()> {
+pub async fn multi(
+    unpack_dir: &str,
+    nr_threads: i64,
+    batch_blocks: i64,
+    start_blk: Option<i64>,
+) -> Result<()> {
     // OK. Just go ..
     let mut jobs = JoinSet::new();
 
@@ -32,6 +37,7 @@ pub async fn multi(unpack_dir: &str, nr_threads: i64, batch_blocks: i64) -> Resu
     for idx in 0..nr_threads {
         let orig_unpack_dir = unpack_dir.to_string();
         let my_unpack_dir = Path::new(unpack_dir).join("..").join(format!("t{}", idx));
+        let my_start_blk = start_blk.clone();
         jobs.spawn(async move {
             println!("Sync persistence to {:?}", &my_unpack_dir);
             let unpack_str = my_unpack_dir
@@ -40,7 +46,15 @@ pub async fn multi(unpack_dir: &str, nr_threads: i64, batch_blocks: i64) -> Resu
             // Sync persistence
             pdtlib::utils::dup_directory(&orig_unpack_dir, &unpack_str)?;
             println!("Starting thread {}/{}", idx, nr_threads);
-            import(&unpack_str, nr_threads, idx, batch_blocks, None).await
+            import(
+                &unpack_str,
+                nr_threads,
+                idx,
+                batch_blocks,
+                None,
+                my_start_blk,
+            )
+            .await
         });
     }
 
@@ -61,6 +75,7 @@ pub async fn import(
     machine_id: i64,
     batch_blks: i64,
     nr_batches: Option<i64>,
+    start_block: Option<i64>,
 ) -> Result<()> {
     println!("Setting up schema");
     let client_id = format!("m{}_{}", machine_id, nr_machines);
@@ -79,7 +94,10 @@ pub async fn import(
 
     println!("max_block is {}", max_block);
     let mut batch = 0;
-    let mut last_max = 0;
+    let mut last_max = match start_block {
+        Some(x) => x,
+        None => 0,
+    };
     while match nr_batches {
         None => true,
         Some(val) => batch < val,
@@ -96,15 +114,14 @@ pub async fn import(
                 println!("{}: Retrieved block {:?}", client_id, range);
                 let mut inserter = project.make_transaction_inserter().await?;
                 let mut nr_txns = 0;
-                for val in exporter.micro_blocks(
-                    1,
-                    range.end.try_into()?,
-                    Some(range.start.try_into()?),
-                )? {
+                for val in
+                    exporter.micro_blocks(range.end.try_into()?, Some(range.start.try_into()?))?
+                {
                     if let Ok((key, blk)) = val {
                         let mut offset_in_block = 0;
                         // println!("Blk! at {}/{}", key.epochnum, key.shardid);
                         for (_hash, maybe_txn) in exporter.txns(&key, &blk)? {
+                            // println!("hash {}", _hash);
                             if let Some(txn) = maybe_txn {
                                 inserter.insert_row(bq_object::Transaction::from_proto(
                                     &txn.clone(),

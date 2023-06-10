@@ -5,6 +5,9 @@ use anyhow::Result;
 use primitive_types::H256;
 use std::path::Path;
 
+// The maximum number of shards there can ever be.
+const MAX_SHARDS: u8 = 16;
+
 pub struct Exporter {
     #[allow(dead_code)]
     persistence_dir: String,
@@ -27,18 +30,14 @@ impl Exporter {
         self.meta.max_block()
     }
 
-    pub fn micro_blocks(
-        &self,
-        nr_shards: u32,
-        end_blk: u64,
-        start_at: Option<u64>,
-    ) -> Result<MicroBlocks> {
+    pub fn micro_blocks(&self, end_blk: u64, start_at: Option<u64>) -> Result<MicroBlocks> {
         let lower_blk_id: u64 = if let Some(x) = start_at { x } else { 0 };
         Ok(MicroBlocks {
-            nr_shards,
             end_blk,
             blk_id: lower_blk_id,
+            first_block: true,
             shard: 0,
+            shard_structure: Vec::new(),
             db: &self.db,
         })
     }
@@ -61,36 +60,66 @@ impl Exporter {
 }
 
 pub struct MicroBlocks<'a> {
-    nr_shards: u32,
     end_blk: u64,
     blk_id: u64,
-    shard: u32,
+    first_block: bool,
+    shard: usize,
+    shard_structure: Vec<u8>,
     db: &'a Db,
 }
 
 impl<'a> Iterator for MicroBlocks<'a> {
     type Item = Result<(ProtoMicroBlockKey, ProtoMicroBlock)>;
 
+    /// At the start of time, set the shard structure to empty and blk_id to lower_blk_id-1
+    /// shard will be incremented, which will cause us to increment blk_id and fault in the
+    /// shard structure for the next block.
     fn next(&mut self) -> Option<Result<(ProtoMicroBlockKey, ProtoMicroBlock)>> {
         loop {
             self.shard += 1;
-            if self.shard >= self.nr_shards {
+            if self.shard >= self.shard_structure.len() {
+                // Next block!
+                if self.first_block {
+                    self.first_block = false;
+                } else {
+                    self.blk_id += 1;
+                }
+                if self.blk_id >= self.end_blk {
+                    return None;
+                }
                 self.shard = 0;
-                self.blk_id += 1;
-            }
-            if self.blk_id >= self.end_blk {
-                return None;
+                match self.db.get_shard_structure(self.blk_id) {
+                    Ok(val) => {
+                        if let Some(structure) = val {
+                            if structure.len() > 0 {
+                                self.shard_structure = structure.clone();
+                            } else {
+                                continue;
+                            }
+                        } else {
+                            // No shard structure for this block :-(
+                            // println!("no shard structure for blk {}", self.blk_id);
+                            self.shard_structure = Vec::new();
+                            for i in 0..MAX_SHARDS {
+                                self.shard_structure.push(i);
+                            }
+                        }
+                    }
+                    Err(val) => {
+                        return Some(Err(val));
+                    }
+                };
             }
             let the_key = ProtoMicroBlockKey {
                 epochnum: self.blk_id,
-                shardid: self.shard,
+                shardid: self.shard_structure[self.shard].into(),
             };
             match self.db.get_micro_block(&the_key) {
                 Ok(val) => {
                     if let Some(blk) = val {
                         return Some(Ok((the_key, blk)));
                     }
-                    // println!("No microblock at {}/{}", self.blk_id, self.shard;)
+                    // println!("No microblock at {}/{}", self.blk_id, self.shard);
                 }
                 Err(val) => {
                     println!("Microblock {} {} err {:?}", self.blk_id, self.shard, val);

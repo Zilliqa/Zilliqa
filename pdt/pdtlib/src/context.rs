@@ -73,26 +73,47 @@ impl Context {
     }
 
     pub async fn list_objects(&self, prefix: &str) -> Result<Vec<Entry>> {
+        const ENTRIES_PER_REQUEST: i32 = std::i32::MAX;
         let mut result = Vec::new();
-        let res = self
-            .client
-            .list_objects_v2()
-            .bucket(self.bucket_name.clone())
-            .prefix(prefix.to_string())
-            .customize()
-            .await?
-            .map_operation(make_unsigned)?
-            .send()
-            .await?;
-        if let Some(objects) = res.contents {
-            for object in objects {
-                if let Some(key) = object.key() {
-                    result.push(Entry {
-                        key: key.to_string(),
-                        e_tag: object.e_tag().map(|x| x.to_string()),
-                        size: object.size(),
-                    })
+        // Because AWS, you can't seem to get more than 1000 keys in a list, so
+        // tediously continue it until it's finished.
+        let mut token: Option<String> = None;
+        loop {
+            let mut caller = self
+                .client
+                .list_objects_v2()
+                .bucket(self.bucket_name.clone())
+                .prefix(prefix.to_string())
+                .max_keys(ENTRIES_PER_REQUEST);
+
+            caller = caller.set_continuation_token(token);
+            let res = caller
+                .customize()
+                .await?
+                .map_operation(make_unsigned)?
+                .send()
+                .await?;
+            println!(
+                " {} objects with trunc {} next {:?}",
+                res.key_count, res.is_truncated, res.next_continuation_token
+            );
+
+            if let Some(objects) = res.contents {
+                for object in objects {
+                    if let Some(key) = object.key() {
+                        result.push(Entry {
+                            key: key.to_string(),
+                            e_tag: object.e_tag().map(|x| x.to_string()),
+                            size: object.size(),
+                        })
+                    }
                 }
+            }
+            if res.is_truncated {
+                // Need to go around again.
+                token = res.next_continuation_token.clone();
+            } else {
+                break;
             }
         }
         Ok(result)

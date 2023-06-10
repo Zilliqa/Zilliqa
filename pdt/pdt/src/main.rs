@@ -49,6 +49,9 @@ struct MultiOptions {
 
     #[clap(long)]
     batch_blocks: i64,
+
+    #[clap(long, default_value = None) ]
+    start_block: Option<i64>,
 }
 
 #[derive(Debug, Args)]
@@ -64,6 +67,9 @@ struct ImportOptions {
 
     #[clap(long)]
     nr_batches: Option<i64>,
+
+    #[clap(long, default_value = None)]
+    start_block: Option<i64>,
 }
 
 async fn download_persistence(download_dir: &str, unpack_dir: &str) -> Result<()> {
@@ -105,13 +111,13 @@ async fn dump_persistence(unpack_dir: &str) -> Result<()> {
     println!("max_block is {}", max_block);
 
     // exporter.import_txns(4, max_block, None);
-    for val in exporter.micro_blocks(1, max_block, None)? {
+    for val in exporter.micro_blocks(max_block, None)? {
         if let Ok((key, blk)) = val {
-            println!("Blk! at {}/{}", key.epochnum, key.shardid);
+            // println!("Blk! at {}/{}", key.epochnum, key.shardid);
             for (_hash, maybe_txn) in exporter.txns(&key, &blk)? {
                 if let Some(txn) = maybe_txn {
                     if let Some(actually_txn) = txn.transaction {
-                        println!("Txn {}", H256::from_slice(&actually_txn.tranid));
+                        // println!("Txn {}", H256::from_slice(&actually_txn.tranid));
                     }
                 }
             }
@@ -123,7 +129,13 @@ async fn dump_persistence(unpack_dir: &str) -> Result<()> {
 }
 
 async fn bigquery_import_multi(unpack_dir: &str, opts: &MultiOptions) -> Result<()> {
-    bqimport::multi(unpack_dir, opts.nr_threads, opts.batch_blocks).await
+    bqimport::multi(
+        unpack_dir,
+        opts.nr_threads,
+        opts.batch_blocks,
+        opts.start_block,
+    )
+    .await
 }
 
 async fn bigquery_import(unpack_dir: &str, opts: &ImportOptions) -> Result<()> {
@@ -133,6 +145,7 @@ async fn bigquery_import(unpack_dir: &str, opts: &ImportOptions) -> Result<()> {
         opts.machine,
         opts.batch_blocks,
         opts.nr_batches,
+        opts.start_block,
     )
     .await
 }

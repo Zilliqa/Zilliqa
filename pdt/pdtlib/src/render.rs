@@ -147,8 +147,9 @@ impl Renderer {
     }
 
     pub fn clean_output(&self) -> Result<()> {
-        // Clean up the target directory. Don't care if we fail.
-        let _ = std::fs::remove_dir_all(&self.unpack_dir);
+        // Let's try not cleaning the output before we start - persistence is
+        // large and even local syncs take a long time.
+        // let _ = std::fs::remove_dir_all(&self.unpack_dir);
 
         // Make sure the target directory exists.
         std::fs::create_dir_all(Path::new(&self.unpack_dir))?;
@@ -162,23 +163,23 @@ impl Renderer {
             .join(utils::DIR_PERSISTENCE)
             .join(".");
 
-        let dest_dir = Path::new(&self.unpack_dir)
-            .join(utils::DIR_PERSISTENCE)
-            .join(".");
+        let dest_dir = Path::new(&self.unpack_dir).join(".");
         let _ = std::fs::create_dir_all(&dest_dir);
 
         // Now Copy persistence into it.
         // Because ldb modifies databases on open, you can't cp -i, you have
         // to rsync :-(
-        Command::new("rsync")
-            .args([
-                "-az",
-                source_dir
-                    .to_str()
-                    .ok_or(anyhow!("Cannot render source path"))?,
-                &utils::path_to_str(&dest_dir)?,
-            ])
+        let source_str = source_dir
+            .to_str()
+            .ok_or(anyhow!("Cannot render source path"))?;
+        let dest_str = utils::path_to_str(&dest_dir)?;
+        println!("rsync from {} to {}", &source_str, &dest_str);
+        let out = Command::new("rsync")
+            .args(["-avz", source_str, &dest_str])
             .output()?;
+        println!("{}", std::str::from_utf8(&out.stdout)?);
+        println!("{}", std::str::from_utf8(&out.stderr)?);
+
         Ok(())
     }
 
