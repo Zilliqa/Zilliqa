@@ -398,7 +398,9 @@ RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
   RawBytes cmd = {(unsigned char)RRS::Message::Type::FORWARD};
   unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
 
+#if DODGY
   Serializable::SetNumber<uint32_t>(cmd, cur_offset, 0, sizeof(uint32_t));
+#endif
 
   cur_offset += sizeof(uint32_t);
 

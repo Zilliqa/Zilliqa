@@ -21,6 +21,9 @@
 #include "BaseType.h"
 
 /// Specifies the interface required for classes that are byte serializable.
+/// Classes that implement this interface can be serialized to a byte stream
+/// and deserialized from a byte stream. This interface is used by classes
+/// that are used in the Zilliqa protocol.
 class Serializable {
  public:
   /// Serializes internal state to destination byte stream.

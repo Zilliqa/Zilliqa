@@ -1888,9 +1888,9 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
+      zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg,
+                                          startByte);
 
-      P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
-                                         startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -5804,7 +5804,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
 
   Peer requestingNode(from.m_ipAddress, listenPort);
   zil::p2p::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage,
-                                      startByte);
+                                     startByte);
   return true;
 }
 
@@ -5865,6 +5865,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
 
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
+
   zil::p2p::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
   return true;
 }
