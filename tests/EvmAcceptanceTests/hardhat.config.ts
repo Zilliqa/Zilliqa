@@ -3,6 +3,7 @@ import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
+import semver from "semver";
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
@@ -35,6 +36,21 @@ const config: HardhatUserConfig = {
   },
   defaultNetwork: "isolated_server",
   networks: {
+    localdev2: {
+      url: "http://localdev-l2api.localdomain",
+      websocketUrl: "ws://localdev-l2api.localdomain",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+      ],
+      chainId: 0x8001,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
     isolated_server: {
       url: "http://localhost:5555/",
       websocketUrl: "ws://localhost:5555/",
@@ -160,6 +176,12 @@ task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")
   .addFlag("logTxnid", "Log JSON RPC ")
   .setAction((taskArgs, hre, runSuper) => {
+    const node_version = process.version;
+    if (semver.gt(node_version, "17.0.0")) {
+      console.log("⛔️", clc.redBright.bold("Zilliqa-is incompatible with your current node version."), "It should be >13.0.0 & <17.0.0.");
+      return;
+    }
+
     if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
       hre.ethers.provider.on("debug", (info) => {
         if (taskArgs.logJsonrpc) {

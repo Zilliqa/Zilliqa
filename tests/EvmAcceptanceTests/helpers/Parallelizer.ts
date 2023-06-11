@@ -3,7 +3,7 @@ import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import BN from "bn.js";
 import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
-import {initZilliqa, ScillaContract, Setup} from "hardhat-scilla-plugin";
+import {initZilliqa, ScillaContract, Setup, UserDefinedLibrary} from "hardhat-scilla-plugin";
 import SignerPool from "./SignerPool";
 
 export type DeployOptions = {

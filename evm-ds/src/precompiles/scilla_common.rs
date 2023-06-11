@@ -1,5 +1,5 @@
 use ethabi::ethereum_types::Address;
-use ethabi::{decode, ParamType, Token};
+use ethabi::{decode, ParamType, Token, Uint};
 use evm::executor::stack::PrecompileFailure;
 use evm::ExitError;
 use std::borrow::Cow;
@@ -50,4 +50,32 @@ pub fn get_contract_addr_and_name(input: &[u8]) -> Result<(Address, String), Pre
     };
 
     Ok((code_address.to_owned(), name.to_owned()))
+}
+
+pub fn parse_invocation_prefix(input: &[u8]) -> Result<(Address, String, Uint), PrecompileFailure> {
+    let partial_types = vec![ParamType::Address, ParamType::String, ParamType::Uint(8)];
+    let partial_tokens = decode(&partial_types, input);
+    let Ok(partial_tokens) = partial_tokens  else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
+        });
+    };
+
+    if partial_types.len() < 3 {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
+        });
+    }
+
+    let (Token::Address(code_address), Token::String(name), Token::Uint(preserve_sender)) = (&partial_tokens[0], &partial_tokens[1], &partial_tokens[2]) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
+        });
+    };
+
+    Ok((
+        code_address.to_owned(),
+        name.to_owned(),
+        preserve_sender.to_owned(),
+    ))
 }

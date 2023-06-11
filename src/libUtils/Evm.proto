@@ -78,6 +78,7 @@ message Continuation {
     Call calldata = 4;
   }
   repeated EvmLog logs = 5;
+  bool succeeded = 6;
 }
 
 message EvmArgs {

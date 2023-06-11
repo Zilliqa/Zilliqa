@@ -130,25 +130,37 @@ impl<'a> CpsExecutor<'a> {
                 *runtime.return_data_buffer() = Vec::from(feedback.get_calldata().get_data());
                 let offset_len: U256 = U256::from(feedback.get_calldata().get_offset_len());
                 let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
-
-                match runtime.machine_mut().memory_mut().copy_large(
-                    U256::from(feedback.get_calldata().get_memory_offset()),
-                    U256::zero(),
-                    target_len,
-                    feedback.get_calldata().get_data(),
-                ) {
-                    Ok(()) => {
-                        let mut value = H256::default();
-                        let one = U256::one();
-                        one.to_big_endian(&mut value[..]);
-                        runtime.machine_mut().stack_mut().push(value)?;
+                if feedback.succeeded {
+                    match runtime.machine_mut().memory_mut().copy_large(
+                        U256::from(feedback.get_calldata().get_memory_offset()),
+                        U256::zero(),
+                        target_len,
+                        feedback.get_calldata().get_data(),
+                    ) {
+                        Ok(()) => {
+                            let mut value = H256::default();
+                            let one = U256::one();
+                            one.to_big_endian(&mut value[..]);
+                            runtime.machine_mut().stack_mut().push(value)?;
+                        }
+                        Err(_) => {
+                            let mut value = H256::default();
+                            let zero = U256::zero();
+                            zero.to_big_endian(&mut value[..]);
+                            runtime.machine_mut().stack_mut().push(value)?;
+                        }
                     }
-                    Err(_) => {
-                        let mut value = H256::default();
-                        let zero = U256::zero();
-                        zero.to_big_endian(&mut value[..]);
-                        runtime.machine_mut().stack_mut().push(value)?;
-                    }
+                } else {
+                    let _ = runtime.machine_mut().memory_mut().copy_large(
+                        U256::from(feedback.get_calldata().get_memory_offset()),
+                        U256::zero(),
+                        target_len,
+                        feedback.get_calldata().get_data(),
+                    );
+                    let mut value = H256::default();
+                    let zero = U256::zero();
+                    zero.to_big_endian(&mut value[..]);
+                    runtime.machine_mut().stack_mut().push(value)?;
                 }
             }
         }
@@ -162,6 +174,10 @@ impl<'a> CpsExecutor<'a> {
 
     pub fn into_state(self) -> MemoryStackState<'a, 'a, ScillaBackend> {
         self.stack_executor.into_state()
+    }
+
+    pub fn state(&self) -> &MemoryStackState<'a, 'a, ScillaBackend> {
+        self.stack_executor.state()
     }
 }
 
@@ -328,6 +344,14 @@ impl<'a> Handler for CpsExecutor<'a> {
             }),
         }
     }
+
+    fn get_create_address(
+        &mut self,
+        scheme: CreateScheme,
+    ) -> H160 {
+        self.stack_executor.create_address(scheme)
+    }
+
 
     /// Invoke a call operation.
     fn call(

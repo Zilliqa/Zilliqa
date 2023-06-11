@@ -23,6 +23,7 @@
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
+#include "libData/AccountStore/AccountStore.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
@@ -71,8 +72,10 @@ void ScillaBCInfo::SetUp(const uint64_t curBlockNum,
   m_scillaVersion = scillaVersion;
 }
 
-ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
-    : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {
+ScillaIPCServer::ScillaIPCServer(AccountStore *parent,
+                                 AbstractServerConnector &conn)
+    : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2),
+      m_parent(parent) {
   // These JSON signatures match that of the actual functions below.
   bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
                              "query", JSON_STRING, NULL),
@@ -95,6 +98,12 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   bindAndAddMethod(Procedure("fetchCodeJson", PARAMS_BY_NAME, JSON_OBJECT,
                              "addr", JSON_STRING, "query", JSON_STRING, NULL),
                    &ScillaIPCServer::fetchCodeJsonI);
+
+  bindAndAddMethod(
+      Procedure("fetchContractInitDataJson", PARAMS_BY_NAME, JSON_OBJECT,
+                "addr", JSON_STRING, "query", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchContractInitDataJsonI);
+
   bindAndAddMethod(
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -281,22 +290,82 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
 
   string query = base64_decode(request["query"].asString());
   if (!fetchExternalStateValue(address.hex(), query, code, found, type)) {
+    LOG_GENERAL(WARNING,
+                "Unable to query external state with given query: " << query);
     return;
   }
+  auto *account = m_parent->GetAccount(address);
+  if (account == nullptr) {
+    LOG_GENERAL(WARNING,
+                "Unable to find account with given address: " << address.hex());
+    return;
+  }
+
+  std::vector<Address> extlibs;
+  bool isLibrary = false;
+  uint32_t scillaVersion;
+  if (!account->GetContractAuxiliaries(isLibrary, scillaVersion, extlibs)) {
+    LOG_GENERAL(WARNING, "Failed to retrieve auxiliaries for contract address: "
+                             << address.hex());
+    return;
+  }
+  std::map<Address, std::pair<std::string, std::string>> extlibsExports;
+  if (!ScillaUtils::PopulateExtlibsExports(*m_parent, scillaVersion, extlibs,
+                                           extlibsExports)) {
+    LOG_GENERAL(WARNING, "Unable to populate extlibs for contract address: "
+                             << address.hex());
+    return;
+  }
+
   std::string rootVersion;
-  if (!ScillaUtils::PrepareRootPathWVersion(0, rootVersion)) {
+  if (!ScillaUtils::PrepareRootPathWVersion(scillaVersion, rootVersion)) {
+    LOG_GENERAL(WARNING, "Can't prepare scilla root path with version");
+    return;
+  }
+
+  if (!ScillaUtils::ExportCreateContractFiles(
+          account->GetCode(), account->GetInitData(), isLibrary, rootVersion,
+          scillaVersion, extlibsExports)) {
+    LOG_GENERAL(WARNING, "Failed to export contract create files");
     return;
   }
   constexpr auto GAS_LIMIT = std::numeric_limits<uint32_t>::max();
-  const auto checkerJson =
-      ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT);
   std::string interprinterPrint;
-  if (!ScillaClient::GetInstance().CallChecker(
-          0, ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT),
-          interprinterPrint)) {
+  const auto callCheckerInput =
+      ScillaUtils::GetContractCheckerJson(rootVersion, false, GAS_LIMIT);
+  JSONUtils::GetInstance().convertJsontoStr(callCheckerInput);
+  if (!ScillaClient::GetInstance().CallChecker(0, callCheckerInput,
+                                               interprinterPrint)) {
     return;
   }
   JSONUtils::GetInstance().convertStrtoJson(interprinterPrint, response);
+}
+
+void ScillaIPCServer::fetchContractInitDataJsonI(const Json::Value &request,
+                                                 Json::Value &response) {
+  INC_CALLS(GetCallsCounter());
+  const auto address = Address{request["addr"].asString()};
+  std::string code;
+  std::string type;
+  bool found = false;
+
+  string query = base64_decode(request["query"].asString());
+  if (!fetchExternalStateValue(address.hex(), query, code, found, type)) {
+    LOG_GENERAL(WARNING,
+                "Unable to query external state with given query: " << query);
+    return;
+  }
+  auto *account = m_parent->GetAccount(address);
+  if (account == nullptr) {
+    LOG_GENERAL(WARNING,
+                "Unable to find account with given address: " << address.hex());
+    return;
+  }
+
+  const auto initData = account->GetInitData();
+  const auto initDataStr = DataConversion::CharArrayToString(initData);
+
+  JSONUtils::GetInstance().convertStrtoJson(initDataStr, response);
 }
 
 bool ScillaIPCServer::updateStateValue(const string &query,

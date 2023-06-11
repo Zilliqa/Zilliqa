@@ -77,7 +77,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractOutput(
                           << r_timer_end(tpStart));
   }
 
-  return {true, false, {}};
+  return {true, false};
 }
 
 /// parse the output from interpreter for calling and update states
@@ -195,6 +195,15 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
       return {};
     }
 
+    // At this point we don't support any named calls from Scilla to EVM
+    for (const auto &param : msg["params"]) {
+      if (param.isMember("vname") && param["vname"] == "_EvmCall") {
+        receipt.AddError(CALL_CONTRACT_FAILED);
+        return ScillaCallParseResult{
+            .success = false,
+            .failureType = ScillaCallParseResult::NON_RECOVERABLE};
+      }
+    }
     const auto recipient = Address(msg["_recipient"].asString());
 
     // Recipient is contract
@@ -219,15 +228,32 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
 
     // ZIL-5165: Don't fail if the recipient is a user account.
     {
-      const CpsAccountStoreInterface::AccountType accountType = acc_store.GetAccountType(recipient);
+      const CpsAccountStoreInterface::AccountType accountType =
+          acc_store.GetAccountType(recipient);
       LOG_GENERAL(INFO, "Target is accountType " << accountType);
       if (accountType == CpsAccountStoreInterface::DoesNotExist ||
           accountType == CpsAccountStoreInterface::EOA) {
         LOG_GENERAL(INFO, "Target is EOA: processing.");
-        // Message sent to a non-contract account. Add something to results.entries so that if this
-        // message attempts to transfer funds, it succeeds.
-        results.entries.emplace_back(ScillaCallParseResult::SingleResult{
-            {}, recipient, amount, false});
+        // Message sent to a non-contract account. Add something to
+        // results.entries so that if this message attempts to transfer funds,
+        // it succeeds.
+        results.entries.emplace_back(
+            ScillaCallParseResult::SingleResult{{}, recipient, amount, false});
+        continue;
+      }
+    }
+
+    if (acc_store.isAccountEvmContract(recipient)) {
+      // Workaround before we have full interop: treat EVM contracts as EOA
+      // accounts only if there's receiver_address set to 0x0, otherwise revert
+      if (!scillaArgs.extras ||
+          scillaArgs.extras->scillaReceiverAddress != Address{}) {
+        return ScillaCallParseResult{
+            .success = false,
+            .failureType = ScillaCallParseResult::NON_RECOVERABLE};
+      } else {
+        results.entries.emplace_back(
+            ScillaCallParseResult::SingleResult{{}, recipient, amount, false});
         continue;
       }
     }
@@ -267,7 +293,8 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
         std::move(inputMessage), recipient, amount, isNextContract});
   }
 
-  LOG_GENERAL(INFO, "Returning success " << results.success << " entries " << results.entries.size());
+  LOG_GENERAL(INFO, "Returning success " << results.success << " entries "
+                                         << results.entries.size());
   return results;
 }
 

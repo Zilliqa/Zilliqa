@@ -39,39 +39,23 @@ pub(crate) fn scilla_read(
             });
         }
     }
-
     let (code_address, passed_field_name) = get_contract_addr_and_name(input)?;
 
-    let code = backend.code_as_json(code_address);
-    if code.is_empty() {
+    // Try to read from storage first
+    let mut result = read_field_from_storage(input, backend, code_address, &passed_field_name);
+
+    if result.is_err() {
+        // Second attempt - read from init data
+        result = read_field_from_init_data(input, backend, code_address, &passed_field_name);
+    }
+
+    if result.is_err() {
         return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("There no code under given address")),
+            exit_status: ExitError::Other(Cow::Borrowed("There no field with given name")),
         });
     }
-    let Ok(code) = serde_json::from_slice::<Value>(&code) else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Unable to parse scilla contract code")),
-        });
-    };
 
-    let fields = code["contract_info"]["fields"].to_owned();
-    let field_type = get_field_type_by_name(&passed_field_name, &fields)?;
-    let scilla_field = decode_indices(input, &field_type)?;
-
-    let substate_json =
-        backend.substate_as_json(code_address, &passed_field_name, &scilla_field.indices);
-
-    let Ok(substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Unable to parse substate json")),
-        });
-    };
-
-    let Ok(result) = extract_substate_from_json(&substate_json, &passed_field_name, &scilla_field) else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Unable to extract return value")),
-        });
-    };
+    let result = result.unwrap();
 
     let encoded = match result {
         Some(token) => encode(&[token]),
@@ -85,6 +69,96 @@ pub(crate) fn scilla_read(
         },
         gas_needed,
     ))
+}
+
+fn read_field_from_storage(
+    input: &[u8],
+    backend: &dyn Backend,
+    code_address: Address,
+    passed_field_name: &str,
+) -> Result<Option<Token>, PrecompileFailure> {
+    let code = backend.code_as_json(code_address);
+    if code.is_empty() {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("There no code under given address")),
+        });
+    }
+    let Ok(code) = serde_json::from_slice::<Value>(&code) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Unable to parse scilla contract code")),
+        });
+    };
+
+    let fields = code["contract_info"]["fields"].to_owned();
+    let field_type = get_field_type_by_name(passed_field_name, &fields)?;
+    let scilla_field = decode_indices(input, &field_type)?;
+
+    let substate_json =
+        backend.substate_as_json(code_address, passed_field_name, &scilla_field.indices);
+
+    let Ok(substate_json) = serde_json::from_slice::<Value>(&substate_json) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Unable to parse substate json")),
+        });
+    };
+
+    let Ok(result) = extract_substate_from_json(&substate_json, passed_field_name, &scilla_field) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Unable to extract return value")),
+        });
+    };
+    Ok(result)
+}
+
+fn read_field_from_init_data(
+    input: &[u8],
+    backend: &dyn Backend,
+    code_address: Address,
+    passed_field_name: &str,
+) -> Result<Option<Token>, PrecompileFailure> {
+    let init_data = backend.init_data_as_json(code_address);
+    if init_data.is_empty() {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("There no code under given address")),
+        });
+    }
+    let Ok(init_data) = serde_json::from_slice::<Value>(&init_data) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Unable to parse scilla contract code")),
+        });
+    };
+
+    let Some(fields_array) = init_data.as_array() else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Fields in contract json are not declared as array")),
+        });
+    };
+
+    let mut object_value = None;
+
+    for json_field in fields_array {
+        let Some(vname) = json_field["vname"].as_str() else {
+            return Err(PrecompileFailure::Error {
+                exit_status: ExitError::Other(Cow::Borrowed("Fields in contract json are not declared as array")),
+            });
+        };
+        if vname.eq(passed_field_name)
+            && json_field["type"].is_string()
+            && json_field["value"].is_string()
+        {
+            object_value = Some(json_field);
+        }
+    }
+
+    let Some(object_value) = object_value else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Fields in contract json are not declared as array")),
+        });
+    };
+    let field_type = get_field_type_by_name(passed_field_name, &init_data)?;
+    let scilla_field = decode_indices(input, &field_type)?;
+
+    encode_result_type(&object_value["value"], &scilla_field)
 }
 
 fn get_field_type_by_name(field_name: &str, fields: &Value) -> Result<String, PrecompileFailure> {

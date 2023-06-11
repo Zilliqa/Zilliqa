@@ -37,16 +37,16 @@ class ScillaHelpers final {
   /// export files that ExportCreateContractFiles and ExportContractFiles
   /// both needs
   static void ExportCommonFiles(
-      CpsAccountStoreInterface &acc_store, std::ofstream &os,
-      const Address &contract,
+      const std::vector<uint8_t> &contract_init_data, std::ofstream &os,
       const std::map<Address, std::pair<std::string, std::string>>
           &extlibs_exports);
 
   static bool ExportCreateContractFiles(
-      CpsAccountStoreInterface &acc_store, const Address &contract,
-      bool is_library, uint32_t scilla_version,
+      const std::vector<uint8_t> &contract_code,
+      const std::vector<uint8_t> &contract_init_data, bool is_library,
+      std::string &scilla_root_version, uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>
-          &extlibs_export);
+          &extlibs_exports);
 
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract

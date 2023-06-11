@@ -29,6 +29,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
@@ -259,6 +260,63 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
     logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
     ++logIndex;
   }
+}
+
+Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
+  Json::Value convertedEvents = Json::arrayValue;
+
+  for (const auto &event : evmEvents) {
+    // Evm event
+    if (!event.isMember("_eventname")) {
+      convertedEvents.append(event);
+      continue;
+    }
+
+    Json::Value converted{};
+    converted["address"] =
+        event.isMember("address") ? event["address"].asString() : "0x";
+    converted["topics"] = Json::arrayValue;
+    const auto eventName =
+        event["_eventname"].asString() + std::string("(string)");
+    const auto ethhash =
+        ethash_keccak256(reinterpret_cast<const uint8_t *>(eventName.data()),
+                         std::size(eventName));
+    std::string topic0 = "0x";
+    boost::algorithm::hex(std::cbegin(ethhash.bytes), std::cend(ethhash.bytes),
+                          std::back_inserter(topic0));
+    converted["topics"].append(topic0);
+    converted["data"] = ConvertScillaEventToEthAbi(
+        JSONUtils::GetInstance().convertJsontoStr(event));
+    convertedEvents.append(converted);
+  }
+
+  return convertedEvents;
+}
+
+std::string ConvertScillaEventToEthAbi(const std::string &scillaEventString) {
+  zbytes encoded;
+  constexpr auto OFFSET = 32;
+  // Specify offset where real data starts
+  encoded = dev::toBigEndian(dev::u256{OFFSET});
+  // Add len
+  const auto encodedLen =
+      dev::toBigEndian(dev::u256{std::size(scillaEventString)});
+  encoded.insert(std::end(encoded), std::cbegin(encodedLen),
+                 std::cend(encodedLen));
+
+  if (std::empty(scillaEventString)) {
+    return DataConversion::Uint8VecToHexStrRet(encoded);
+  }
+  constexpr auto LENGTH_IN_BYTES = 32;
+  const auto padZeroBytes =
+      LENGTH_IN_BYTES -
+      ((std::size(encodedLen) + std::size(scillaEventString)) %
+       LENGTH_IN_BYTES);
+  encoded.insert(std::end(encoded), std::cbegin(scillaEventString),
+                 std::cend(scillaEventString));
+  encoded.insert(std::end(encoded), padZeroBytes, uint8_t{0});
+
+  return DataConversion::Uint8VecToHexStrRet(encoded);
 }
 
 LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt) {

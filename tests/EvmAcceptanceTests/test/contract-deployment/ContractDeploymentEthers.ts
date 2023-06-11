@@ -1,14 +1,22 @@
 import {expect} from "chai";
 import {parallelizer} from "../../helpers";
+import {ethers} from "hardhat";
 
 describe("Contract Deployment using Ethers.js", function () {
   describe("Contract with zero parameter constructor", function () {
     before(async function () {
-      this.zeroParamConstructor = await parallelizer.deployContract("ZeroParamConstructor");
+      this.signer = await parallelizer.takeSigner();
+      this.nonceBeforeDeploy = await ethers.provider.getTransactionCount(this.signer.getAddress());
+      this.zeroParamConstructor = await parallelizer.deployContractWithSigner(this.signer, "ZeroParamConstructor");
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
       expect(this.zeroParamConstructor.address).to.be.properAddress;
+    });
+
+    it("Should have incremented the account nonce by 1", async function () {
+      const count = await ethers.provider.getTransactionCount(this.signer.getAddress());
+      expect(count).to.be.eq(this.nonceBeforeDeploy + 1);
     });
 
     it("Should return 123 when number view function is called", async function () {

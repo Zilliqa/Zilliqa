@@ -963,6 +963,7 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
   try {
     Address addr{ToBase16AddrHelper(address)};
     zbytes initData;
+    zbytes code;
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -981,13 +982,21 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
       }
 
       initData = account->GetInitData();
+      code = account->GetCode();
     }
 
-    string initDataStr = DataConversion::CharArrayToString(initData);
+    string initDataStr;
     Json::Value initDataJson;
-    if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
-      throw JsonRpcException(RPC_PARSE_ERROR,
-                             "Unable to convert initData into Json");
+    // If the contract is EVM, represent the init data as a hex string. Otherwise, it is JSON.
+    if (EvmUtils::isEvm(code)) {
+      initDataStr = DataConversion::Uint8VecToHexStrRet(initData);
+      initDataJson = initDataStr;
+    } else {
+      initDataStr = DataConversion::CharArrayToString(initData);
+      if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
+        throw JsonRpcException(RPC_PARSE_ERROR,
+                               "Unable to convert initData into Json");
+      }
     }
     return initDataJson;
   } catch (const JsonRpcException& je) {

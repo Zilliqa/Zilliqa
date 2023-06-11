@@ -62,6 +62,17 @@ struct Args {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+struct OtterscanCallContext {
+    #[serde(rename = "type")]
+    pub call_type: String,
+    pub depth: usize,
+    pub from: String,
+    pub to: String,
+    pub value: String,
+    pub input: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct CallContext {
     #[serde(rename = "type")]
     pub call_type: String, // only 'call' (not create, delegate, static)
@@ -114,6 +125,10 @@ struct StructLog {
 struct LoggingEventListener {
     call_tracer: Vec<CallContext>,
     raw_tracer: StructLogTopLevel,
+    otter_internal_tracer: Vec<InternalOperationOtter>,
+    otter_call_tracer: Vec<OtterscanCallContext>,
+    otter_transaction_error: String,
+    otter_addresses_called: Vec<String>,
     enabled: bool,
 }
 
@@ -126,11 +141,24 @@ struct StructLogTopLevel {
     pub struct_logs: Vec<StructLog>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct InternalOperationOtter {
+    #[serde(rename = "type")]
+    pub call_type: usize,
+    pub from: String,
+    pub to: String,
+    pub value: String,
+}
+
 impl LoggingEventListener {
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
             call_tracer: Default::default(),
             raw_tracer: Default::default(),
+            otter_internal_tracer: Default::default(),
+            otter_call_tracer: Default::default(),
+            otter_transaction_error: "0x".to_string(),
+            otter_addresses_called: Default::default(),
             enabled,
         }
     }
@@ -142,10 +170,14 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             return;
         }
 
+        let call_depth = self.call_tracer.len() - 1;
+
         let mut struct_log = StructLog {
-            depth: self.call_tracer.len() - 1,
+            depth: call_depth,
             ..Default::default()
         };
+
+        let mut intern_trace = None;
 
         match event {
             evm::runtime::tracing::Event::Step {
@@ -183,10 +215,93 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             } => {
                 struct_log.op = "SStore".to_string();
             }
+            evm::runtime::tracing::Event::TransactTransfer {
+                call_type,
+                address,
+                target,
+                balance,
+                input,
+            } => {
+                intern_trace = Some(InternalOperationOtter {
+                    call_type: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                });
+
+                self.otter_call_tracer.push(OtterscanCallContext{
+                    call_type: call_type.to_string(),
+                    depth: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                    input: input.to_string(),});
+
+                let to_add = format!("{:?}", target);
+
+                // only push if doesn't exist in otter_addresses_called
+                if !self.otter_addresses_called.contains(&to_add) {
+                    self.otter_addresses_called.push(to_add);
+                }
+            }
+            evm::runtime::tracing::Event::TransactSuicide {
+                address,
+                target,
+                balance,
+            } => {
+                intern_trace = Some(InternalOperationOtter {
+                    call_type: 1,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                });
+
+                self.otter_call_tracer.push(OtterscanCallContext{
+                    call_type: "SELFDESTRUCT".to_string(),
+                    depth: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                    input: "".to_string(),});
+            }
+            evm::runtime::tracing::Event::TransactCreate {
+                call_type,
+                address,
+                target,
+                balance,
+                is_create2,
+                input,
+            } => {
+                intern_trace = Some(InternalOperationOtter {
+                    call_type: if is_create2 { 3 } else { 2 },
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                });
+
+                self.otter_call_tracer.push(OtterscanCallContext{
+                    call_type: call_type.to_string(),
+                    depth: call_depth,
+                    from: format!("{:?}", address),
+                    to: format!("{:?}", target),
+                    value: format!("{:0X?}", balance),
+                    input: input.to_string(),});
+
+                let to_add = format!("{:?}", target);
+
+                // only push if doesn't exist in otter_addresses_called
+                if !self.otter_addresses_called.contains(&to_add) {
+                    self.otter_addresses_called.push(to_add);
+                }
+            }
         }
 
         if self.raw_tracer.struct_logs.len() < 5 {
             self.raw_tracer.struct_logs.push(struct_log);
+        }
+
+        if let Some(intern_trace) = intern_trace {
+            self.otter_internal_tracer.push(intern_trace);
         }
     }
 }
