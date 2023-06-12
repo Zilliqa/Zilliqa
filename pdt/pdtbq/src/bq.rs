@@ -1,5 +1,5 @@
-use crate::bq_object;
 use crate::meta::Meta;
+use crate::values;
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use gcp_bigquery_client::model::{
@@ -127,7 +127,7 @@ impl ZilliqaBQProject {
     }
 
     /// Create an insertion request
-    pub async fn make_transaction_inserter(&self) -> Result<Inserter<bq_object::Transaction>> {
+    pub async fn make_transaction_inserter(&self) -> Result<Inserter<values::Transaction>> {
         Ok(Inserter {
             _marker: PhantomData,
             req: Vec::new(),
@@ -137,7 +137,7 @@ impl ZilliqaBQProject {
     /// Act on an inserter.
     pub async fn insert_transactions(
         &self,
-        req: Inserter<bq_object::Transaction>,
+        req: Inserter<values::Transaction>,
         blks: &Range<i64>,
     ) -> Result<(), InsertionErrors> {
         let _txn_table_name = format!(

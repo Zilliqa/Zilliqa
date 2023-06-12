@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use pdtbq::bq::ZilliqaBQProject;
-use pdtbq::bq_object;
+use pdtbq::values;
 use pdtlib::exporter::Exporter;
 use std::ops::Range;
 use std::path::Path;
@@ -123,7 +123,7 @@ pub async fn import(
                         for (_hash, maybe_txn) in exporter.txns(&key, &blk)? {
                             // println!("hash {}", _hash);
                             if let Some(txn) = maybe_txn {
-                                inserter.insert_row(bq_object::Transaction::from_proto(
+                                inserter.insert_row(values::Transaction::from_proto(
                                     &txn.clone(),
                                     <i64>::try_from(key.epochnum)?,
                                     offset_in_block,
