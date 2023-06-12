@@ -89,13 +89,7 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
     if (tmp.empty()) {
       if (!startNewByDaemon &&
           (m_nodeType == "dsguard" || m_nodeType == "normal")) {
-        auto it = m_failedMonitorProcessCount.find(name);
-        if (it == m_failedMonitorProcessCount.end()) {
-          m_failedMonitorProcessCount[name] = 1;
-        } else {
-          m_failedMonitorProcessCount[name]++;
-        }
-        if (m_failedMonitorProcessCount[name] >= MONITORING_FAIL_COUNT) {
+        if (++m_failedMonitorProcessCount[name] >= MONITORING_FAIL_COUNT) {
           StartNewProcess(true);
           m_failedMonitorProcessCount[name] = 0;
         }
@@ -187,13 +181,16 @@ vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
   result.clear();
 
   // Open the /proc directory
-  DIR* dp = opendir("/proc");
+  auto closeDir = [](DIR* dir) {
+    if (dir) closedir(dir);
+  };
+  std::unique_ptr<DIR, decltype(closeDir)> dp{opendir("/proc"), closeDir};
 
-  if (dp != NULL) {
+  if (dp) {
     // Enumerate all entries in directory until process found
     struct dirent* dirp;
 
-    while ((dirp = readdir(dp))) {
+    while ((dirp = readdir(dp.get()))) {
       // Skip non-numeric entries
       int id = atoi(dirp->d_name);
 
@@ -226,7 +223,6 @@ vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
             size_t space_pos = fullLine.find('\0');
 
             if (string::npos == space_pos) {
-              closedir(dp);
               return result;
             }
 
@@ -252,7 +248,6 @@ vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
     }
   }
 
-  closedir(dp);
   return result;
 }
 
@@ -272,122 +267,103 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
     exit(EXIT_FAILURE);
   }
 
-  if (pid_parent == 0) {
-    bool bSuspend = false;
-
-    while (ifstream(m_curPath + SUSPEND_LAUNCH).good()) {
-      if (!bSuspend) {
-        ZilliqaDaemon::LOG(m_log,
-                           "Temporarily suspend launch new zilliqa process, "
-                           "please wait until \"" +
-                               SUSPEND_LAUNCH + "\" file disappeared.");
-        bSuspend = true;
-      }
-
-      sleep(1);
-    }
-
-    string strSyncType;
-
-    if (m_cseed) {
-      // 1. Download Incremental DB Persistence
-      // 2. Restart zilliqa with syncType 6
-      while (!DownloadPersistenceFromS3()) {
-        ZilliqaDaemon::LOG(
-            m_log,
-            "Downloading persistence from S3 has failed. Will try again!");
-        this_thread::sleep_for(chrono::seconds(10));
-      }
-
-      strSyncType = to_string(NEW_LOOKUP_SYNC);
-    } else {
-      /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
-      /// to Zilliqa process being killed. Thus, we can use the variable
-      /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-      m_syncType =
-          (bSuspend || cleanPersistence) ? RECOVERY_ALL_SYNC : m_syncType;
-      strSyncType = to_string(m_syncType);
-      m_recovery = m_syncType == RECOVERY_ALL_SYNC ? 1 : m_recovery;
-      ZilliqaDaemon::LOG(m_log, "Suspend launch is " + to_string(bSuspend) +
-                                    ", set syncType = " + strSyncType +
-                                    ", recovery = " + to_string(m_recovery));
-    }
-
-    if (!bSuspend && cleanPersistence) {
-      ZilliqaDaemon::LOG(m_log, "Start to run command: rm -rf persistence");
-      ZilliqaDaemon::LOG(
-          m_log,
-          "\" " + Execute("cd " + m_curPath + "; rm -rf persistence") + " \"");
-    }
-
-    string identity = m_nodeType + "-" + std::to_string(m_nodeIndex);
-
-    string cmdToRun = string("zilliqa") + " --privk " + m_privKey + " --pubk " +
-                      m_pubKey + " --address " + m_ip + " --port " +
-                      to_string(m_port) + " --synctype " + strSyncType +
-                      " --logpath " + m_logPath + " --identity " + identity;
-
-    if (1 == m_recovery) {
-      cmdToRun += " --recovery";
-    }
-
-    ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-    ZilliqaDaemon::LOG(
-        m_log, "\" " +
-                   Execute("cd " + m_curPath +
-                           "; ulimit -Sc unlimited; ulimit -Hc unlimited;" +
-                           cmdToRun + " >> ./error_log_zilliqa 2>&1") +
-                   " \"");
-    exit(0);
+  if (pid_parent > 0) {
+    StartScripts();
+    return;
   }
 
-  StartScripts();
+  bool bSuspend = false;
+
+  while (ifstream(m_curPath + SUSPEND_LAUNCH).good()) {
+    if (!bSuspend) {
+      ZilliqaDaemon::LOG(m_log,
+                         "Temporarily suspend launch new zilliqa process, "
+                         "please wait until \"" +
+                             SUSPEND_LAUNCH + "\" file disappeared.");
+      bSuspend = true;
+    }
+
+    sleep(1);
+  }
+
+  string strSyncType;
+
+  if (m_cseed) {
+    // 1. Download Incremental DB Persistence
+    // 2. Restart zilliqa with syncType 6
+    while (!DownloadPersistenceFromS3()) {
+      ZilliqaDaemon::LOG(
+          m_log, "Downloading persistence from S3 has failed. Will try again!");
+      this_thread::sleep_for(chrono::seconds(10));
+    }
+
+    strSyncType = to_string(NEW_LOOKUP_SYNC);
+  } else {
+    /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
+    /// to Zilliqa process being killed. Thus, we can use the variable
+    /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
+    m_syncType =
+        (bSuspend || cleanPersistence) ? RECOVERY_ALL_SYNC : m_syncType;
+    strSyncType = to_string(m_syncType);
+    m_recovery = m_syncType == RECOVERY_ALL_SYNC ? 1 : m_recovery;
+    ZilliqaDaemon::LOG(m_log, "Suspend launch is " + to_string(bSuspend) +
+                                  ", set syncType = " + strSyncType +
+                                  ", recovery = " + to_string(m_recovery));
+  }
+
+  if (!bSuspend && cleanPersistence) {
+    ZilliqaDaemon::LOG(m_log, "Start to run command: rm -rf persistence");
+    ZilliqaDaemon::LOG(
+        m_log,
+        "\" " + Execute("cd " + m_curPath + "; rm -rf persistence") + " \"");
+  }
+
+  string identity = m_nodeType + "-" + std::to_string(m_nodeIndex);
+
+  string cmdToRun = string("zilliqa") + " --privk " + m_privKey + " --pubk " +
+                    m_pubKey + " --address " + m_ip + " --port " +
+                    to_string(m_port) + " --synctype " + strSyncType +
+                    " --logpath " + m_logPath + " --identity " + identity;
+
+  if (1 == m_recovery) {
+    cmdToRun += " --recovery";
+  }
+
+  ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+  ZilliqaDaemon::LOG(
+      m_log, "\" " +
+                 Execute("cd " + m_curPath +
+                         "; ulimit -Sc unlimited; ulimit -Hc unlimited;" +
+                         cmdToRun + " >> ./error_log_zilliqa 2>&1") +
+                 " \"");
+  exit(0);
 }
 
 void ZilliqaDaemon::StartScripts() {
   signal(SIGCHLD, SIG_IGN);
 
-  if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
-    pid_t pid_parent = fork();
+  if (m_nodeIndex < 0 || m_nodeIndex > 1 || m_nodeType != "lookup") return;
 
-    if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-      exit(EXIT_FAILURE);
-    }
+  pid_t pid_parent = fork();
+  if (pid_parent > 0) return;
 
-    if (pid_parent == 0) {
-      string cmdToRun =
-          "ps axf | grep " + upload_incr_DB_script +
-          " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      cmdToRun = "python3 " + m_curPath + upload_incr_DB_script + " &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      exit(0);
-    }
+  if (pid_parent < 0) {
+    ZilliqaDaemon::LOG(m_log, "Failed to fork.");
+    exit(EXIT_FAILURE);
   }
 
-  if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
-    pid_t pid_parent = fork();
+  auto script = (0 == m_nodeIndex) ? upload_incr_DB_script : auto_backup_script;
 
-    if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-      exit(EXIT_FAILURE);
-    }
+  string cmdToRun = "ps axf | grep " + script +
+                    " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
+  ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+  ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
 
-    if (pid_parent == 0) {
-      string cmdToRun =
-          "ps axf | grep " + auto_backup_script +
-          " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      cmdToRun = "python3 " + m_curPath + auto_backup_script + " -f 10 &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      exit(0);
-    }
-  }
+  cmdToRun = "python3 " + m_curPath + script +
+             (0 == m_nodeIndex ? "" : " -f 10") + " &";
+  ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+  ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+  exit(0);
 }
 
 void ZilliqaDaemon::KillProcess(const string& procName) {
@@ -456,6 +432,7 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
 int main(int argc, const char* argv[]) {
   ofstream log;
   log.open(daemon_log.c_str(), fstream::out | fstream::trunc);
+#if 0
   pid_t pid_parent = fork();
 
   if (pid_parent < 0) {
@@ -478,6 +455,7 @@ int main(int argc, const char* argv[]) {
   close(STDIN_FILENO);
   close(STDOUT_FILENO);
   close(STDERR_FILENO);
+#endif
   ZilliqaDaemon daemon(argc, argv, log);
   bool startNewByDaemon = true;
   while (1) {
