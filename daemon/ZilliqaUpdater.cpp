@@ -20,13 +20,11 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
-#if 0
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#endif
-
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/asio/readable_pipe.hpp>
 #include <boost/process/v2/process.hpp>
+#include <boost/process/v2/start_dir.hpp>
+#include <boost/process/v2/stdio.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -115,19 +113,61 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
   // TODO: grab the file remotely
 
   const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
-  const std::filesystem::path outputPath =
-      std::filesystem::temp_directory_path() / "zilliqa-updater" / "manifest";
 
-  boost::process::v2::process tarGzProcess{
+  boost::asio::readable_pipe pipe{m_ioContext};
+
+  // TODO: consider using OpenSSL for this
+  boost::process::v2::process checksumProcess{
       m_ioContext,
-      "/usr/bin/tar",
-      {"xfv", inputFilePath.string(), "-C", outputPath.string()}};
-  if (tarGzProcess.wait() != 0) {
-    throw std::runtime_error{"failed to extract downloaded file " +
-                             inputFilePath.string()};
+      "/usr/bin/sha256sum",
+      {inputFilePath.c_str()},
+      boost::process::v2::process_stdio{{}, pipe, {}}};
+
+  auto exitCode = checksumProcess.wait();
+  if (exitCode != 0) {
+    throw std::runtime_error{"failed to extract verify the hash of file " +
+                             inputFilePath.string() +
+                             "(exit code = " + std::to_string(exitCode) + ')'};
+  }
+
+  boost::system::error_code errorCode;
+  std::string output;
+  while (!errorCode) {
+    std::array<char, 1024> buffer;
+    auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
+    output += std::string_view{buffer.data(), byteCount};
+  }
+
+  if (output.size() > 64) output = output.substr(0, 64);
+
+  std::string sha256;
+  boost::to_lower_copy(std::back_inserter(sha256),
+                       manifest["sha256"].asString());
+  boost::to_lower(output);
+
+  if (output != sha256) {
+    throw std::runtime_error{"checksum failed; expected " + sha256 +
+                             " but got " + output};
   }
 }
 
 void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
   // TODO:
+
+  const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
+  const std::filesystem::path outputPath =
+      std::filesystem::temp_directory_path() / "zilliqa-updater";
+
+  boost::process::v2::process untarProcess{
+      m_ioContext,
+      "/usr/bin/tar",
+      {"xfv", inputFilePath.c_str()},
+      boost::process::v2::process_start_dir{outputPath.string()}};
+
+  auto exitCode = untarProcess.wait();
+  if (exitCode != 0) {
+    throw std::runtime_error{"failed to extract downloaded file " +
+                             inputFilePath.string() +
+                             "(exit code = " + std::to_string(exitCode) + ')'};
+  }
 }
