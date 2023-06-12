@@ -14,15 +14,15 @@ pub struct Transaction {
     pub amount: Option<String>,
     // application/x-scilla-contract or application/x-evm-contract
     pub api_type: Option<String>,
-    pub code: Option<Vec<u8>>,
-    pub data: Option<Vec<u8>>,
+    pub code: Option<String>,
+    pub data: Option<String>,
     pub gas_limit: i64,
     pub gas_price: Option<String>,
     pub nonce: Option<i64>,
     pub receipt: Option<String>,
-    pub sender_public_key: Option<Vec<u8>>,
+    pub sender_public_key: Option<String>,
     pub from_addr: Option<String>,
-    pub signature: Option<Vec<u8>>,
+    pub signature: Option<String>,
     pub to_addr: String,
     pub version: i64,
     pub cum_gas: Option<i64>,
@@ -47,7 +47,7 @@ impl Transaction {
         let sender_public_key = core
             .senderpubkey
             .as_ref()
-            .map_or(None, |x| Some(x.data.clone()));
+            .map_or(None, |x| Some(encode_u8(x.data.as_slice())));
         let from_addr = core
             .senderpubkey
             .as_ref()
@@ -62,18 +62,20 @@ impl Transaction {
 
         let code = core.oneof8.map_or(None, |x| {
             let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x;
-            Some(y.clone())
+            Some(encode_u8(y.as_slice()))
         });
         let data = core.oneof9.map_or(None, |x| {
             let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x;
-            Some(y.clone())
+            Some(encode_u8(y.as_slice()))
         });
 
         // let signature = txn
         //     .signature
         //     .and_then(|x| utils::str_from_u8(Some(x)).ok())
         //     .flatten();
-        let signature = txn.signature.map_or(None, |x| Some(x.data.clone()));
+        let signature = txn
+            .signature
+            .map_or(None, |x| Some(encode_u8(x.data.as_slice())));
 
         let receipt = val.receipt.as_ref().and_then(|x| {
             std::str::from_utf8(&x.receipt)
@@ -136,14 +138,8 @@ impl Transaction {
     }
 }
 
-fn encode_u8(y: &[u8]) -> (Option<String>, Option<String>) {
-    match std::str::from_utf8(y) {
-        Ok(val) => (Some(val.to_string()), None),
-        Err(_) => {
-            let encoded = base64::engine::general_purpose::STANDARD
-                .encode(y)
-                .to_string();
-            (None, Some(encoded))
-        }
-    }
+fn encode_u8(y: &[u8]) -> String {
+    base64::engine::general_purpose::STANDARD
+        .encode(y)
+        .to_string()
 }
