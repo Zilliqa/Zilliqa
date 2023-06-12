@@ -18,6 +18,7 @@
 #include "ZilliqaUpdater.h"
 
 #include "libUtils/SWInfo.h"
+#include "libUtils/Logger.h"
 
 #if 0
 #include <boost/iostreams/copy.hpp>
@@ -33,6 +34,10 @@
 ZilliqaUpdater::~ZilliqaUpdater() noexcept {
   m_ioContext.stop();
   m_updateThread.join();
+}
+
+ZilliqaUpdater::ZilliqaUpdater() {
+  INIT_FILE_LOGGER("zilliqad", std::filesystem::current_path())
 }
 
 void ZilliqaUpdater::Start() { StartUpdateThread(); }

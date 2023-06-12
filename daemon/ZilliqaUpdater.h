@@ -28,6 +28,7 @@
 class ZilliqaUpdater final {
  public:
   ~ZilliqaUpdater() noexcept;
+  ZilliqaUpdater();
 
   void Start();
   void Stop();

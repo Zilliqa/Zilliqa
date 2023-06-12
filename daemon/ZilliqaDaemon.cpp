@@ -17,8 +17,6 @@
 
 #include "ZilliqaDaemon.h"
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 
 #include <algorithm>
@@ -60,8 +58,8 @@ enum SyncType : unsigned int {
 
 ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
     : m_log(log),
-      m_logPath(boost::filesystem::current_path().string() + "/"),
-      m_curPath(boost::filesystem::current_path().string() + "/"),
+      m_logPath(std::filesystem::current_path().string() + "/"),
+      m_curPath(std::filesystem::current_path().string() + "/"),
       m_port(-1),
       m_recovery(0),
       m_nodeIndex(0),
