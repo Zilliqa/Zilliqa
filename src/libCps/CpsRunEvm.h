@@ -40,6 +40,9 @@ class CpsRunEvm final : public CpsRun {
                        const CpsExecuteResult& results) override;
   bool IsResumable() const override;
   bool HasFeedback() const override;
+  static bool ProbeERC165Interface(CpsAccountStoreInterface& accStore,
+                                   const CpsContext& ctx, const Address& caller,
+                                   const Address& destinationAddress);
 
  private:
   std::optional<evm::EvmResult> InvokeEvm();

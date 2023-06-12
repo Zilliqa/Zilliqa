@@ -332,7 +332,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
   }
 
   const auto parseCallResults = ScillaHelpersCall::ParseCallContract(
-      mAccountStore, mArgs, runnerResult.returnVal, receipt, scillaVersion);
+      mAccountStore, mCpsContext, mArgs, runnerResult.returnVal, receipt,
+      scillaVersion);
 
   if (!parseCallResults.success) {
     // Revert in case of non-recoverable failures
