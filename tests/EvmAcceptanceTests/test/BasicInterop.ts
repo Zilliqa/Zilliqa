@@ -9,6 +9,8 @@ describe("BasicInterop", function () {
   const addr1 = "0xB3F90B06a7Dd9a860f8722f99B17fAce5abcb259";
   const addr2 = "0xc8532d4c6354D717163fAa8B7504b2b4436D20d1";
   const KEEP_ORIGIN = 0;
+  const IMMUTABLE_UINT = 12344321;
+  const IMMUTABLE_STRING = "Salam";   // Means hello in Persian :)
 
   let solidityContract: Contract;
   let scillaContract: ScillaContract;
@@ -21,7 +23,7 @@ describe("BasicInterop", function () {
       this.skip();
     }
 
-    scillaContract = await parallelizer.deployScillaContract("BasicInterop");
+    scillaContract = await parallelizer.deployScillaContract("BasicInterop", IMMUTABLE_UINT, IMMUTABLE_STRING);
     scillaContractAddress = scillaContract.address?.toLowerCase()!;
   });
 
@@ -71,6 +73,16 @@ describe("BasicInterop", function () {
       await solidityContract.callAddress(scillaContractAddress, "setAddress", KEEP_ORIGIN, someAddress);
       let readString = await solidityContract.readAddress(scillaContractAddress, "addrField");
       expect(readString).to.be.equal(someAddress);
+    });
+
+    it("It should return proper unsigned integer value for an immutable field", async function () {
+      let readRes = await solidityContract.readUint(scillaContractAddress, "immutableUintField");
+      expect(readRes).to.be.eq(IMMUTABLE_UINT);
+    });
+
+    it("It should return proper unsigned string value for an immutable field", async function () {
+      let readRes = await solidityContract.readString(scillaContractAddress, "immutableStringField");
+      expect(readRes).to.be.eq(IMMUTABLE_STRING);
     });
   });
 

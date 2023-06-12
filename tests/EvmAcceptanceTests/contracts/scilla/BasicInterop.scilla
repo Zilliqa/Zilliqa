@@ -1,6 +1,10 @@
 scilla_version 0
 
-contract BasicInterop()
+contract BasicInterop
+(
+  immutableUintField: Uint256,
+  immutableStringField: String
+)
 
 field simpleMap: Map ByStr20 Uint128 
   = Emp ByStr20 Uint128
