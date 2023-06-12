@@ -759,6 +759,7 @@ bool CpsRunEvm::ProbeERC165Interface(CpsAccountStoreInterface& accStore,
       DataConversion::HexStrToUint8VecRet(ERC165METHOD));
   *args.mutable_caller() = AddressToProto(caller);
   *args.mutable_origin() = AddressToProto(ctx.origSender);
+  // Set gas limit as per EIP-165
   args.set_gas_limit(30000);
   args.set_estimate(false);
   *args.mutable_context() = "ScillaCall";
@@ -811,6 +812,8 @@ bool CpsRunEvm::ProbeERC165Interface(CpsAccountStoreInterface& accStore,
   {
     // Check if destination supports 'function
     // handle_scilla_message(string,bytes)'
+    // it's a 0x01ffc9a7 (ERC-165) +
+    // bytes4(keccak(hadle_scilla_message(string,bytes))
     constexpr auto SUPPORT_SCILLA_IFACE =
         "0x01ffc9a742ede2780000000000000000000000000000000000000000000000000000"
         "0000";
