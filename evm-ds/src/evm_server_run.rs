@@ -134,8 +134,10 @@ pub async fn run_evm_impl(
         // Update the traces
         listener.raw_tracer.return_value = hex::encode(runtime.machine().return_value());
         listener.raw_tracer.gas = gas_limit - remaining_gas;
-        listener.call_tracer.last_mut().unwrap().gas_used = format!("0x{:x}", gas_limit - remaining_gas);
-        listener.call_tracer.last_mut().unwrap().output = format!("0x{}", hex::encode(runtime.machine().return_value()));
+        if !listener.call_tracer.is_empty() {
+            listener.call_tracer.last_mut().unwrap().gas_used = format!("0x{:x}", gas_limit - remaining_gas);
+            listener.call_tracer.last_mut().unwrap().output = format!("0x{}", hex::encode(runtime.machine().return_value()));
+        }
 
         if let Err(panic) = executor_result {
             let panic_message = panic
