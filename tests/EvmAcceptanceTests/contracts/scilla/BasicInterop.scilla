@@ -3,7 +3,9 @@ scilla_version 0
 contract BasicInterop
 (
   immutableUintField: Uint256,
-  immutableStringField: String
+  immutableIntField: Int256,
+  immutableStringField: String,
+  immutableAddressField: ByStr20
 )
 
 field simpleMap: Map ByStr20 Uint128 
