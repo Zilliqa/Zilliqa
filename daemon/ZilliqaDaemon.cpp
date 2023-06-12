@@ -17,6 +17,14 @@
 
 #include "ZilliqaDaemon.h"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/program_options.hpp>
+
+#include <algorithm>
+#include <array>
+#include <stdexcept>
+
 using namespace std;
 namespace po = boost::program_options;
 
@@ -71,6 +79,7 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
   }
 
   ZilliqaDaemon::LOG(m_log, msg);
+  m_updater.Start();
   StartNewProcess();
 }
 
