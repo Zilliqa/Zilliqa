@@ -17,8 +17,8 @@
 
 #include "ZilliqaUpdater.h"
 
-#include "libUtils/SWInfo.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SWInfo.h"
 
 #if 0
 #include <boost/iostreams/copy.hpp>
@@ -68,7 +68,8 @@ void ZilliqaUpdater::ScheduleUpdateCheck(
 void ZilliqaUpdater::CheckUpdate() try {
   // TODO: check for file to download from remote URL
 
-  auto manifestPath = std::filesystem::path{"/tmp"} / ".zilliqa-manifest";
+  auto manifestPath =
+      std::filesystem::temp_directory_path() / "zilliqa-updater" / "manifest";
   std::ifstream manifestFile{manifestPath};
   if (!manifestFile) return;
 
@@ -86,14 +87,15 @@ void ZilliqaUpdater::CheckUpdate() try {
   Json::Value manifest;
   if (!reader->parse(content.data(), content.data() + content.size(), &manifest,
                      &errors)) {
-    return;
+    // caught below
+    throw std::runtime_error{"failed to parse manifest (" + errors + ')'};
   }
 
   ExecuteManifest(manifest);
 } catch (std::exception& e) {
-  //
+  LOG(WARNING) << "Error while checking for updates: " << e.what();
 } catch (...) {
-  //
+  LOG(WARNING) << "Unexpected error while checking for updates";
 }
 
 void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
@@ -105,6 +107,7 @@ void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
     Download(manifest);
   } else if (action == "upgrade") {
   } else {
+    Upgrade(manifest);
   }
 }
 
@@ -112,28 +115,17 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
   // TODO: grab the file remotely
 
   const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
+  const std::filesystem::path outputPath =
+      std::filesystem::temp_directory_path() / "zilliqa-updater" / "manifest";
 
   boost::process::v2::process tarGzProcess{
-      m_ioContext, "/usr/bin/tar", {"xfv", inputFilePath.string()}};
-  if (tarGzProcess.wait() != 0) return;
-
-#if 0
-  std::ifstream inputFile{inputFilePath,
-                          std::ios_base::in | std::ios_base::binary};
-  boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-  inbuf.push(boost::iostreams::gzip_decompressor());
-  inbuf.push(inputFile);
-
-  const std::filesystem::path outputFilePath{
-      manifest["output-path"].asString()};
-  std::ofstream outputFile{outputFilePath,
-                           std::ios_base::out | std::ios_base::binary};
-
-  // Convert streambuf to istream
-  std::istream instream(&inbuf);
-
-  outputFile << instream.rdbuf();
-#endif
+      m_ioContext,
+      "/usr/bin/tar",
+      {"xfv", inputFilePath.string(), "-C", outputPath.string()}};
+  if (tarGzProcess.wait() != 0) {
+    throw std::runtime_error{"failed to extract downloaded file " +
+                             inputFilePath.string()};
+  }
 }
 
 void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {

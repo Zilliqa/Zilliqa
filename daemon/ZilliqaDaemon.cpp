@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <stdexcept>
 
 using namespace std;
@@ -108,9 +109,7 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
   for (const pid_t& pid : m_pids[name]) {
     // If sig is 0 (the null signal), error checking is performed but no signal
     // is actually sent
-    int w = kill(pid, 0);
-
-    if (w < 0) {
+    if (kill(pid, 0) < 0) {
       if (errno == EPERM) {
         ZilliqaDaemon::LOG(m_log, "Daemon does not have permission Name: " +
                                       name + " Id: " + to_string(pid));
