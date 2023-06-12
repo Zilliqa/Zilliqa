@@ -95,6 +95,24 @@ describe("BasicInterop", function () {
       let readRes = await solidityContract.readAddress(scillaContractAddress, "immutableAddressField");
       expect(readRes).to.be.eq(addr1);
     });
+
+    it("Should fail to read uint if field name is not available", async function () {
+      try {
+        await solidityContract.readUint(scillaContractAddress, "nonExistant");
+        expect(false).to.be.true;
+      } catch (error) {
+        expect(true).to.be.true;
+      }
+    });
+ 
+    it("Should fail to read uint if contract address is not valid", async function () {
+      try {
+        await solidityContract.readUint("0x123456", "immutableUintField");
+        expect(false).to.be.true;
+      } catch (error) {
+        expect(true).to.be.true;
+      }
+    });
   });
 
   // Non-existing keys
