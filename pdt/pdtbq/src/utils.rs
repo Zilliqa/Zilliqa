@@ -4,10 +4,16 @@ use anyhow::{anyhow, Result};
 use pdtlib::proto::ByteArray;
 use primitive_types::H160;
 use sha2::{Digest, Sha256};
+use sha3::Keccak256;
+
+pub enum API {
+    Ethereum,
+    Zilliqa,
+}
 
 /// address_from_public_key() but generate hex.
-pub fn maybe_hex_address_from_public_key(pubkey: &[u8]) -> Option<String> {
-    match address_from_public_key(pubkey) {
+pub fn maybe_hex_address_from_public_key(pubkey: &[u8], api: API) -> Option<String> {
+    match address_from_public_key(pubkey, api) {
         Err(_) => None,
         Ok(val) => Some(hex::encode(val.as_bytes())),
     }
@@ -16,12 +22,22 @@ pub fn maybe_hex_address_from_public_key(pubkey: &[u8]) -> Option<String> {
 /// Address from public key.
 /// Given a pubkey (without the leading 0x), produce an address (without leading 0x)
 /// Following the code in zilliqa-js/crypto/util.ts:getAddressFromPublicKey()
-pub fn address_from_public_key(pubkey: &[u8]) -> Result<H160> {
-    let mut hasher = Sha256::new();
-    hasher.update(pubkey);
-    let result = hasher.finalize();
-    // Lop off the first 12 bytes.
-    Ok(H160::from_slice(&result[12..]))
+pub fn address_from_public_key(pubkey: &[u8], api: API) -> Result<H160> {
+    match api {
+        API::Ethereum => {
+            let mut hasher = Keccak256::new();
+            hasher.update(pubkey);
+            let result = hasher.finalize();
+            Ok(H160::from_slice(&result[12..]))
+        }
+        API::Zilliqa => {
+            let mut hasher = Sha256::new();
+            hasher.update(pubkey);
+            let result = hasher.finalize();
+            // Lop off the first 12 bytes.
+            Ok(H160::from_slice(&result[12..]))
+        }
+    }
 }
 
 pub fn u128_string_from_storage(val: &ByteArray) -> Option<String> {
@@ -45,7 +61,7 @@ pub fn str_from_u8(val: Option<ByteArray>) -> Result<Option<String>> {
 
 #[test]
 fn check_address_from_pubkey() {
-    let data_points: Vec<(&str, &str)> = vec![
+    let zilliqa_data_points: Vec<(&str, &str)> = vec![
         (
             "0246E7178DC8253201101E18FD6F6EB9972451D121FC57AA2A06DD5C111E58DC6A",
             "9BFEC715a6bD658fCb62B0f8cc9BFa2ADE71434A",
@@ -55,8 +71,21 @@ fn check_address_from_pubkey() {
             "acd9339df14af808af1f46a3edb7466590199ee6",
         ),
     ];
-    for (pubkey, addr) in data_points {
-        let dec_addr = address_from_public_key(&hex::decode(pubkey).unwrap()).unwrap();
+
+    let ethereum_data_points: Vec<(&str, &str)> = vec![(
+        "0293386b38b31fe37175eb42ddde0147b8154c584d80f9a33cf9d1558a82455358",
+        "0x2d3ec573a07b101656847aa109be7ba5ed8dfe5d",
+    )];
+    for (pubkey, addr) in zilliqa_data_points {
+        let dec_addr =
+            address_from_public_key(&hex::decode(pubkey).unwrap(), API::Zilliqa).unwrap();
+        let hex_addr = hex::encode(dec_addr);
+        assert_eq!(hex_addr.to_lowercase(), addr.to_lowercase());
+    }
+
+    for (pubkey, addr) in ethereum_data_points {
+        let dec_addr =
+            address_from_public_key(&hex::decode(pubkey).unwrap(), API::Ethereum).unwrap();
         let hex_addr = hex::encode(dec_addr);
         assert_eq!(hex_addr.to_lowercase(), addr.to_lowercase());
     }

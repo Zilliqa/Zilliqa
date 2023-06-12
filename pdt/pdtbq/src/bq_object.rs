@@ -12,17 +12,17 @@ pub struct Transaction {
     pub block: i64,
     pub offset_in_block: i64,
     pub amount: Option<String>,
-    pub code: Option<String>,
-    pub code_base64: Option<String>,
-    pub data: Option<String>,
-    pub data_base64: Option<String>,
+    // application/x-scilla-contract or application/x-evm-contract
+    pub api_type: Option<String>,
+    pub code: Option<Vec<u8>>,
+    pub data: Option<Vec<u8>>,
     pub gas_limit: i64,
     pub gas_price: Option<String>,
     pub nonce: Option<i64>,
     pub receipt: Option<String>,
-    pub sender_public_key: Option<String>,
+    pub sender_public_key: Option<Vec<u8>>,
     pub from_addr: Option<String>,
-    pub signature: Option<String>,
+    pub signature: Option<Vec<u8>>,
     pub to_addr: String,
     pub version: i64,
     pub cum_gas: Option<i64>,
@@ -47,33 +47,34 @@ impl Transaction {
         let sender_public_key = core
             .senderpubkey
             .as_ref()
-            .and_then(|x| Some(hex::encode(&x.data)));
+            .map_or(None, |x| Some(x.data.clone()));
         let from_addr = core
             .senderpubkey
             .as_ref()
-            .and_then(|x| utils::maybe_hex_address_from_public_key(&x.data));
+            .and_then(|x| utils::maybe_hex_address_from_public_key(&x.data, utils::API::Zilliqa));
         let nonce: Option<i64> = if let Some(nonce_val) = core.oneof2 {
             let pdtlib::proto::proto_transaction_core_info::Oneof2::Nonce(actual) = nonce_val;
             Some(<i64>::try_from(actual)?)
         } else {
             None
         };
-        
-        let (code, code_base64): (Option<String>, Option<String>) =
-            core.oneof8.map_or((None, None), |x| {
-                let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x;
-                encode_u8(&y)
-            });
-        let (data, data_base64): (Option<String>, Option<String>) =
-            core.oneof9.map_or((None, None), |x| {
-                let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x;
-                encode_u8(&y)
-            });
+        let api_type = Some("unknown".to_string());
 
-        let signature = txn
-            .signature
-            .and_then(|x| utils::str_from_u8(Some(x)).ok())
-            .flatten();
+        let code = core.oneof8.map_or(None, |x| {
+            let pdtlib::proto::proto_transaction_core_info::Oneof8::Code(y) = x;
+            Some(y.clone())
+        });
+        let data = core.oneof9.map_or(None, |x| {
+            let pdtlib::proto::proto_transaction_core_info::Oneof9::Data(y) = x;
+            Some(y.clone())
+        });
+
+        // let signature = txn
+        //     .signature
+        //     .and_then(|x| utils::str_from_u8(Some(x)).ok())
+        //     .flatten();
+        let signature = txn.signature.map_or(None, |x| Some(x.data.clone()));
+
         let receipt = val.receipt.as_ref().and_then(|x| {
             std::str::from_utf8(&x.receipt)
                 .ok()
@@ -105,10 +106,9 @@ impl Transaction {
             block: blk,
             offset_in_block,
             amount,
+            api_type,
             code,
             data,
-            code_base64,
-            data_base64,
             gas_limit,
             gas_price,
             nonce,
