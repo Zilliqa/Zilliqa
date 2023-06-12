@@ -52,11 +52,25 @@ describe("BasicInterop", function () {
       expect(readRes.toNumber()).to.be.eq(VAL);
     });
 
-    it("It should return proper integer after invoking set method with integer arg", async function () {
+    it("It should return proper unsigned integer after invoking set method with integer arg", async function () {
       const NUM = 12345;
       await solidityContract.callUint(scillaContractAddress, "setUint", KEEP_ORIGIN, NUM);
       let readRes = await solidityContract.readUint(scillaContractAddress, "uintField");
       expect(readRes).to.be.eq(NUM);
+    });
+
+    it("It should return proper integer after invoking set method with integer arg", async function () {
+      const NUM = 12345;
+      await solidityContract.callInt(scillaContractAddress, "setInt", KEEP_ORIGIN, NUM);
+      let readRes = await solidityContract.readInt(scillaContractAddress, "intField");
+      expect(readRes).to.be.eq(NUM);
+    });
+
+    it("It should return proper string after invoking set method with address arg", async function () {
+      const someAddress = solidityContract.address;
+      await solidityContract.callAddress(scillaContractAddress, "setAddress", KEEP_ORIGIN, someAddress);
+      let readString = await solidityContract.readAddress(scillaContractAddress, "addrField");
+      expect(readString).to.be.equal(someAddress);
     });
   });
 

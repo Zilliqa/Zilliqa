@@ -9,7 +9,9 @@ field nestedMap: Map ByStr20 (Map ByStr20 Uint128)
   = Emp ByStr20 (Map ByStr20 Uint128)
 
 field uintField: Uint128 = Uint128 0
+field intField: Int128 = Int128 0
 field strField: String  = ""
+field addrField: ByStr20  = 0x1234567890123456789012345678901234567890
 
 transition setSimpleMap(to: ByStr20, amount: Uint128)
     simpleMap[to] := amount
@@ -25,4 +27,12 @@ end
 
 transition setUint(str: Uint128)
     uintField := str
+end
+
+transition setInt(str: Int128)
+    intField := str
+end
+
+transition setAddress(str: ByStr20)
+    addrField := str
 end
