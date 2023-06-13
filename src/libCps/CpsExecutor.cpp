@@ -170,6 +170,18 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 
   // Increase nonce regardless of processing result
   mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
+  // Deduct from account balance gas used for failed transaction
+  if (isFailure) {
+    const auto usedGasCore = clientContext.gasLimit - gasRemainedCore;
+    uint128_t gasCost;
+    // Convert here because we deducted in eth units.
+    if (!SafeMath<uint128_t>::mul(usedGasCore, clientContext.gasPrice,
+                                  gasCost)) {
+      return {TxnStatus::ERROR, false, {}};
+    }
+    const auto amount = Amount::fromQa(gasCost);
+    mAccountStore.DecreaseBalance(cpsCtx.origSender, amount);
+  }
   return execResult;
 }
 
