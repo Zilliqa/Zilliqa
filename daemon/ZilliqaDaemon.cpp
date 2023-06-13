@@ -16,6 +16,7 @@
  */
 
 #include "ZilliqaDaemon.h"
+#include "ZilliqaUpdater.h"
 
 #include <boost/program_options.hpp>
 
@@ -78,7 +79,6 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
   }
 
   ZilliqaDaemon::LOG(m_log, msg);
-  m_updater.Start();
   StartNewProcess();
 }
 
@@ -257,7 +257,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
   KillProcess("evm-ds");
 
   ZilliqaDaemon::LOG(m_log, "Create new Zilliqa process...");
-  signal(SIGCHLD, SIG_IGN);
+  // signal(SIGCHLD, SIG_IGN);
 
   pid_t pid_parent = fork();
 
@@ -339,7 +339,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
 }
 
 void ZilliqaDaemon::StartScripts() {
-  signal(SIGCHLD, SIG_IGN);
+  // signal(SIGCHLD, SIG_IGN);
 
   if (m_nodeIndex < 0 || m_nodeIndex > 1 || m_nodeType != "lookup") return;
 
@@ -431,7 +431,7 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
 int main(int argc, const char* argv[]) {
   ofstream log;
   log.open(daemon_log.c_str(), fstream::out | fstream::trunc);
-#if 0
+
   pid_t pid_parent = fork();
 
   if (pid_parent < 0) {
@@ -454,8 +454,12 @@ int main(int argc, const char* argv[]) {
   close(STDIN_FILENO);
   close(STDOUT_FILENO);
   close(STDERR_FILENO);
-#endif
+
   ZilliqaDaemon daemon(argc, argv, log);
+
+  ZilliqaUpdater updater;
+  updater.Start();
+
   bool startNewByDaemon = true;
   while (1) {
     for (const auto& name : programName) {

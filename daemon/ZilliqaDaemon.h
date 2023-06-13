@@ -18,8 +18,6 @@
 #ifndef ZILLIQA_DAEMON_ZILLIQADAEMON_H_
 #define ZILLIQA_DAEMON_ZILLIQADAEMON_H_
 
-#include "ZilliqaUpdater.h"
-
 #include <dirent.h>
 #include <errno.h>
 #include <signal.h>
@@ -54,7 +52,6 @@ class ZilliqaDaemon final {
   int m_port, m_recovery, m_nodeIndex;
   unsigned int m_syncType;
   bool m_cseed;
-  ZilliqaUpdater m_updater;
 
   static std::string CurrentTimeStamp();
   static std::string Execute(const std::string& cmd);

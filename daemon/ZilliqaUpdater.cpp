@@ -170,4 +170,9 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
                              inputFilePath.string() +
                              "(exit code = " + std::to_string(exitCode) + ')'};
   }
+
+#if 0
+  const auto startBlock = manifest["start-block"].asUInt64();
+  const auto endBlock = manifest["end-block"].asUInt64();
+#endif
 }
