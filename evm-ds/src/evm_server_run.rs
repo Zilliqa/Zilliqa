@@ -5,7 +5,10 @@ use std::sync::{Arc, Mutex};
 
 use crate::CallContext;
 use evm::executor::stack::MemoryStackSubstate;
-use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}};
+use evm::{
+    backend::Apply,
+    executor::stack::{MemoryStackState, StackSubstateMetadata},
+};
 use evm::{Machine, Runtime};
 
 use log::{debug, error, info};

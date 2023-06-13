@@ -1,5 +1,5 @@
-use ethabi::ethereum_types::Address;
-use ethabi::{decode, ParamType, Token, Uint};
+use ethers::abi::ethereum_types::Address;
+use ethers::abi::{decode, ParamType, Token, Uint};
 use evm::executor::stack::PrecompileFailure;
 use evm::ExitError;
 use std::borrow::Cow;
