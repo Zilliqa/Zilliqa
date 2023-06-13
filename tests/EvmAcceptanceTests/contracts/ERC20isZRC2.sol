@@ -58,6 +58,14 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
         return _read_scilla_uint128("total_supply");
     }
 
+    function initSupply() external view returns (uint128) {
+        return _read_scilla_uint128("init_supply");
+    }
+
+    function tokenName() external view returns (string memory) {
+        return _read_scilla_string("name");
+    }
+
     function balanceOf(address tokenOwner) external view returns (uint128) {
         return _read_scilla_map_uint128("balances", tokenOwner);
     }
@@ -166,6 +174,21 @@ contract ERC20isZRC2 is ERC20Interface, SafeMath {
         require(success);
         (allowance) = abi.decode(output, (uint128));
         return allowance;
+    }
+
+    function _read_scilla_string(string memory variable_name) public view returns (string memory retVal) {
+        bytes memory encodedArgs = abi.encode(_zrc2_address, variable_name);
+        uint256 argsLength = encodedArgs.length;
+        bool success;
+        bytes memory output = new bytes(128);
+        uint256 output_len = output.length - 4;
+        assembly {
+            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), output_len)
+        }
+        require(success);
+
+        (retVal) = abi.decode(output, (string));
+        return retVal;
     }
 
 }

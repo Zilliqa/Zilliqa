@@ -98,6 +98,12 @@ ScillaIPCServer::ScillaIPCServer(AccountStore *parent,
   bindAndAddMethod(Procedure("fetchCodeJson", PARAMS_BY_NAME, JSON_OBJECT,
                              "addr", JSON_STRING, "query", JSON_STRING, NULL),
                    &ScillaIPCServer::fetchCodeJsonI);
+
+  bindAndAddMethod(
+      Procedure("fetchContractInitDataJson", PARAMS_BY_NAME, JSON_OBJECT,
+                "addr", JSON_STRING, "query", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchContractInitDataJsonI);
+
   bindAndAddMethod(
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -333,6 +339,33 @@ void ScillaIPCServer::fetchCodeJsonI(const Json::Value &request,
     return;
   }
   JSONUtils::GetInstance().convertStrtoJson(interprinterPrint, response);
+}
+
+void ScillaIPCServer::fetchContractInitDataJsonI(const Json::Value &request,
+                                                 Json::Value &response) {
+  INC_CALLS(GetCallsCounter());
+  const auto address = Address{request["addr"].asString()};
+  std::string code;
+  std::string type;
+  bool found = false;
+
+  string query = base64_decode(request["query"].asString());
+  if (!fetchExternalStateValue(address.hex(), query, code, found, type)) {
+    LOG_GENERAL(WARNING,
+                "Unable to query external state with given query: " << query);
+    return;
+  }
+  auto *account = m_parent->GetAccount(address);
+  if (account == nullptr) {
+    LOG_GENERAL(WARNING,
+                "Unable to find account with given address: " << address.hex());
+    return;
+  }
+
+  const auto initData = account->GetInitData();
+  const auto initDataStr = DataConversion::CharArrayToString(initData);
+
+  JSONUtils::GetInstance().convertStrtoJson(initDataStr, response);
 }
 
 bool ScillaIPCServer::updateStateValue(const string &query,

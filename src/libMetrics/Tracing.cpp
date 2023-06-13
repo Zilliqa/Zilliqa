@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#include "Common.h"
+// SW
 #include "Tracing.h"
+#include "Common.h"
 
 #include <cassert>
 #include <thread>
@@ -29,9 +29,11 @@
 #include <opentelemetry/exporters/ostream/span_exporter_factory.h>
 #include <opentelemetry/exporters/otlp/otlp_grpc_exporter_options.h>
 #include <opentelemetry/exporters/otlp/otlp_http_exporter_factory.h>
+#include <opentelemetry/sdk/trace/batch_span_processor_factory.h>
 #include <opentelemetry/sdk/trace/simple_processor_factory.h>
 #include <opentelemetry/sdk/trace/tracer_context_factory.h>
-#include <opentelemetry/sdk/trace/tracer_provider_factory.h>
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+
 #include <opentelemetry/trace/propagation/b3_propagator.h>
 #include <opentelemetry/trace/propagation/http_trace_context.h>
 #include <opentelemetry/trace/provider.h>
@@ -525,9 +527,13 @@ void TracingOtlpGRPCInit(std::string_view identity) {
   if (exporter == nullptr) {
     LOG_GENERAL(INFO, "Exporter not available");
   }
+  trace_sdk::BatchSpanProcessorOptions options;
+  options.max_export_batch_size = 512;
+  options.schedule_delay_millis = std::chrono::milliseconds(5000);
+  options.max_queue_size = 2048;
 
-  auto processor =
-      trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  auto processor = trace_sdk::BatchSpanProcessorFactory::Create(
+      std::move(exporter), options);
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
       trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
 
@@ -551,9 +557,12 @@ void TracingOtlpHTTPInit(std::string_view identity) {
   auto resource = resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
-  auto processor =
-      opentelemetry::sdk::trace::SimpleSpanProcessorFactory::Create(
-          std::move(exporter));
+  trace_sdk::BatchSpanProcessorOptions options;
+  options.max_export_batch_size = 512;
+  options.schedule_delay_millis = std::chrono::milliseconds(5000);
+  options.max_queue_size = 2048;
+  auto processor = opentelemetry::sdk::trace::BatchSpanProcessorFactory::Create(
+      std::move(exporter), options);
   std::vector<std::unique_ptr<opentelemetry::sdk::trace::SpanProcessor>>
       processors;
   processors.push_back(std::move(processor));
