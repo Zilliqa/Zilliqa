@@ -27,8 +27,14 @@
 
 class ZilliqaUpdater final {
  public:
+  using GetProcIdByNameFunc =
+      std::function<std::vector<pid_t>(const std::string&)>;
+
   ~ZilliqaUpdater() noexcept;
-  ZilliqaUpdater();
+
+  template <typename F>
+  explicit ZilliqaUpdater(F&& getProcIdByNameFunc)
+      : m_getProcByNameFunc{std::forward<F>(getProcIdByNameFunc)} { InitLogger(); }
 
   void Start();
   void Stop();
@@ -36,7 +42,9 @@ class ZilliqaUpdater final {
  private:
   std::thread m_updateThread;
   boost::asio::io_context m_ioContext;
+  GetProcIdByNameFunc m_getProcByNameFunc;
 
+  void InitLogger();
   void StartUpdateThread();
   void ScheduleUpdateCheck(boost::asio::deadline_timer& updateTimer);
   void CheckUpdate();

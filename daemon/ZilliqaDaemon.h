@@ -43,6 +43,8 @@ class ZilliqaDaemon final {
                       const bool startNewByDaemon = false);
   static void LOG(std::ofstream& log, const std::string& msg);
 
+  std::vector<pid_t> GetMonitoredProcIdsByName(const std::string& procName) const;
+
  private:
   std::ofstream& m_log;
   std::unordered_map<std::string, std::vector<pid_t>> m_pids;

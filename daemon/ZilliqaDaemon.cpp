@@ -428,6 +428,16 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
   return SUCCESS;
 }
 
+std::vector<pid_t> ZilliqaDaemon::GetMonitoredProcIdsByName(
+    const std::string& procName) const {
+  std::vector<pid_t> result;
+
+  auto iter = m_pids.find(procName);
+  if (iter != std::end(m_pids)) result = iter->second;
+
+  return result;
+}
+
 int main(int argc, const char* argv[]) {
   ofstream log;
   log.open(daemon_log.c_str(), fstream::out | fstream::trunc);
@@ -457,7 +467,9 @@ int main(int argc, const char* argv[]) {
 
   ZilliqaDaemon daemon(argc, argv, log);
 
-  ZilliqaUpdater updater;
+  ZilliqaUpdater updater{[&daemon](const std::string& procName) {
+    return daemon.GetMonitoredProcIdsByName(procName);
+  }};
   updater.Start();
 
   bool startNewByDaemon = true;

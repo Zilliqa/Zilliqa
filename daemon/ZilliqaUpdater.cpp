@@ -34,7 +34,7 @@ ZilliqaUpdater::~ZilliqaUpdater() noexcept {
   m_updateThread.join();
 }
 
-ZilliqaUpdater::ZilliqaUpdater() {
+void ZilliqaUpdater::InitLogger() {
   INIT_FILE_LOGGER("zilliqad", std::filesystem::current_path())
 }
 
@@ -104,8 +104,8 @@ void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
   if (action == "download") {
     Download(manifest);
   } else if (action == "upgrade") {
-  } else {
     Upgrade(manifest);
+  } else {
   }
 }
 
@@ -171,8 +171,9 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
                              "(exit code = " + std::to_string(exitCode) + ')'};
   }
 
+  auto pids = m_getProcByNameFunc("zilliqa");
 #if 0
-  const auto startBlock = manifest["start-block"].asUInt64();
-  const auto endBlock = manifest["end-block"].asUInt64();
+  const auto quiesceDSBlock = manifest[“quiesce-at-dsblock”].asUInt64();
+  const auto upgradeDSBlock = manifest["upgrade-at-dsblock"].asUInt64();
 #endif
 }
