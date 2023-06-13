@@ -63,7 +63,7 @@ describe("BasicInterop", function () {
     });
 
     it("It should return proper integer after invoking set method with integer arg", async function () {
-      const NUM = 12345;
+      const NUM = -12345;
       await solidityContract.callInt(scillaContractAddress, "setInt", KEEP_ORIGIN, NUM);
       let readRes = await solidityContract.readInt(scillaContractAddress, "intField");
       expect(readRes).to.be.eq(NUM);

@@ -6,9 +6,10 @@ use std::borrow::Cow;
 use crate::precompiles::scilla_common::{
     get_contract_addr_and_name, substitute_scilla_type_with_sol,
 };
-use ethabi::param_type::ParamType;
-use ethabi::token::Token;
-use ethabi::{decode, encode, Address, Bytes, Uint};
+use ethers::abi::param_type::ParamType;
+use ethers::abi::token::Token;
+use ethers::abi::{decode, encode, Address, Bytes, Uint};
+use ethers::types::I256;
 use serde_json::Value;
 
 // TODO: revisit these consts
@@ -294,7 +295,7 @@ fn encode_result_type(
         )));
     } else if def.ret_type.starts_with("Int") {
         return Ok(Some(Token::Int(
-            Uint::from_dec_str(value).unwrap_or_default(),
+            I256::from_dec_str(value).unwrap_or_default().into_raw(),
         )));
     } else if def.ret_type.starts_with("String") {
         return Ok(Some(Token::String(String::from(value))));

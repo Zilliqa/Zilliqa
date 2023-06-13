@@ -5,13 +5,14 @@ use std::borrow::Cow;
 
 use crate::precompiles::scilla_common::parse_invocation_prefix;
 use crate::precompiles::scilla_common::substitute_scilla_type_with_sol;
-use ethabi::decode;
-use ethabi::ethereum_types::Address;
-use ethabi::param_type::ParamType;
-use ethabi::token::Token;
 use hex::ToHex;
 use primitive_types::U256;
 use serde_json::{json, Value};
+
+use ethers::abi::decode;
+use ethers::abi::Address;
+use ethers::abi::ParamType;
+use ethers::abi::Token;
 
 // TODO: revisit these consts
 const BASE_COST: u64 = 15;
@@ -150,6 +151,10 @@ fn build_result_json(
             }
             Token::Address(solidity_addr) => {
                 json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("0x{}", hex::encode(solidity_addr))})
+            }
+            Token::Int(solidity_int) => {
+                let int256_val = ethers::types::I256::from_raw(U256::from(solidity_int));
+                json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("{}", int256_val)})
             }
             _ => {
                 json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": solidity_value.to_string()})
