@@ -577,7 +577,7 @@ dependencies = [
 [[package]]
 name = "evm"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=master#8606e47e438f1a3034f8bbd86e71815851cd51da"
+source = "git+https://github.com/Zilliqa/evm?rev=ef7a9d1476f15660aad98dec5275beae016e83e4#ef7a9d1476f15660aad98dec5275beae016e83e4"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -597,7 +597,7 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=master#8606e47e438f1a3034f8bbd86e71815851cd51da"
+source = "git+https://github.com/Zilliqa/evm?rev=ef7a9d1476f15660aad98dec5275beae016e83e4#ef7a9d1476f15660aad98dec5275beae016e83e4"
 dependencies = [
  "parity-scale-codec",
  "primitive-types 0.12.1",
@@ -649,7 +649,7 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=master#8606e47e438f1a3034f8bbd86e71815851cd51da"
+source = "git+https://github.com/Zilliqa/evm?rev=ef7a9d1476f15660aad98dec5275beae016e83e4#ef7a9d1476f15660aad98dec5275beae016e83e4"
 dependencies = [
  "environmental",
  "evm-core",
@@ -660,7 +660,7 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=master#8606e47e438f1a3034f8bbd86e71815851cd51da"
+source = "git+https://github.com/Zilliqa/evm?rev=ef7a9d1476f15660aad98dec5275beae016e83e4#ef7a9d1476f15660aad98dec5275beae016e83e4"
 dependencies = [
  "auto_impl",
  "environmental",

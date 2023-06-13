@@ -299,8 +299,9 @@ fn encode_result_type(
     } else if def.ret_type.starts_with("String") {
         return Ok(Some(Token::String(String::from(value))));
     } else if def.ret_type.eq("ByStr20") {
+        let stripped_value = value.replace("0x", "");
         return Ok(Some(Token::Address(Address::from_slice(
-            value.replace("0x", "").as_bytes(),
+            &hex::decode(stripped_value).unwrap(),
         ))));
     } else if def.ret_type.starts_with("By") {
         return Ok(Some(Token::Bytes(Bytes::from(value.as_bytes()))));
