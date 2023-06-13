@@ -1,7 +1,8 @@
 import {expect} from "chai";
-import hre from "hardhat";
+import hre, {ethers} from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
+import {BN, Zilliqa} from "@zilliqa-js/zilliqa";
 
 describe("Scilla HelloWorld contract", function () {
   let contract: ScillaContract;
@@ -26,5 +27,21 @@ describe("Scilla HelloWorld contract", function () {
   it("Should send getHello() event when getHello() transition is called", async function () {
     const tx = await contract.getHello();
     expect(tx).to.have.eventLogWithParams("getHello()", {value: "salam", vname: "msg", type: "String"});
+  });
+
+  it("Should cost gas for failed transaction due to execution error", async function () {
+    const zilliqa = new Zilliqa(hre.getNetworkUrl());
+    const balanceBefore = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    await contract.throwError();
+    const balanceAfter = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    expect(Number.parseInt(balanceAfter.result.balance)).to.be.lt(Number.parseInt(balanceBefore.result.balance));
+  });
+
+  it("Should cost gas for failed transaction due to too low gas", async function () {
+    const zilliqa = new Zilliqa(hre.getNetworkUrl());
+    const balanceBefore = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    await contract.getHello({gasLimit: 300});
+    const balanceAfter = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    expect(Number.parseInt(balanceAfter.result.balance)).to.be.lt(Number.parseInt(balanceBefore.result.balance));
   });
 });
