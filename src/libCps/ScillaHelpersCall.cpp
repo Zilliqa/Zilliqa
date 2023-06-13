@@ -25,6 +25,7 @@
 #include "libCps/CpsRunScilla.h"
 #include "libCps/ScillaHelpersCall.h"
 
+#include "CpsRunEvm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -35,17 +36,17 @@ namespace libCps {
 constexpr auto MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 ScillaCallParseResult ScillaHelpersCall::ParseCallContract(
-    CpsAccountStoreInterface &acc_store, ScillaArgs &scillaArgs,
-    const std::string &runnerPrint, TransactionReceipt &receipt,
-    uint32_t scillaVersion) {
+    CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+    ScillaArgs &scillaArgs, const std::string &runnerPrint,
+    TransactionReceipt &receipt, uint32_t scillaVersion) {
   Json::Value jsonOutput;
   auto parseResult =
       ParseCallContractOutput(acc_store, jsonOutput, runnerPrint, receipt);
   if (!parseResult.success) {
     return parseResult;
   }
-  return ParseCallContractJsonOutput(acc_store, scillaArgs, jsonOutput, receipt,
-                                     scillaVersion);
+  return ParseCallContractJsonOutput(acc_store, cpsContext, scillaArgs,
+                                     jsonOutput, receipt, scillaVersion);
 }
 
 /// convert the interpreter output into parsable json object for calling
@@ -82,9 +83,9 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractOutput(
 
 /// parse the output from interpreter for calling and update states
 ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
-    CpsAccountStoreInterface &acc_store, ScillaArgs &scillaArgs,
-    const Json::Value &_json, TransactionReceipt &receipt,
-    uint32_t preScillaVersion) {
+    CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+    ScillaArgs &scillaArgs, const Json::Value &_json,
+    TransactionReceipt &receipt, uint32_t preScillaVersion) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -245,7 +246,14 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
 
     if (acc_store.isAccountEvmContract(recipient)) {
       // Workaround before we have full interop: treat EVM contracts as EOA
-      // accounts only if there's receiver_address set to 0x0, otherwise revert
+      // accounts only if there's no handler, otherwise revert
+      if (CpsRunEvm::ProbeERC165Interface(acc_store, cpsContext,
+                                          scillaArgs.dest, recipient)) {
+        return ScillaCallParseResult{
+            .success = false,
+            .failureType = ScillaCallParseResult::NON_RECOVERABLE};
+      }
+
       if (!scillaArgs.extras ||
           scillaArgs.extras->scillaReceiverAddress != Address{}) {
         return ScillaCallParseResult{

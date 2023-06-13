@@ -25,6 +25,7 @@ class TransactionReceipt;
 namespace libCps {
 
 struct ScillaArgs;
+struct CpsContext;
 
 struct ScillaCallParseResult {
   using Address = dev::h160;
@@ -51,9 +52,9 @@ class ScillaHelpersCall final {
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   static ScillaCallParseResult ParseCallContract(
-      CpsAccountStoreInterface &acc_store, ScillaArgs &args,
-      const std::string &runnerPrint, TransactionReceipt &receipt,
-      uint32_t scilla_version);
+      CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+      ScillaArgs &args, const std::string &runnerPrint,
+      TransactionReceipt &receipt, uint32_t scilla_version);
 
   /// convert the interpreter output into parsable json object for calling
   static ScillaCallParseResult ParseCallContractOutput(
@@ -62,8 +63,8 @@ class ScillaHelpersCall final {
 
   /// parse the output from interpreter for calling and update states
   static ScillaCallParseResult ParseCallContractJsonOutput(
-      CpsAccountStoreInterface &acc_store, ScillaArgs &args,
-      const Json::Value &_json, TransactionReceipt &receipt,
+      CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+      ScillaArgs &args, const Json::Value &_json, TransactionReceipt &receipt,
       uint32_t pre_scilla_version);
 };
 }  // namespace libCps

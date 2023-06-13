@@ -745,6 +745,98 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
   }
 }
 
+bool CpsRunEvm::ProbeERC165Interface(CpsAccountStoreInterface& accStore,
+                                     const CpsContext& ctx,
+                                     const Address& caller,
+                                     const Address& destinationAddress) {
+  constexpr auto ERC165METHOD =
+      "0x01ffc9a701ffc9a7000000000000000000000000000000000000000000000000000000"
+      "00";
+
+  // Check if destination is ERC-165 compatible
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(destinationAddress);
+  const auto code = accStore.GetContractCode(destinationAddress);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+
+  *args.mutable_data() = DataConversion::CharArrayToString(
+      DataConversion::HexStrToUint8VecRet(ERC165METHOD));
+  *args.mutable_caller() = AddressToProto(caller);
+  *args.mutable_origin() = AddressToProto(ctx.origSender);
+  // Set gas limit as per EIP-165
+  args.set_gas_limit(30000);
+  args.set_estimate(false);
+  *args.mutable_context() = "ScillaCall";
+  *args.mutable_extras() = ctx.evmExtras;
+  args.set_enable_cps(ENABLE_CPS);
+
+  TransactionReceipt unusedReceipt;
+  CpsExecutor unusedExecutor{accStore, unusedReceipt};
+
+  {
+    CpsRunEvm evmRun{args, unusedExecutor, ctx, CpsRun::Type::Call};
+
+    const auto result = evmRun.InvokeEvm();
+    if (!result.has_value()) {
+      return false;
+    }
+
+    const evm::EvmResult& evmResult = result.value();
+
+    // Bool encoded return value = expect last digit to be 1
+    if (std::empty(evmResult.return_value()) ||
+        static_cast<uint8_t>(evmResult.return_value().back()) != 0x01) {
+      return false;
+    }
+  }
+
+  {
+    // Second probe - with different calldata (see EIP-165)
+    constexpr auto ERC165INVALID =
+        "0x01ffc9a7ffffffff0000000000000000000000000000000000000000000000000000"
+        "0000";
+    *args.mutable_data() = DataConversion::CharArrayToString(
+        DataConversion::HexStrToUint8VecRet(ERC165INVALID));
+    CpsRunEvm evmRun{args, unusedExecutor, ctx, CpsRun::Type::Call};
+
+    const auto result = evmRun.InvokeEvm();
+
+    if (!result.has_value()) {
+      return false;
+    }
+
+    const evm::EvmResult& evmResult = result.value();
+
+    if (!std::empty(evmResult.return_value()) &&
+        static_cast<uint8_t>(evmResult.return_value().back()) == 0x01) {
+      return false;
+    }
+  }
+  // Eventually check support for scilla interface in evm contract
+  {
+    // Check if destination supports 'function
+    // handle_scilla_message(string,bytes)'
+    // it's a 0x01ffc9a7 (ERC-165) +
+    // bytes4(keccak(hadle_scilla_message(string,bytes))
+    constexpr auto SUPPORT_SCILLA_IFACE =
+        "0x01ffc9a742ede2780000000000000000000000000000000000000000000000000000"
+        "0000";
+    *args.mutable_data() = DataConversion::CharArrayToString(
+        DataConversion::HexStrToUint8VecRet(SUPPORT_SCILLA_IFACE));
+
+    CpsRunEvm evmRun{args, unusedExecutor, ctx, CpsRun::Type::Call};
+
+    const auto result = evmRun.InvokeEvm();
+    const evm::EvmResult& evmResult = result.value();
+
+    if (!std::empty(evmResult.return_value()) ||
+        static_cast<uint8_t>(evmResult.return_value().back()) == 0x01) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool CpsRunEvm::HasFeedback() const {
   return GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate;
 }
