@@ -89,6 +89,7 @@ struct CallContext {
 }
 
 impl CallContext {
+    #[allow(dead_code)]
     fn new() -> Self {
         CallContext {
             call_type: Default::default(),
@@ -151,6 +152,7 @@ struct InternalOperationOtter {
 }
 
 impl LoggingEventListener {
+    #[allow(dead_code)]
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
             call_tracer: Default::default(),
@@ -320,6 +322,7 @@ impl LoggingEventListener {
         serde_json::to_string_pretty(self).unwrap()
     }
 
+    #[allow(dead_code)]
     fn finished_call(&mut self) {
         // The call has now completed - adjust the stack if neccessary
         if self.call_tracer.len() > 1 {
@@ -329,6 +332,7 @@ impl LoggingEventListener {
         }
     }
 
+    #[allow(dead_code)]
     fn push_call(&mut self, context: CallContext) {
         // Now we have constructed our new call context, it gets added to the end of
         // the stack (if we want to do tracing)
@@ -379,9 +383,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let ipc_server_handle: Arc<Mutex<Option<jsonrpc_ipc_server::CloseHandle>>> =
         Arc::new(Mutex::new(None));
+    #[allow(clippy::redundant_clone)]
     let ipc_server_handle_clone = ipc_server_handle.clone();
     let http_server_handle: Arc<Mutex<Option<jsonrpc_http_server::CloseHandle>>> =
         Arc::new(Mutex::new(None));
+    #[allow(clippy::redundant_clone)]
     let http_server_handle_clone = http_server_handle.clone();
 
     // Build and start the IPC server (Unix domain socket).

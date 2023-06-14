@@ -18,8 +18,16 @@ fn apply_modify_to_string(modify: &EvmProto::Apply_Modify) -> String {
     if !modify.get_storage().is_empty() {
         write!(modify_string, "    storage: [").unwrap();
         modify.get_storage().iter().for_each(|s| {
-            let query = ScillaMessage::ProtoScillaQuery::parse_from_bytes(&s.key).unwrap();
-            let value = ScillaMessage::ProtoScillaVal::parse_from_bytes(&s.value).unwrap();
+            let query = ScillaMessage::ProtoScillaQuery::parse_from_bytes(&s.key);
+            let value = ScillaMessage::ProtoScillaVal::parse_from_bytes(&s.value);
+
+            if query.is_err() || value.is_err() {
+                return;
+            }
+
+            let query = query.unwrap();
+            let value = value.unwrap();
+
             write!(
                 modify_string,
                 "      {{\n        key: {:?}, \n        value: {}\n      }},\n",

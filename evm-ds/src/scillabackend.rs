@@ -195,6 +195,7 @@ impl ScillaBackend {
 
     // Encode key/value pairs for storage in such a way that the Zilliqa node
     // could interpret it without much modification.
+    #[allow(dead_code)]
     pub(crate) fn encode_storage(&self, key: H256, value: H256) -> (Bytes, Bytes) {
         let mut query = ScillaMessage::ProtoScillaQuery::new();
         query.set_name("_evm_storage".into());
@@ -209,6 +210,7 @@ impl ScillaBackend {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn scale_eth_to_zil(&self, eth: U256) -> U256 {
         eth / self.config.zil_scaling_factor
     }
@@ -217,6 +219,33 @@ impl ScillaBackend {
         zil * self.config.zil_scaling_factor
     }
 }
+
+pub(crate) fn encode_storage(key: H256, value: H256) -> (Bytes, Bytes) {
+    (
+        Bytes::copy_from_slice(key.as_bytes()),
+        Bytes::copy_from_slice(value.as_bytes()),
+    )
+    //let mut query = ScillaMessage::ProtoScillaQuery::new();
+    //query.set_name("_evm_storage".into());
+    //query.set_indices(vec![bytes::Bytes::from(format!("{key:X}"))]);
+    //query.set_mapdepth(1);
+    //let mut val = ScillaMessage::ProtoScillaVal::new();
+    //let bval = value.as_bytes().to_vec();
+    //val.set_bval(bval.into());
+    //(
+    //    query.write_to_bytes().unwrap().into(),
+    //    val.write_to_bytes().unwrap().into(),
+    //)
+}
+
+pub trait EvmExtras {
+    fn scale_eth_to_zil(eth: U256) -> U256;
+    fn scale_zil_to_eth(zil: U256) -> U256;
+    fn encode_storage(&self, key: H256, value: H256) -> (Bytes, Bytes);
+}
+
+//impl EvmExtras for ScillaBackend {
+//}
 
 impl Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
@@ -311,22 +340,6 @@ impl Backend for ScillaBackend {
         );
 
         let Ok(result) = self.call_ipc_server_api("fetchCodeJson", args) else {
-            return Vec::new()
-        };
-        serde_json::to_vec(&result).unwrap_or_default()
-    }
-
-    fn init_data_as_json(&self, address: H160) -> Vec<u8> {
-        let mut query = ScillaMessage::ProtoScillaQuery::new();
-        query.set_name("_code".into());
-        let mut args = serde_json::Map::new();
-        args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
-        args.insert(
-            "query".into(),
-            base64::encode(query.write_to_bytes().unwrap()).into(),
-        );
-
-        let Ok(result) = self.call_ipc_server_api("fetchContractInitDataJson", args) else {
             return Vec::new()
         };
         serde_json::to_vec(&result).unwrap_or_default()
