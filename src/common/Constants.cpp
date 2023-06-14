@@ -52,6 +52,17 @@ double ReadConstantDouble(const string& propertyName,
   return pt.get<double>(path + propertyName);
 }
 
+double ReadConstantDoubleOrDefault(const string& propertyName,
+                                   const char* path,
+                                   double defaultVal) {
+  try {
+    auto pt = PTree::GetInstance();
+    return pt.get<double>(path + propertyName);
+  } catch (exception& e) {
+    return defaultVal;
+  }
+}
+
 string ReadConstantString(const string& propertyName,
                           const char* path = "node.general.",
                           const char* defaultVal = "defaulted") {
@@ -230,6 +241,9 @@ const unsigned int COMMIT_TOLERANCE_PERCENT{
     ReadConstantNumeric("COMMIT_TOLERANCE_PERCENT", "node.consensus.")};
 const unsigned int SUBSET0_RESPONSE_DELAY_IN_MS{
     ReadConstantNumeric("SUBSET0_RESPONSE_DELAY_IN_MS", "node.consensus.")};
+// The size of consensus subsets as a fraction of the number of nodes needed for consensus. Defaults to 1.2 (i.e. 20% larger).
+const double SUBSET_SIZE_FRACTION{
+    ReadConstantDoubleOrDefault("SUBSET_SIZE_FRACTION", "node.consensus.", 1.2)};
 
 // Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{

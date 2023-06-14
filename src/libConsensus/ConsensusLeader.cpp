@@ -159,8 +159,12 @@ void ConsensusLeader::GenerateConsensusSubsets() {
 
   const unsigned int numSubsets =
       (peersWhoCommitted.size() <= m_numForConsensus) ? 1 : m_numOfSubsets;
+
+  // Build subsets larger than the number we need for consensus. This allows some nodes to fail to respond.
+  const unsigned int subsetSize = m_numForConsensus * SUBSET_SIZE_FRACTION;
   LOG_GENERAL(INFO, "peersWhoCommitted = " << peersWhoCommitted.size() + 1);
   LOG_GENERAL(INFO, "m_numForConsensus = " << m_numForConsensus);
+  LOG_GENERAL(INFO, "subsetSize        = " << subsetSize);
   LOG_GENERAL(INFO, "numSubsets        = " << numSubsets);
 
   m_consensusSubsets.clear();
@@ -186,7 +190,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     subset.commitMap.at(m_myID) = true;
 
     // If DS consensus, then first subset should be of dsguard commits only.
-    // Fill in from rest if commits from dsguards < m_numForConsensus
+    // Fill in from rest if commits from dsguards < subsetSize
     if (m_DS && GUARD_MODE && (i == 0)) {
       unsigned int subsetPeers = 1;  // myself
       vector<unsigned int> nondsguardIndexes;
@@ -196,10 +200,10 @@ void ConsensusLeader::GenerateConsensusSubsets() {
           subset.commitPoints.emplace_back(m_commitPointMap.at(index).at(i));
           subset.commitMap.at(index) = true;
           subsetPeers++;
-          if (subsetPeers == m_numForConsensus) {
+          if (subsetPeers == subsetSize) {
             // got all dsguards commit
             LOG_GENERAL(INFO, "[SubsetID: " << i << "] Got all "
-                                            << m_numForConsensus
+                                            << subsetSize
                                             << " commits from ds-guards");
             break;
           }
@@ -209,17 +213,17 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       }
 
       // check if we fall short of commits from dsguards
-      if (subsetPeers < m_numForConsensus) {
+      if (subsetPeers < subsetSize) {
         // Add from rest of nondsguards commits
         LOG_GENERAL(WARNING, "[SubsetID: " << i << "] Guards = " << subsetPeers
                                            << ", Non-guards = "
-                                           << m_numForConsensus - subsetPeers);
+                                           << subsetSize - subsetPeers);
 
         for (auto index : nondsguardIndexes) {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index).at(i);
           subset.commitPoints.emplace_back(m_commitPointMap.at(index).at(i));
           subset.commitMap.at(index) = true;
-          if (++subsetPeers >= m_numForConsensus) {
+          if (++subsetPeers >= subsetSize) {
             break;
           }
         }
@@ -228,7 +232,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     // For other subsets, its commit from every one together.
     else {
       unsigned int guardCount = 1;  // myself
-      for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
+      for (unsigned int j = 0; j < subsetSize - 1; j++) {
         unsigned int index = peersWhoCommitted.at(j);
         subset.commitPointMap.at(index) = m_commitPointMap.at(index).at(i);
         subset.commitPoints.emplace_back(m_commitPointMap.at(index).at(i));
@@ -241,7 +245,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       if (GUARD_MODE && m_DS) {
         LOG_GENERAL(INFO, "[SubsetID: " << i << "] Guards = " << guardCount
                                         << ", Non-guards = "
-                                        << m_numForConsensus - guardCount);
+                                        << subsetSize - guardCount);
       }
     }
 
