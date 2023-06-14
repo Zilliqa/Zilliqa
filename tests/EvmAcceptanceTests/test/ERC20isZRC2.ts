@@ -58,6 +58,7 @@ describe("ERC20 Is ZRC2", function () {
   it("Interop Should be deployed successfully", async function () {
     expect(zrc2_contract.address).to.be.properAddress;
     expect(erc20_contract.address).to.be.properAddress;
+    expect(erc165_contract.address).to.be.properAddress;
   });
 
   it("should return correct contract owner from ZRC2", async function () {
@@ -140,8 +141,7 @@ describe("ERC20 Is ZRC2", function () {
   });
 
   it("Should be able to transfer to evm contract", async function() {
-
-    expect(await erc20_contract.connect(contractOwner).transfer(erc20_contract.address, 150)).not.to.be.reverted;
+    await(await erc20_contract.connect(contractOwner).transfer(erc20_contract.address, 150)).wait();
     const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
     expect(zrc2Tokens).to.be.eq(150);
   });
@@ -172,7 +172,7 @@ describe("ERC20 Is ZRC2", function () {
   });
 
   it("Should not be able to transfer to evm contract when scilla receiver handler is present", async function() {
-    await expect(erc20_contract.transfer(erc165_contract.address, 150)).to.be.rejected;
+    expect(erc20_contract.transfer(erc165_contract.address, 150)).to.be.reverted;
     const zrc2Tokens = await erc20_contract.balanceOf(erc165_contract.address);
     expect(zrc2Tokens).to.be.eq(0);
   });
