@@ -21,6 +21,7 @@
 #include "libUtils/SWInfo.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/asio/readable_pipe.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/start_dir.hpp>
@@ -28,6 +29,23 @@
 
 #include <filesystem>
 #include <fstream>
+
+#if 0
+namespace zil {
+class ZilliqaListener {
+ public:
+  ZilliqaListener(boost::asio::io_context& ioContext, pid_t pid)
+      : m_pipe{ioContext, pid} {}
+
+  void Start() { m_pipe.Start(); }
+  void Stop() { m_pipe.Stop(); }
+
+ private:
+  UpdatePipe m_pipe;
+};
+
+}  // namespace zil
+#endif
 
 ZilliqaUpdater::~ZilliqaUpdater() noexcept {
   m_ioContext.stop();
@@ -172,8 +190,23 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
   }
 
   auto pids = m_getProcByNameFunc("zilliqa");
-#if 0
-  const auto quiesceDSBlock = manifest[“quiesce-at-dsblock”].asUInt64();
-  const auto upgradeDSBlock = manifest["upgrade-at-dsblock"].asUInt64();
-#endif
+  if (pids.size() != 1) {
+    throw std::runtime_error{"unexpected number of zilliqa processes (" +
+                             std::to_string(pids.size()) + ')'};
+  }
+
+  auto zilliqPid = pids.front();
+  try {
+    m_updating = true;
+    m_pipe = std::make_unique<zil::UpdatePipe>(m_ioContext, zilliqPid);
+    m_pipe->OnCommand = [](std::string_view cmd) {
+      LOG(INFO) << "Received from zilliqa: " << cmd;
+    };
+    m_pipe->Start();
+    m_pipe->SyncWrite('|' + std::to_string(zilliqPid) + ',' +
+                      manifest["quiesce-at-dsblock"].asString() + ',' +
+                      manifest["upgrade-at-dsblock"].asString() + '|');
+  } catch (...) {
+    m_updating = false;
+  }
 }

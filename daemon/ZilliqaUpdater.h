@@ -18,8 +18,9 @@
 #ifndef ZILLIQA_UPDATER_ZILLIQAUPDATER_H_
 #define ZILLIQA_UPDATER_ZILLIQAUPDATER_H_
 
+#include "libUpdater/UpdatePipe.h"
+
 #include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/io_context.hpp>
 
 #include <json/json.h>
 
@@ -34,15 +35,21 @@ class ZilliqaUpdater final {
 
   template <typename F>
   explicit ZilliqaUpdater(F&& getProcIdByNameFunc)
-      : m_getProcByNameFunc{std::forward<F>(getProcIdByNameFunc)} { InitLogger(); }
+      : m_getProcByNameFunc{std::forward<F>(getProcIdByNameFunc)} {
+    InitLogger();
+  }
 
   void Start();
   void Stop();
+
+  bool Updating() const { return m_updating; }
 
  private:
   std::thread m_updateThread;
   boost::asio::io_context m_ioContext;
   GetProcIdByNameFunc m_getProcByNameFunc;
+  std::unique_ptr<zil::UpdatePipe> m_pipe;
+  std::atomic_bool m_updating{false};
 
   void InitLogger();
   void StartUpdateThread();
