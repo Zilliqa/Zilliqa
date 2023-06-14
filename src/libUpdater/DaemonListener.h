@@ -18,8 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBUPDATER_DAEMONLISTENER_H_
 #define ZILLIQA_SRC_LIBUPDATER_DAEMONLISTENER_H_
 
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/posix/stream_descriptor.hpp>
+#include "UpdatePipe.h"
 
 namespace zil {
 
@@ -31,16 +30,16 @@ class DaemonListener {
   template <typename F>
   DaemonListener(boost::asio::io_context &ioContext,
                  F &&lastDSBlockNumberProvider)
-      : m_ioContext{ioContext},
-        m_pipe{m_ioContext},
+      : m_pipe{ioContext, getpid()},
         m_lastDSBlockNumberProvider{
             std::forward<F>(lastDSBlockNumberProvider)} {
     assert(m_lastDSBlockNumberProvider);
-    createPipe();
+
+    m_pipe.OnCommand = [this](std::string_view cmd) { parseCmd(cmd); };
   }
 
-  void start();
-  void stop();
+  void Start();
+  void Stop();
 
   std::optional<uint64_t> quiesceDSBlock() const {
     u_int64_t result = m_quiesceDSBlock;
@@ -57,20 +56,11 @@ class DaemonListener {
  private:
   using LastDSBlockNumberProvider = std::function<uint64_t()>;
 
-  static const constexpr std::size_t READ_SIZE_BUFFER_BYTES = 1024;
-
-  boost::asio::io_context &m_ioContext;
-  int m_fd = -1;
-  boost::asio::posix::stream_descriptor m_pipe;
-  std::array<char, READ_SIZE_BUFFER_BYTES> m_readBuffer;
-  std::string m_read;
+  UpdatePipe m_pipe;
   std::atomic_uint64_t m_quiesceDSBlock{0};
   std::atomic_uint64_t m_updateDSBlock{0};
   LastDSBlockNumberProvider m_lastDSBlockNumberProvider;
 
-  void createPipe();
-  void readSome();
-  void parseRead();
   void parseCmd(std::string_view cmd);
 };
 

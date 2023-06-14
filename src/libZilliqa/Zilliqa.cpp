@@ -600,12 +600,12 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
                                          .GetBlockNum();
                                    }};
       LOG_GENERAL(INFO, "Starting daemon listener");
-      listener.start();
+      listener.Start();
 
       LOG_GENERAL(INFO, "Starting API event loop");
       asioCtx->run();
       LOG_GENERAL(INFO, "API event loop stopped");
-      listener.stop();
+      listener.Stop();
       LOG_GENERAL(INFO, "Daemon listener stopped");
     }
   };
