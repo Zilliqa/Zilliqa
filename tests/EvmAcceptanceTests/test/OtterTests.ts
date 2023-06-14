@@ -4,7 +4,8 @@ import {expectRevert} from "@openzeppelin/test-helpers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import {parallelizer} from "../helpers";
 
-describe("Otterscan api tests", function () {
+// These tests are disabled only in release/v9.2
+describe.skip("Otterscan api tests", function () {
 
   it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
