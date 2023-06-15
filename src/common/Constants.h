@@ -332,7 +332,10 @@ extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
 extern const uint32_t MAXSENDMESSAGE;
 extern const uint32_t MAXRECVMESSAGE;
+/// @brief The maximum number of retries for a single outgoing message.
 extern const unsigned int MAXRETRYCONN;
+/// @brief The duration at which an outgoing message will time out.
+extern const unsigned int MAX_EXPIRE_TIME_MILLISECONDS;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int SENDQUEUE_SIZE;

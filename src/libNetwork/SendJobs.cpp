@@ -197,6 +197,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     RawMessage msg;
     bool allow_relaxed_blacklist;
     Milliseconds expires_at;
+    uint32_t attempts;
   };
 
   using DoneCallback = std::function<void(const Peer& peer, ErrorCode ec)>;
@@ -207,7 +208,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
         m_timer(m_asioContext),
-        m_expireTime(std::max(5000u, TX_DISTRIBUTE_TIME_IN_MS * 3 / 4)) {}
+        m_expireTime(std::max(MAX_EXPIRE_TIME_MILLISECONDS, TX_DISTRIBUTE_TIME_IN_MS * 3 / 4)),
+        m_maxAttempts(MAXRETRYCONN) {}
 
   ~PeerSendQueue() { Close(); }
 
@@ -217,6 +219,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     item.msg = std::move(msg);
     item.allow_relaxed_blacklist = allow_relaxed_blacklist;
     item.expires_at = Clock() + m_expireTime;
+    item.attempts = 0;
     if (m_queue.size() == 1) {
       Connect();
     }
@@ -349,10 +352,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return true;
     }
 
-    if (m_queue.front().expires_at < Clock()) {
+    auto front = m_queue.front();
+    if (front.expires_at < Clock() || front.attempts >= m_maxAttempts) {
       Done(ec ? ec : TIMED_OUT);
       return true;
     }
+    front.attempts += 1;
 
     return false;
   }
@@ -398,6 +403,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   SteadyTimer m_timer;
 
   Milliseconds m_expireTime;
+
+  uint32_t m_maxAttempts;
 
   bool m_closed = false;
 };

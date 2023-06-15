@@ -471,6 +471,8 @@ const uint32_t MAXRECVMESSAGE{
     ReadConstantNumeric("MAXRECVMESSAGE", "node.p2pcomm.")};
 const unsigned int MAXRETRYCONN{
     ReadConstantNumeric("MAXRETRYCONN", "node.p2pcomm.")};
+const unsigned int MAX_EXPIRE_TIME_MILLISECONDS{
+    ReadConstantNumeric("MAX_EXPIRE_TIME_MILLISECONDS", "node.p2pcomm.", 300000u)};
 const unsigned int MSGQUEUE_SIZE{
     ReadConstantNumeric("MSGQUEUE_SIZE", "node.p2pcomm.")};
 const unsigned int PUMPMESSAGE_MILLISECONDS{
