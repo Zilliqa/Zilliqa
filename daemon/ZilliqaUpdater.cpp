@@ -30,27 +30,7 @@
 #include <filesystem>
 #include <fstream>
 
-#if 0
-namespace zil {
-class ZilliqaListener {
- public:
-  ZilliqaListener(boost::asio::io_context& ioContext, pid_t pid)
-      : m_pipe{ioContext, pid} {}
-
-  void Start() { m_pipe.Start(); }
-  void Stop() { m_pipe.Stop(); }
-
- private:
-  UpdatePipe m_pipe;
-};
-
-}  // namespace zil
-#endif
-
-ZilliqaUpdater::~ZilliqaUpdater() noexcept {
-  m_ioContext.stop();
-  m_updateThread.join();
-}
+ZilliqaUpdater::~ZilliqaUpdater() noexcept { Stop(); }
 
 void ZilliqaUpdater::InitLogger() {
   INIT_FILE_LOGGER("zilliqad", std::filesystem::current_path())
@@ -58,7 +38,10 @@ void ZilliqaUpdater::InitLogger() {
 
 void ZilliqaUpdater::Start() { StartUpdateThread(); }
 
-void ZilliqaUpdater::Stop() {}
+void ZilliqaUpdater::Stop() {
+  m_ioContext.stop();
+  m_updateThread.join();
+}
 
 void ZilliqaUpdater::StartUpdateThread() {
   m_updateThread = std::thread{[this]() {
@@ -76,7 +59,8 @@ void ZilliqaUpdater::ScheduleUpdateCheck(
       [this, &updateTimer](const boost::system::error_code& errorCode) {
         if (errorCode) return;
 
-        CheckUpdate();
+        if (!Updating()) CheckUpdate();
+
         ScheduleUpdateCheck(updateTimer);
       });
 }
@@ -109,9 +93,9 @@ void ZilliqaUpdater::CheckUpdate() try {
 
   ExecuteManifest(manifest);
 } catch (std::exception& e) {
-  LOG(WARNING) << "Error while checking for updates: " << e.what();
+  LOG_GENERAL(WARNING, "Error while checking for updates: " << e.what());
 } catch (...) {
-  LOG(WARNING) << "Unexpected error while checking for updates";
+  LOG_GENERAL(WARNING, "Unexpected error while checking for updates");
 }
 
 void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
@@ -129,6 +113,10 @@ void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
 
 void ZilliqaUpdater::Download(const Json::Value& manifest) {
   // TODO: grab the file remotely
+  if (!manifest.isMember("input-path") || !manifest.isMember("sha256")) {
+    LOG_GENERAL(WARNING, "Malformed download manifest");
+    return;
+  }
 
   const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
 
@@ -171,6 +159,12 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
 
 void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
   // TODO:
+  if (!manifest.isMember("quiesce-at-dsblock") ||
+      !manifest.isMember("upgrade-at-dsblock") ||
+      !manifest.isMember("input-path")) {
+    LOG_GENERAL(WARNING, "Malformed upgrade manifest");
+    return;
+  }
 
   const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
   const std::filesystem::path outputPath =
@@ -195,18 +189,94 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
                              std::to_string(pids.size()) + ')'};
   }
 
+  // std::this_thread::sleep_for(std::chrono::seconds{5});
   auto zilliqPid = pids.front();
+  std::unique_lock<std::mutex> guard{m_mutex};
   try {
-    m_updating = true;
-    m_pipe = std::make_unique<zil::UpdatePipe>(m_ioContext, zilliqPid);
-    m_pipe->OnCommand = [](std::string_view cmd) {
-      LOG(INFO) << "Received from zilliqa: " << cmd;
+    m_updateState = {inputFilePath, false};
+    m_pipe = std::make_unique<zil::UpdatePipe>(m_ioContext, zilliqPid,
+                                               "zilliqad", "zilliqa");
+    m_pipe->OnCommand = [this, quiesceDSBlock =
+                                   manifest["quiesce-at-dsblock"].asString()](
+                            std::string_view /*cmd*/) {
+      std::unique_lock<std::mutex> guard{m_mutex};
+      if (!m_updateState) return;
+
+      // TODO: parse
+      LOG_GENERAL(INFO,
+                  "Update acknowledged.. waiting for zilliqa to shutdown at "
+                      << quiesceDSBlock << " DS block");
+      m_updateState->Acknowledged = true;
     };
     m_pipe->Start();
     m_pipe->SyncWrite('|' + std::to_string(zilliqPid) + ',' +
                       manifest["quiesce-at-dsblock"].asString() + ',' +
                       manifest["upgrade-at-dsblock"].asString() + '|');
   } catch (...) {
-    m_updating = false;
+    m_updateState = std::nullopt;
   }
+}
+
+bool ZilliqaUpdater::Update() {
+  std::unique_lock<std::mutex> guard{m_mutex};
+
+  if (!m_updateState) {
+    LOG_GENERAL(WARNING, "No update is underway... ignoring");
+    return false;
+  }
+
+  m_pipe->Stop();
+  m_pipe.reset();
+
+  if (!m_updateState->Acknowledged) {
+    LOG_GENERAL(WARNING,
+                "Update not acknowledged by zilliqa yet... cancelling");
+    m_updateState = std::nullopt;
+    return false;
+  }
+
+  auto srcFile = m_updateState->InputPath.parent_path() / "zilliqa";
+  std::filesystem::path targetFile =
+      "/home/yaron/SoftwareDevelopment/Projects/zilliqa/Zilliqa/.build.vcpkg/"
+      "bin/zilliqa";
+  std::filesystem::path backupFile = targetFile.string() + ".backup";
+
+  std::error_code errorCode;
+
+  // Create backup file
+  std::filesystem::copy_file(targetFile, backupFile,
+                             std::filesystem::copy_options::overwrite_existing,
+                             errorCode);
+  if (errorCode) {
+    LOG_GENERAL(WARNING, "Update failed; couldn't create backup: "
+                             << errorCode.message() << " (" << errorCode
+                             << ") ... cancelling");
+  } else {
+    // Update zilliqa binary
+    std::filesystem::copy_file(
+        srcFile, targetFile, std::filesystem::copy_options::overwrite_existing,
+        errorCode);
+
+    if (errorCode) {
+      // Copy failed; copy the backup back
+      LOG_GENERAL(WARNING, "Update failed; couldn't copy file "
+                               << srcFile << ": " << errorCode.message() << " ("
+                               << errorCode << ") ... cancelling");
+
+      std::filesystem::copy_file(
+          backupFile, targetFile,
+          std::filesystem::copy_options::overwrite_existing, errorCode);
+      if (!errorCode) std::filesystem::remove(backupFile, errorCode);
+    } else {
+      // Success
+      LOG_GENERAL(INFO, "Copied " << srcFile << " -> " << targetFile);
+
+      // Cleanup
+      std::filesystem::remove(targetFile, errorCode);
+      std::filesystem::remove(backupFile, errorCode);
+    }
+  }
+
+  m_updateState = std::nullopt;
+  return true;
 }

@@ -20,9 +20,11 @@
 
 #include <boost/program_options.hpp>
 
+#include <dirent.h>
 #include <algorithm>
 #include <array>
 #include <filesystem>
+#include <fstream>
 #include <stdexcept>
 
 using namespace std;
@@ -77,6 +79,12 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
   for (int i = 1; i < argc; ++i) {
     msg += string(" ") + argv[i];
   }
+
+  m_updater =
+      std::make_unique<ZilliqaUpdater>([this](const std::string& procName) {
+        return GetMonitoredProcIdsByName(procName);
+      });
+  m_updater->Start();
 
   ZilliqaDaemon::LOG(m_log, msg);
   StartNewProcess();
@@ -256,8 +264,13 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
   KillProcess("scilla-server");
   KillProcess("evm-ds");
 
-  ZilliqaDaemon::LOG(m_log, "Create new Zilliqa process...");
+  bool updating = m_updater->Updating();
+
+  ZilliqaDaemon::LOG(m_log, std::string{"Create new Zilliqa process..."} +
+                                (updating ? "(updating)" : ""));
   // signal(SIGCHLD, SIG_IGN);
+
+  bool updated = updating && m_updater->Update();
 
   pid_t pid_parent = fork();
 
@@ -302,7 +315,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
     /// to Zilliqa process being killed. Thus, we can use the variable
     /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
     m_syncType =
-        (bSuspend || cleanPersistence) ? RECOVERY_ALL_SYNC : m_syncType;
+        ((bSuspend || cleanPersistence) && !updated) ? RECOVERY_ALL_SYNC : m_syncType;
     strSyncType = to_string(m_syncType);
     m_recovery = m_syncType == RECOVERY_ALL_SYNC ? 1 : m_recovery;
     ZilliqaDaemon::LOG(m_log, "Suspend launch is " + to_string(bSuspend) +
@@ -319,13 +332,18 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
 
   string identity = m_nodeType + "-" + std::to_string(m_nodeIndex);
 
-  string cmdToRun = string("zilliqa") + " --privk " + m_privKey + " --pubk " +
-                    m_pubKey + " --address " + m_ip + " --port " +
+  string cmdToRun = string("bin/zilliqa") + " --privk " + m_privKey +
+                    " --pubk " + m_pubKey + " --address " + m_ip + " --port " +
                     to_string(m_port) + " --synctype " + strSyncType +
                     " --logpath " + m_logPath + " --identity " + identity;
 
   if (1 == m_recovery) {
-    cmdToRun += " --recovery";
+    if (updated)
+      ZilliqaDaemon::LOG(m_log, "Not adding --recovery flag due to update");
+#if 0
+    else
+      cmdToRun += " --recovery";
+#endif
   }
 
   ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
@@ -442,6 +460,7 @@ int main(int argc, const char* argv[]) {
   ofstream log;
   log.open(daemon_log.c_str(), fstream::out | fstream::trunc);
 
+#if 0
   pid_t pid_parent = fork();
 
   if (pid_parent < 0) {
@@ -464,13 +483,8 @@ int main(int argc, const char* argv[]) {
   close(STDIN_FILENO);
   close(STDOUT_FILENO);
   close(STDERR_FILENO);
-
+#endif
   ZilliqaDaemon daemon(argc, argv, log);
-
-  ZilliqaUpdater updater{[&daemon](const std::string& procName) {
-    return daemon.GetMonitoredProcIdsByName(procName);
-  }};
-  updater.Start();
 
   bool startNewByDaemon = true;
   while (1) {

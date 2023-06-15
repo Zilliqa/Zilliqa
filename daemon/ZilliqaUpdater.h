@@ -24,6 +24,7 @@
 
 #include <json/json.h>
 
+#include <filesystem>
 #include <thread>
 
 class ZilliqaUpdater final {
@@ -42,14 +43,24 @@ class ZilliqaUpdater final {
   void Start();
   void Stop();
 
-  bool Updating() const { return m_updating; }
+  bool Updating() const {
+    std::unique_lock<std::mutex> guard{m_mutex};
+    return !!m_updateState;
+  }
+  bool Update();
 
  private:
+  struct UpdateState {
+    std::filesystem::path InputPath;
+    bool Acknowledged = false;
+  };
+
   std::thread m_updateThread;
   boost::asio::io_context m_ioContext;
   GetProcIdByNameFunc m_getProcByNameFunc;
+  mutable std::mutex m_mutex;
   std::unique_ptr<zil::UpdatePipe> m_pipe;
-  std::atomic_bool m_updating{false};
+  std::optional<UpdateState> m_updateState;
 
   void InitLogger();
   void StartUpdateThread();
