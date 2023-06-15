@@ -1,0 +1,6 @@
+scilla_version 0
+
+contract Contract
+()
+
+field f: Map ByStr20 Pair Uint128 Uint128 = Emp ByStr20 Pair Uint128 Uint128
