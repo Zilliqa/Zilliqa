@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG SCILLA_VERSION=v0.13.3
+ARG SCILLA_VERSION=v0.13.3-alpha.3
 
 # Common dependencies of the builder and runner stages.
 FROM ubuntu:22.04 AS base
