@@ -2,6 +2,7 @@
 
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
+#![allow(clippy::redundant_clone)]
 
 mod continuations;
 mod convert;
