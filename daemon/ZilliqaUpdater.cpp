@@ -108,6 +108,7 @@ void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
   } else if (action == "upgrade") {
     Upgrade(manifest);
   } else {
+    // ignore
   }
 }
 
@@ -241,9 +242,8 @@ bool ZilliqaUpdater::Update() {
       "bin/zilliqa";
   std::filesystem::path backupFile = targetFile.string() + ".backup";
 
-  std::error_code errorCode;
-
   // Create backup file
+  std::error_code errorCode;
   std::filesystem::copy_file(targetFile, backupFile,
                              std::filesystem::copy_options::overwrite_existing,
                              errorCode);
