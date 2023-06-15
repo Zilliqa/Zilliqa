@@ -30,7 +30,7 @@ class DaemonListener {
   template <typename F>
   DaemonListener(boost::asio::io_context &ioContext,
                  F &&lastDSBlockNumberProvider)
-      : m_pipe{ioContext, getpid()},
+      : m_pipe{ioContext, getpid(), "zilliqa", "zilliqad"},
         m_lastDSBlockNumberProvider{
             std::forward<F>(lastDSBlockNumberProvider)} {
     assert(m_lastDSBlockNumberProvider);
@@ -61,6 +61,7 @@ class DaemonListener {
   std::atomic_uint64_t m_updateDSBlock{0};
   LastDSBlockNumberProvider m_lastDSBlockNumberProvider;
 
+  void TryCreatingPipe();
   void parseCmd(std::string_view cmd);
 };
 

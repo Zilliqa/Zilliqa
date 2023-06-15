@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBUPDATER_UPDATEPIPE_H_
 #define ZILLIQA_SRC_LIBUPDATER_UPDATEPIPE_H_
 
+#include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 
@@ -27,18 +28,29 @@ namespace zil {
  * @brief Simple representation of the updater pipe that
  *        allows reading & writing asynchronously.
  */
-class UpdatePipe {
+class UpdatePipe final {
  public:
   using OnCommandCallback = std::function<void(std::string_view)>;
 
-  UpdatePipe(boost::asio::io_context &ioContext, pid_t pid)
-      : m_ioContext{ioContext}, m_pid{pid}, m_pipe{m_ioContext} {
-    createPipe();
+  ~UpdatePipe() noexcept;
+
+  template <typename ReadNameT, typename WriteNameT>
+  UpdatePipe(boost::asio::io_context &ioContext, pid_t pid,
+             ReadNameT &&readBaseName, WriteNameT &writeBaseName)
+      : m_ioContext{ioContext},
+        m_pid{pid},
+        m_timer{m_ioContext},
+        m_readBaseName{std::forward<ReadNameT>(readBaseName)},
+        m_readPipe{m_ioContext},
+        m_writeBaseName{std::forward<WriteNameT>(writeBaseName)},
+        m_writePipe{m_ioContext} {
+    createReadPipe();
+    createWritePipe();
   }
 
   void Start();
   void Stop();
-  bool SyncWrite(const std::string& buffer);
+  bool SyncWrite(const std::string &buffer);
 
   OnCommandCallback OnCommand;
 
@@ -47,12 +59,18 @@ class UpdatePipe {
 
   boost::asio::io_context &m_ioContext;
   pid_t m_pid;
-  int m_fd = -1;
-  boost::asio::posix::stream_descriptor m_pipe;
+  boost::asio::deadline_timer m_timer;
+  std::string m_readBaseName;
+  boost::asio::posix::stream_descriptor m_readPipe;
+  std::string m_writeBaseName;
+  boost::asio::posix::stream_descriptor m_writePipe;
   std::array<char, READ_SIZE_BUFFER_BYTES> m_readBuffer;
   std::string m_read;
 
-  void createPipe();
+  boost::asio::posix::stream_descriptor createPipe(const std::string &baseName,
+                                                   int flag);
+  void createReadPipe();
+  void createWritePipe();
   void readSome();
   void parseRead();
 };

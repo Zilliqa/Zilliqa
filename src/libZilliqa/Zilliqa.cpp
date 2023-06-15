@@ -593,19 +593,19 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
         }
       });
 
-      zil::DaemonListener listener{*asioCtx, [mediator = &m_mediator]() {
-                                     return mediator->m_dsBlockChain
-                                         .GetLastBlock()
-                                         .GetHeader()
-                                         .GetBlockNum();
-                                   }};
+      m_mediator.m_daemonListener = std::make_shared<zil::DaemonListener>(
+          *asioCtx, [mediator = &m_mediator]() {
+            return mediator->m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum();
+          });
       LOG_GENERAL(INFO, "Starting daemon listener");
-      listener.Start();
+      m_mediator.m_daemonListener->Start();
 
       LOG_GENERAL(INFO, "Starting API event loop");
       asioCtx->run();
       LOG_GENERAL(INFO, "API event loop stopped");
-      listener.Stop();
+      m_mediator.m_daemonListener->Stop();
       LOG_GENERAL(INFO, "Daemon listener stopped");
     }
   };

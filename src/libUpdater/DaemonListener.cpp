@@ -79,20 +79,4 @@ void DaemonListener::parseCmd(std::string_view cmd) try {
               "ignoring message from daemon due to exception: " << e.what());
 }
 
-#if 0
-void write(const std::string &text) {
-  m_pipe.write_some(boost::asio::const_buffer(text.data(), text.size()));
-
-#if 0
-        [this](const boost::system::error_code& ec, std::size_t size) {
-          if (ec) return;
-          auto content = std::string_view{m_readBuffer.data(), size};
-          LOG_GENERAL(INFO) << "*** Read from zilliqad pipe: " << content;
-
-          readSome();
-        });
-#endif
-}
-#endif
-
 }  // namespace zil

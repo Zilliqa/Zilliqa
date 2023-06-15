@@ -23,24 +23,33 @@
 
 namespace zil {
 
+UpdatePipe::~UpdatePipe() noexcept { Stop(); }
+
 void UpdatePipe::Start() { readSome(); }
 
 void UpdatePipe::Stop() {
-  m_pipe.cancel();
-  m_pipe.close();
+#if 0
+  m_readPipe.cancel();
+  m_writePipe.cancel();
+#endif
+  m_readPipe.close();
+  m_writePipe.close();
 }
 
 bool UpdatePipe::SyncWrite(const std::string &buffer) {
   std::size_t bytesWritten = 0;
   while (bytesWritten < buffer.size()) {
-    boost::system::error_code ec;
-    auto count = m_pipe.write_some(
+    boost::system::error_code errorCode;
+    auto count = m_writePipe.write_some(
         boost::asio::const_buffer(buffer.data() + bytesWritten,
                                   buffer.size() - bytesWritten),
-        ec);
-    if (ec) {
-      if (ec == boost::asio::error::eof) {
-        createPipe();
+        errorCode);
+    if (errorCode) {
+      LOG_GENERAL(WARNING, "Failed to write to pipe: "
+                               << errorCode.what() << " (" << errorCode << ')');
+
+      if (errorCode == boost::asio::error::eof) {
+        // createWritePipe();
       } else {
         break;
       }
@@ -51,43 +60,65 @@ bool UpdatePipe::SyncWrite(const std::string &buffer) {
   return bytesWritten == buffer.size();
 }
 
-void UpdatePipe::createPipe() try {
+void UpdatePipe::createReadPipe() {
+  m_readPipe = createPipe(m_readBaseName, O_RDWR);
+}
+
+void UpdatePipe::createWritePipe() {
+  m_writePipe = createPipe(m_writeBaseName, O_RDWR);
+}
+
+boost::asio::posix::stream_descriptor UpdatePipe::createPipe(
+    const std::string &baseName, int flag) try {
   const auto &pipeName = std::filesystem::temp_directory_path() /
-                         ("zilliqa." + std::to_string(getpid()) + ".pipe");
+                         (baseName + '.' + std::to_string(m_pid) + ".pipe");
 
-  if (mkfifo(pipeName.c_str(), 0666) != 0) {
-    LOG_GENERAL(WARNING, "Failed to create pipe "
-                             << pipeName << " (it might already exists...)");
-  }
+  // Fail silently since it might already exist due to either zilliqad or
+  // zilliqa.
+  mkfifo(pipeName.c_str(), 0666);
 
-  m_fd = open(pipeName.c_str(), O_RDWR | O_NONBLOCK);
-  if (m_fd <= 0) {
+  auto result = boost::asio::posix::stream_descriptor{m_ioContext};
+  auto fd = open(pipeName.c_str(), flag | O_NONBLOCK);
+  if (fd <= 0) {
     LOG_GENERAL(WARNING, "Failed to open pipe "
                              << pipeName
                              << "; can't listen to updates from daemon");
-    return;
+  } else {
+    LOG_GENERAL(INFO, "Open pipe " << pipeName << " successfully with flags = "
+                                   << (flag | O_NONBLOCK));
+    result = boost::asio::posix::stream_descriptor{m_ioContext, fd};
   }
 
-  m_pipe = boost::asio::posix::stream_descriptor{m_ioContext, m_fd};
+  return result;
 } catch (std::exception &e) {
   LOG_GENERAL(WARNING, "Exception while creating pipe to daemon: " << e.what());
+  return boost::asio::posix::stream_descriptor{m_ioContext};
 } catch (...) {
   LOG_GENERAL(WARNING, "Unknown exception while creating pipe to daemon");
+  return boost::asio::posix::stream_descriptor{m_ioContext};
 }
 
 void UpdatePipe::readSome() {
-  m_pipe.async_read_some(
+  m_readPipe.async_read_some(
       boost::asio::buffer(m_readBuffer),
-      [this](const boost::system::error_code &ec, std::size_t size) {
-        if (ec) {
-          LOG_GENERAL(WARNING, "Error reading from pipe: " << ec.what() << " ("
-                                                           << ec << ')');
-          if (ec == boost::asio::error::eof) {
+      [this](const boost::system::error_code &errorCode, std::size_t size) {
+        if (errorCode) {
+          LOG_GENERAL(WARNING, "Error reading from pipe: " << errorCode.what()
+                                                           << " (" << errorCode
+                                                           << ')');
+          if (errorCode == boost::asio::error::eof) {
             // Upon EOF we try to recreate/open the pipe
-            createPipe();
-          } else {
-            return;
+            m_timer.expires_from_now(boost::posix_time::seconds{5});
+            m_timer.async_wait(
+                [this](const boost::system::error_code &errorCode) {
+                  if (errorCode) return;
+
+                  // createReadPipe();
+                  readSome();
+                });
           }
+
+          return;
         } else {
           // TODO: limit size of m_read
           m_read += std::string_view{m_readBuffer.data(), size};
