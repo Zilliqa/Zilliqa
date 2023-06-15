@@ -77,7 +77,7 @@ describe("ERC20 Interop", function () {
   });
 
   it("Should not be possible to mint or burn tokens by contract non-owner", async function () {
-    expect (bridge_contract.connect(alice).burnZRC2(await alice.getAddress(), 50)).to.be.reverted;
+    expect(bridge_contract.connect(alice).burnZRC2(await alice.getAddress(), 50)).to.be.reverted;
     let aliceTokens = await bridge_contract.connect(alice).balanceOfZRC2(await alice.getAddress());
     expect(aliceTokens).to.be.eq(50);
 

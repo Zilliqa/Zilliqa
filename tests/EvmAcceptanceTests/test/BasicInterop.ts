@@ -11,7 +11,7 @@ describe("BasicInterop", function () {
   const KEEP_ORIGIN = 0;
   const IMMUTABLE_UINT = 12344321;
   const IMMUTABLE_INT = -12345;
-  const IMMUTABLE_STRING = "Salam";   // Means hello in Persian :)
+  const IMMUTABLE_STRING = "Salam"; // Means hello in Persian :)
 
   let solidityContract: Contract;
   let scillaContract: ScillaContract;
@@ -24,7 +24,13 @@ describe("BasicInterop", function () {
       this.skip();
     }
 
-    scillaContract = await parallelizer.deployScillaContract("BasicInterop", IMMUTABLE_UINT, IMMUTABLE_INT, IMMUTABLE_STRING, addr1);
+    scillaContract = await parallelizer.deployScillaContract(
+      "BasicInterop",
+      IMMUTABLE_UINT,
+      IMMUTABLE_INT,
+      IMMUTABLE_STRING,
+      addr1
+    );
     scillaContractAddress = scillaContract.address?.toLowerCase()!;
   });
 
@@ -104,7 +110,7 @@ describe("BasicInterop", function () {
         expect(true).to.be.true;
       }
     });
- 
+
     it("Should fail to read uint if contract address is not valid", async function () {
       try {
         await solidityContract.readUint("0x123456", "immutableUintField");

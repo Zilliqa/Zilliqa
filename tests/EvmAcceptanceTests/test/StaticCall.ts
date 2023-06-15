@@ -44,5 +44,4 @@ describe("Static Contract Calls Functionality", function () {
       assert.equal(contractNum, 0);
     });
   });
-
 });
