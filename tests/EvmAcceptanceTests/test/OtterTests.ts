@@ -5,13 +5,12 @@ import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
-
   it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
     const REVERT_MESSAGE = "Transaction too old";
 
     const abi = ethers.utils.defaultAbiCoder;
-    const MESSAGE_ENCODED = "0x08c379a0" + abi.encode(["string"], [REVERT_MESSAGE]).split('x')[1];
+    const MESSAGE_ENCODED = "0x08c379a0" + abi.encode(["string"], [REVERT_MESSAGE]).split("x")[1];
 
     const Contract = await ethers.getContractFactory("Revert");
     this.contract = await Contract.deploy();
@@ -22,7 +21,7 @@ describe("Otterscan api tests", function () {
 
     console.log("Estimated gas: ", estimatedGas);
 
-    const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, { gasLimit: estimatedGas.mul(130).div(100) })
+    const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, {gasLimit: estimatedGas.mul(130).div(100)});
 
     await sendJsonRpcRequest(METHOD, 1, [tx.hash], (result, status) => {
       assert.equal(status, 200, "has status code");
@@ -51,7 +50,6 @@ describe("Otterscan api tests", function () {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
 
-
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
 
@@ -63,7 +61,6 @@ describe("Otterscan api tests", function () {
       assert.equal(jsonObject[0]["type"], 0, "has correct type for transfer");
       assert.equal(jsonObject[3]["type"], 1, "has correct type for self destruct");
     });
-
   });
 
   it("We can get the otter trace transaction", async function () {
@@ -88,7 +85,6 @@ describe("Otterscan api tests", function () {
       assert.equal(jsonObject[1]["depth"], 1, "has correct depth one call down");
       assert.equal(jsonObject[1]["type"], "CALL", "has correct depth one call down");
     });
-
   });
 
   it("We can get the otter search for sender by nonce", async function () {
@@ -108,16 +104,16 @@ describe("Otterscan api tests", function () {
 
     const [owner] = await ethers.getSigners();
     let txRawFromOwner = {
-        to: acctAddr,
-        value: ethers.utils.parseEther("1")
-    }
+      to: acctAddr,
+      value: ethers.utils.parseEther("1")
+    };
     await owner.sendTransaction(txRawFromOwner);
 
     // Create a transaction object
     let txRaw = {
-        to: owner.address,
-        value: ethers.utils.parseEther("0.45")
-    }
+      to: owner.address,
+      value: ethers.utils.parseEther("0.45")
+    };
     const txid0 = await accounts[0].sendTransaction(txRaw);
     const txid1 = await accounts[0].sendTransaction(txRaw);
 
@@ -136,7 +132,6 @@ describe("Otterscan api tests", function () {
 
       assert.equal(jsonObject, txid1.hash, "has correct hash");
     });
-
   });
 
   it("We can get the otter search TX before and after", async function () {
@@ -179,7 +174,5 @@ describe("Otterscan api tests", function () {
       let jsonObject = result.result;
       assert.equal(jsonObject.txs.length, 0, "Can not find the TX which send funds to this addr");
     });
-
   });
-
 });
