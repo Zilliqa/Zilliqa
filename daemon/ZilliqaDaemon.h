@@ -20,17 +20,22 @@
 
 #include "ZilliqaUpdater.h"
 
+#include <shared_mutex>
+
 class ZilliqaDaemon final {
  public:
+  ~ZilliqaDaemon() noexcept;
   ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log);
   void MonitorProcess(const std::string& name,
                       const bool startNewByDaemon = false);
   static void LOG(std::ofstream& log, const std::string& msg);
 
-  std::vector<pid_t> GetMonitoredProcIdsByName(const std::string& procName) const;
+  std::vector<pid_t> GetMonitoredProcIdsByName(
+      const std::string& procName) const;
 
  private:
   std::ofstream& m_log;
+  mutable std::shared_mutex m_mutex;
   std::unordered_map<std::string, std::vector<pid_t>> m_pids;
   std::unordered_map<std::string, unsigned int> m_failedMonitorProcessCount;
   std::unordered_map<pid_t, bool> m_died;

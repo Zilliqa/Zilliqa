@@ -54,7 +54,7 @@ void ZilliqaUpdater::StartUpdateThread() {
 
 void ZilliqaUpdater::ScheduleUpdateCheck(
     boost::asio::deadline_timer& updateTimer) {
-  updateTimer.expires_from_now(boost::posix_time::seconds{5});
+  updateTimer.expires_from_now(boost::posix_time::seconds{15});
   updateTimer.async_wait(
       [this, &updateTimer](const boost::system::error_code& errorCode) {
         if (errorCode) return;
@@ -67,9 +67,22 @@ void ZilliqaUpdater::ScheduleUpdateCheck(
 
 void ZilliqaUpdater::CheckUpdate() try {
   // TODO: check for file to download from remote URL
+  const auto updatesDir =
+      std::filesystem::temp_directory_path() / "zilliqa" / "updates";
+  const auto manifestPath = updatesDir / "manifest";
 
-  auto manifestPath =
-      std::filesystem::temp_directory_path() / "zilliqa-updater" / "manifest";
+  const std::string& manifestUrl = "s3://zilliqa/updates/manifest";
+  boost::process::v2::process downloadProcess{
+      m_ioContext,
+      "/usr/local/bin/aws",
+      {"s3", "cp", manifestUrl, manifestPath.string()}};
+
+  auto exitCode = downloadProcess.wait();
+  if (exitCode != 0) {
+    throw std::runtime_error{"failed to download manifest from " + manifestUrl +
+                             "(exit code = " + std::to_string(exitCode) + ')'};
+  }
+
   std::ifstream manifestFile{manifestPath};
   if (!manifestFile) return;
 
@@ -114,12 +127,33 @@ void ZilliqaUpdater::ExecuteManifest(const Json::Value& manifest) {
 
 void ZilliqaUpdater::Download(const Json::Value& manifest) {
   // TODO: grab the file remotely
-  if (!manifest.isMember("input-path") || !manifest.isMember("sha256")) {
+  if (!manifest.isMember("uuid") || !manifest.isMember("url") ||
+      !manifest.isMember("sha256")) {
     LOG_GENERAL(WARNING, "Malformed download manifest");
     return;
   }
 
-  const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
+  const auto updateDir = std::filesystem::temp_directory_path() / "zilliqa" /
+                         "updates" / manifest["uuid"].asString();
+
+  LOG_GENERAL(INFO, "Creating directory " << updateDir);
+
+  std::error_code errorCode;
+  std::filesystem::create_directory(updateDir, errorCode);
+
+  auto outputFilePath = updateDir / "zilliqa.tar.gz";
+  const auto& downloadUrl = manifest["url"].asString();
+  LOG_GENERAL(INFO, "Downloading from " << downloadUrl);
+  boost::process::v2::process downloadProcess{
+      m_ioContext,
+      "/usr/local/bin/aws",
+      {"s3", "cp", downloadUrl, outputFilePath.string()}};
+
+  auto exitCode = downloadProcess.wait();
+  if (exitCode != 0) {
+    throw std::runtime_error{"failed to download file from " + downloadUrl +
+                             "(exit code = " + std::to_string(exitCode) + ')'};
+  }
 
   boost::asio::readable_pipe pipe{m_ioContext};
 
@@ -127,22 +161,26 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
   boost::process::v2::process checksumProcess{
       m_ioContext,
       "/usr/bin/sha256sum",
-      {inputFilePath.c_str()},
+      {outputFilePath.string()},
       boost::process::v2::process_stdio{{}, pipe, {}}};
 
-  auto exitCode = checksumProcess.wait();
+  exitCode = checksumProcess.wait();
   if (exitCode != 0) {
     throw std::runtime_error{"failed to extract verify the hash of file " +
-                             inputFilePath.string() +
+                             outputFilePath.string() +
                              "(exit code = " + std::to_string(exitCode) + ')'};
   }
 
-  boost::system::error_code errorCode;
+  // Read output from the pipe and make sure it's a hash
+  // that is identical to what we expect
   std::string output;
-  while (!errorCode) {
-    std::array<char, 1024> buffer;
-    auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
-    output += std::string_view{buffer.data(), byteCount};
+  {
+    boost::system::error_code errorCode;
+    while (!errorCode) {
+      std::array<char, 1024> buffer;
+      auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
+      output += std::string_view{buffer.data(), byteCount};
+    }
   }
 
   if (output.size() > 64) output = output.substr(0, 64);
@@ -161,21 +199,20 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
 void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
   // TODO:
   if (!manifest.isMember("quiesce-at-dsblock") ||
-      !manifest.isMember("upgrade-at-dsblock") ||
-      !manifest.isMember("input-path")) {
+      !manifest.isMember("upgrade-at-dsblock") || !manifest.isMember("uuid")) {
     LOG_GENERAL(WARNING, "Malformed upgrade manifest");
     return;
   }
 
-  const std::filesystem::path inputFilePath{manifest["input-path"].asString()};
-  const std::filesystem::path outputPath =
-      std::filesystem::temp_directory_path() / "zilliqa-updater";
+  const auto updateDir = std::filesystem::temp_directory_path() / "zilliqa" /
+                         "updates" / manifest["uuid"].asString();
+  const auto inputFilePath = updateDir / "zilliqa.tar.gz";
 
   boost::process::v2::process untarProcess{
       m_ioContext,
       "/usr/bin/tar",
-      {"xfv", inputFilePath.c_str()},
-      boost::process::v2::process_start_dir{outputPath.string()}};
+      {"xfv", inputFilePath.string()},
+      boost::process::v2::process_start_dir{updateDir.string()}};
 
   auto exitCode = untarProcess.wait();
   if (exitCode != 0) {
@@ -190,25 +227,15 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
                              std::to_string(pids.size()) + ')'};
   }
 
-  // std::this_thread::sleep_for(std::chrono::seconds{5});
   auto zilliqPid = pids.front();
   std::unique_lock<std::mutex> guard{m_mutex};
   try {
     m_updateState = {inputFilePath, false};
     m_pipe = std::make_unique<zil::UpdatePipe>(m_ioContext, zilliqPid,
                                                "zilliqad", "zilliqa");
-    m_pipe->OnCommand = [this, quiesceDSBlock =
-                                   manifest["quiesce-at-dsblock"].asString()](
-                            std::string_view /*cmd*/) {
-      std::unique_lock<std::mutex> guard{m_mutex};
-      if (!m_updateState) return;
-
-      // TODO: parse
-      LOG_GENERAL(INFO,
-                  "Update acknowledged.. waiting for zilliqa to shutdown at "
-                      << quiesceDSBlock << " DS block");
-      m_updateState->Acknowledged = true;
-    };
+    m_pipe->OnCommand =
+        [this, quiesceDSBlock = manifest["quiesce-at-dsblock"].asString()](
+            std::string_view cmd) { HandleReply(cmd, quiesceDSBlock); };
     m_pipe->Start();
     m_pipe->SyncWrite('|' + std::to_string(zilliqPid) + ',' +
                       manifest["quiesce-at-dsblock"].asString() + ',' +
@@ -237,9 +264,7 @@ bool ZilliqaUpdater::Update() {
   }
 
   auto srcFile = m_updateState->InputPath.parent_path() / "zilliqa";
-  std::filesystem::path targetFile =
-      "/home/yaron/SoftwareDevelopment/Projects/zilliqa/Zilliqa/.build.vcpkg/"
-      "bin/zilliqa";
+  std::filesystem::path targetFile = "/usr/local/bin/zilliqa";
   std::filesystem::path backupFile = targetFile.string() + ".backup";
 
   // Create backup file
@@ -280,3 +305,29 @@ bool ZilliqaUpdater::Update() {
   m_updateState = std::nullopt;
   return true;
 }
+
+void ZilliqaUpdater::HandleReply(std::string_view cmd,
+                                 const std::string& quiesceDSBlock) {
+  std::unique_lock<std::mutex> guard{m_mutex};
+  if (!m_updateState) return;
+
+  auto first = cmd.find(",");
+  if (first == std::string::npos || first + 3 != cmd.size()) return;
+
+  std::size_t pos = 0;
+  std::string s{cmd.data(), first};
+  pid_t pid = std::stoi(s, &pos);
+  if (pid != getpid() || pos != s.size()) {
+    LOG_GENERAL(
+        WARNING,
+        "Ignoring invalid request from zilliqa from a different process");
+    return;
+  }
+
+  if (cmd[first + 1] != 'O' || cmd[first + 2] != 'K') return;
+
+  // TODO: parse
+  LOG_GENERAL(INFO, "Update acknowledged.. waiting for zilliqa to shutdown at "
+                        << quiesceDSBlock << " DS block");
+  m_updateState->Acknowledged = true;
+};
