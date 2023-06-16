@@ -28,10 +28,6 @@ UpdatePipe::~UpdatePipe() noexcept { Stop(); }
 void UpdatePipe::Start() { readSome(); }
 
 void UpdatePipe::Stop() {
-#if 0
-  m_readPipe.cancel();
-  m_writePipe.cancel();
-#endif
   m_readPipe.close();
   m_writePipe.close();
 }
@@ -61,10 +57,18 @@ bool UpdatePipe::SyncWrite(const std::string &buffer) {
 }
 
 void UpdatePipe::createReadPipe() {
+  if (m_readPipe.native_handle() > 0) {
+    close(m_readPipe.native_handle());
+  }
+
   m_readPipe = createPipe(m_readBaseName, O_RDWR);
 }
 
 void UpdatePipe::createWritePipe() {
+  if (m_writePipe.native_handle() > 0) {
+    close(m_writePipe.native_handle());
+  }
+
   m_writePipe = createPipe(m_writeBaseName, O_RDWR);
 }
 

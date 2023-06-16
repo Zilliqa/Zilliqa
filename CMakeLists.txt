@@ -59,7 +59,7 @@ find_package(Protobuf REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options iostreams REQUIRED)
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
 find_package(Schnorr REQUIRED)
 find_package(CryptoUtils REQUIRED)

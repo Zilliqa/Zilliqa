@@ -20,6 +20,8 @@
 
 #include "UpdatePipe.h"
 
+#include <optional>
+
 namespace zil {
 
 /**

@@ -27,6 +27,8 @@ void DaemonListener::Start() { m_pipe.Start(); }
 void DaemonListener::Stop() { m_pipe.Stop(); }
 
 void DaemonListener::parseCmd(std::string_view cmd) try {
+  LOG_GENERAL(DEBUG, "Received command: " << cmd);
+
   auto first = cmd.find(",");
   if (first == std::string::npos) return;
 
@@ -58,6 +60,8 @@ void DaemonListener::parseCmd(std::string_view cmd) try {
                 "Ignoring invalid request from daemon to quiesce at block "
                     << quiesceDSBlock << " and update at block "
                     << updateDSBlock);
+
+    m_pipe.SyncWrite("|" + std::to_string(getpid()) + ",REJECT|");
     return;
   }
 

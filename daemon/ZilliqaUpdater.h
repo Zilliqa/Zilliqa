@@ -25,6 +25,7 @@
 #include <json/json.h>
 
 #include <filesystem>
+#include <optional>
 #include <thread>
 
 class ZilliqaUpdater final {
@@ -71,7 +72,8 @@ class ZilliqaUpdater final {
 
   void Download(const Json::Value& manifest);
   void Upgrade(const Json::Value& manifest);
-  void HandleReply(std::string_view cmd, const std::string& quiesceDSBlock);
+  void HandleReply(std::string_view cmd, pid_t zilliqaPid,
+                   const std::string& quiesceDSBlock);
 };
 
 #endif  // ZILLIQA_UPDATER_ZILLIQAUPDATER_H_
