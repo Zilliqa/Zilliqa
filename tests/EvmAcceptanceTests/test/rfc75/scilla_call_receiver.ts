@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import hre from "hardhat";
-import {Contract} from "ethers";
+import {Contract, utils} from "ethers";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 
@@ -25,6 +25,11 @@ describe("RFC75 ScillaCallReceiver", function () {
   it("Should be deployed successfully", async function () {
     expect(solidityContract.address).to.be.properAddress;
     expect(scillaContract.address).to.be.properAddress;
+  });
+
+  it("Should support scilla receiver interface", async function() {
+    const scillaHandlerSignature = utils.id("handle_scilla_message(string,bytes)").slice(0, 10);
+    expect(await solidityContract.supportsInterface(scillaHandlerSignature)).to.be.true;
   });
 
   it("Should be reverted when a message from scilla is sent to evm having scilla receiver with call_mode = 0", async function () {
