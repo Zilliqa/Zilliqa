@@ -2,6 +2,7 @@
 
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
+#![allow(clippy::redundant_clone)]
 
 mod continuations;
 mod convert;
@@ -379,9 +380,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let ipc_server_handle: Arc<Mutex<Option<jsonrpc_ipc_server::CloseHandle>>> =
         Arc::new(Mutex::new(None));
+    #[allow(clippy::redundant_clone)]
     let ipc_server_handle_clone = ipc_server_handle.clone();
     let http_server_handle: Arc<Mutex<Option<jsonrpc_http_server::CloseHandle>>> =
         Arc::new(Mutex::new(None));
+    #[allow(clippy::redundant_clone)]
     let http_server_handle_clone = http_server_handle.clone();
 
     // Build and start the IPC server (Unix domain socket).
