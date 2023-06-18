@@ -27,7 +27,7 @@ describe("RFC75 ScillaCallReceiver", function () {
     expect(scillaContract.address).to.be.properAddress;
   });
 
-  it("Should support scilla receiver interface", async function() {
+  it("Should support scilla receiver interface", async function () {
     const scillaHandlerSignature = utils.id("handle_scilla_message(string,bytes)").slice(0, 10);
     expect(await solidityContract.supportsInterface(scillaHandlerSignature)).to.be.true;
   });
@@ -49,14 +49,14 @@ describe("RFC75 ScillaCallReceiver", function () {
   it("Should be reverted when a message from scilla is sent to evm having scilla receiver with call_mode > 1", async function () {
     const CALL_MODE = 2;
     await expect(solidityContract.callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL))
-        .to.be.reverted;
+      .to.be.reverted;
     expect(await scillaContract.value()).to.be.eq(0);
   });
 
   it("Should be reverted when a message from scilla is sent to evm having scilla receiver with call_mode < 0", async function () {
     const CALL_MODE = -1;
     await expect(solidityContract.callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL))
-        .to.be.reverted;
+      .to.be.reverted;
     expect(await scillaContract.value()).to.be.eq(0);
   });
 
@@ -71,7 +71,12 @@ describe("RFC75 ScillaCallReceiver", function () {
   it("Should be reverted when a message from scilla is sent to evm having scilla receiver with wrong transition name", async function () {
     const CALL_MODE = 1;
     await expect(
-        solidityContract.callScillaInsufficientParams(scillaContractAddress, "callXYZ", CALL_MODE, solidityContract.address)
+      solidityContract.callScillaInsufficientParams(
+        scillaContractAddress,
+        "callXYZ",
+        CALL_MODE,
+        solidityContract.address
+      )
     ).to.be.reverted;
     expect(await scillaContract.value()).to.be.eq(0);
   });
@@ -107,12 +112,12 @@ describe("RFC75 ScillaCallReceiver", function () {
   it("Should not change state when a message from scilla is sent to evm having scilla receiver with call_mode < 0", async function () {
     const CALL_MODE = -1;
     let resp = await solidityContract.callScilla(
-        scillaContractAddress,
-        "call",
-        CALL_MODE,
-        solidityContract.address,
-        VAL,
-        {gasLimit: 1000000}
+      scillaContractAddress,
+      "call",
+      CALL_MODE,
+      solidityContract.address,
+      VAL,
+      {gasLimit: 1000000}
     );
     await expect(resp.wait()).to.be.rejected;
     expect(await scillaContract.value()).to.be.eq(0);
@@ -121,12 +126,12 @@ describe("RFC75 ScillaCallReceiver", function () {
   it("Should not change state when a message from scilla is sent to evm having scilla receiver with call_mode > 1", async function () {
     const CALL_MODE = 2;
     let resp = await solidityContract.callScilla(
-        scillaContractAddress,
-        "call",
-        CALL_MODE,
-        solidityContract.address,
-        VAL,
-        {gasLimit: 1000000}
+      scillaContractAddress,
+      "call",
+      CALL_MODE,
+      solidityContract.address,
+      VAL,
+      {gasLimit: 1000000}
     );
     await expect(resp.wait()).to.be.rejected;
     expect(await scillaContract.value()).to.be.eq(0);
@@ -148,11 +153,11 @@ describe("RFC75 ScillaCallReceiver", function () {
   it("Should not change state when a message from scilla is sent to evm having scilla receiver with wrong transition name", async function () {
     const CALL_MODE = 1;
     let resp = await solidityContract.callScillaInsufficientParams(
-        scillaContractAddress,
-        "callXYZ",
-        CALL_MODE,
-        solidityContract.address,
-        {gasLimit: 1000000}
+      scillaContractAddress,
+      "callXYZ",
+      CALL_MODE,
+      solidityContract.address,
+      {gasLimit: 1000000}
     );
     await expect(resp.wait()).to.be.rejected;
     expect(await scillaContract.value()).to.be.eq(0);
