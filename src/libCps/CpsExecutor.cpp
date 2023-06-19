@@ -229,7 +229,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
 
-  uint64_t gasRemainingCore = GetRemainedGasCore(runResult);
+  uint64_t gasRemainingCore = cpsCtx.gasLeftCore;
 
   if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(runResult.result);
@@ -247,6 +247,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
                                  << ", Failure: " << isFailure);
 
   const auto usedGasCore = givenGasCore - gasRemainingCore;
+  LOG_GENERAL(WARNING, "GAS USE CORE: " << usedGasCore << ", EVMGASUSED: " << GasConv::GasUnitsFromCoreToEth(usedGasCore));
 
   // failure or Estimate/EthCall mode
   if (isFailure || isEstimate || isEthCall) {

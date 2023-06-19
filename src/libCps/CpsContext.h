@@ -31,6 +31,26 @@ struct CpsContext {
   evm::EvmEvalExtras evmExtras;
   ScillaProcessContext scillaExtras;
 };
+
+struct GasTrack {
+ public:
+  void decreaseByCore(uint64_t coreVal) {
+
+  }
+  void decreaseByEth(uint64_t coreVal) {
+
+  }
+  void increaseByCore(uint64_t coreVal) {
+
+  }
+  void increaseByEth(uint64_t ethVal) {
+
+  }
+private:
+  uint64_t gasCore = 0;
+  uint64_t ethRemainder = 0;
+};
+
 }  // namespace libCps
 
 #endif  // ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_

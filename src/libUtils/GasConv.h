@@ -30,6 +30,10 @@ class GasConv {
     return gasLimit * GetScalingFactor();
   }
 
+  static uint64_t GasUnitsFromEthToCoreCeil(uint64_t gasLimit) {
+    return gasLimit / GetScalingFactor() + 1;
+  }
+
   static uint64_t GetScalingFactor() { return MIN_ETH_GAS / NORMAL_TRAN_GAS; }
 };
 
