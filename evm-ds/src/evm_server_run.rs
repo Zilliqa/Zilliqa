@@ -4,13 +4,12 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-//use ::call_context::CallContext;
-//use ::call_context::LoggingEventListener;
 use evm::backend::Backend;
 use evm::executor::stack::MemoryStackSubstate;
 use evm::{
     backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
+    CreateScheme, Handler,
 };
 use evm::{Machine, Runtime};
 
@@ -233,7 +232,7 @@ fn build_exit_result<B: Backend>(
                     } => {
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
-                        //modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
+                        modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
                         modify.set_nonce(basic.nonce.into());
                         if let Some(code) = code {
                             modify.set_code(code.into());
@@ -308,7 +307,7 @@ fn build_call_result<B: Backend>(
                         debug!("Modify: {:?} {:?}", address, basic);
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
-                        //modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
+                        modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
                         modify.set_nonce(basic.nonce.into());
                         if let Some(code) = code {
                             modify.set_code(code.into());
@@ -431,6 +430,24 @@ fn handle_panic(trace: String, remaining_gas: u64, reason: &str) -> EvmProto::Ev
     result.set_tx_trace(trace.into());
     result.set_remaining_gas(remaining_gas);
     result
+}
+
+// Convenience fn to hide the evm internals and just
+// let you calculate contract address as easily as possible
+#[allow(dead_code)]
+pub fn calculate_contract_address(address: H160, backend: impl Backend) -> H160 {
+    let config = evm::Config {
+        estimate: false,
+        call_l64_after_gas: false,
+        ..evm::Config::london()
+    };
+
+    let metadata = StackSubstateMetadata::new(1, &config);
+    let state = MemoryStackState::new(metadata, &backend);
+    let precompiles = get_precompiles();
+
+    let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, true);
+    executor.get_create_address(CreateScheme::Legacy { caller: address })
 }
 
 #[allow(clippy::too_many_arguments, dead_code)]
@@ -654,7 +671,6 @@ pub fn run_evm_impl_direct(
         hex::encode(data.deref()),
         estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
 
-    //Ok(base64::encode(result.write_to_bytes().unwrap()))
     result
 }
 
