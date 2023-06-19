@@ -5,6 +5,21 @@ import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
+
+  before(async function () {
+      const METHOD = "ots_enable";
+
+      // Make sure traceing is enabled
+      await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {
+        assert.equal(status, 200, "has status code");
+      });
+
+  });
+
+  it("When we revert the TX, we can get the tx error ", async function () {
+    assert(true);
+  });
+
   it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
     const REVERT_MESSAGE = "Transaction too old";

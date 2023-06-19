@@ -12,6 +12,13 @@ describe("Chained Contract Calls Functionality", function () {
     contractOne = await parallelizer.deployContract("ContractOne");
     contractTwo = await parallelizer.deployContract("ContractTwo");
     contractThree = await parallelizer.deployContract("ContractThree");
+
+    // Make sure traceing is enabled
+    const METHOD = "ots_enable";
+
+    await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {
+      assert.equal(status, 200, "has status code");
+    });
   });
 
   describe("Install and call chained contracts", function () {

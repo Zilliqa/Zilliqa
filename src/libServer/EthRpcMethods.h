@@ -585,6 +585,18 @@ class EthRpcMethods {
   }
 
   /**
+   * @brief Handles json rpc 2.0 request on method: ots_enable
+   * @param request : none
+   * @param response : none
+   */
+  inline virtual void OtterscanEnableI(const Json::Value& request,
+                                                      Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    std::cerr << "Enabling otterscan" << std::endl;
+    ARCHIVAL_LOOKUP_WITH_TX_TRACES = !ARCHIVAL_LOOKUP_WITH_TX_TRACES;
+  }
+
+  /**
    * @brief Handles json rpc 2.0 request on method: ots_getInternalOperations
    * @param request : transaction hash
    * @param response : transaction internal operations
