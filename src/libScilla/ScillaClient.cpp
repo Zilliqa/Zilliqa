@@ -78,29 +78,6 @@ void ScillaClient::Init() {
   }
 }
 
-bool ScillaClient::isScillaRuning() {
-  std::string cmdStr = "ps aux | awk '{print $2\"\\t\"$11}' | grep \"" +
-                       SCILLA_SERVER_BINARY + "\" | awk '{print $1}'";
-  std::string result;
-  try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT, cmdStr, result)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-      return false;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
-    return false;
-  } catch (...) {
-    LOG_GENERAL(WARNING, "Unknown error encountered");
-    return false;
-  }
-  if (result.empty()) {
-    return false;
-  }
-  return true;
-}
-
 bool ScillaClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
@@ -190,23 +167,16 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
     std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("check", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
-    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
+    LOG_GENERAL(WARNING,
+                "CallChecker failed: " << e.what() << " code: " << e.GetCode());
+    if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
+        e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR) {
       if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallChecker(version, _json, result, counter - 1);
       }
     } else {
-      if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
-          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
-        LOG_GENERAL(WARNING, "Looks like connection problem");
-        if (!isScillaRuning()) {
-          LOG_GENERAL(WARNING, "Scilla is not running");
-          CheckClient(version,true);
-        }
-        return CallChecker(version, _json, result, counter - 1);
-      }
+      LOG_GENERAL(WARNING, "Error: Condition should not hit");
       result = e.what();
     }
 
@@ -235,23 +205,16 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
     std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("run", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
-    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
+    LOG_GENERAL(WARNING,
+                "CallRunner failed: " << e.what() << " code: " << e.GetCode());
+    if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
+        e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR) {
       if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallRunner(version, _json, result, counter - 1);
       }
     } else {
-      if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
-          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
-        LOG_GENERAL(WARNING, "Looks like connection problem");
-        if (!isScillaRuning()) {
-          LOG_GENERAL(WARNING, "Scilla is not running");
-          CheckClient(version,true);
-        }
-        return CallChecker(version, _json, result, counter - 1);
-      }
+      LOG_GENERAL(WARNING, "Error: Condition should not hit");
       result = e.what();
     }
 
@@ -281,23 +244,15 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
     result =
         m_clients.at(version)->CallMethod("disambiguate", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallDisambiguate failed: " << e.what());
-    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
+    LOG_GENERAL(WARNING, "CallDisambiguate failed: " << e.what()<< " code: "<<e.GetCode());
+    if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
+        e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR) {
       if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallDisambiguate(version, _json, result, counter - 1);
       }
     } else {
-      if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
-          e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
-        LOG_GENERAL(WARNING, "Looks like connection problem");
-        if (!isScillaRuning()) {
-          LOG_GENERAL(WARNING, "Scilla is not running");
-          CheckClient(version,true);
-        }
-        return CallChecker(version, _json, result, counter - 1);
-      }
+      LOG_GENERAL(WARNING, "Error: Condition should not hit");
       result = e.what();
     }
 
