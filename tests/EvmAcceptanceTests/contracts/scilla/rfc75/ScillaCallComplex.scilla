@@ -1,0 +1,30 @@
+scilla_version 0
+
+
+library ScillaCallComplexLib
+
+let one_msg =
+  fun (msg : Message) =>
+  let nil_msg = Nil {Message} in
+    Cons {Message} msg nil_msg
+
+contract ScillaCallComplex
+(
+)
+
+field value: Uint128 = Uint128 0
+
+field simpleMap: Map ByStr20 Uint128
+  = Emp ByStr20 Uint128
+
+ field nestedMap: Map ByStr20 (Map ByStr20 Uint128)
+    = Emp ByStr20 (Map ByStr20 Uint128)
+
+transition setValue(to: ByStr20, val: Uint128)
+    simpleMap[to] := val;
+    nestedMap[to][to] := val;
+    value := val;
+    msg = {_tag : "SomeMessage"; _recipient : to; sender : _sender; recipient : to; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg
+end

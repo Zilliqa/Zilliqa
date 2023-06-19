@@ -269,8 +269,10 @@ void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
     indicesVector.emplace_back(ss.str());
   }
 
+  // Query state also from not committed changes yet
+  constexpr bool FROM_TEMP_STATE = true;
   if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
-          response, address, vname, indicesVector)) {
+          response, address, vname, indicesVector, FROM_TEMP_STATE)) {
     LOG_GENERAL(WARNING, "Unable to fetch json state for addr " << address);
   }
 
