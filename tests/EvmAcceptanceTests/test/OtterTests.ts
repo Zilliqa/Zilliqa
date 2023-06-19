@@ -17,10 +17,6 @@ describe("Otterscan api tests", function () {
   });
 
   it("When we revert the TX, we can get the tx error ", async function () {
-    assert(true);
-  });
-
-  it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
     const REVERT_MESSAGE = "Transaction too old";
 
