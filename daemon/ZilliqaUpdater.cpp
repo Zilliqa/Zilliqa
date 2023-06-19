@@ -79,6 +79,21 @@ zbytes calcSHA256(const std::filesystem::path& filePath) {
   return sha2Calculator.Finalize();
 }
 
+int downloadFromS3(boost::asio::io_context& ioContext, const std::string& url,
+                   const std::filesystem::path& outputFilePath) {
+  std::vector<std::string> args = {"s3", "cp", url, outputFilePath.string()};
+  auto awsEndpointUrl = getenv("AWS_ENDPOINT_URL");
+  if (awsEndpointUrl) {
+    args.insert(std::begin(args),
+                "--endpoint-url=" + std::string{awsEndpointUrl});
+  }
+
+  boost::process::v2::process downloadProcess{ioContext, "/usr/local/bin/aws",
+                                              args};
+
+  return downloadProcess.wait();
+}
+
 }  // namespace
 
 ZilliqaUpdater::~ZilliqaUpdater() noexcept { Stop(); }
@@ -121,20 +136,8 @@ void ZilliqaUpdater::CheckUpdate() try {
   const auto updatesDir =
       std::filesystem::temp_directory_path() / "zilliqa" / "updates";
   const auto manifestPath = updatesDir / "manifest";
-
   const std::string& manifestUrl = "s3://zilliqa/updates/manifest";
-  std::vector<std::string> args = {"s3", "cp", manifestUrl,
-                                   manifestPath.string()};
-  auto awsEndpointUrl = getenv("AWS_ENDPOINT_URL");
-  if (awsEndpointUrl) {
-    args.insert(std::begin(args),
-                "--endpoint-url=" + std::string{awsEndpointUrl});
-  }
-
-  boost::process::v2::process downloadProcess{m_ioContext, "/usr/local/bin/aws",
-                                              args};
-
-  auto exitCode = downloadProcess.wait();
+  auto exitCode = downloadFromS3(m_ioContext, manifestUrl, manifestPath);
   if (exitCode != 0) {
     throw std::runtime_error{"failed to download manifest from " + manifestUrl +
                              "(exit code = " + std::to_string(exitCode) + ')'};
@@ -214,21 +217,10 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
   auto outputFilePath = updateDir / "zilliqa.tar.bz2";
   const auto& downloadUrl = manifest["url"].asString();
   LOG_GENERAL(INFO, "Downloading from " << downloadUrl);
-
-  std::vector<std::string> args = {"s3", "cp", downloadUrl,
-                                   outputFilePath.string()};
-  auto awsEndpointUrl = getenv("AWS_ENDPOINT_URL");
-  if (awsEndpointUrl) {
-    args.insert(std::begin(args),
-                "--endpoint-url=" + std::string{awsEndpointUrl});
-  }
-  boost::process::v2::process downloadProcess{m_ioContext, "/usr/local/bin/aws",
-                                              args};
-
-  auto exitCode = downloadProcess.wait();
+  auto exitCode = downloadFromS3(m_ioContext, downloadUrl, outputFilePath);
   if (exitCode != 0) {
     throw std::runtime_error{"failed to download file from " + downloadUrl +
-                             "(exit code = " + std::to_string(exitCode) + ')'};
+                             "( exit code = " + std::to_string(exitCode) + ')'};
   }
 
   std::string expectedSha256;
