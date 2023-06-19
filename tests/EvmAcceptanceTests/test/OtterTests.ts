@@ -5,6 +5,17 @@ import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
+
+  before(async function () {
+      const METHOD = "ots_enable";
+
+      // Make sure traceing is enabled
+      await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {
+        assert.equal(status, 200, "has status code");
+      });
+
+  });
+
   it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
     const REVERT_MESSAGE = "Transaction too old";
@@ -18,8 +29,6 @@ describe("Otterscan api tests", function () {
     // In order to make a tx that fails at runtime and not estimate gas time, we estimate the gas of
     // a similar passing call and use this (+30% leeway) to override the gas field
     const estimatedGas = await this.contract.estimateGas.requireCustom(true, REVERT_MESSAGE);
-
-    console.log("Estimated gas: ", estimatedGas);
 
     const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, {gasLimit: estimatedGas.mul(130).div(100)});
 
