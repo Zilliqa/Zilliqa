@@ -169,6 +169,8 @@ describe("ERC20 Is ZRC2", function () {
   });
 
   it("Should not be able to transfer to evm contract when scilla receiver handler is present", async function () {
+    const scillaSignature = utils.id("handle_scilla_message(string,bytes)").slice(0, 10);
+    expect(await erc165_contract.supportsInterface(scillaSignature)).to.be.true;
     expect(erc20_contract.transfer(erc165_contract.address, 150)).to.be.reverted;
     const zrc2Tokens = await erc20_contract.balanceOf(erc165_contract.address);
     expect(zrc2Tokens).to.be.eq(0);
