@@ -96,6 +96,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   }
 
   CpsContext cpsCtx{.origSender = clientContext.origin,
+                    .gasLeftCore = static_cast<int64_t>(clientContext.gasLimit),
                     .isStatic = false,
                     .estimate = false,
                     .evmExtras = CpsUtils::FromScillaContext(clientContext),
@@ -125,20 +126,17 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
                         ? CpsRun::Call
                         : CpsRun::Create;
 
-  auto args = ScillaArgs{
-      .from = cpsCtx.scillaExtras.origin,
-      .dest = cpsCtx.scillaExtras.recipient,
-      .origin = cpsCtx.scillaExtras.origin,
-      .value = Amount::fromQa(cpsCtx.scillaExtras.amount),
-      .calldata =
-          ScillaArgs::CodeData{
-              cpsCtx.scillaExtras.code,
-              cpsCtx.scillaExtras.data,
-          },
-      .edge = 0,
-      .depth = 0,
-      .gasLimit = cpsCtx.scillaExtras.gasLimit,
-  };
+  auto args = ScillaArgs{.from = cpsCtx.scillaExtras.origin,
+                         .dest = cpsCtx.scillaExtras.recipient,
+                         .origin = cpsCtx.scillaExtras.origin,
+                         .value = Amount::fromQa(cpsCtx.scillaExtras.amount),
+                         .calldata =
+                             ScillaArgs::CodeData{
+                                 cpsCtx.scillaExtras.code,
+                                 cpsCtx.scillaExtras.data,
+                             },
+                         .edge = 0,
+                         .depth = 0};
 
   auto scillaRun =
       std::make_shared<CpsRunScilla>(std::move(args), *this, cpsCtx, type);
@@ -203,11 +201,13 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   TakeGasFromAccount(clientContext);
 
-  const CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
-                          clientContext.GetDirect(),
-                          clientContext.GetEvmArgs().estimate(),
-                          clientContext.GetEvmArgs().extras(),
-                          CpsUtils::FromEvmContext(clientContext)};
+  CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
+                    static_cast<int64_t>(GasConv::GasUnitsFromEthToCore(
+                        clientContext.GetEvmArgs().gas_limit())),
+                    clientContext.GetDirect(),
+                    clientContext.GetEvmArgs().estimate(),
+                    clientContext.GetEvmArgs().extras(),
+                    CpsUtils::FromEvmContext(clientContext)};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create

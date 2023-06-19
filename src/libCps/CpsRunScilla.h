@@ -56,7 +56,6 @@ struct ScillaArgs {
   std::variant<CodeData, Json::Value> calldata;
   uint32_t edge = 0;
   uint32_t depth = 0;
-  uint64_t gasLimit = 0;
   std::optional<ScillaArgExtras> extras = std::nullopt;
 };
 
@@ -64,7 +63,7 @@ class CpsRunScilla final : public CpsRun {
   using Address = dev::h160;
 
  public:
-  CpsRunScilla(ScillaArgs args, CpsExecutor& executor, const CpsContext& ctx,
+  CpsRunScilla(ScillaArgs args, CpsExecutor& executor, CpsContext& ctx,
                CpsRun::Type type);
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   void ProvideFeedback(const CpsRun& /* previousRun */,
@@ -89,7 +88,7 @@ class CpsRunScilla final : public CpsRun {
  private:
   ScillaArgs mArgs;
   CpsExecutor& mExecutor;
-  const CpsContext& mCpsContext;
+  CpsContext& mCpsContext;
 };
 
 }  // namespace libCps

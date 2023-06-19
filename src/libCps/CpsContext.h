@@ -25,6 +25,7 @@ namespace libCps {
 struct CpsContext {
   using Address = dev::h160;
   Address origSender;
+  int64_t gasLeftCore = 0;
   bool isStatic = false;
   bool estimate = false;
   evm::EvmEvalExtras evmExtras;

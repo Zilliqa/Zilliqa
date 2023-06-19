@@ -180,7 +180,7 @@ void ScillaHelpers::CreateScillaCodeFiles(
 bool ScillaHelpers::ParseContractCheckerOutput(
     CpsAccountStoreInterface &acc_store, const Address &addr,
     const std::string &checkerPrint, TransactionReceipt &receipt,
-    std::map<std::string, zbytes> &metadata, uint64_t &gasRemained,
+    std::map<std::string, zbytes> &metadata, int64_t &gasRemained,
     bool is_library) {
   LOG_MARKER();
 
@@ -215,7 +215,7 @@ bool ScillaHelpers::ParseContractCheckerOutput(
     try {
       gasRemained = std::min(
           gasRemained,
-          boost::lexical_cast<uint64_t>(root["gas_remaining"].asString()));
+          boost::lexical_cast<int64_t>(root["gas_remaining"].asString()));
     } catch (...) {
       LOG_GENERAL(WARNING, "_amount " << root["gas_remaining"].asString()
                                       << " is not numeric");

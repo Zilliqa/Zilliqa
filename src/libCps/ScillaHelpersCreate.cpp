@@ -38,7 +38,7 @@ namespace libCps {
 
 constexpr auto MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
-bool ScillaHelpersCreate::ParseCreateContract(uint64_t &gasRemained,
+bool ScillaHelpersCreate::ParseCreateContract(int64_t &gasRemained,
                                               const std::string &runnerPrint,
                                               TransactionReceipt &receipt,
                                               bool is_library) {
@@ -73,8 +73,8 @@ bool ScillaHelpersCreate::ParseCreateContractOutput(
 }
 
 bool ScillaHelpersCreate::ParseCreateContractJsonOutput(
-    const Json::Value &_json, uint64_t &gasRemained,
-    TransactionReceipt &receipt, bool is_library) {
+    const Json::Value &_json, int64_t &gasRemained, TransactionReceipt &receipt,
+    bool is_library) {
   // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
@@ -89,7 +89,7 @@ bool ScillaHelpersCreate::ParseCreateContractJsonOutput(
     return false;
   }
   try {
-    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+    gasRemained = std::min(gasRemained, boost::lexical_cast<int64_t>(
                                             _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()

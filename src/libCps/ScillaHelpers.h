@@ -81,7 +81,7 @@ class ScillaHelpers final {
   static bool ParseContractCheckerOutput(
       CpsAccountStoreInterface &acc_store, const Address &addr,
       const std::string &checkerPrint, TransactionReceipt &receipt,
-      std::map<std::string, zbytes> &metadata, uint64_t &gasRemained,
+      std::map<std::string, zbytes> &metadata, int64_t &gasRemained,
       bool is_library = false);
 
   static bool PopulateExtlibsExports(

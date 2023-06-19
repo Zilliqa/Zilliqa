@@ -22,6 +22,7 @@
 #include "libScilla/ScillaUtils.h"
 
 #include "libCps/CpsAccountStoreInterface.h"
+#include "libCps/CpsContext.h"
 #include "libCps/CpsRunScilla.h"
 #include "libCps/ScillaHelpersCall.h"
 
@@ -36,7 +37,7 @@ namespace libCps {
 constexpr auto MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 ScillaCallParseResult ScillaHelpersCall::ParseCallContract(
-    CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+    CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
     ScillaArgs &scillaArgs, const std::string &runnerPrint,
     TransactionReceipt &receipt, uint32_t scillaVersion) {
   Json::Value jsonOutput;
@@ -83,7 +84,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractOutput(
 
 /// parse the output from interpreter for calling and update states
 ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
-    CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+    CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
     ScillaArgs &scillaArgs, const Json::Value &_json,
     TransactionReceipt &receipt, uint32_t preScillaVersion) {
   std::chrono::system_clock::time_point tpStart;
@@ -95,25 +96,27 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     LOG_GENERAL(
         WARNING,
         "The json output of this contract didn't contain gas_remaining");
-    if (scillaArgs.gasLimit > CONTRACT_INVOKE_GAS) {
-      scillaArgs.gasLimit -= CONTRACT_INVOKE_GAS;
+    if (cpsContext.gasLeftCore > CONTRACT_INVOKE_GAS) {
+      cpsContext.gasLeftCore -= CONTRACT_INVOKE_GAS;
     } else {
-      scillaArgs.gasLimit = 0;
+      cpsContext.gasLeftCore = 0;
     }
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return {};
   }
   // uint64_t startGas = gasRemained;
+  int64_t gasRemained = 0;
   try {
-    scillaArgs.gasLimit = std::min(
-        scillaArgs.gasLimit,
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString()));
+    gasRemained =
+        boost::lexical_cast<int64_t>(_json["gas_remaining"].asString());
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
     return {};
   }
-  LOG_GENERAL(INFO, "gasRemained: " << scillaArgs.gasLimit);
+  cpsContext.gasLeftCore += gasRemained;
+  LOG_GENERAL(INFO, "gasRemained: " << gasRemained << ", total gas left: "
+                                    << cpsContext.gasLeftCore);
 
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {

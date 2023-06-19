@@ -52,7 +52,7 @@ class ScillaHelpersCall final {
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   static ScillaCallParseResult ParseCallContract(
-      CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+      CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
       ScillaArgs &args, const std::string &runnerPrint,
       TransactionReceipt &receipt, uint32_t scilla_version);
 
@@ -63,7 +63,7 @@ class ScillaHelpersCall final {
 
   /// parse the output from interpreter for calling and update states
   static ScillaCallParseResult ParseCallContractJsonOutput(
-      CpsAccountStoreInterface &acc_store, const CpsContext &cpsContext,
+      CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
       ScillaArgs &args, const Json::Value &_json, TransactionReceipt &receipt,
       uint32_t pre_scilla_version);
 };
