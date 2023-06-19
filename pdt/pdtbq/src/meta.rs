@@ -1,3 +1,4 @@
+use crate::utils;
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use gcp_bigquery_client::model::{
@@ -8,20 +9,12 @@ use gcp_bigquery_client::Client;
 use std::ops::Range;
 use tokio::time::{sleep, Duration};
 
-pub const DATASET_ID: &str = "zilliqa";
-pub const METADATA_TABLE_ID: &str = "meta";
-
 pub struct Meta {
-    nr_machines: i64,
-    nr_blks: i64,
-    batch_blks: i64,
-    machine_id: i64,
-    project_id: String,
-    table_name: String,
-    client_id: String,
+    table: utils::BigQueryTableLocation,
+    pub coords: utils::ProcessCoordinates,
 }
 
-/// the metadata table holds a list of the ranges which have been imported,
+/// A metadata table holds a list of the ranges which have been imported,
 /// so that we can arrange to import the rest.
 /// it contains records:
 /// (start_block, end_block, when)
@@ -41,32 +34,22 @@ pub struct Meta {
 impl Meta {
     /// Create a structure
     pub fn new(
-        project_id: &str,
-        nr_machines: i64,
-        nr_blks: i64,
-        batch_blks: i64,
-        machine_id: i64,
-        client_id: &str,
-    ) -> Self {
-        let table_name = format!("{}.{}.{}", project_id, DATASET_ID, METADATA_TABLE_ID);
-        Meta {
-            nr_machines,
-            nr_blks,
-            batch_blks,
-            machine_id,
-            project_id: project_id.to_string(),
-            table_name,
-            client_id: client_id.to_string(),
-        }
+        bq: &utils::BigQueryTableLocation,
+        coords: &utils::ProcessCoordinates,
+    ) -> Result<Self> {
+        Ok(Meta {
+            table: bq.clone(),
+            coords: coords.clone(),
+        })
     }
 
     pub async fn ensure_table(&self, client: &Client) -> Result<()> {
         if let Err(_) = client
             .table()
             .get(
-                &self.project_id,
-                DATASET_ID,
-                METADATA_TABLE_ID,
+                &self.table.dataset.project_id,
+                &self.table.dataset.dataset_id,
+                &self.table.table_id,
                 Option::None,
             )
             .await
@@ -78,9 +61,9 @@ impl Meta {
 
     pub async fn create_table(&self, client: &Client) -> Result<Table> {
         let metadata_table = Table::new(
-            &self.project_id,
-            DATASET_ID,
-            METADATA_TABLE_ID,
+            &self.table.dataset.project_id,
+            &self.table.dataset.dataset_id,
+            &self.table.table_id,
             TableSchema::new(vec![
                 TableFieldSchema::string("client_id"),
                 TableFieldSchema::date_time("event_stamp"),
@@ -97,9 +80,9 @@ impl Meta {
                 Ok(client
                     .table()
                     .get(
-                        &self.project_id,
-                        DATASET_ID,
-                        METADATA_TABLE_ID,
+                        &self.table.dataset.project_id,
+                        &self.table.dataset.dataset_id,
+                        &self.table.table_id,
                         Option::None,
                     )
                     .await?)
@@ -107,6 +90,7 @@ impl Meta {
         }
     }
 
+    /// decide if the range start..nr_blks is covered by the metadata table already.
     pub async fn is_range_covered_by_entry(
         &self,
         client: &Client,
@@ -114,11 +98,10 @@ impl Meta {
         nr_blks: i64,
     ) -> Result<Option<(i64, String)>> {
         let query = format!("SELECT start_blk,nr_blks,client_id FROM {} WHERE start_blk <= {} and nr_blks >= {} - start_blk ORDER BY nr_blks DESC LIMIT 1",
-                            self.table_name, start, nr_blks + start);
-        // println!("Q: {}", query);
+                            self.table.get_table_desc(), start, nr_blks + start);
         let mut result = client
             .job()
-            .query(&self.project_id, QueryRequest::new(&query))
+            .query(&self.table.dataset.project_id, QueryRequest::new(&query))
             .await?;
         if result.next_row() {
             Ok(Some((
@@ -132,6 +115,7 @@ impl Meta {
         }
     }
 
+    /// Find the next range of blocks for this client to perform, starting at start_at_in.
     pub async fn find_next_range_to_do(
         &self,
         client: &Client,
@@ -140,15 +124,15 @@ impl Meta {
         let mut start_at: i64 = start_at_in;
         loop {
             let next_range = self
-                .find_next_free_range(client, start_at, self.nr_blks)
+                .find_next_free_range(client, start_at, self.coords.nr_blks)
                 .await?;
 
             println!(
                 "{}: next_range {:?} start_at {} max_blk {}",
-                self.client_id, next_range, start_at, self.nr_blks
+                self.coords.client_id, next_range, start_at, self.coords.nr_blks
             );
             // The next range starts above the max_blk, so we don't really care.
-            if next_range.start >= self.nr_blks {
+            if next_range.start >= self.coords.nr_blks {
                 return Ok(None);
             }
 
@@ -156,10 +140,11 @@ impl Meta {
             // Our next batch is at start + nr * batch_size.
 
             // skip_blocks is the gap between one of our batches and the next one.
-            let skip_blocks = self.batch_blks * self.nr_machines;
+            let skip_blocks = self.coords.batch_blks * self.coords.nr_machines;
             let batch_start = next_range.start - next_range.start % (skip_blocks);
-            let mut our_next_batch_start = batch_start + (self.machine_id * self.batch_blks);
-            let mut our_next_batch_end = our_next_batch_start + self.batch_blks;
+            let mut our_next_batch_start =
+                batch_start + (self.coords.machine_id * self.coords.batch_blks);
+            let mut our_next_batch_end = our_next_batch_start + self.coords.batch_blks;
             println!(
                 "batch_start {} our_next_batch_start {} our_next_batch_end {}",
                 batch_start, our_next_batch_start, our_next_batch_end
@@ -175,7 +160,7 @@ impl Meta {
             // Does it overlap?
             println!(
                 "{}: ours {} .. {}",
-                self.client_id, our_next_batch_start, our_next_batch_end
+                self.coords.client_id, our_next_batch_start, our_next_batch_end
             );
             let start_range = std::cmp::max(next_range.start, our_next_batch_start);
             let end_range = std::cmp::min(next_range.end, our_next_batch_end);
@@ -184,7 +169,7 @@ impl Meta {
                     start: start_range,
                     end: end_range,
                 };
-                println!("{}: OK. Fetching {:?}", self.client_id, result);
+                println!("{}: OK. Fetching {:?}", self.coords.client_id, result);
                 return Ok(Some(result));
             }
             start_at = next_range.end;
@@ -199,9 +184,9 @@ impl Meta {
     ) -> Result<Option<Range<i64>>> {
         let mut result = client
             .job()
-            .query(&self.project_id,
+            .query(&self.table.dataset.project_id,
                    QueryRequest::new(format!("SELECT start_blk, nr_blks FROM {} WHERE start_blk >= {} AND nr_blks > 0  ORDER BY start_blk ASC, nr_blks DESC LIMIT 1",
-                                             self.table_name, blk_to_find))).await?;
+                                             self.table.get_table_desc(), blk_to_find))).await?;
         if result.next_row() {
             let start_blk = result
                 .get_i64(0)?
@@ -219,14 +204,15 @@ impl Meta {
     }
 
     pub fn get_nr_blocks(&self) -> i64 {
-        return self.nr_blks;
+        return self.coords.nr_blks;
     }
     pub async fn commit_run(&self, client: &Client, range: &Range<i64>) -> Result<()> {
         let _ = client
             .job()
-            .query(&self.project_id,
+            .query(&self.table.dataset.project_id,
                    QueryRequest::new(format!("INSERT INTO {} (client_id, event_stamp, start_blk, nr_blks) VALUES (\"{}\",CURRENT_DATETIME(), {}, {})",
-                                             self.table_name, self.client_id, range.start, range.end-range.start)))
+                                             self.table.get_table_desc(),
+                                             self.coords.client_id, range.start, range.end-range.start)))
             .await?;
         Ok(())
     }
@@ -243,18 +229,21 @@ impl Meta {
         // Otherwise, we're set up.
         println!(
             "{}, find_next_free_range() start at {} max {}",
-            self.client_id, start_at, max_blk
+            self.coords.client_id, start_at, max_blk
         );
         while result.is_none() {
             let blk_to_find = match &current_run {
                 Some(val) => val.end,
                 None => start_at,
             };
-            println!("{}: Find next range above {}", self.client_id, blk_to_find);
+            println!(
+                "{}: Find next range above {}",
+                self.coords.client_id, blk_to_find
+            );
             match self.find_next_gap_above(client, blk_to_find).await? {
                 None => {
                     // There is no next range. Commit the current run if we should
-                    println!("{}: No next range", self.client_id);
+                    println!("{}: No next range", self.coords.client_id);
                     result = Some(Range {
                         start: blk_to_find,
                         end: max_blk + 1,
@@ -264,7 +253,7 @@ impl Meta {
                     // There is a next range of done blocks. Is it contiguous with the one we have?
                     println!(
                         "{}: Next range {:?} current {:?}",
-                        self.client_id, have_run, current_run
+                        self.coords.client_id, have_run, current_run
                     );
                     if let Some(current_run_val) = &current_run {
                         if current_run_val.end == have_run.start {
@@ -274,13 +263,16 @@ impl Meta {
                                 end: have_run.end,
                             });
                             should_commit_current_run = true;
-                            println!("{}: Extended run to {:?}", self.client_id, current_run);
+                            println!(
+                                "{}: Extended run to {:?}",
+                                self.coords.client_id, current_run
+                            );
                         } else {
                             result = Some(Range {
                                 start: current_run_val.end,
                                 end: have_run.start,
                             });
-                            println!("{}: Found a gap at {:?}", self.client_id, result);
+                            println!("{}: Found a gap at {:?}", self.coords.client_id, result);
                         }
                     } else {
                         // There was no current run. make one.
@@ -292,7 +284,7 @@ impl Meta {
                             });
                             println!(
                                 "{}: Hole at the start result = {:?}",
-                                self.client_id, result
+                                self.coords.client_id, result
                             );
                         }
                         current_run = Some(have_run);
@@ -303,13 +295,13 @@ impl Meta {
         }
         if let Some(run_val) = current_run {
             if should_commit_current_run {
-                println!("{}: Commit run {:?}", self.client_id, run_val);
+                println!("{}: Commit run {:?}", self.coords.client_id, run_val);
                 self.commit_run(client, &run_val).await?;
             }
         }
         // Legal because if the result is not present here, something has gone very wrong
         // with our logic.
-        println!("{}: Result {:?}", self.client_id, result);
+        println!("{}: Result {:?}", self.coords.client_id, result);
         Ok(result.unwrap())
     }
 }

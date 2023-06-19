@@ -2,6 +2,7 @@
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use pdtbq::bq::ZilliqaBQProject;
+use pdtbq::utils::{BigQueryDatasetLocation, ProcessCoordinates};
 use pdtbq::values;
 use pdtlib::exporter::Exporter;
 use std::ops::Range;
@@ -9,6 +10,7 @@ use std::path::Path;
 use tokio::task::JoinSet;
 
 const PROJECT_ID: &str = "rrw-bigquery-test-id";
+const DATASET_ID: &str = "testnet";
 const SERVICE_ACCOUNT_KEY_FILE: &str =
     "/home/rrw/work/zilliqa/src/secrets/rrw-bigquery-test-id-8401353b2800.json";
 
@@ -20,18 +22,21 @@ pub async fn multi(
 ) -> Result<()> {
     // OK. Just go ..
     let mut jobs = JoinSet::new();
+    let location = BigQueryDatasetLocation {
+        project_id: PROJECT_ID.to_string(),
+        dataset_id: DATASET_ID.to_string(),
+    };
+    let coords = ProcessCoordinates {
+        nr_machines: nr_threads,
+        nr_blks: 0,
+        batch_blks: batch_blocks,
+        machine_id: 0,
+        client_id: "schema_creator".to_string(),
+    };
 
     // Start off by creating the schema. Allocating a new BQ Object will do ..
     {
-        let schema_creator = ZilliqaBQProject::new(
-            PROJECT_ID,
-            SERVICE_ACCOUNT_KEY_FILE,
-            nr_threads,
-            0,
-            batch_blocks,
-            0,
-            &"schema_creator",
-        );
+        let _ = ZilliqaBQProject::new(&location, &coords, SERVICE_ACCOUNT_KEY_FILE).await?;
     }
 
     for idx in 0..nr_threads {
@@ -81,16 +86,19 @@ pub async fn import(
     let client_id = format!("m{}_{}", machine_id, nr_machines);
     let exporter = Exporter::new(&unpack_dir)?;
     let max_block = exporter.get_max_block();
-    let project = ZilliqaBQProject::new(
-        PROJECT_ID,
-        SERVICE_ACCOUNT_KEY_FILE,
+    let location = BigQueryDatasetLocation {
+        project_id: PROJECT_ID.to_string(),
+        dataset_id: DATASET_ID.to_string(),
+    };
+    let coords = ProcessCoordinates {
         nr_machines,
-        (max_block + 1).try_into()?,
-        batch_blks,
+        nr_blks: (max_block + 1).try_into()?,
+        batch_blks: batch_blks,
         machine_id,
-        &client_id,
-    )
-    .await?;
+        client_id: client_id.to_string(),
+    };
+
+    let project = ZilliqaBQProject::new(&location, &coords, SERVICE_ACCOUNT_KEY_FILE).await?;
 
     println!("max_block is {}", max_block);
     let mut batch = 0;
@@ -103,14 +111,13 @@ pub async fn import(
         Some(val) => batch < val,
     } {
         println!("Requesting a block .. ");
-        let maybe_range = project.get_range(last_max).await?;
+        let maybe_range = project.get_txn_range(last_max).await?;
         match maybe_range {
             None => {
                 println!("Entire range already fetched; nothing to do");
                 return Ok(());
             }
             Some(range) => {
-                // exporter.import_txns(4, max_block, None);
                 println!("{}: Retrieved block {:?}", client_id, range);
                 let mut inserter = project.make_transaction_inserter().await?;
                 let mut nr_txns = 0;
@@ -162,23 +169,25 @@ pub async fn reconcile_blocks(unpack_dir: &str, scale: i64) -> Result<()> {
     let client_id = format!("reconcile-blocks");
     let exporter = Exporter::new(&unpack_dir)?;
     let max_block: i64 = exporter.get_max_block().try_into()?;
-    let project = ZilliqaBQProject::new(
-        PROJECT_ID,
-        SERVICE_ACCOUNT_KEY_FILE,
-        1,
-        max_block + 1,
-        0,
-        0,
-        &client_id,
-    )
-    .await?;
+    let location = BigQueryDatasetLocation {
+        project_id: PROJECT_ID.to_string(),
+        dataset_id: DATASET_ID.to_string(),
+    };
+    let coords = ProcessCoordinates {
+        nr_machines: 1,
+        nr_blks: max_block + 1,
+        batch_blks: 0,
+        machine_id: 0,
+        client_id: client_id.to_string(),
+    };
+    let project = ZilliqaBQProject::new(&location, &coords, SERVICE_ACCOUNT_KEY_FILE).await?;
     // We should have coverage for every block, extant or not, up to the
     // last batch, which will be short.
     let mut blk: i64 = 0;
     while blk < max_block {
         let span = std::cmp::min(scale, max_block - (blk + scale));
         println!("blk {} span {}", blk, span);
-        match project.is_range_covered_by_entry(blk, span).await? {
+        match project.is_txn_range_covered_by_entry(blk, span).await? {
             None => {
                 println!(
                     "Help! Block range {} + {} is not covered by any imported entry",

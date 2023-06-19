@@ -6,6 +6,58 @@ use primitive_types::H160;
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
 
+#[derive(Clone, Debug)]
+pub struct ProcessCoordinates {
+    /// How many machines are processing this dataset?
+    pub nr_machines: i64,
+    /// How many blocks are there to process?
+    pub nr_blks: i64,
+    /// How many blocks in a batch?
+    pub batch_blks: i64,
+    /// What is the id of the machine currently running?
+    pub machine_id: i64,
+    /// A name for this machine, to print in logs.
+    pub client_id: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct BigQueryDatasetLocation {
+    pub project_id: String,
+    pub dataset_id: String,
+}
+
+impl BigQueryDatasetLocation {
+    pub fn get_dataset_desc(&self) -> String {
+        format!("{}.{}", self.project_id, self.dataset_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BigQueryTableLocation {
+    pub dataset: BigQueryDatasetLocation,
+    pub table_id: String,
+}
+
+impl BigQueryTableLocation {
+    pub fn new(bq: &BigQueryDatasetLocation, table_id: &str) -> Self {
+        BigQueryTableLocation {
+            dataset: bq.clone(),
+            table_id: table_id.to_string(),
+        }
+    }
+
+    pub fn to_meta(&self) -> BigQueryTableLocation {
+        BigQueryTableLocation {
+            dataset: self.dataset.clone(),
+            table_id: format!("{}_meta", self.table_id),
+        }
+    }
+
+    pub fn get_table_desc(&self) -> String {
+        format!("{}.{}", self.dataset.get_dataset_desc(), self.table_id)
+    }
+}
+
 pub enum API {
     Ethereum,
     Zilliqa,

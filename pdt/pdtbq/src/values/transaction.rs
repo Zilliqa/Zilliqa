@@ -1,3 +1,4 @@
+use crate::bq;
 use crate::utils;
 use anyhow::{anyhow, Result};
 use base64::Engine;
@@ -27,6 +28,20 @@ pub struct Transaction {
     pub version: i64,
     pub cum_gas: Option<i64>,
     pub shard_id: Option<i64>,
+}
+
+impl bq::BlockInsertable for Transaction {
+    fn get_coords(&self) -> (i64, i64) {
+        (self.block, self.offset_in_block)
+    }
+
+    /// Guess how many bytes this txn will take when encoded
+    /// If we wanted to be more accurate, we could serialise and measure,
+    /// but that would be quite expensive.
+    fn estimate_bytes(&self) -> Result<usize> {
+        // Annoyingly, because of Javascript escaping, this is the only way :-(
+        Ok(self.to_json()?.len())
+    }
 }
 
 impl Transaction {
@@ -127,14 +142,6 @@ impl Transaction {
 
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string(self)?)
-    }
-
-    /// Guess how many bytes this txn will take when encoded
-    /// If we wanted to be more accurate, we could serialise and measure,
-    /// but that would be quite expensive.
-    pub fn estimate_bytes(&self) -> Result<usize> {
-        // Annoyingly, because of Javascript escaping, this is the only way :-(
-        Ok(self.to_json()?.len())
     }
 }
 
