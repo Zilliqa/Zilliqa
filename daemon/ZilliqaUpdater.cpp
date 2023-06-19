@@ -17,6 +17,7 @@
 
 #include "ZilliqaUpdater.h"
 
+#include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
@@ -58,6 +59,24 @@ std::string readPipe(boost::asio::readable_pipe& pipe) {
   }
 
   return result;
+}
+
+zbytes calcSHA256(const std::filesystem::path& filePath) {
+  std::ifstream file{filePath, std::ios_base::binary};
+
+  SHA256Calculator sha2Calculator;
+
+  const constexpr std::size_t bufferSizeBytes = 512 * 1024;
+  zbytes buffer;
+  while (file) {
+    buffer.resize(bufferSizeBytes);
+    auto byteCount =
+        file.readsome(reinterpret_cast<char*>(buffer.data()), buffer.size());
+    buffer.resize(byteCount);
+    sha2Calculator.Update(buffer);
+  }
+
+  return sha2Calculator.Finalize();
 }
 
 }  // namespace
@@ -212,35 +231,14 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
                              "(exit code = " + std::to_string(exitCode) + ')'};
   }
 
-  // TODO: consider using OpenSSL for this
-  boost::asio::readable_pipe pipe{m_ioContext};
-  boost::process::v2::process checksumProcess{
-      m_ioContext,
-      "/usr/bin/sha256sum",
-      {outputFilePath.string()},
-      boost::process::v2::process_stdio{{}, pipe, {}}};
-
-  exitCode = checksumProcess.wait();
-  if (exitCode != 0) {
-    throw std::runtime_error{"failed to extract verify the hash of file " +
-                             outputFilePath.string() +
-                             "(exit code = " + std::to_string(exitCode) + ')'};
-  }
-
-  // Read output from the pipe and make sure it's a hash
-  // that is identical to what we expect
-  auto output = readPipe(pipe);
-  if (output.size() > 64) output = output.substr(0, 64);
-
-  std::string sha256;
-  boost::to_lower_copy(std::back_inserter(sha256),
+  std::string expectedSha256;
+  boost::to_lower_copy(std::back_inserter(expectedSha256),
                        manifest["sha256"].asString());
-  boost::to_lower(output);
-
-  if (output != sha256) {
-    throw std::runtime_error{"checksum failed; expected " + sha256 +
-                             " but got " + output};
-  }
+  auto sha256 = calcSHA256(outputFilePath);
+  boost::to_lower(sha256);
+  if (!std::equal(std::begin(expectedSha256), std::end(expectedSha256),
+                  std::begin(sha256)))
+    throw std::runtime_error{"checksum failed; expected " + expectedSha256};
 }
 
 void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
