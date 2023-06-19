@@ -478,6 +478,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
     std::shared_ptr<rpc::APIServer> stakingRPC;
 
     auto asioCtx = std::make_shared<boost::asio::io_context>(1);
+    m_mediator.m_asioCtx = asioCtx;
 
     if (LOOKUP_NODE_MODE) {
       rpc::APIServer::Options options;

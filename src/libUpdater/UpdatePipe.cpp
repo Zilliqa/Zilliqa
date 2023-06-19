@@ -32,28 +32,26 @@ void UpdatePipe::Stop() {
   m_writePipe.close();
 }
 
-bool UpdatePipe::SyncWrite(const std::string &buffer) {
-  std::size_t bytesWritten = 0;
-  while (bytesWritten < buffer.size()) {
-    boost::system::error_code errorCode;
-    auto count = m_writePipe.write_some(
-        boost::asio::const_buffer(buffer.data() + bytesWritten,
-                                  buffer.size() - bytesWritten),
-        errorCode);
-    if (errorCode) {
-      LOG_GENERAL(WARNING, "Failed to write to pipe: "
-                               << errorCode.what() << " (" << errorCode << ')');
+void UpdatePipe::AsyncWrite(const std::string &buffer) {
+  m_writePipe.async_write_some(
+      boost::asio::const_buffer(buffer.data(), buffer.size()),
+      [this, buffer](boost::system::error_code errorCode, std::size_t count) {
+        if (errorCode) {
+          LOG_GENERAL(WARNING, "Failed to write to pipe: " << errorCode.what()
+                                                           << " (" << errorCode
+                                                           << ')');
+          if (errorCode == boost::asio::error::eof) {
+            // createWritePipe();
+          } else {
+          }
 
-      if (errorCode == boost::asio::error::eof) {
-        // createWritePipe();
-      } else {
-        break;
-      }
-    }
-    bytesWritten += count;
-  }
+          return;
+        }
 
-  return bytesWritten == buffer.size();
+        if (count != buffer.size()) {
+          AsyncWrite(buffer.substr(count));
+        }
+      });
 }
 
 void UpdatePipe::createReadPipe() {

@@ -254,12 +254,25 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
   const constexpr auto inputFile = "zilliqa.tar.bz2";
   const auto inputFilePath = updateDir / inputFile;
 
+  LOG_GENERAL(INFO, "Extracting " << inputFilePath << "...");
   boost::asio::readable_pipe pipe{m_ioContext};
   boost::process::v2::process untarProcess{
       m_ioContext,
       "/usr/bin/tar",
       {"xfv", inputFile},
-      boost::process::v2::process_start_dir{updateDir.string()}};
+      boost::process::v2::process_start_dir{updateDir.string()},
+      boost::process::v2::process_stdio{{}, pipe, {}}};
+
+  std::string output;
+  {
+    boost::system::error_code errorCode;
+    while (!errorCode) {
+      std::array<char, 1024> buffer;
+      auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
+      output += std::string_view{buffer.data(), byteCount};
+    }
+  }
+  LOG_GENERAL(INFO, output);
 
   auto exitCode = untarProcess.wait();
   if (exitCode != 0) {
@@ -287,9 +300,9 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
           HandleReply(cmd, zilliqaPid, quiesceDSBlock);
         };
     m_pipe->Start();
-    m_pipe->SyncWrite('|' + std::to_string(zilliqaPid) + ',' +
-                      manifest["quiesce-at-dsblock"].asString() + ',' +
-                      manifest["upgrade-at-dsblock"].asString() + '|');
+    m_pipe->AsyncWrite('|' + std::to_string(zilliqaPid) + ',' +
+                       manifest["quiesce-at-dsblock"].asString() + ',' +
+                       manifest["upgrade-at-dsblock"].asString() + '|');
   } catch (...) {
     m_updateState = std::nullopt;
   }
@@ -348,7 +361,7 @@ bool ZilliqaUpdater::Update() {
       LOG_GENERAL(INFO, "Copied " << srcFile << " -> " << targetFile);
 
       // Cleanup
-      std::filesystem::remove(targetFile, errorCode);
+      std::filesystem::remove(srcFile, errorCode);
       std::filesystem::remove(backupFile, errorCode);
       result = true;
     }
@@ -366,7 +379,7 @@ void ZilliqaUpdater::HandleReply(std::string_view cmd, pid_t zilliqaPid,
   if (!m_updateState) return;
 
   auto first = cmd.find(",");
-  if (first == std::string::npos || first + 3 != cmd.size()) return;
+  if (first == std::string::npos) return;
 
   std::size_t pos = 0;
   std::string s{cmd.data(), first};
@@ -386,7 +399,9 @@ void ZilliqaUpdater::HandleReply(std::string_view cmd, pid_t zilliqaPid,
   }
 
   if (s != "OK") {
-    LOG_GENERAL(WARNING, "Ignoring invalid update acknowledgement from zilliqa... cancelling");
+    LOG_GENERAL(
+        WARNING,
+        "Ignoring invalid update acknowledgement from zilliqa... cancelling");
     m_pipe.reset();
     m_updateState = std::nullopt;
     return;

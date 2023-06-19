@@ -50,7 +50,7 @@ class UpdatePipe final {
 
   void Start();
   void Stop();
-  bool SyncWrite(const std::string &buffer);
+  void AsyncWrite(const std::string &buffer);
 
   OnCommandCallback OnCommand;
 

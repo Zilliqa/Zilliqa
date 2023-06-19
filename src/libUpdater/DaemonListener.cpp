@@ -61,7 +61,7 @@ void DaemonListener::parseCmd(std::string_view cmd) try {
                     << quiesceDSBlock << " and update at block "
                     << updateDSBlock);
 
-    m_pipe.SyncWrite("|" + std::to_string(getpid()) + ",REJECT|");
+    m_pipe.AsyncWrite("|" + std::to_string(getpid()) + ",REJECT|");
     return;
   }
 
@@ -77,7 +77,7 @@ void DaemonListener::parseCmd(std::string_view cmd) try {
                            << m_quiesceDSBlock << " and update at block "
                            << m_updateDSBlock);
 
-  m_pipe.SyncWrite("|" + std::to_string(getpid()) + ",OK|");
+  m_pipe.AsyncWrite("|" + std::to_string(getpid()) + ",OK|");
 } catch (std::exception &e) {
   LOG_GENERAL(WARNING,
               "ignoring message from daemon due to exception: " << e.what());

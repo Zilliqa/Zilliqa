@@ -341,7 +341,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
     m_syncType = ((bSuspend || cleanPersistence) && !updated)
                      ? RECOVERY_ALL_SYNC
                      : m_syncType;
-    strSyncType = to_string(m_syncType);
+    strSyncType = to_string(updated ? NORMAL_SYNC : m_syncType);
     m_recovery = m_syncType == RECOVERY_ALL_SYNC ? 1 : m_recovery;
     ZilliqaDaemon::LOG(m_log, "Suspend launch is " + to_string(bSuspend) +
                                   ", set syncType = " + strSyncType +
