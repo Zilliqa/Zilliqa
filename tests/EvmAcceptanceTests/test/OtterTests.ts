@@ -34,8 +34,6 @@ describe("Otterscan api tests", function () {
     // a similar passing call and use this (+30% leeway) to override the gas field
     const estimatedGas = await this.contract.estimateGas.requireCustom(true, REVERT_MESSAGE);
 
-    console.log("Estimated gas: ", estimatedGas);
-
     const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, {gasLimit: estimatedGas.mul(130).div(100)});
 
     await sendJsonRpcRequest(METHOD, 1, [tx.hash], (result, status) => {

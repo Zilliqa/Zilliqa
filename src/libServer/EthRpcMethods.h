@@ -592,8 +592,7 @@ class EthRpcMethods {
   inline virtual void OtterscanEnableI(const Json::Value& request,
                                                       Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    std::cerr << "Enabling otterscan" << std::endl;
-    ARCHIVAL_LOOKUP_WITH_TX_TRACES = !ARCHIVAL_LOOKUP_WITH_TX_TRACES;
+    ARCHIVAL_LOOKUP_WITH_TX_TRACES = request[0u].asBool();
   }
 
   /**
