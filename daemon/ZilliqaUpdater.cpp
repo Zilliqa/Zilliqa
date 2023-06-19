@@ -48,6 +48,18 @@ std::optional<std::string> readManifestFile(
   return result;
 }
 
+std::string readPipe(boost::asio::readable_pipe& pipe) {
+  std::string result;
+  boost::system::error_code errorCode;
+  while (!errorCode) {
+    std::array<char, 1024> buffer;
+    auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
+    result += std::string_view{buffer.data(), byteCount};
+  }
+
+  return result;
+}
+
 }  // namespace
 
 ZilliqaUpdater::~ZilliqaUpdater() noexcept { Stop(); }
@@ -200,9 +212,8 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
                              "(exit code = " + std::to_string(exitCode) + ')'};
   }
 
-  boost::asio::readable_pipe pipe{m_ioContext};
-
   // TODO: consider using OpenSSL for this
+  boost::asio::readable_pipe pipe{m_ioContext};
   boost::process::v2::process checksumProcess{
       m_ioContext,
       "/usr/bin/sha256sum",
@@ -218,16 +229,7 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
 
   // Read output from the pipe and make sure it's a hash
   // that is identical to what we expect
-  std::string output;
-  {
-    boost::system::error_code errorCode;
-    while (!errorCode) {
-      std::array<char, 1024> buffer;
-      auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
-      output += std::string_view{buffer.data(), byteCount};
-    }
-  }
-
+  auto output = readPipe(pipe);
   if (output.size() > 64) output = output.substr(0, 64);
 
   std::string sha256;
@@ -262,16 +264,7 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
       {"xfv", inputFile},
       boost::process::v2::process_start_dir{updateDir.string()},
       boost::process::v2::process_stdio{{}, pipe, {}}};
-
-  std::string output;
-  {
-    boost::system::error_code errorCode;
-    while (!errorCode) {
-      std::array<char, 1024> buffer;
-      auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
-      output += std::string_view{buffer.data(), byteCount};
-    }
-  }
+  auto output = readPipe(pipe);
   LOG_GENERAL(INFO, output);
 
   auto exitCode = untarProcess.wait();
@@ -279,6 +272,16 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
     throw std::runtime_error{"failed to extract downloaded file " +
                              inputFilePath.string() +
                              " (exit code = " + std::to_string(exitCode) + ')'};
+  }
+
+  // Make sure that the zilliqa binary is executable by the user
+  auto perms = std::filesystem::status(updateDir / "zilliqa").permissions();
+  if ((perms & std::filesystem::perms::owner_read) ==
+          std::filesystem::perms::none ||
+      (perms & std::filesystem::perms::owner_exec) ==
+          std::filesystem::perms::none) {
+    throw std::runtime_error{
+        "extracted file has no read/execution permissions"};
   }
 
   auto pids = m_getProcByNameFunc("zilliqa");
@@ -411,4 +414,4 @@ void ZilliqaUpdater::HandleReply(std::string_view cmd, pid_t zilliqaPid,
   LOG_GENERAL(INFO, "Update acknowledged.. waiting for zilliqa to shutdown at "
                         << quiesceDSBlock << " DS block");
   m_updateState->Acknowledged = true;
-};
+}
