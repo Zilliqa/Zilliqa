@@ -95,11 +95,13 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     return preValidateResult;
   }
 
-  CpsContext cpsCtx{.origSender = clientContext.origin,
-                    .isStatic = false,
-                    .estimate = false,
-                    .evmExtras = CpsUtils::FromScillaContext(clientContext),
-                    .scillaExtras = clientContext};
+  CpsContext cpsCtx{
+      .origSender = clientContext.origin,
+      .isStatic = false,
+      .estimate = false,
+      .gasTracker = GasTracker::CreateFromCore(clientContext.gasLimit),
+      .evmExtras = CpsUtils::FromScillaContext(clientContext),
+      .scillaExtras = clientContext};
 
   TakeGasFromAccount(clientContext);
 
@@ -114,8 +116,8 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     mTxReceipt.SetCumGas(NORMAL_TRAN_GAS);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
-    const auto gasRemainedCore = clientContext.gasLimit - NORMAL_TRAN_GAS;
-    RefundGas(clientContext, gasRemainedCore);
+    cpsCtx.gasTracker.DecreaseByCore(NORMAL_TRAN_GAS);
+    RefundGas(clientContext, cpsCtx.gasTracker);
     mAccountStore.CommitAtomics();
     mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
     return {TxnStatus::NOT_PRESENT, true, {}};
@@ -125,20 +127,17 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
                         ? CpsRun::Call
                         : CpsRun::Create;
 
-  auto args = ScillaArgs{
-      .from = cpsCtx.scillaExtras.origin,
-      .dest = cpsCtx.scillaExtras.recipient,
-      .origin = cpsCtx.scillaExtras.origin,
-      .value = Amount::fromQa(cpsCtx.scillaExtras.amount),
-      .calldata =
-          ScillaArgs::CodeData{
-              cpsCtx.scillaExtras.code,
-              cpsCtx.scillaExtras.data,
-          },
-      .edge = 0,
-      .depth = 0,
-      .gasLimit = cpsCtx.scillaExtras.gasLimit,
-  };
+  auto args = ScillaArgs{.from = cpsCtx.scillaExtras.origin,
+                         .dest = cpsCtx.scillaExtras.recipient,
+                         .origin = cpsCtx.scillaExtras.origin,
+                         .value = Amount::fromQa(cpsCtx.scillaExtras.amount),
+                         .calldata =
+                             ScillaArgs::CodeData{
+                                 cpsCtx.scillaExtras.code,
+                                 cpsCtx.scillaExtras.data,
+                             },
+                         .edge = 0,
+                         .depth = 0};
 
   auto scillaRun =
       std::make_shared<CpsRunScilla>(std::move(args), *this, cpsCtx, type);
@@ -164,7 +163,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     mTxReceipt.SetCumGas(clientContext.gasLimit - gasRemainedCore);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
-    RefundGas(clientContext, gasRemainedCore);
+    RefundGas(clientContext, GasTracker::CreateFromCore(gasRemainedCore));
     mAccountStore.CommitAtomics();
   }
 
@@ -203,11 +202,13 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   TakeGasFromAccount(clientContext);
 
-  const CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
-                          clientContext.GetDirect(),
-                          clientContext.GetEvmArgs().estimate(),
-                          clientContext.GetEvmArgs().extras(),
-                          CpsUtils::FromEvmContext(clientContext)};
+  CpsContext cpsCtx{
+      ProtoToAddress(clientContext.GetEvmArgs().origin()),
+      clientContext.GetDirect(),
+      clientContext.GetEvmArgs().estimate(),
+      GasTracker::CreateFromEth(clientContext.GetEvmArgs().gas_limit()),
+      clientContext.GetEvmArgs().extras(),
+      CpsUtils::FromEvmContext(clientContext)};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create
@@ -229,7 +230,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
 
-  uint64_t gasRemainingCore = GetRemainedGasCore(runResult);
+  uint64_t gasRemainingCore = cpsCtx.gasTracker.GetCoreGas();
 
   if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(runResult.result);
@@ -273,7 +274,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     mTxReceipt.SetCumGas(usedGasCore);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
-    RefundGas(clientContext, gasRemainingCore);
+    RefundGas(clientContext, GasTracker::CreateFromCore(gasRemainingCore));
     mAccountStore.CommitAtomics();
   }
   if (!isEstimate && !isEthCall) {
@@ -296,6 +297,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   if (isEstimate) {
     if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
       auto& evmResult = std::get<evm::EvmResult>(runResult.result);
+      evmResult.set_remaining_gas(cpsCtx.gasTracker.GetEthGas());
       // In some cases revert state may be missing (if e.g. trap validation
       // failed)
       if (isFailure && evmResult.exit_reason().exit_reason_case() ==
@@ -316,8 +318,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
       exitReason.set_revert(evm::ExitReason_Revert_REVERTED);
     }
     *evmResult.mutable_exit_reason() = exitReason;
-    evmResult.set_remaining_gas(
-        GasConv::GasUnitsFromCoreToEth(gasRemainingCore));
+    evmResult.set_remaining_gas(cpsCtx.gasTracker.GetCoreGas());
     clientContext.SetEvmResult(evmResult);
     return {TxnStatus::NOT_PRESENT, true, std::move(evmResult)};
   }
@@ -396,7 +397,7 @@ void CpsExecutor::TakeGasFromAccount(
 
 void CpsExecutor::RefundGas(
     const std::variant<EvmProcessContext, ScillaProcessContext>& context,
-    uint64_t gasRemainedCore) {
+    const GasTracker& gasTracker) {
   Amount amount;
   Address account;
 
@@ -407,7 +408,7 @@ void CpsExecutor::RefundGas(
     uint128_t gasRefund;
     // The gas price is already scaled by GasConv::EthToCore, so we need to make
     // sure the gas remaining isn't.
-    uint128_t gasRemainedEth = GasConv::GasUnitsFromCoreToEth(gasRemainedCore);
+    uint128_t gasRemainedEth = gasTracker.GetEthGas();
     if (!SafeMath<uint128_t>::mul(gasRemainedEth,
                                   CpsExecuteValidator::GetGasPriceWei(evmCtx),
                                   gasRefund)) {
@@ -419,7 +420,7 @@ void CpsExecutor::RefundGas(
     const auto& scillaCtx = std::get<ScillaProcessContext>(context);
     account = scillaCtx.origin;
     uint128_t gasRefund;
-    if (!SafeMath<uint128_t>::mul(gasRemainedCore, scillaCtx.gasPrice,
+    if (!SafeMath<uint128_t>::mul(gasTracker.GetCoreGas(), scillaCtx.gasPrice,
                                   gasRefund)) {
       return;
     }
