@@ -241,6 +241,10 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
     return;
   }
 
+  // Conversion errors will result in an exception that will abort the upgrade
+  const auto quiesceDSBlock = manifest["quiesce-at-dsblock"].asUInt64();
+  const auto updateDSBlock = manifest["upgrade-at-dsblock"].asUInt64();
+
   const auto updateDir = std::filesystem::temp_directory_path() / "zilliqa" /
                          "updates" / manifest["uuid"].asString();
   const constexpr auto inputFile = "zilliqa.tar.bz2";
@@ -256,7 +260,6 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
       boost::process::v2::process_stdio{{}, pipe, {}}};
   auto output = readPipe(pipe);
   LOG_GENERAL(INFO, output);
-
   auto exitCode = untarProcess.wait();
   if (exitCode != 0) {
     throw std::runtime_error{"failed to extract downloaded file " +
@@ -286,16 +289,17 @@ void ZilliqaUpdater::Upgrade(const Json::Value& manifest) {
     m_updateState = {inputFilePath, false};
     m_pipe = std::make_unique<zil::UpdatePipe>(m_ioContext, zilliqaPid,
                                                "zilliqad", "zilliqa");
-    m_pipe->OnCommand =
-        [this, zilliqaPid,
-         quiesceDSBlock =
-             manifest["quiesce-at-dsblock"].asString()](std::string_view cmd) {
-          HandleReply(cmd, zilliqaPid, quiesceDSBlock);
-        };
+    m_pipe->OnCommand = [this, zilliqaPid,
+                         quiesceDSBlock](std::string_view cmd) {
+      HandleReply(cmd, zilliqaPid, quiesceDSBlock);
+    };
     m_pipe->Start();
-    m_pipe->AsyncWrite('|' + std::to_string(zilliqaPid) + ',' +
-                       manifest["quiesce-at-dsblock"].asString() + ',' +
-                       manifest["upgrade-at-dsblock"].asString() + '|');
+
+    Json::Value message;
+    message["zilliqa-pid"] = zilliqaPid;
+    message["quiesce-at-dsblock"] = quiesceDSBlock;
+    message["upgrade-at-dsblock"] = updateDSBlock;
+    m_pipe->AsyncWrite(message.toStyledString());
   } catch (...) {
     m_updateState = std::nullopt;
   }
@@ -365,33 +369,39 @@ bool ZilliqaUpdater::Update() {
 }
 
 void ZilliqaUpdater::HandleReply(std::string_view cmd, pid_t zilliqaPid,
-                                 const std::string& quiesceDSBlock) {
+                                 uint64_t quiesceDSBlock) {
   LOG_GENERAL(DEBUG, "Received reply: " << cmd);
 
   std::unique_lock<std::mutex> guard{m_mutex};
   if (!m_updateState) return;
 
-  auto first = cmd.find(",");
-  if (first == std::string::npos) return;
+  Json::CharReaderBuilder readBuilder;
+  auto reader = readBuilder.newCharReader();
+  std::string errors;
+  Json::Value message;
+  if (!reader->parse(cmd.data(), cmd.data() + cmd.size(), &message, &errors)) {
+    LOG_GENERAL(WARNING, "Failed to parse reply from zilliqa ("
+                             << errors << ")... cancelling");
+    m_pipe.reset();
+    m_updateState = std::nullopt;
+    return;
+  }
 
-  std::size_t pos = 0;
-  std::string s{cmd.data(), first};
-  pid_t pid = std::stoi(s, &pos);
-  if (pid != zilliqaPid || pos != s.size()) {
+  if (message["zilliqa-pid"].asInt() != zilliqaPid) {
     LOG_GENERAL(WARNING,
                 "Ignoring invalid reply from zilliqa from a different process");
     return;
   }
 
-  s = std::string{cmd.data() + first + 1, cmd.size() - first - 1};
-  if (s == "REJECT") {
+  const auto& result = message["result"];
+  if (result == "reject") {
     LOG_GENERAL(WARNING, "zilliqa has rejected the update... cancelling");
     m_pipe.reset();
     m_updateState = std::nullopt;
     return;
   }
 
-  if (s != "OK") {
+  if (result != "ok") {
     LOG_GENERAL(
         WARNING,
         "Ignoring invalid update acknowledgement from zilliqa... cancelling");

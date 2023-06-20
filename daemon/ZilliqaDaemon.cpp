@@ -18,6 +18,8 @@
 #include "ZilliqaDaemon.h"
 #include "ZilliqaUpdater.h"
 
+#include "common/Constants.h"
+
 #include <boost/program_options.hpp>
 
 #include <dirent.h>
@@ -35,6 +37,11 @@ namespace po = boost::program_options;
 
 #define MONITORING_FAIL_COUNT 10
 
+// prevent collision of our logger's macro
+#ifdef LOG
+#undef LOG
+#endif
+
 const vector<string> programName = {"zilliqa"};
 const string SYNCTYPE_OPT = "--synctype";
 const char* synctype_descr =
@@ -47,18 +54,6 @@ const string upload_incr_DB_script = "upload_incr_DB.py";
 const string download_incr_DB_script = "download_incr_DB.py";
 const string auto_backup_script = "auto_backup.py";
 const string daemon_log = "daemon-log.txt";
-
-enum SyncType : unsigned int {
-  NO_SYNC = 0,
-  NEW_SYNC,
-  NORMAL_SYNC,
-  DS_SYNC,
-  LOOKUP_SYNC,
-  RECOVERY_ALL_SYNC,
-  NEW_LOOKUP_SYNC,
-  GUARD_DS_SYNC,
-  DB_VERIF  // Deprecated
-};
 
 ZilliqaDaemon::~ZilliqaDaemon() noexcept {
   if (m_updater) m_updater->Stop();
@@ -288,7 +283,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
   KillProcess("scilla-server");
   KillProcess("evm-ds");
 
-  bool updating = m_updater->Updating();
+  bool updating = m_updater && m_updater->Updating();
 
   ZilliqaDaemon::LOG(m_log, std::string{"Create new Zilliqa process..."} +
                                 (updating ? "(updating)" : ""));

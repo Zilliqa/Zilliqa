@@ -19,6 +19,7 @@
 
 #include "libUtils/Logger.h"
 
+#include <json/json.h>
 #include <filesystem>
 
 namespace zil {
@@ -29,29 +30,35 @@ void DaemonListener::Stop() { m_pipe.Stop(); }
 void DaemonListener::parseCmd(std::string_view cmd) try {
   LOG_GENERAL(DEBUG, "Received command: " << cmd);
 
-  auto first = cmd.find(",");
-  if (first == std::string::npos) return;
+  Json::CharReaderBuilder readBuilder;
+  auto reader = readBuilder.newCharReader();
+  std::string errors;
+  Json::Value message;
+  if (!reader->parse(cmd.data(), cmd.data() + cmd.size(), &message, &errors)) {
+    LOG_GENERAL(WARNING, "Failed to parse reply from zilliqa ("
+                             << errors << ")... cancelling");
+    return;
+  }
 
-  auto last = cmd.find(",", first + 1);
-  if (last == std::string::npos) return;
-
-  std::size_t pos = 0;
-  std::string s{cmd.data(), first};
-  pid_t pid = std::stoi(s, &pos);
-  if (pid != getpid() || pos != s.size()) {
+  if (message["zilliqa-pid"].asInt() != getpid()) {
     LOG_GENERAL(
         WARNING,
         "Ignoring invalid request from daemon meant for a different process");
     return;
   }
 
-  s = std::string{cmd.data() + first + 1, last - first - 1};
-  uint64_t quiesceDSBlock = std::stoull(s, &pos);
-  if (pos != s.size()) return;
+  if (!message.isMember("quiesce-at-dsblock") ||
+      !message.isMember("upgrade-at-dsblock")) {
+    LOG_GENERAL(WARNING, "Malformed request from daemon");
+    return;
+  }
 
-  s = std::string{cmd.data() + last + 1, cmd.size() - last - 1};
-  uint64_t updateDSBlock = std::stoull(s, &pos);
-  if (pos != s.size()) return;
+  // Conversion errors will result in an exception that will abort the upgrade
+  const auto quiesceDSBlock = message["quiesce-at-dsblock"].asUInt64();
+  const auto updateDSBlock = message["upgrade-at-dsblock"].asUInt64();
+
+  Json::Value reply;
+  reply["zilliqa-pid"] = getpid();
 
   auto currentDSBlockNumber = m_lastDSBlockNumberProvider();
   if (currentDSBlockNumber >= quiesceDSBlock ||
@@ -61,7 +68,8 @@ void DaemonListener::parseCmd(std::string_view cmd) try {
                     << quiesceDSBlock << " and update at block "
                     << updateDSBlock);
 
-    m_pipe.AsyncWrite("|" + std::to_string(getpid()) + ",REJECT|");
+    reply["result"] = "reject";
+    m_pipe.AsyncWrite(reply.toStyledString());
     return;
   }
 
@@ -77,7 +85,8 @@ void DaemonListener::parseCmd(std::string_view cmd) try {
                            << m_quiesceDSBlock << " and update at block "
                            << m_updateDSBlock);
 
-  m_pipe.AsyncWrite("|" + std::to_string(getpid()) + ",OK|");
+  reply["result"] = "ok";
+  m_pipe.AsyncWrite(reply.toStyledString());
 } catch (std::exception &e) {
   LOG_GENERAL(WARNING,
               "ignoring message from daemon due to exception: " << e.what());

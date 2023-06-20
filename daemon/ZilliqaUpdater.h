@@ -73,7 +73,7 @@ class ZilliqaUpdater final {
   void Download(const Json::Value& manifest);
   void Upgrade(const Json::Value& manifest);
   void HandleReply(std::string_view cmd, pid_t zilliqaPid,
-                   const std::string& quiesceDSBlock);
+                   uint64_t quiesceDSBlock);
 };
 
 #endif  // ZILLIQA_UPDATER_ZILLIQAUPDATER_H_
