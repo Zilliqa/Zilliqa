@@ -60,7 +60,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
-  int64_t startFee = 0;
   if (!IsResumable()) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
@@ -69,7 +68,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
-      startFee = baseFee;
+      mCpsContext.gasTracker.DecreaseByEth(baseFee);
 
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
@@ -89,7 +88,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
-      startFee = MIN_ETH_GAS;
+      mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
 
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
@@ -101,16 +100,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       }
     }
   }
-  // Account rounding errors by adding ScallingFactor()
-  const int64_t startFeeCore = GasConv::GasUnitsFromEthToCoreCeil(startFee);
-  mCpsContext.gasLeftCore =
-      std::max(int64_t{0}, mCpsContext.gasLeftCore - startFeeCore);
 
-  mProtoArgs.set_gas_limit(
-      GasConv::GasUnitsFromCoreToEth(mCpsContext.gasLeftCore));
-
-  LOG_GENERAL(INFO, "gasLeftCore: " << mCpsContext.gasLeftCore << ", gasLeftEVM: " << mProtoArgs.gas_limit());
-
+  mProtoArgs.set_gas_limit(mCpsContext.gasTracker.GetEthGas());
 
   mAccountStore.AddAddressToUpdateBufferAtomic(
       ProtoToAddress(mProtoArgs.address()));
@@ -129,15 +120,11 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     INC_STATUS(GetCPSMetric(), "error", "timeout");
     return {};
   }
-  evm::EvmResult evmResult = invokeResult.value();
+  const evm::EvmResult& evmResult = invokeResult.value();
 
   mExecutor.CurrentTrace() = evmResult.tx_trace();
-  LOG_GENERAL(WARNING, "GAS USED BY EVM RUN: " << mProtoArgs.gas_limit() - evmResult.remaining_gas());
-  const int64_t usedGasByRunCore = GasConv::GasUnitsFromEthToCoreCeil(mProtoArgs.gas_limit() - evmResult.remaining_gas());
-  mCpsContext.gasLeftCore = std::max(int64_t{0}, mCpsContext.gasLeftCore - usedGasByRunCore);
-
-
-  LOG_GENERAL(INFO, "AFTER gasLeftCore: " << mCpsContext.gasLeftCore);
+  mCpsContext.gasTracker.DecreaseByEth(mProtoArgs.gas_limit() -
+                                       evmResult.remaining_gas());
 
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
@@ -437,12 +424,8 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
       jsonData["_address"].asString(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
-  if (mCpsContext.estimate) {
-    mCpsContext.gasLeftCore = std::max(
-        int64_t{0}, mCpsContext.gasLeftCore -
-                        (SCILLA_RUNNER_INVOKE_GAS + CONTRACT_INVOKE_GAS));
-  }
-
+  mCpsContext.gasTracker.DecreaseByCore(SCILLA_RUNNER_INVOKE_GAS +
+                                        CONTRACT_INVOKE_GAS);
   const bool isStatic = callData.is_static();
 
   // Don't allow for non-static calls when its parent is already static
@@ -540,22 +523,20 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   // Charge MIN_ETH_GAS for transfer operation
 
   if (transferValue > 0) {
-    const int64_t minEthGasCore = GasConv::GasUnitsFromEthToCoreCeil(MIN_ETH_GAS);
-    if (mCpsContext.gasLeftCore < minEthGasCore) {
+    if (mCpsContext.gasTracker.GetEthGas() < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Insufficient gas in create-trap, remaining: "
-                               << mCpsContext.gasLeftCore
-                               << ", required: " << minEthGasCore);
+                               << mCpsContext.gasTracker.GetEthGas()
+                               << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in create-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
       span.SetError("Insufficient gas, given: " +
-                    std::to_string(mCpsContext.gasLeftCore) + ", required: " +
-                    std::to_string(MIN_ETH_GAS) + " in create-trap");
+                    std::to_string(mCpsContext.gasTracker.GetEthGas()) +
+                    ", required: " + std::to_string(MIN_ETH_GAS) +
+                    " in create-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    mCpsContext.gasLeftCore =
-        std::min(int64_t{0}, mCpsContext.gasLeftCore - minEthGasCore);
-    mProtoArgs.set_gas_limit(
-        GasConv::GasUnitsFromCoreToEth(mCpsContext.gasLeftCore));
+    mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
+    mProtoArgs.set_gas_limit(mCpsContext.gasTracker.GetEthGas());
   }
 
   // Set continuation (itself) to be resumed when create run is finished
@@ -568,35 +549,32 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   // Push create job to be run by EVM
   {
-    const int64_t targetGasCore =
+    const int64_t targetGas =
         createData.target_gas() != std::numeric_limits<uint64_t>::max()
-            ? GasConv::GasUnitsFromEthToCoreCeil(createData.target_gas())
-            : mCpsContext.gasLeftCore;
-    const int64_t baseFeeCore =
-        GasConv::GasUnitsFromEthToCoreCeil(Eth::getGasUnitsForContractDeployment(
-            {}, DataConversion::StringToCharArray(createData.call_data())));
+            ? createData.target_gas()
+            : mCpsContext.gasTracker.GetEthGas();
+    const int64_t baseFee = Eth::getGasUnitsForContractDeployment(
+        {}, DataConversion::StringToCharArray(createData.call_data()));
 
-    if (baseFeeCore > targetGasCore) {
+    if (baseFee > targetGas) {
       LOG_GENERAL(WARNING, "Insufficient gas in create-trap, fee: "
-                               << baseFeeCore
-                               << ", targetGas: " << targetGasCore);
+                               << baseFee << ", targetGas: " << targetGas);
       TRACE_ERROR("Insufficient target gas in create-trap");
       INC_STATUS(GetCPSMetric(), "error",
                  "Insufficient target gas in call-trap");
       span.SetError(
-          "Insufficient target gas, given: " + std::to_string(targetGasCore) +
-          ", required: " + std::to_string(baseFeeCore) + " in create-trap");
+          "Insufficient target gas, given: " + std::to_string(targetGas) +
+          ", required: " + std::to_string(baseFee) + " in create-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    const int64_t inputGasCore = targetGasCore - baseFeeCore;
+    const int64_t inputGas = targetGas - baseFee;
     evm::EvmArgs evmCreateArgs;
     *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
     *evmCreateArgs.mutable_origin() = mProtoArgs.origin();
     *evmCreateArgs.mutable_caller() = AddressToProto(fromAddress);
     *evmCreateArgs.mutable_code() = createData.call_data();
-    evmCreateArgs.set_gas_limit(GasConv::GasUnitsFromCoreToEth(inputGasCore));
-    mCpsContext.gasLeftCore =
-        std::max(int64_t{0}, mCpsContext.gasLeftCore - inputGasCore);
+    evmCreateArgs.set_gas_limit(GasConv::GasUnitsFromCoreToEth(inputGas));
+    mCpsContext.gasTracker.DecreaseByEth(inputGas);
     *evmCreateArgs.mutable_apparent_value() = createData.value();
     evmCreateArgs.set_estimate(mCpsContext.estimate);
     *evmCreateArgs.mutable_context() = "TrapCreate";

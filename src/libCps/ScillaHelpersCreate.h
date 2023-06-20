@@ -24,12 +24,13 @@ class TransactionReceipt;
 
 namespace libCps {
 
+struct GasTracker;
 struct ScillaArgs;
 
 class ScillaHelpersCreate final {
  public:
   using Address = dev::h160;
-  static bool ParseCreateContract(int64_t &gasRemained,
+  static bool ParseCreateContract(GasTracker &gasTracker,
                                   const std::string &runnerPrint,
                                   TransactionReceipt &receipt, bool is_library);
 
@@ -41,7 +42,7 @@ class ScillaHelpersCreate final {
 
   /// parse the output from interpreter for deployment
   static bool ParseCreateContractJsonOutput(const Json::Value &_json,
-                                            int64_t &gasRemained,
+                                            GasTracker &gasTracker,
                                             TransactionReceipt &receipt,
                                             bool is_library);
 };

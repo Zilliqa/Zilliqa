@@ -96,28 +96,26 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     LOG_GENERAL(
         WARNING,
         "The json output of this contract didn't contain gas_remaining");
-    if (cpsContext.gasLeftCore > CONTRACT_INVOKE_GAS) {
-      cpsContext.gasLeftCore -= CONTRACT_INVOKE_GAS;
+    if (cpsContext.gasTracker.GetCoreGas() > CONTRACT_INVOKE_GAS) {
+      cpsContext.gasTracker.DecreaseByCore(CONTRACT_INVOKE_GAS);
     } else {
-      cpsContext.gasLeftCore = 0;
+      cpsContext.gasTracker.DecreaseByCore(cpsContext.gasTracker.GetCoreGas());
     }
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return {};
   }
-  // uint64_t startGas = gasRemained;
-  int64_t gasRemained = 0;
+  uint64_t gasRemained = 0;
   try {
-    gasRemained =
-        boost::lexical_cast<int64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(
+        cpsContext.gasTracker.GetCoreGas(),
+        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
     return {};
   }
-  cpsContext.gasLeftCore += gasRemained;
-  LOG_GENERAL(INFO, "gasRemained: " << gasRemained << ", total gas left: "
-                                    << cpsContext.gasLeftCore);
-
+  cpsContext.gasTracker.SetGasCore(gasRemained);
+  LOG_GENERAL(INFO, "gasRemained: " << cpsContext.gasTracker.GetCoreGas());
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
