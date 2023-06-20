@@ -33,15 +33,15 @@ class CpsRunEvm final : public CpsRun {
   using Address = dev::h160;
 
  public:
-  CpsRunEvm(evm::EvmArgs proto_args, CpsExecutor& executor,
-            const CpsContext& ctx, CpsRun::Type type);
+  CpsRunEvm(evm::EvmArgs proto_args, CpsExecutor& executor, CpsContext& ctx,
+            CpsRun::Type type);
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   void ProvideFeedback(const CpsRun& previousRun,
                        const CpsExecuteResult& results) override;
   bool IsResumable() const override;
   bool HasFeedback() const override;
   static bool ProbeERC165Interface(CpsAccountStoreInterface& accStore,
-                                   const CpsContext& ctx, const Address& caller,
+                                   CpsContext& ctx, const Address& caller,
                                    const Address& destinationAddress);
 
  private:
@@ -59,7 +59,7 @@ class CpsRunEvm final : public CpsRun {
  private:
   evm::EvmArgs mProtoArgs;
   CpsExecutor& mExecutor;
-  const CpsContext& mCpsContext;
+  CpsContext& mCpsContext;
 };
 
 }  // namespace libCps
