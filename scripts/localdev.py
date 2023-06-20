@@ -839,8 +839,10 @@ def build_native_to_workspace(config):
         shutil.rmtree(workspace)
     except:
         pass
+    build_env = os.environ.copy()
+    build_env['SCILLA_REPO_ROOT'] = SCILLA_DIR
     # Let's start off by building Scilla, in case it breaks.
-    run_or_die(config, ["make"], in_dir = SCILLA_DIR)
+    run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env)
     run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
     run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
