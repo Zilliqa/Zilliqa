@@ -856,7 +856,6 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
                               evm::ExitReason::ExitReasonCase::kSucceed;
     mProtoArgs.mutable_continuation()->set_succeeded(evmSucceeded);
 
-    // mProtoArgs.set_gas_limit(evmResult.remaining_gas());
     *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
 
     if (previousRun.GetDomain() == CpsRun::Evm) {
@@ -873,11 +872,8 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
     }
   } else {
     const auto& scillaResult = std::get<ScillaResult>(results.result);
-    // const auto remainingGas =
-    //     GasConv::GasUnitsFromCoreToEth(scillaResult.gasRemained);
     if (mProtoArgs.continuation().feedback_type() ==
         evm::Continuation_Type_CALL) {
-      // mProtoArgs.set_gas_limit(remainingGas);
       mProtoArgs.mutable_continuation()->set_succeeded(scillaResult.isSuccess);
     }
   }
