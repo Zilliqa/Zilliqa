@@ -213,7 +213,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
       ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
-  uint64_t remainingGas = result.remaining_gas();
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
   Address fundsRecipient;
   Amount funds;
@@ -276,6 +275,12 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
+  const auto targetGas =
+      (callData.target_gas() != std::numeric_limits<uint64_t>::max() &&
+       callData.target_gas() != 0)
+          ? callData.target_gas()
+          : mCpsContext.gasTracker.GetEthGas();
+  auto inputGas = std::min(targetGas, mCpsContext.gasTracker.GetEthGas());
   const auto transferValue = ProtoToUint(callData.transfer().value());
   const bool isStatic = callData.is_static();
 
@@ -291,19 +296,18 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   span.SetAttribute("IsStatic", isStatic);
 
   if (!isStatic && transferValue > 0) {
-    if (remainingGas < MIN_ETH_GAS) {
+    if (inputGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Insufficient gas in call-trap, remaining: "
-                               << remainingGas
-                               << ", required: " << MIN_ETH_GAS);
+                               << inputGas << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in call-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
-      span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
+      span.SetError("Insufficient gas, given: " + std::to_string(inputGas) +
                     ", required: " + std::to_string(MIN_ETH_GAS) +
                     " in call-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
-    remainingGas -= MIN_ETH_GAS;
+    mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
+    inputGas -= MIN_ETH_GAS;
   }
 
   // Set continuation (itself) to be resumed when create run is finished
@@ -322,12 +326,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   }
 
   {
-    const auto targetGas =
-        callData.target_gas() != std::numeric_limits<uint64_t>::max()
-            ? callData.target_gas()
-            : remainingGas;
-    auto inputGas = std::min(targetGas, remainingGas);
-    inputGas = std::max(remainingGas, inputGas);
     evm::EvmArgs evmCallArgs;
     *evmCallArgs.mutable_address() = ctx.destination();
     *evmCallArgs.mutable_origin() = mProtoArgs.origin();
@@ -521,22 +519,26 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
+  const uint64_t targetGas =
+      (createData.target_gas() != std::numeric_limits<uint64_t>::max() &&
+       createData.target_gas() != 0)
+          ? createData.target_gas()
+          : mCpsContext.gasTracker.GetEthGas();
+  auto inputGas = std::min(createData.target_gas(), targetGas);
 
   if (transferValue > 0) {
-    if (mCpsContext.gasTracker.GetEthGas() < MIN_ETH_GAS) {
+    if (inputGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Insufficient gas in create-trap, remaining: "
-                               << mCpsContext.gasTracker.GetEthGas()
-                               << ", required: " << MIN_ETH_GAS);
+                               << inputGas << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in create-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
-      span.SetError("Insufficient gas, given: " +
-                    std::to_string(mCpsContext.gasTracker.GetEthGas()) +
+      span.SetError("Insufficient gas, given: " + std::to_string(inputGas) +
                     ", required: " + std::to_string(MIN_ETH_GAS) +
                     " in create-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
+    inputGas -= MIN_ETH_GAS;
     mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
-    mProtoArgs.set_gas_limit(mCpsContext.gasTracker.GetEthGas());
   }
 
   // Set continuation (itself) to be resumed when create run is finished
@@ -549,14 +551,10 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   // Push create job to be run by EVM
   {
-    const int64_t targetGas =
-        createData.target_gas() != std::numeric_limits<uint64_t>::max()
-            ? createData.target_gas()
-            : mCpsContext.gasTracker.GetEthGas();
-    const int64_t baseFee = Eth::getGasUnitsForContractDeployment(
+    const uint64_t baseFee = Eth::getGasUnitsForContractDeployment(
         {}, DataConversion::StringToCharArray(createData.call_data()));
 
-    if (baseFee > targetGas) {
+    if (baseFee > inputGas) {
       LOG_GENERAL(WARNING, "Insufficient gas in create-trap, fee: "
                                << baseFee << ", targetGas: " << targetGas);
       TRACE_ERROR("Insufficient target gas in create-trap");
@@ -567,14 +565,14 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
           ", required: " + std::to_string(baseFee) + " in create-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    const int64_t inputGas = targetGas - baseFee;
+    inputGas -= targetGas - baseFee;
+    mCpsContext.gasTracker.DecreaseByEth(baseFee);
     evm::EvmArgs evmCreateArgs;
     *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
     *evmCreateArgs.mutable_origin() = mProtoArgs.origin();
     *evmCreateArgs.mutable_caller() = AddressToProto(fromAddress);
     *evmCreateArgs.mutable_code() = createData.call_data();
-    evmCreateArgs.set_gas_limit(GasConv::GasUnitsFromCoreToEth(inputGas));
-    mCpsContext.gasTracker.DecreaseByEth(inputGas);
+    evmCreateArgs.set_gas_limit(inputGas);
     *evmCreateArgs.mutable_apparent_value() = createData.value();
     evmCreateArgs.set_estimate(mCpsContext.estimate);
     *evmCreateArgs.mutable_context() = "TrapCreate";
