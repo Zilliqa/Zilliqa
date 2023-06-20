@@ -196,6 +196,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   struct Item {
     RawMessage msg;
     bool allow_relaxed_blacklist;
+    bool ignoreBlacklist;
     Milliseconds expires_at;
     uint32_t attempts;
   };
@@ -213,11 +214,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   ~PeerSendQueue() { Close(); }
 
-  void Enqueue(RawMessage msg, bool allow_relaxed_blacklist) {
+  void Enqueue(RawMessage msg, bool allow_relaxed_blacklist, bool ignoreBlacklist) {
     m_queue.emplace_back();
     auto& item = m_queue.back();
     item.msg = std::move(msg);
     item.allow_relaxed_blacklist = allow_relaxed_blacklist;
+    item.ignoreBlacklist = ignoreBlacklist;
     item.expires_at = Clock() + m_expireTime;
     item.attempts = 0;
     if (m_queue.size() == 1) {
@@ -294,6 +296,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   bool CheckAgainstBlacklist() {
     auto sz = m_queue.size();
     if (sz > 0 && IsBlacklisted(m_peer, false)) {
+      auto& item = m_queue.front();
+      if (item.ignoreBlacklist) {
+        return true;
+      }
+
       if (!IsBlacklisted(m_peer, true)) {
         LOG_GENERAL(INFO,
                     "Peer " << m_peer << " is relaxed blacklisted, Q=" << sz);
@@ -426,7 +433,7 @@ class SendJobsImpl : public SendJobs,
 
  private:
   void SendMessageToPeer(const Peer& peer, RawMessage message,
-                         bool allow_relaxed_blacklist) override {
+                         bool allow_relaxed_blacklist, bool ignoreBlacklist) override {
     zil::local::variables.AddSendMessageToPeerCount(1);
     if (peer.m_listenPortHost == 0) {
       LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
@@ -439,9 +446,9 @@ class SendJobsImpl : public SendJobs,
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
     m_asioCtx.post([this, peer = peer, msg = std::move(message),
-                    allow_relaxed_blacklist]() mutable {
+                    allow_relaxed_blacklist, ignoreBlacklist]() mutable {
       OnNewJob(std::forward<Peer>(peer), std::forward<RawMessage>(msg),
-               allow_relaxed_blacklist);
+               allow_relaxed_blacklist, ignoreBlacklist);
     });
   }
 
@@ -467,20 +474,24 @@ class SendJobsImpl : public SendJobs,
 
     auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
                                                    std::move(peer));
-    peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
+    peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false, false);
 
     localCtx.run();
 
     peerCtx->Close();
   }
 
-  void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
+  void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist, bool ignoreBlacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-      LOG_GENERAL(INFO,
-                  "Ignoring blacklisted peer " <<
-                  peer.GetPrintableIPAddress()
-                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
-      return;
+      if (ignoreBlacklist) {
+        LOG_GENERAL(INFO, "Peer " << peer.GetPrintableIPAddress() << " is blacklisted, but we will send the message anyway");
+      } else {
+        LOG_GENERAL(INFO,
+                    "Ignoring blacklisted peer " <<
+                    peer.GetPrintableIPAddress()
+                    << "allow relaxed blacklist " << allow_relaxed_blacklist);
+        return;
+      }
     }
 
     auto& ctx = m_activePeers[peer];
@@ -489,7 +500,7 @@ class SendJobsImpl : public SendJobs,
                                             std::move(peer));
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
-    ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
+    ctx->Enqueue(std::move(msg), allow_relaxed_blacklist, ignoreBlacklist);
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
