@@ -18,6 +18,7 @@ use std::ops::Range;
 use tokio::time::{sleep, Duration};
 
 pub const TRANSACTION_TABLE_ID: &str = "transactions";
+pub const MICROBLOCK_TABLE_ID: &str = "microblocks";
 
 // BigQuery imposes a limit of 10MiB per HTTP request.
 pub const MAX_QUERY_BYTES: usize = 9 << 20;
@@ -59,6 +60,7 @@ pub struct ZilliqaBQProject {
     pub bq_client: Client,
     pub ds: Dataset,
     pub transactions: TrackedTable,
+    pub microblocks: TrackedTable,
     pub client_id: String,
     pub nr_blocks: i64,
 }
@@ -112,14 +114,32 @@ impl ZilliqaBQProject {
             Self::create_transaction_table(&my_client, &txn_location).await?
         };
         let txns = TrackedTable::new(&txn_location, coords, transaction_table)?;
+        let microblock_location = utils::BigQueryTableLocation::new(&bq, MICROBLOCK_TABLE_ID);
+        let microblock_table = if let Ok(tbl) = my_client
+            .table()
+            .get(
+                &bq.project_id,
+                &bq.dataset_id,
+                MICROBLOCK_TABLE_ID,
+                Option::None,
+            )
+            .await
+        {
+            tbl
+        } else {
+            Self::create_microblock_table(&my_client, &microblock_location).await?
+        };
+        let micros = TrackedTable::new(&microblock_location, coords, microblock_table)?;
 
         txns.ensure(&my_client).await?;
+        micros.ensure(&my_client).await?;
 
         Ok(ZilliqaBQProject {
             bq: bq.clone(),
             bq_client: my_client,
             ds: zq_ds,
             transactions: txns,
+            microblocks: micros,
             client_id: coords.client_id.to_string(),
             nr_blocks: coords.nr_blks,
         })
@@ -131,7 +151,7 @@ impl ZilliqaBQProject {
     }
 
     /// Create an insertion request
-    pub async fn make_transaction_inserter(&self) -> Result<Inserter<values::Transaction>> {
+    pub async fn make_inserter<T: Serialize + BlockInsertable>(&self) -> Result<Inserter<T>> {
         Ok(Inserter {
             _marker: PhantomData,
             req: Vec::new(),
@@ -145,6 +165,15 @@ impl ZilliqaBQProject {
         blks: &Range<i64>,
     ) -> Result<(), InsertionErrors> {
         Ok(self.transactions.insert(&self.bq_client, req, blks).await?)
+    }
+
+    /// Act on an inserter.
+    pub async fn insert_microblocks(
+        &self,
+        req: Inserter<values::Microblock>,
+        blks: &Range<i64>,
+    ) -> Result<(), InsertionErrors> {
+        Ok(self.microblocks.insert(&self.bq_client, req, blks).await?)
     }
 
     pub async fn get_txn_range(&self, start_at: i64) -> Result<Option<Range<i64>>> {
@@ -175,6 +204,73 @@ impl ZilliqaBQProject {
             .await
     }
 
+    async fn create_microblock_table(
+        client: &Client,
+        bq: &utils::BigQueryTableLocation,
+    ) -> Result<Table> {
+        let microblock_table = Table::new(
+            &bq.dataset.project_id,
+            &bq.dataset.dataset_id,
+            &bq.table_id,
+            TableSchema::new(vec![
+                TableFieldSchema::integer("block"),
+                TableFieldSchema::integer("offset_in_block"),
+                TableFieldSchema::integer("shard_id"),
+                TableFieldSchema::integer("header_version"),
+                TableFieldSchema::bytes("header_committee_hash"),
+                TableFieldSchema::bytes("header_prev_hash"),
+                TableFieldSchema::integer("gas_limit"),
+                TableFieldSchema::big_numeric("rewards"),
+                TableFieldSchema::bytes("prev_hash"),
+                TableFieldSchema::bytes("tx_root_hash"),
+                TableFieldSchema::bytes("miner_pubkey"),
+                TableFieldSchema::bytes("miner_addr_zil"),
+                TableFieldSchema::bytes("miner_addr_eth"),
+                TableFieldSchema::integer("ds_block_num"),
+                TableFieldSchema::bytes("state_delta_hash"),
+                TableFieldSchema::bytes("tran_receipt_hash"),
+                TableFieldSchema::integer("block_shard_id"),
+                TableFieldSchema::integer("gas_used"),
+                TableFieldSchema::integer("epoch_num"),
+                TableFieldSchema::integer("num_txs"),
+                TableFieldSchema::bytes("blockhash"),
+                TableFieldSchema::integer("timestamp"),
+                TableFieldSchema::bytes("cs1"),
+                TableFieldSchema::string("b1"),
+                TableFieldSchema::bytes("cs2"),
+                TableFieldSchema::string("b2"),
+            ]),
+        )
+        .range_partitioning(RangePartitioning {
+            field: Some("block".to_string()),
+            range: Some(RangePartitioningRange {
+                start: "0".to_string(),
+                // There can only be 10k partitions.
+                // Make it 10k less than that.
+                end: "100000000".to_string(),
+                // About once every two weeks?
+                interval: "100000".to_string(),
+            }),
+        });
+        let the_table = client.table().create(microblock_table).await;
+        match the_table {
+            Ok(tbl) => Ok(tbl),
+            Err(_) => {
+                // Wait a bit and then fetch the table.
+                sleep(Duration::from_millis(5_000)).await;
+                Ok(client
+                    .table()
+                    .get(
+                        &bq.dataset.project_id,
+                        &bq.dataset.dataset_id,
+                        &bq.table_id,
+                        Option::None,
+                    )
+                    .await?)
+            }
+        }
+    }
+
     async fn create_transaction_table(
         client: &Client,
         bq: &utils::BigQueryTableLocation,
@@ -187,6 +283,8 @@ impl ZilliqaBQProject {
                 TableFieldSchema::string("id"),
                 TableFieldSchema::integer("block"),
                 TableFieldSchema::integer("offset_in_block"),
+                // Zilliqa version * 100
+                TableFieldSchema::integer("zqversion"),
                 TableFieldSchema::big_numeric("amount"),
                 TableFieldSchema::string("api_type"),
                 TableFieldSchema::bytes("code"),
@@ -196,7 +294,8 @@ impl ZilliqaBQProject {
                 TableFieldSchema::integer("nonce"),
                 TableFieldSchema::string("receipt"),
                 TableFieldSchema::bytes("sender_public_key"),
-                TableFieldSchema::string("from_addr"),
+                TableFieldSchema::string("from_addr_zil"),
+                TableFieldSchema::string("from_addr_eth"),
                 TableFieldSchema::bytes("signature"),
                 TableFieldSchema::string("to_addr"),
                 TableFieldSchema::integer("version"),

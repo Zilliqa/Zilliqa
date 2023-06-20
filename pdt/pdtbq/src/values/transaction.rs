@@ -12,6 +12,7 @@ pub struct Transaction {
     pub id: String,
     pub block: i64,
     pub offset_in_block: i64,
+    pub zqversion: i64,
     pub amount: Option<String>,
     // application/x-scilla-contract or application/x-evm-contract
     pub api_type: Option<String>,
@@ -22,7 +23,8 @@ pub struct Transaction {
     pub nonce: Option<i64>,
     pub receipt: Option<String>,
     pub sender_public_key: Option<String>,
-    pub from_addr: Option<String>,
+    pub from_addr_zil: Option<String>,
+    pub from_addr_eth: Option<String>,
     pub signature: Option<String>,
     pub to_addr: String,
     pub version: i64,
@@ -63,10 +65,14 @@ impl Transaction {
             .senderpubkey
             .as_ref()
             .map_or(None, |x| Some(encode_u8(x.data.as_slice())));
-        let from_addr = core
+        let from_addr_zil = core
             .senderpubkey
             .as_ref()
             .and_then(|x| utils::maybe_hex_address_from_public_key(&x.data, utils::API::Zilliqa));
+        let from_addr_eth = core
+            .senderpubkey
+            .as_ref()
+            .and_then(|x| utils::maybe_hex_address_from_public_key(&x.data, utils::API::Ethereum));
         let nonce: Option<i64> = if let Some(nonce_val) = core.oneof2 {
             let pdtlib::proto::proto_transaction_core_info::Oneof2::Nonce(actual) = nonce_val;
             Some(<i64>::try_from(actual)?)
@@ -84,10 +90,6 @@ impl Transaction {
             Some(encode_u8(y.as_slice()))
         });
 
-        // let signature = txn
-        //     .signature
-        //     .and_then(|x| utils::str_from_u8(Some(x)).ok())
-        //     .flatten();
         let signature = txn
             .signature
             .map_or(None, |x| Some(encode_u8(x.data.as_slice())));
@@ -122,6 +124,7 @@ impl Transaction {
             id: hex::encode(id.as_bytes()),
             block: blk,
             offset_in_block,
+            zqversion: 100,
             amount,
             api_type,
             code,
@@ -131,7 +134,8 @@ impl Transaction {
             nonce,
             receipt,
             sender_public_key,
-            from_addr,
+            from_addr_zil,
+            from_addr_eth,
             signature,
             to_addr: hex::encode(to_addr.as_bytes()),
             version: i64::from(core.version),

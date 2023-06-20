@@ -119,13 +119,20 @@ pub async fn import(
             }
             Some(range) => {
                 println!("{}: Retrieved block {:?}", client_id, range);
-                let mut inserter = project.make_transaction_inserter().await?;
+                let mut inserter = project.make_inserter::<values::Transaction>().await?;
+                let mut mb_inserter = project.make_inserter::<values::Microblock>().await?;
                 let mut nr_txns = 0;
                 for val in
                     exporter.micro_blocks(range.end.try_into()?, Some(range.start.try_into()?))?
                 {
                     if let Ok((key, blk)) = val {
                         let mut offset_in_block = 0;
+                        mb_inserter.insert_row(values::Microblock::from_proto(
+                            &blk.clone(),
+                            <i64>::try_from(key.epochnum)?,
+                            <i64>::try_from(key.shardid)?,
+                        )?)?;
+
                         // println!("Blk! at {}/{}", key.epochnum, key.shardid);
                         for (_hash, maybe_txn) in exporter.txns(&key, &blk)? {
                             // println!("hash {}", _hash);
@@ -150,10 +157,18 @@ pub async fn import(
                     "{}: Inserting {} transactions for range {:?}",
                     client_id, nr_txns, range
                 );
+
+                match project.insert_microblocks(mb_inserter, &range).await {
+                    Err(val) => {
+                        println!("{}: Cannot import microblocks! {:}", client_id, val);
+                    }
+                    Ok(_) => (),
+                }
                 match project.insert_transactions(inserter, &range).await {
                     Err(val) => println!("{}: Errors {:}", client_id, val),
                     Ok(_) => (),
-                }
+                };
+
                 // The last max is where we stopped, not where the range ended - we may
                 // have multiple tranches to fetch in the range returned.
                 // TODO: Do these manually, rather than going back to BQ every time.
