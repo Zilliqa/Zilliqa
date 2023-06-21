@@ -339,6 +339,23 @@ impl Backend for ScillaBackend {
         serde_json::to_vec(&result).unwrap_or_default()
     }
 
+    fn init_data_as_json(&self, address: H160) -> Vec<u8> {
+        let mut query = ScillaMessage::ProtoScillaQuery::new();
+        query.set_name("_code".into());
+        let mut args = serde_json::Map::new();
+        args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
+        args.insert(
+            "query".into(),
+            base64::encode(query.write_to_bytes().unwrap()).into(),
+        );
+
+        let Ok(result) = self.call_ipc_server_api("fetchContractInitDataJson", args) else {
+            return Vec::new()
+        };
+        serde_json::to_vec(&result).unwrap_or_default()
+    }
+
+
     fn substate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {
         let mut args = serde_json::Map::new();
         args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
