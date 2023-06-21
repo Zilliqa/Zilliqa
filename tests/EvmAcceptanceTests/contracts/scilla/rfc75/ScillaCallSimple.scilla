@@ -1,0 +1,29 @@
+scilla_version 0
+
+
+library ScillaCallSimpleLib
+
+let one_msg =
+  fun (msg : Message) =>
+  let nil_msg = Nil {Message} in
+    Cons {Message} msg nil_msg
+
+contract ScillaCallSimple
+(
+)
+
+field value: Uint128 = Uint128 0
+
+transition call(to: ByStr20, val: Uint128)
+    value := val;
+    msg = {_tag : "SomeMessage"; _recipient : to; sender : _sender; recipient : to; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg
+end
+
+transition callWithEvmTag(to: ByStr20, val: Uint128)
+    value := val;
+    msg = {_tag : "SomeMessage"; _recipient : to; sender : _sender; recipient : to; _amount: Uint128 0; _EvmCall: "bar"};
+    as_msg = one_msg msg;
+    send as_msg
+end

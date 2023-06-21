@@ -134,6 +134,10 @@ def run_or_die(config, cmd, in_dir = None, env = None, in_background = False, pi
         else:
             raise e
 
+def helm_remove_repository(config, repo):
+    run_or_die(config, ["helm", "uninstall", repo], allow_failure = True)
+
+
 def setup_podman(ctx, cpus, memory, disk_size):
     """
     Set up podman.
@@ -345,7 +349,7 @@ def localstack_up(config):
 
 def localstack_down(config):
     """ Let helm undeploy localstack """
-    run_or_die(config, ["helm", "uninstall", "localstack"])
+    helm_remove_repository(config, 'localstack')
 
 def grafana_up(config, testnet_name):
     """ Let helm deploy grafana """
@@ -385,7 +389,7 @@ adminPassword: admin
 
 def grafana_down(config):
     """ Let helm undeploy grafana """
-    run_or_die(config, ["helm", "uninstall", "grafana"])
+    helm_remove_repository(config, 'grafana')
 
 def prometheus_up(config, testnet_name, count = 23):
     """ Let helm deploy prometheus """
@@ -438,7 +442,7 @@ serverFiles:
 
 def prometheus_down(config):
     """ Let helm undeploy prometheus """
-    run_or_die(config, ["helm", "uninstall", "prometheus"])
+    helm_remove_repository(config, 'prometheus')
 
 def tempo_up(config, testnet_name):
     """ Let helm deploy tempo """
@@ -473,7 +477,8 @@ tempo:
 
 def tempo_down(config):
     """ Let helm undeploy tempo """
-    run_or_die(config, ["helm", "uninstall", "tempo"])
+    helm_remove_repository(config, "tempo")
+
 
 @click.command("up")
 @click.pass_context
@@ -491,7 +496,7 @@ def tempo_down(config):
               help="The test network's name")
 @click.option("--isolated-server-accounts",
               is_flag=True,
-              default=False,
+              default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
 @click.option("--persistence", help="A persistence directory to start the network with. Has no effect without also passing `--key-file`.")
@@ -834,8 +839,10 @@ def build_native_to_workspace(config):
         shutil.rmtree(workspace)
     except:
         pass
+    build_env = os.environ.copy()
+    build_env['SCILLA_REPO_ROOT'] = SCILLA_DIR
     # Let's start off by building Scilla, in case it breaks.
-    run_or_die(config, ["make"], in_dir = SCILLA_DIR)
+    run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env)
     run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
     run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
@@ -1075,7 +1082,7 @@ def restart_ingress_cmd(ctx):
               help="The test network's name")
 @click.option("--isolated-server-accounts",
               is_flag=True,
-              default=False,
+              default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
 @click.option("--keep-persistence",
@@ -1091,6 +1098,10 @@ def reup_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts,
     """
     config = get_config(ctx)
     down(config, testnet_name, keep_persistence)
+    if not zilliqa_image:
+        zilliqa_image = build_zilliqa(config, driver, None, None)
+    else:
+        adjust_config(config, driver)
     up(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file)
 
 @click.command("show-proxy")

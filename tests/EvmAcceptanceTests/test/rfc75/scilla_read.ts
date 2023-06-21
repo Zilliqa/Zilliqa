@@ -2,9 +2,9 @@ import {expect} from "chai";
 import {Contract} from "ethers";
 import hre from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
-import {parallelizer} from "../helpers";
+import {parallelizer} from "../../helpers";
 
-describe("BasicInterop", function () {
+describe("RFC75 ScillaRead", function () {
   // Keys used in all tests cases
   const addr1 = "0xB3F90B06a7Dd9a860f8722f99B17fAce5abcb259";
   const addr2 = "0xc8532d4c6354D717163fAa8B7504b2b4436D20d1";
@@ -18,14 +18,14 @@ describe("BasicInterop", function () {
   let scillaContractAddress: string;
 
   before(async function () {
-    solidityContract = await parallelizer.deployContract("BasicInterop");
+    solidityContract = await parallelizer.deployContract("ScillaRead");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
 
     scillaContract = await parallelizer.deployScillaContract(
-      "BasicInterop",
+      "ScillaRead",
       IMMUTABLE_UINT,
       IMMUTABLE_INT,
       IMMUTABLE_STRING,

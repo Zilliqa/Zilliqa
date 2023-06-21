@@ -38,6 +38,7 @@ class TransactionReceipt;
 
 namespace libCps {
 struct CpsContext;
+struct GasTracker;
 class CpsRun;
 class CpsExecutor final {
   using Address = dev::h160;
@@ -60,7 +61,7 @@ class CpsExecutor final {
   void InitRun();
   void RefundGas(
       const std::variant<EvmProcessContext, ScillaProcessContext>& context,
-      uint64_t gasRemainedCore);
+      const GasTracker& gasTracker);
   void TakeGasFromAccount(
       const std::variant<EvmProcessContext, ScillaProcessContext>& context);
   CpsExecuteResult processLoop(const CpsContext& context);

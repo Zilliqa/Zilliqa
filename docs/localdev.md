@@ -46,5 +46,27 @@ scripts/localdev.py log-snapshot 120
 
 Which generates a directory in `/tmp` where it puts the logs of all pods from the last 120s, allowing you to easily see how the transaction flowed through the system.
 
+## Troubleshooting
+
+### Linux attempts to use a rootless docker context
 
 
+If `localdev setup` fails with:
+
+```
+📌  Using rootless Docker driver
+
+❌  Exiting due to MK_USAGE: --container-runtime must be set to "containerd" or "cri-o" for rootless
+
+```
+
+You have probably configured docker to be rootless; you can fix this with:
+
+```
+docker context create rootful --docker host=unix:///var/run/docker.sock
+docker context use rootful
+```
+
+### Linux packages to install
+
+Helm: See https://helm.sh/docs/intro/install/

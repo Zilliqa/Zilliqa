@@ -1,6 +1,6 @@
 scilla_version 0
 
-contract BasicInterop
+contract ScillaRead
 (
   immutableUintField: Uint256,
   immutableIntField: Int256,
@@ -8,10 +8,10 @@ contract BasicInterop
   immutableAddressField: ByStr20
 )
 
-field simpleMap: Map ByStr20 Uint128 
+field simpleMap: Map ByStr20 Uint128
   = Emp ByStr20 Uint128
-  
-field nestedMap: Map ByStr20 (Map ByStr20 Uint128) 
+
+field nestedMap: Map ByStr20 (Map ByStr20 Uint128)
   = Emp ByStr20 (Map ByStr20 Uint128)
 
 field uintField: Uint128 = Uint128 0

@@ -40,7 +40,7 @@
 
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
-                     const CpsContext& ctx, CpsRun::Type type)
+                     CpsContext& ctx, CpsRun::Type type)
     : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::Evm, type),
       mProtoArgs(std::move(protoArgs)),
       mExecutor(executor),
@@ -68,7 +68,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
-      mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - baseFee);
+      mCpsContext.gasTracker.DecreaseByEth(baseFee);
+
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -76,7 +77,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
         TRACE_ERROR("Insufficient Balance");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
-      if (!BlockStorage::GetBlockStorage().PutContractCreator(contractAddress, mCpsContext.scillaExtras.txnHash)) {
+      if (!BlockStorage::GetBlockStorage().PutContractCreator(
+              contractAddress, mCpsContext.scillaExtras.txnHash)) {
         LOG_GENERAL(WARNING, "Failed to save contract creator");
       }
       // Contract call (non-trap)
@@ -86,7 +88,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
-      mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+      mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
 
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
@@ -99,11 +101,15 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     }
   }
 
+  mProtoArgs.set_gas_limit(mCpsContext.gasTracker.GetEthGas());
+
   mAccountStore.AddAddressToUpdateBufferAtomic(
       ProtoToAddress(mProtoArgs.address()));
 
   mProtoArgs.set_tx_trace_enabled(TX_TRACES);
   mProtoArgs.set_tx_trace(mExecutor.CurrentTrace());
+
+  LOG_GENERAL(INFO, "Running EVM with gasLimit: " << mProtoArgs.gas_limit());
 
   const auto invokeResult = InvokeEvm();
 
@@ -117,7 +123,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const evm::EvmResult& evmResult = invokeResult.value();
 
   mExecutor.CurrentTrace() = evmResult.tx_trace();
-  mProtoArgs.set_gas_limit(evmResult.remaining_gas());
+  mCpsContext.gasTracker.DecreaseByEth(mProtoArgs.gas_limit() -
+                                       evmResult.remaining_gas());
 
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
@@ -206,7 +213,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
       ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
-  uint64_t remainingGas = result.remaining_gas();
   Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
   Address fundsRecipient;
   Amount funds;
@@ -269,6 +275,12 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
+  const auto targetGas =
+      (callData.target_gas() != std::numeric_limits<uint64_t>::max() &&
+       callData.target_gas() != 0)
+          ? callData.target_gas()
+          : mCpsContext.gasTracker.GetEthGas();
+  auto inputGas = std::min(targetGas, mCpsContext.gasTracker.GetEthGas());
   const auto transferValue = ProtoToUint(callData.transfer().value());
   const bool isStatic = callData.is_static();
 
@@ -284,19 +296,18 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   span.SetAttribute("IsStatic", isStatic);
 
   if (!isStatic && transferValue > 0) {
-    if (remainingGas < MIN_ETH_GAS) {
+    if (inputGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Insufficient gas in call-trap, remaining: "
-                               << remainingGas
-                               << ", required: " << MIN_ETH_GAS);
+                               << inputGas << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in call-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
-      span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
+      span.SetError("Insufficient gas, given: " + std::to_string(inputGas) +
                     ", required: " + std::to_string(MIN_ETH_GAS) +
                     " in call-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
-    remainingGas -= MIN_ETH_GAS;
+    mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
+    inputGas -= MIN_ETH_GAS;
   }
 
   // Set continuation (itself) to be resumed when create run is finished
@@ -315,12 +326,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   }
 
   {
-    const auto targetGas =
-        callData.target_gas() != std::numeric_limits<uint64_t>::max()
-            ? callData.target_gas()
-            : remainingGas;
-    auto inputGas = std::min(targetGas, remainingGas);
-    inputGas = std::max(remainingGas, inputGas);
     evm::EvmArgs evmCallArgs;
     *evmCallArgs.mutable_address() = ctx.destination();
     *evmCallArgs.mutable_origin() = mProtoArgs.origin();
@@ -417,12 +422,8 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
       jsonData["_address"].asString(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
-  uint64_t remainingGas =
-      GasConv::GasUnitsFromEthToCore(evm_result.remaining_gas());
-  if (mCpsContext.estimate) {
-    remainingGas -= (SCILLA_RUNNER_INVOKE_GAS + CONTRACT_INVOKE_GAS);
-  }
-
+  mCpsContext.gasTracker.DecreaseByCore(SCILLA_RUNNER_INVOKE_GAS +
+                                        CONTRACT_INVOKE_GAS);
   const bool isStatic = callData.is_static();
 
   // Don't allow for non-static calls when its parent is already static
@@ -462,7 +463,6 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
       .calldata = jsonData,
       .edge = 0,
       .depth = 0,
-      .gasLimit = remainingGas,
       .extras = ScillaArgExtras{.scillaReceiverAddress = Address{}}};
 
   auto nextRun = std::make_shared<CpsRunScilla>(
@@ -516,25 +516,29 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   }
 
   mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
-  uint64_t remainingGas = result.remaining_gas();
 
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
+  const uint64_t targetGas =
+      (createData.target_gas() != std::numeric_limits<uint64_t>::max() &&
+       createData.target_gas() != 0)
+          ? createData.target_gas()
+          : mCpsContext.gasTracker.GetEthGas();
+  auto inputGas = std::min(createData.target_gas(), targetGas);
 
   if (transferValue > 0) {
-    if (remainingGas < MIN_ETH_GAS) {
+    if (inputGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Insufficient gas in create-trap, remaining: "
-                               << remainingGas
-                               << ", required: " << MIN_ETH_GAS);
+                               << inputGas << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in create-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
-      span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
+      span.SetError("Insufficient gas, given: " + std::to_string(inputGas) +
                     ", required: " + std::to_string(MIN_ETH_GAS) +
                     " in create-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
-    remainingGas -= MIN_ETH_GAS;
+    inputGas -= MIN_ETH_GAS;
+    mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
   }
 
   // Set continuation (itself) to be resumed when create run is finished
@@ -547,14 +551,10 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   // Push create job to be run by EVM
   {
-    const auto targetGas =
-        createData.target_gas() != std::numeric_limits<uint64_t>::max()
-            ? createData.target_gas()
-            : remainingGas;
-    const auto baseFee = Eth::getGasUnitsForContractDeployment(
+    const uint64_t baseFee = Eth::getGasUnitsForContractDeployment(
         {}, DataConversion::StringToCharArray(createData.call_data()));
 
-    if (baseFee > targetGas) {
+    if (baseFee > inputGas) {
       LOG_GENERAL(WARNING, "Insufficient gas in create-trap, fee: "
                                << baseFee << ", targetGas: " << targetGas);
       TRACE_ERROR("Insufficient target gas in create-trap");
@@ -565,7 +565,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
           ", required: " + std::to_string(baseFee) + " in create-trap");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
-    const auto inputGas = targetGas - baseFee;
+    inputGas -= targetGas - baseFee;
+    mCpsContext.gasTracker.DecreaseByEth(baseFee);
     evm::EvmArgs evmCreateArgs;
     *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
     *evmCreateArgs.mutable_origin() = mProtoArgs.origin();
@@ -745,6 +746,97 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
   }
 }
 
+bool CpsRunEvm::ProbeERC165Interface(CpsAccountStoreInterface& accStore,
+                                     CpsContext& ctx, const Address& caller,
+                                     const Address& destinationAddress) {
+  constexpr auto ERC165METHOD =
+      "0x01ffc9a701ffc9a7000000000000000000000000000000000000000000000000000000"
+      "00";
+
+  // Check if destination is ERC-165 compatible
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(destinationAddress);
+  const auto code = accStore.GetContractCode(destinationAddress);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+
+  *args.mutable_data() = DataConversion::CharArrayToString(
+      DataConversion::HexStrToUint8VecRet(ERC165METHOD));
+  *args.mutable_caller() = AddressToProto(caller);
+  *args.mutable_origin() = AddressToProto(ctx.origSender);
+  // Set gas limit as per EIP-165
+  args.set_gas_limit(30000);
+  args.set_estimate(false);
+  *args.mutable_context() = "ScillaCall";
+  *args.mutable_extras() = ctx.evmExtras;
+  args.set_enable_cps(ENABLE_CPS);
+
+  TransactionReceipt unusedReceipt;
+  CpsExecutor unusedExecutor{accStore, unusedReceipt};
+
+  {
+    CpsRunEvm evmRun{args, unusedExecutor, ctx, CpsRun::Type::Call};
+
+    const auto result = evmRun.InvokeEvm();
+    if (!result.has_value()) {
+      return false;
+    }
+
+    const evm::EvmResult& evmResult = result.value();
+
+    // Bool encoded return value = expect last digit to be 1
+    if (std::empty(evmResult.return_value()) ||
+        static_cast<uint8_t>(evmResult.return_value().back()) != 0x01) {
+      return false;
+    }
+  }
+
+  {
+    // Second probe - with different calldata (see EIP-165)
+    constexpr auto ERC165INVALID =
+        "0x01ffc9a7ffffffff0000000000000000000000000000000000000000000000000000"
+        "0000";
+    *args.mutable_data() = DataConversion::CharArrayToString(
+        DataConversion::HexStrToUint8VecRet(ERC165INVALID));
+    CpsRunEvm evmRun{args, unusedExecutor, ctx, CpsRun::Type::Call};
+
+    const auto result = evmRun.InvokeEvm();
+
+    if (!result.has_value()) {
+      return false;
+    }
+
+    const evm::EvmResult& evmResult = result.value();
+
+    if (!std::empty(evmResult.return_value()) &&
+        static_cast<uint8_t>(evmResult.return_value().back()) == 0x01) {
+      return false;
+    }
+  }
+  // Eventually check support for scilla interface in evm contract
+  {
+    // Check if destination supports 'function
+    // handle_scilla_message(string,bytes)'
+    // it's a 0x01ffc9a7 (ERC-165) +
+    // bytes4(keccak(hadle_scilla_message(string,bytes))
+    constexpr auto SUPPORT_SCILLA_IFACE =
+        "0x01ffc9a742ede2780000000000000000000000000000000000000000000000000000"
+        "0000";
+    *args.mutable_data() = DataConversion::CharArrayToString(
+        DataConversion::HexStrToUint8VecRet(SUPPORT_SCILLA_IFACE));
+
+    CpsRunEvm evmRun{args, unusedExecutor, ctx, CpsRun::Type::Call};
+
+    const auto result = evmRun.InvokeEvm();
+    const evm::EvmResult& evmResult = result.value();
+
+    if (!std::empty(evmResult.return_value()) ||
+        static_cast<uint8_t>(evmResult.return_value().back()) == 0x01) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool CpsRunEvm::HasFeedback() const {
   return GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate;
 }
@@ -764,7 +856,6 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
                               evm::ExitReason::ExitReasonCase::kSucceed;
     mProtoArgs.mutable_continuation()->set_succeeded(evmSucceeded);
 
-    mProtoArgs.set_gas_limit(evmResult.remaining_gas());
     *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
 
     if (previousRun.GetDomain() == CpsRun::Evm) {
@@ -781,11 +872,8 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
     }
   } else {
     const auto& scillaResult = std::get<ScillaResult>(results.result);
-    const auto remainingGas =
-        GasConv::GasUnitsFromCoreToEth(scillaResult.gasRemained);
     if (mProtoArgs.continuation().feedback_type() ==
         evm::Continuation_Type_CALL) {
-      mProtoArgs.set_gas_limit(remainingGas);
       mProtoArgs.mutable_continuation()->set_succeeded(scillaResult.isSuccess);
     }
   }

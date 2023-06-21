@@ -22,6 +22,7 @@
 #include "libScilla/ScillaUtils.h"
 
 #include "libCps/CpsAccountStoreInterface.h"
+#include "libCps/CpsContext.h"
 #include "libCps/CpsRunScilla.h"
 #include "libCps/ScillaHelpers.h"
 
@@ -180,7 +181,7 @@ void ScillaHelpers::CreateScillaCodeFiles(
 bool ScillaHelpers::ParseContractCheckerOutput(
     CpsAccountStoreInterface &acc_store, const Address &addr,
     const std::string &checkerPrint, TransactionReceipt &receipt,
-    std::map<std::string, zbytes> &metadata, uint64_t &gasRemained,
+    std::map<std::string, zbytes> &metadata, GasTracker &gasTracker,
     bool is_library) {
   LOG_MARKER();
 
@@ -204,24 +205,27 @@ bool ScillaHelpers::ParseContractCheckerOutput(
       LOG_GENERAL(
           WARNING,
           "The json output of this contract didn't contain gas_remaining");
-      if (gasRemained > CONTRACT_CREATE_GAS) {
-        gasRemained -= CONTRACT_CREATE_GAS;
+      if (gasTracker.GetCoreGas() > CONTRACT_CREATE_GAS) {
+        gasTracker.DecreaseByCore(CONTRACT_CREATE_GAS);
       } else {
-        gasRemained = 0;
+        gasTracker.DecreaseByCore(gasTracker.GetCoreGas());
       }
       receipt.AddError(NO_GAS_REMAINING_FOUND);
       return false;
     }
+    uint64_t gasRemained = 0;
     try {
       gasRemained = std::min(
-          gasRemained,
+          gasTracker.GetCoreGas(),
           boost::lexical_cast<uint64_t>(root["gas_remaining"].asString()));
     } catch (...) {
       LOG_GENERAL(WARNING, "_amount " << root["gas_remaining"].asString()
                                       << " is not numeric");
       return false;
     }
-    LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+
+    gasTracker.SetGasCore(gasRemained);
+    LOG_GENERAL(INFO, "gasRemained: " << gasTracker.GetCoreGas());
 
     if (is_library) {
       if (root.isMember("errors")) {

@@ -8,22 +8,23 @@ import {Event} from "./subscriptions/shared";
 
 function validateScillaEvent(scillaEventName: string, contractAddress: string, event: any) {
   expect(event["address"].toLowerCase()).to.eq(contractAddress.toLowerCase());
-  const EXPECTED_TOPIC_0 = utils.keccak256(toUtf8Bytes(scillaEventName + '(string)'));
+  const EXPECTED_TOPIC_0 = utils.keccak256(toUtf8Bytes(scillaEventName + "(string)"));
   expect(event["topics"][0].toLowerCase()).to.eq(EXPECTED_TOPIC_0.toLowerCase());
-  const decodedData = defaultAbiCoder.decode(['string'], event['data']);
+  const decodedData = defaultAbiCoder.decode(["string"], event["data"]);
   const scillaEvent = JSON.parse(decodedData.toString());
-  expect(scillaEvent['_eventname']).to.be.equal(scillaEventName);
+  expect(scillaEvent["_eventname"]).to.be.equal(scillaEventName);
 }
 
 function validateEvmEvent(evmEventName: string, contractAddress: string, event: any) {
   expect(event["address"].toLowerCase()).to.eq(contractAddress.toLowerCase());
-  const EXPECTED_TOPIC_0 = utils.keccak256(toUtf8Bytes(evmEventName + '()'));
+  const EXPECTED_TOPIC_0 = utils.keccak256(toUtf8Bytes(evmEventName + "()"));
   expect(event["topics"][0].toLowerCase()).to.eq(EXPECTED_TOPIC_0.toLowerCase());
 }
 
 describe("ERC20 Is ZRC2", function () {
   let zrc2_contract: ScillaContract;
   let erc20_contract: Contract;
+  let erc165_contract: Contract;
   let contractOwner: Signer;
   let alice: Signer;
   let bob: Signer;
@@ -50,11 +51,14 @@ describe("ERC20 Is ZRC2", function () {
       "ERC20isZRC2",
       zrc2_contract.address?.toLowerCase()
     );
+
+    erc165_contract = await parallelizer.deployContractWithSigner(contractOwner, "ContractSupportingScillaReceiver");
   });
 
   it("Interop Should be deployed successfully", async function () {
     expect(zrc2_contract.address).to.be.properAddress;
     expect(erc20_contract.address).to.be.properAddress;
+    expect(erc165_contract.address).to.be.properAddress;
   });
 
   it("should return correct contract owner from ZRC2", async function () {
@@ -81,8 +85,8 @@ describe("ERC20 Is ZRC2", function () {
     // Validate receipt events
     {
       const events = receipt["events"];
-      validateScillaEvent('TransferSuccess', zrc2_contract.address!, events[0]);
-      validateEvmEvent('TransferEvent', erc20_contract.address, events[1]);
+      validateScillaEvent("TransferSuccess", zrc2_contract.address!, events[0]);
+      validateEvmEvent("TransferEvent", erc20_contract.address, events[1]);
     }
   });
 
@@ -93,8 +97,8 @@ describe("ERC20 Is ZRC2", function () {
     // Validate receipt
     {
       const events = receipt["events"];
-      validateScillaEvent('IncreasedAllowance', zrc2_contract.address!, events[0]);
-      validateEvmEvent('IncreasedAllowanceEvent', erc20_contract.address, events[1]);
+      validateScillaEvent("IncreasedAllowance", zrc2_contract.address!, events[0]);
+      validateEvmEvent("IncreasedAllowanceEvent", erc20_contract.address, events[1]);
     }
     let aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
     expect(aliceAllowance).to.be.eq(50);
@@ -104,10 +108,9 @@ describe("ERC20 Is ZRC2", function () {
     receipt = await receipt.wait();
     {
       const events = receipt["events"];
-      validateScillaEvent('IncreasedAllowance', zrc2_contract.address!, events[0]);
-      validateEvmEvent('IncreasedAllowanceEvent', erc20_contract.address, events[1]);
+      validateScillaEvent("IncreasedAllowance", zrc2_contract.address!, events[0]);
+      validateEvmEvent("IncreasedAllowanceEvent", erc20_contract.address, events[1]);
     }
-
 
     aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
     expect(aliceAllowance).to.be.eq(100);
@@ -117,8 +120,8 @@ describe("ERC20 Is ZRC2", function () {
     receipt = await receipt.wait();
     {
       const events = receipt["events"];
-      validateScillaEvent('DecreasedAllowance', zrc2_contract.address!, events[0]);
-      validateEvmEvent('DecreasedAllowanceEvent', erc20_contract.address, events[1]);
+      validateScillaEvent("DecreasedAllowance", zrc2_contract.address!, events[0]);
+      validateEvmEvent("DecreasedAllowanceEvent", erc20_contract.address, events[1]);
     }
 
     aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
@@ -128,7 +131,7 @@ describe("ERC20 Is ZRC2", function () {
   it("Should be able to transferFrom via erc20", async function () {
     await (await erc20_contract.connect(alice).approve(await contractOwner.getAddress(), 50)).wait();
     await (
-        await erc20_contract.connect(contractOwner).transferFrom(await alice.getAddress(), await bob.getAddress(), 50)
+      await erc20_contract.connect(contractOwner).transferFrom(await alice.getAddress(), await bob.getAddress(), 50)
     ).wait();
     const aliceTokens = await erc20_contract.balanceOf(await alice.getAddress());
     expect(aliceTokens).to.be.eq(100);
@@ -136,27 +139,24 @@ describe("ERC20 Is ZRC2", function () {
     expect(bobTokens).to.be.eq(50);
   });
 
-  it("Should be able to transfer to evm contract", async function() {
-
-    expect(await erc20_contract.connect(contractOwner).transfer(erc20_contract.address, 150)).not.to.be.reverted;
+  it("Should be able to transfer to evm contract", async function () {
+    await (await erc20_contract.connect(contractOwner).transfer(erc20_contract.address, 150)).wait();
     const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
     expect(zrc2Tokens).to.be.eq(150);
   });
 
-  it("Should not be able to transfer to evm contract when _EvmCall tag is present", async function() {
+  it("Should not be able to transfer to evm contract when _EvmCall tag is present", async function () {
     expect(erc20_contract.connect(contractOwner).transferFailed(erc20_contract.address, 150)).to.be.reverted;
     const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
     expect(zrc2Tokens).to.be.eq(150);
   });
 
-  it("Should be able to receive scilla event via subscriptions", async function() {
+  it("Should be able to receive scilla event via subscriptions", async function () {
     const provider = new ethers.providers.WebSocketProvider(hre.getWebsocketUrl());
     let receivedEvents: Event[] = [];
     const filter = {
       address: zrc2_contract.address?.toLowerCase(),
-      topics: [
-        utils.id("TransferSuccess(string)")
-      ]
+      topics: [utils.id("TransferSuccess(string)")]
     };
     provider.on(filter, (event) => {
       receivedEvents.push(event);
@@ -168,4 +168,11 @@ describe("ERC20 Is ZRC2", function () {
     expect(receivedEvents).to.be.not.empty;
   });
 
+  it("Should not be able to transfer to evm contract when scilla receiver handler is present", async function () {
+    const scillaSignature = utils.id("handle_scilla_message(string,bytes)").slice(0, 10);
+    expect(await erc165_contract.supportsInterface(scillaSignature)).to.be.true;
+    expect(erc20_contract.transfer(erc165_contract.address, 150)).to.be.reverted;
+    const zrc2Tokens = await erc20_contract.balanceOf(erc165_contract.address);
+    expect(zrc2Tokens).to.be.eq(0);
+  });
 });
