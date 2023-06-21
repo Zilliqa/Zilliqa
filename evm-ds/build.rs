@@ -18,8 +18,8 @@ fn main() {
 
     protoc_rust::Codegen::new()
         .out_dir("src/protos")
-        .inputs([scilla_message_proto.to_string()])
-        .include(scilla_message_proto_inc.to_string())
+        .inputs([scilla_message_proto.])
+        .include(scilla_message_proto_inc)
         .customize(protoc_rust::Customize {
             carllerche_bytes_for_bytes: Some(true),
             carllerche_bytes_for_string: Some(true),
@@ -30,8 +30,8 @@ fn main() {
 
     protoc_rust::Codegen::new()
         .out_dir("src/protos")
-        .inputs([evm_proto.to_string()])
-        .include(evm_proto_inc.to_string())
+        .inputs([evm_proto])
+        .include(evm_proto_inc)
         .customize(protoc_rust::Customize {
             carllerche_bytes_for_bytes: Some(true),
             carllerche_bytes_for_string: Some(true),
