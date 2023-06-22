@@ -613,8 +613,11 @@ def isolated(config, enable_evm = True, block_time_ms = None):
     with open(os.path.join(target_workspace, 'constants.xml'), 'w') as f:
         f.write(output_config)
     new_env = os.environ.copy()
-    #old_path = new_env.get("DYLD_LIBRARY_PATH", "")
-    #new_env["DYLD_LIBRARY_PATH"] = f"{target_workspace}/lib:{old_path}"
+    # This used to contain DYLD_LIBRARY_PATH - and it probably still should,
+    # but I don't have a Mac to hand - rrw 2023-06-22
+    for var in [ "LD_LIBRARY_PATH" ]:
+        old_path = new_env.get(var, "")
+        new_env[var] = f"{target_workspace}/lib:{old_path}"
     cmd = [ "./bin/isolatedServer", "-f", "isolated-server-accounts.json", "-u", "999" ]
     if block_time_ms is not None:
         cmd.extend(["--time", str(block_time_ms)])
