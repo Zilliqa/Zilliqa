@@ -114,10 +114,9 @@ fn build_exit_result<B: Backend>(
                     } => {
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
-                        if scaling_factor.is_some() {
-                            modify.set_balance(
-                                scale_eth_to_zil(basic.balance, scaling_factor.unwrap()).into(),
-                            ); // todo
+                        if let Some(scaling) = scaling_factor {
+                            modify.set_balance(scale_eth_to_zil(basic.balance, scaling).into());
+                            // todo
                         }
                         modify.set_nonce(basic.nonce.into());
                         if let Some(code) = code {
@@ -193,10 +192,8 @@ fn build_call_result<B: Backend>(
                         debug!("Modify: {:?} {:?}", address, basic);
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
-                        if scaling_factor.is_some() {
-                            modify.set_balance(
-                                scale_eth_to_zil(basic.balance, scaling_factor.unwrap()).into(),
-                            );
+                        if let Some(scaling) = scaling_factor {
+                            modify.set_balance(scale_eth_to_zil(basic.balance, scaling).into());
                         }
                         modify.set_nonce(basic.nonce.into());
                         if let Some(code) = code {
