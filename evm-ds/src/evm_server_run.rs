@@ -60,7 +60,7 @@ pub async fn run_evm_impl(
             gas_limit,
             caller,
             gas_scaling_factor,
-            backend.config.zil_scaling_factor,
+            Some(backend.config.zil_scaling_factor),
             backend,
             estimate,
             is_static,
@@ -70,7 +70,6 @@ pub async fn run_evm_impl(
             enable_cps,
             tx_trace_enabled,
             tx_trace,
-            true,
         );
 
         Ok(base64::encode(result.write_to_bytes().unwrap()))
@@ -83,14 +82,12 @@ pub async fn run_evm_impl(
 fn build_exit_result<B: Backend>(
     executor: CpsExecutor<B>,
     runtime: &Runtime,
-    _backend: &impl Backend,
     trace: &LoggingEventListener,
     exit_reason: &evm::ExitReason,
     remaining_gas: u64,
     is_static: bool,
     continuations: Arc<Mutex<Continuations>>,
-    perform_scaling: bool,
-    scaling_factor: u64,
+    scaling_factor: Option<u64>,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     result.set_exit_reason(exit_reason.clone().into());
@@ -117,9 +114,9 @@ fn build_exit_result<B: Backend>(
                     } => {
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
-                        if perform_scaling {
+                        if scaling_factor.is_some() {
                             modify.set_balance(
-                                scale_eth_to_zil(basic.balance, scaling_factor).into(),
+                                scale_eth_to_zil(basic.balance, scaling_factor.unwrap()).into(),
                             ); // todo
                         }
                         modify.set_nonce(basic.nonce.into());
@@ -136,7 +133,7 @@ fn build_exit_result<B: Backend>(
                                     .lock()
                                     .unwrap()
                                     .update_states(address, k, v, is_static);
-                                encode_storage(k, v, perform_scaling).into()
+                                encode_storage(k, v, scaling_factor.is_some()).into()
                             })
                             .collect();
 
@@ -158,14 +155,12 @@ fn build_exit_result<B: Backend>(
 fn build_call_result<B: Backend>(
     executor: CpsExecutor<B>,
     runtime: &Runtime,
-    _backend: &impl Backend,
     interrupt: CpsCallInterrupt,
     trace: &LoggingEventListener,
     remaining_gas: u64,
     is_static: bool,
     cont_id: u64,
-    perform_scaling: bool,
-    scaling_factor: u64,
+    scaling_factor: Option<u64>,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     result.set_return_value(runtime.machine().return_value().into());
@@ -198,9 +193,9 @@ fn build_call_result<B: Backend>(
                         debug!("Modify: {:?} {:?}", address, basic);
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
-                        if perform_scaling {
+                        if scaling_factor.is_some() {
                             modify.set_balance(
-                                scale_eth_to_zil(basic.balance, scaling_factor).into(),
+                                scale_eth_to_zil(basic.balance, scaling_factor.unwrap()).into(),
                             );
                         }
                         modify.set_nonce(basic.nonce.into());
@@ -210,7 +205,7 @@ fn build_call_result<B: Backend>(
                         modify.set_reset_storage(reset_storage);
                         let storage_proto = storage
                             .into_iter()
-                            .map(|(k, v)| encode_storage(k, v, perform_scaling).into())
+                            .map(|(k, v)| encode_storage(k, v, scaling_factor.is_some()).into())
                             .collect();
                         modify.set_storage(storage_proto);
                         result.set_modify(modify);
@@ -354,7 +349,7 @@ pub fn run_evm_impl_direct(
     gas_limit: u64,
     caller: H160,
     gas_scaling_factor: u64,
-    scaling_factor: u64,
+    scaling_factor: Option<u64>,
     backend: impl Backend,
     estimate: bool,
     is_static: bool,
@@ -364,7 +359,6 @@ pub fn run_evm_impl_direct(
     enable_cps: bool,
     tx_trace_enabled: bool,
     tx_trace: String,
-    perform_scaling: bool,
 ) -> EvmResult {
     info!(
         "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  estimate: {:?} is_continuation: {:?}, cps: {:?}, \ntx_trace: {:?}, \ndata: {:02X?}, \ncode: {:02X?}",
@@ -527,13 +521,11 @@ pub fn run_evm_impl_direct(
             build_exit_result(
                 executor,
                 &runtime,
-                &backend,
                 &listener,
                 &exit_reason,
                 remaining_gas,
                 is_static,
                 continuations,
-                perform_scaling,
                 scaling_factor,
             )
         }
@@ -546,13 +538,11 @@ pub fn run_evm_impl_direct(
             build_call_result(
                 executor,
                 &runtime,
-                &backend,
                 i,
                 &listener,
                 remaining_gas,
                 is_static,
                 cont_id,
-                perform_scaling,
                 scaling_factor,
             )
         }
