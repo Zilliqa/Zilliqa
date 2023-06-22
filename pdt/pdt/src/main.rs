@@ -7,7 +7,6 @@ use pdtlib::exporter::Exporter;
 use pdtlib::historical::Historical;
 use pdtlib::incremental::Incremental;
 use pdtlib::render::Renderer;
-use primitive_types::H256;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -28,8 +27,6 @@ enum Commands {
     DownloadPersistence,
     #[command(name = "dump")]
     DumpPersistence,
-    #[command(name = "bq")]
-    ImportBq(ImportOptions),
     #[command(name = "bqmulti")]
     ImportMulti(MultiOptions),
     #[command(name = "reconcile-blocks")]
@@ -116,7 +113,7 @@ async fn dump_persistence(unpack_dir: &str) -> Result<()> {
             // println!("Blk! at {}/{}", key.epochnum, key.shardid);
             for (_hash, maybe_txn) in exporter.txns(&key, &blk)? {
                 if let Some(txn) = maybe_txn {
-                    if let Some(actually_txn) = txn.transaction {
+                    if let Some(_actually_txn) = txn.transaction {
                         // println!("Txn {}", H256::from_slice(&actually_txn.tranid));
                     }
                 }
@@ -138,18 +135,6 @@ async fn bigquery_import_multi(unpack_dir: &str, opts: &MultiOptions) -> Result<
     .await
 }
 
-async fn bigquery_import(unpack_dir: &str, opts: &ImportOptions) -> Result<()> {
-    bqimport::import(
-        unpack_dir,
-        opts.nr_machines,
-        opts.machine,
-        opts.batch_blocks,
-        opts.nr_batches,
-        opts.start_block,
-    )
-    .await
-}
-
 async fn bigquery_reconcile_blocks(unpack_dir: &str, opts: &ReconcileOptions) -> Result<()> {
     bqimport::reconcile_blocks(unpack_dir, opts.batch_blocks).await
 }
@@ -163,7 +148,6 @@ async fn main() -> Result<()> {
             download_persistence(&cli.download_dir, &cli.unpack_dir).await
         }
         Commands::DumpPersistence => dump_persistence(&cli.unpack_dir).await,
-        Commands::ImportBq(opts) => bigquery_import(&cli.unpack_dir, opts).await,
         Commands::ImportMulti(opts) => bigquery_import_multi(&cli.unpack_dir, opts).await,
         Commands::ReconcileBlocks(opts) => bigquery_reconcile_blocks(&cli.unpack_dir, opts).await,
     }

@@ -62,7 +62,6 @@ pub struct ZilliqaBQProject {
     pub transactions: TrackedTable,
     pub microblocks: TrackedTable,
     pub client_id: String,
-    pub nr_blocks: i64,
 }
 
 pub struct Inserter<T: Serialize> {
@@ -78,10 +77,30 @@ impl<T: Serialize> Inserter<T> {
 }
 
 impl ZilliqaBQProject {
+    /// Creates tables so that we can do this in a single thread.
+    pub async fn ensure_schema(
+        bq: &utils::BigQueryDatasetLocation,
+        service_account_key_file: &str,
+    ) -> Result<()> {
+        let client = Client::from_service_account_key_file(service_account_key_file).await?;
+        let txn_location = utils::BigQueryTableLocation::new(&bq, TRANSACTION_TABLE_ID);
+        if let None = utils::find_table(&client, &txn_location).await? {
+            Self::create_transaction_table(&client, &txn_location).await?;
+        }
+        TrackedTable::ensure_schema(&client, &txn_location).await?;
+        let microblock_location = bq.with_table_id(MICROBLOCK_TABLE_ID);
+        if let None = utils::find_table(&client, &microblock_location).await? {
+            Self::create_microblock_table(&client, &microblock_location).await?;
+        }
+        TrackedTable::ensure_schema(&client, &microblock_location).await?;
+        Ok(())
+    }
+
     pub async fn new(
         bq: &utils::BigQueryDatasetLocation,
         coords: &utils::ProcessCoordinates,
         service_account_key_file: &str,
+        nr_blks: i64,
     ) -> Result<Self> {
         // Application default creds don't work here because the auth library looks for a service
         // account key in the file you give it and, of course, it's not there ..
@@ -98,41 +117,22 @@ impl ZilliqaBQProject {
                 .create(Dataset::new(&bq.project_id, &bq.dataset_id))
                 .await?
         };
-        let txn_location = utils::BigQueryTableLocation::new(&bq, TRANSACTION_TABLE_ID);
-        let transaction_table = if let Ok(tbl) = my_client
-            .table()
-            .get(
-                &bq.project_id,
-                &bq.dataset_id,
-                TRANSACTION_TABLE_ID,
-                Option::None,
-            )
-            .await
-        {
-            tbl
-        } else {
-            Self::create_transaction_table(&my_client, &txn_location).await?
-        };
-        let txns = TrackedTable::new(&txn_location, coords, transaction_table)?;
-        let microblock_location = utils::BigQueryTableLocation::new(&bq, MICROBLOCK_TABLE_ID);
-        let microblock_table = if let Ok(tbl) = my_client
-            .table()
-            .get(
-                &bq.project_id,
-                &bq.dataset_id,
-                MICROBLOCK_TABLE_ID,
-                Option::None,
-            )
-            .await
-        {
-            tbl
-        } else {
-            Self::create_microblock_table(&my_client, &microblock_location).await?
-        };
-        let micros = TrackedTable::new(&microblock_location, coords, microblock_table)?;
+        let txn_location = bq.with_table_id(TRANSACTION_TABLE_ID);
+        let transaction_table =
+            utils::find_table(&my_client, &txn_location)
+                .await?
+                .ok_or(anyhow!(
+                    "No transaction table - have you created the schema?"
+                ))?;
+        let txns = TrackedTable::new(&txn_location, coords, transaction_table, nr_blks)?;
 
-        txns.ensure(&my_client).await?;
-        micros.ensure(&my_client).await?;
+        let microblock_location = bq.with_table_id(MICROBLOCK_TABLE_ID);
+        let microblock_table = utils::find_table(&my_client, &microblock_location)
+            .await?
+            .ok_or(anyhow!(
+                "No microblock table - have you created the schema?"
+            ))?;
+        let micros = TrackedTable::new(&microblock_location, coords, microblock_table, nr_blks)?;
 
         Ok(ZilliqaBQProject {
             bq: bq.clone(),
@@ -141,13 +141,7 @@ impl ZilliqaBQProject {
             transactions: txns,
             microblocks: micros,
             client_id: coords.client_id.to_string(),
-            nr_blocks: coords.nr_blks,
         })
-    }
-
-    /// Get the max block
-    pub async fn get_max_block(&self) -> i64 {
-        self.nr_blocks - 1
     }
 
     /// Create an insertion request

@@ -12,6 +12,7 @@ use tokio::time::{sleep, Duration};
 pub struct Meta {
     table: utils::BigQueryTableLocation,
     pub coords: utils::ProcessCoordinates,
+    nr_blks: i64,
 }
 
 /// A metadata table holds a list of the ranges which have been imported,
@@ -36,34 +37,30 @@ impl Meta {
     pub fn new(
         bq: &utils::BigQueryTableLocation,
         coords: &utils::ProcessCoordinates,
+        nr_blks: i64,
     ) -> Result<Self> {
         Ok(Meta {
             table: bq.clone(),
             coords: coords.clone(),
+            nr_blks,
         })
     }
 
-    pub async fn ensure_table(&self, client: &Client) -> Result<()> {
-        if let Err(_) = client
-            .table()
-            .get(
-                &self.table.dataset.project_id,
-                &self.table.dataset.dataset_id,
-                &self.table.table_id,
-                Option::None,
-            )
-            .await
-        {
-            self.create_table(client).await?;
+    pub async fn ensure_schema(client: &Client, loc: &utils::BigQueryTableLocation) -> Result<()> {
+        if let None = utils::find_table(client, loc).await? {
+            Self::create_table(client, loc).await?;
         }
         Ok(())
     }
 
-    pub async fn create_table(&self, client: &Client) -> Result<Table> {
+    pub async fn create_table(
+        client: &Client,
+        loc: &utils::BigQueryTableLocation,
+    ) -> Result<Table> {
         let metadata_table = Table::new(
-            &self.table.dataset.project_id,
-            &self.table.dataset.dataset_id,
-            &self.table.table_id,
+            &loc.dataset.project_id,
+            &loc.dataset.dataset_id,
+            &loc.table_id,
             TableSchema::new(vec![
                 TableFieldSchema::string("client_id"),
                 TableFieldSchema::date_time("event_stamp"),
@@ -77,15 +74,9 @@ impl Meta {
             Err(_) => {
                 // Wait a bit and then fetch the table.
                 sleep(Duration::from_millis(5_000)).await;
-                Ok(client
-                    .table()
-                    .get(
-                        &self.table.dataset.project_id,
-                        &self.table.dataset.dataset_id,
-                        &self.table.table_id,
-                        Option::None,
-                    )
-                    .await?)
+                Ok(utils::find_table(client, loc)
+                    .await?
+                    .ok_or(anyhow!("Couldn't create table {}", loc.table_id))?)
             }
         }
     }
@@ -124,15 +115,15 @@ impl Meta {
         let mut start_at: i64 = start_at_in;
         loop {
             let next_range = self
-                .find_next_free_range(client, start_at, self.coords.nr_blks)
+                .find_next_free_range(client, start_at, self.nr_blks)
                 .await?;
 
             println!(
                 "{}: next_range {:?} start_at {} max_blk {}",
-                self.coords.client_id, next_range, start_at, self.coords.nr_blks
+                self.coords.client_id, next_range, start_at, self.nr_blks
             );
             // The next range starts above the max_blk, so we don't really care.
-            if next_range.start >= self.coords.nr_blks {
+            if next_range.start >= self.nr_blks {
                 return Ok(None);
             }
 
@@ -204,7 +195,7 @@ impl Meta {
     }
 
     pub fn get_nr_blocks(&self) -> i64 {
-        return self.coords.nr_blks;
+        return self.nr_blks;
     }
     pub async fn commit_run(&self, client: &Client, range: &Range<i64>) -> Result<()> {
         let _ = client

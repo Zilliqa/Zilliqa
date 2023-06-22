@@ -19,21 +19,25 @@ pub struct TrackedTable {
 }
 
 impl TrackedTable {
+    pub async fn ensure_schema(
+        client: &Client,
+        location: &utils::BigQueryTableLocation,
+    ) -> Result<()> {
+        Ok(Meta::ensure_schema(client, &location.to_meta()).await?)
+    }
+
     pub fn new(
         location: &utils::BigQueryTableLocation,
         coords: &utils::ProcessCoordinates,
         table: Table,
+        nr_blks: i64,
     ) -> Result<Self> {
-        let meta = Meta::new(&location.to_meta(), coords)?;
+        let meta = Meta::new(&location.to_meta(), coords, nr_blks)?;
         Ok(TrackedTable {
             location: location.clone(),
             table,
             meta,
         })
-    }
-
-    pub async fn ensure(&self, client: &Client) -> Result<()> {
-        Ok(self.meta.ensure_table(client).await?)
     }
 
     // Retrieve the last (blk,txnid) pair for the blocks in the range, so we can avoid inserting duplicates.

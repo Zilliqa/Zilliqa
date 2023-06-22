@@ -1,6 +1,8 @@
 // Here
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
+use gcp_bigquery_client::model::table::Table;
+use gcp_bigquery_client::Client;
 use pdtlib::proto::ByteArray;
 use primitive_types::H160;
 use sha2::{Digest, Sha256};
@@ -10,14 +12,28 @@ use sha3::Keccak256;
 pub struct ProcessCoordinates {
     /// How many machines are processing this dataset?
     pub nr_machines: i64,
-    /// How many blocks are there to process?
-    pub nr_blks: i64,
     /// How many blocks in a batch?
     pub batch_blks: i64,
     /// What is the id of the machine currently running?
     pub machine_id: i64,
     /// A name for this machine, to print in logs.
     pub client_id: String,
+}
+
+impl ProcessCoordinates {
+    pub fn with_machine_id(&self, machine_id: i64) -> Self {
+        Self {
+            machine_id,
+            ..self.clone()
+        }
+    }
+
+    pub fn with_client_id(&self, client_id: &str) -> Self {
+        Self {
+            client_id: client_id.to_string(),
+            ..self.clone()
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -29,6 +45,13 @@ pub struct BigQueryDatasetLocation {
 impl BigQueryDatasetLocation {
     pub fn get_dataset_desc(&self) -> String {
         format!("{}.{}", self.project_id, self.dataset_id)
+    }
+
+    pub fn with_table_id(&self, table_id: &str) -> BigQueryTableLocation {
+        BigQueryTableLocation {
+            dataset: self.clone(),
+            table_id: table_id.to_string(),
+        }
     }
 }
 
@@ -140,5 +163,21 @@ fn check_address_from_pubkey() {
             address_from_public_key(&hex::decode(pubkey).unwrap(), API::Ethereum).unwrap();
         let hex_addr = hex::encode(dec_addr);
         assert_eq!(hex_addr.to_lowercase(), addr.to_lowercase());
+    }
+}
+
+pub async fn find_table(client: &Client, loc: &BigQueryTableLocation) -> Result<Option<Table>> {
+    match client
+        .table()
+        .get(
+            &loc.dataset.project_id,
+            &loc.dataset.dataset_id,
+            &loc.table_id,
+            Option::None,
+        )
+        .await
+    {
+        Ok(tbl) => Ok(Some(tbl)),
+        _ => Ok(None),
     }
 }
