@@ -20,6 +20,7 @@ pub(crate) struct EvmServer {
 }
 
 impl EvmServer {
+    #[allow(dead_code)]
     pub fn new(backend_config: ScillaBackendConfig, gas_scaling_factor: u64) -> Self {
         Self {
             backend_config,
@@ -28,6 +29,7 @@ impl EvmServer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn run_json(&self, params: jsonrpc_core::Params) -> BoxFuture<Result<jsonrpc_core::Value>> {
         let args = jsonrpc_core::Value::from(params);
         if let Some(arg) = args.get(0) {
@@ -44,6 +46,7 @@ impl EvmServer {
         }
     }
 
+    #[allow(dead_code)]
     fn run(&self, args_str: String) -> BoxFuture<Result<String>> {
         let args_parsed = base64::decode(args_str)
             .map_err(|_| Error::invalid_params("cannot decode base64"))
