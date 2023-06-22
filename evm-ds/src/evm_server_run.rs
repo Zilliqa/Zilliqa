@@ -357,7 +357,7 @@ pub fn run_evm_impl_direct(
     tx_trace_enabled: bool,
     tx_trace: String,
 ) -> EvmResult {
-    info!(
+    debug!(
         "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  estimate: {:?} is_continuation: {:?}, cps: {:?}, \ntx_trace: {:?}, \ndata: {:02X?}, \ncode: {:02X?}",
         backend.origin(), address, gas_limit, apparent_value,
         estimate, node_continuation.is_none(), enable_cps, tx_trace, data, code);
