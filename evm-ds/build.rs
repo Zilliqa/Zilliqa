@@ -2,7 +2,6 @@ extern crate protoc_rust;
 use std::path::Path;
 
 fn main() {
-
     let mut scilla_message_proto = "../src/libPersistence/ScillaMessage.proto";
     let mut evm_proto = "../src/libUtils/Evm.proto";
     let mut scilla_message_proto_inc = "../src/libPersistence/";
@@ -18,7 +17,7 @@ fn main() {
 
     protoc_rust::Codegen::new()
         .out_dir("src/protos")
-        .inputs([scilla_message_proto.])
+        .inputs([scilla_message_proto])
         .include(scilla_message_proto_inc)
         .customize(protoc_rust::Customize {
             carllerche_bytes_for_bytes: Some(true),

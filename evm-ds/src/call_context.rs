@@ -43,7 +43,6 @@ pub struct OtterscanCallContext {
     pub input: String,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct StructLog {
     pub depth: usize,
@@ -169,13 +168,14 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                     value: format!("{:0X?}", balance),
                 });
 
-                self.otter_call_tracer.push(OtterscanCallContext{
+                self.otter_call_tracer.push(OtterscanCallContext {
                     call_type: call_type.to_string(),
                     depth: call_depth,
                     from: format!("{:?}", address),
                     to: format!("{:?}", target),
                     value: format!("{:0X?}", balance),
-                    input: input.to_string(),});
+                    input: input.to_string(),
+                });
 
                 let to_add = format!("{:?}", target);
 
@@ -196,13 +196,14 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                     value: format!("{:0X?}", balance),
                 });
 
-                self.otter_call_tracer.push(OtterscanCallContext{
+                self.otter_call_tracer.push(OtterscanCallContext {
                     call_type: "SELFDESTRUCT".to_string(),
                     depth: call_depth,
                     from: format!("{:?}", address),
                     to: format!("{:?}", target),
                     value: format!("{:0X?}", balance),
-                    input: "".to_string(),});
+                    input: "".to_string(),
+                });
             }
             evm::runtime::tracing::Event::TransactCreate {
                 call_type,
@@ -219,13 +220,14 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                     value: format!("{:0X?}", balance),
                 });
 
-                self.otter_call_tracer.push(OtterscanCallContext{
+                self.otter_call_tracer.push(OtterscanCallContext {
                     call_type: call_type.to_string(),
                     depth: call_depth,
                     from: format!("{:?}", address),
                     to: format!("{:?}", target),
                     value: format!("{:0X?}", balance),
-                    input: input.to_string(),});
+                    input: input.to_string(),
+                });
 
                 let to_add = format!("{:?}", target);
 

@@ -3,7 +3,6 @@ use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use serde::{Deserialize, Serialize};
 use evm::backend::Backend;
 use evm::executor::stack::MemoryStackSubstate;
 use evm::{
@@ -12,6 +11,7 @@ use evm::{
     CreateScheme, Handler,
 };
 use evm::{Machine, Runtime};
+use serde::{Deserialize, Serialize};
 
 use log::{debug, error, info};
 
@@ -118,7 +118,9 @@ fn build_exit_result<B: Backend>(
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
                         if perform_scaling {
-                            modify.set_balance(scale_eth_to_zil(basic.balance, scaling_factor).into()); // todo
+                            modify.set_balance(
+                                scale_eth_to_zil(basic.balance, scaling_factor).into(),
+                            ); // todo
                         }
                         modify.set_nonce(basic.nonce.into());
                         if let Some(code) = code {
@@ -197,7 +199,9 @@ fn build_call_result<B: Backend>(
                         let mut modify = EvmProto::Apply_Modify::new();
                         modify.set_address(address.into());
                         if perform_scaling {
-                            modify.set_balance(scale_eth_to_zil(basic.balance, scaling_factor).into());
+                            modify.set_balance(
+                                scale_eth_to_zil(basic.balance, scaling_factor).into(),
+                            );
                         }
                         modify.set_nonce(basic.nonce.into());
                         if let Some(code) = code {

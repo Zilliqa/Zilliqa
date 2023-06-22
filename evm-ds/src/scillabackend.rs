@@ -235,8 +235,8 @@ pub(crate) fn encode_storage(key: H256, value: H256, for_z1: bool) -> (Bytes, By
         )
     } else {
         (
-        Bytes::copy_from_slice(key.as_bytes()),
-        Bytes::copy_from_slice(value.as_bytes())
+            Bytes::copy_from_slice(key.as_bytes()),
+            Bytes::copy_from_slice(value.as_bytes()),
         )
     }
 }
@@ -354,7 +354,6 @@ impl Backend for ScillaBackend {
         };
         serde_json::to_vec(&result).unwrap_or_default()
     }
-
 
     fn substate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {
         let mut args = serde_json::Map::new();
