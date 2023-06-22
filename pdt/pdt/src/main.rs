@@ -1,4 +1,6 @@
 mod bqimport;
+mod importer;
+mod importers;
 
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
