@@ -970,21 +970,85 @@ def build_scilla(config, driver, tag):
                capture_output = False)
     return image_name
 
+def build_native_scilla(config):
+    build_env = os.environ.copy()
+    build_env.update(config.default_env)
+
+    if not build_env.get("VCPKG_ROOT"):
+        raise GiveUp("Environment variable VCPKG_ROOT must be defined to point to vcpkg")
+
+    vcpkg_triplet = run_or_die(config, ["scripts/vcpkg_triplet.sh"], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = True).decode('utf-8')
+
+    build_env["SCILLA_REPO_ROOT"] = SCILLA_DIR
+    build_env["PKG_CONFIG_PATH"] = f"{os.path.join(SCILLA_DIR, 'vcpkg_installed', vcpkg_triplet, 'lib', 'pkg-config')}" + f":{build_env['PKG_CONFIG_PATH']}" if build_env.get('PKG_CONFIG_PATH') else ''
+
+    # Cleanup
+    shutil.rmtree(os.path.join(SCILLA_DIR, "vcpkg_installed"), ignore_errors = True)
+    shutil.rmtree(os.path.join(SCILLA_DIR, "_build"), ignore_errors = True)
+
+    output = run_or_die(config, ["grep", "OCAML_VERSION_RECOMMENDED=", "Makefile"], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = True).decode('utf-8')
+    result = re.match(r'^OCAML_VERSION_RECOMMENDED=([0-9\.]+)$', output)
+    if len(result.groups()) != 1:
+        raise GiveUp("Couldn't infer OCaml recommended version for Scilla")
+
+    # Build OCaml
+    run_or_die(config, ["opam", "init", f"--compiler=ocaml-base-compiler.{result.group(1)}", "--yes"], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = False)
+    run_or_die(config, ["./scripts/build_deps.sh"], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = False)
+
+    for p in map(
+        # Skip the 'export ' and split at '=' into a tuple
+        lambda x: x.split('='),
+        filter(
+            lambda x: x.find('export') == -1,
+            re.split(";\n?",
+            run_or_die(config, ["opam", "env"], capture_output=True).decode('utf-8')))):
+        if len(p) > 1:
+            build_env[p[0]] = p[1][1:-1]
+
+    # Set PWD explicitly to get around usage in Scilla's Makefile; in sub-shells
+    # this will resolve to the wrong directly which could mess up rpath.
+    build_env["PWD"] = SCILLA_DIR
+    run_or_die(config, ["make", "opamdep"], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = False)
+    run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env,
+               capture_output = False)
+
 @click.command("build-scilla")
 @click.option("--driver",
-              required=True,
-              default=default_driver(),
-              show_default=True,
+              required=False,
               help="The minikube driver to use")
 @click.option("--tag",
               help="The scilla image tag. Will be generated if not given.")
+@click.option("--native",
+              is_flag=True,
+              default=False,
+              show_default=True,
+              help="Build Scilla natively.")
 @click.pass_context
-def build_scilla_cmd(ctx, driver, tag):
+def build_scilla_cmd(ctx, driver, tag, native):
     """
     Builds a scilla image.
     """
+    if native:
+        if tag:
+            raise GiveUp("--native and --tag can't be specified together")
+        elif ctx.params["driver"]:
+            print("ignoring --driver since --native is specified; building natively...")
+    else:
+        if not driver:
+            driver = default_driver()
+        ctx.params["driver"] = driver
+
+
     config = get_config(ctx)
-    build_scilla(config, driver, tag)
+    if native:
+       build_native_scilla(config)
+    else:
+       build_scilla(config, driver, tag)
 
 def build_zilliqa(config, driver, scilla_image, tag):
     if not scilla_image:
