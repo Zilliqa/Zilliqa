@@ -1254,6 +1254,9 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
                      unsigned char startByteType,
                      bool bAllowSendToRelaxedBlacklist,
                      bool inject_trace_context) {
+  LOG_GENERAL(INFO, " bAllowSendRelaxedBlacklist = "
+                        << bAllowSendToRelaxedBlacklist
+                        << " inject_trace_context = " << inject_trace_context);
   if (message.size() <= MessageOffset::BODY) {
     return;
   }
@@ -1290,6 +1293,9 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
                           unsigned char startByteType,
                           bool bAllowSendToRelaxedBlacklist,
                           bool inject_trace_context) {
+  LOG_GENERAL(INFO, "Chetan SendMessage = bAllowSendToRelaxedBlacklist = "
+                        << bAllowSendToRelaxedBlacklist
+                        << " inject_trace_context = " << inject_trace_context);
   SendMessageImpl(m_sendJobs, peers, message, startByteType,
                   bAllowSendToRelaxedBlacklist, inject_trace_context);
 }

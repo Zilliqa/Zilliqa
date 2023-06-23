@@ -159,7 +159,7 @@ class GracefulCloseImpl
         boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
-            LOG_GENERAL(DEBUG,
+            LOG_GENERAL(INFO,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
         });
@@ -248,7 +248,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
+    LOG_GENERAL(INFO, "Connecting to " << m_peer);
 
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
@@ -276,7 +276,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-    LOG_GENERAL(DEBUG, "Sending " << msg.size << " bytes to " << m_peer);
+    LOG_GENERAL(INFO, "Sending " << msg.size << " bytes to " << m_peer);
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -289,15 +289,18 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   /// Deal with blacklist in which peer may have appeared after some delay
   bool CheckAgainstBlacklist() {
+    LOG_GENERAL(INFO, "Chetan CheckAgainstBlacklist()");
     auto sz = m_queue.size();
     if (sz > 0 && IsBlacklisted(m_peer, false)) {
       if (!IsBlacklisted(m_peer, true)) {
         LOG_GENERAL(INFO,
-                    "Peer " << m_peer << " is relaxed blacklisted, Q=" << sz);
+                    "CheckAgainstBlacklist Peer " << m_peer << " is relaxed blacklisted, Q=" << sz);
         // Find 1st item which allows to be sent in non-strict blacklist mode
         while (!m_queue.empty()) {
           auto& item = m_queue.front();
           if (item.allow_relaxed_blacklist) {
+            LOG_GENERAL(INFO,
+                        "Chetan CheckAgainstBlacklist() breaking from loop");
             break;
           }
           m_queue.pop_front();
@@ -344,6 +347,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   bool ExpiredOrDone(const ErrorCode& ec = ErrorCode{}) {
+    LOG_GENERAL(INFO,"Chetan ExpiredOrDone()")
     if (m_queue.empty()) {
       Done();
       return true;
@@ -358,6 +362,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void ScheduleReconnectOrGiveUp(const ErrorCode& ec) {
+    LOG_GENERAL(INFO,"Chetan ScheduleReconnectOrGiveUp()")
     if (ExpiredOrDone(ec)) {
       return;
     }
@@ -368,6 +373,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
+    LOG_GENERAL(INFO,"Chetan Reconnect()")
     if (!CheckAgainstBlacklist() || ExpiredOrDone()) {
       return;
     }
@@ -380,6 +386,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Done(const ErrorCode& ec = ErrorCode{}) {
+    LOG_GENERAL(INFO,"Chetan Done()")
     if (!m_closed) {
       m_doneCallback(m_peer, ec);
     }
@@ -427,7 +434,9 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size);
+    LOG_GENERAL(INFO, "Enqueueing message, size="
+                          << message.size << " allow_relaxed_blacklist = "
+                          << allow_relaxed_blacklist);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
@@ -468,6 +477,7 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
+    LOG_GENERAL(INFO, "Chetan OnNewJob peer = "<<peer<<" OnNewJob = "<< allow_relaxed_blacklist);
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
       LOG_GENERAL(INFO,
                   "Ignoring blacklisted peer " <<

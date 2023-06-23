@@ -46,6 +46,7 @@ RUN apt-get update \
     libtool \
     libxml2-utils \
     logrotate \
+    iptables \
     net-tools \
     ninja-build \
     nload \

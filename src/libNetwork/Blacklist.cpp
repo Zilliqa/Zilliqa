@@ -41,9 +41,10 @@ bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
   if (bl != m_blacklistIP.end()) {
     if (strict) {
       // always return exist when strict, must be checked while sending message
+      LOG_GENERAL(INFO, "Chetan returning true from here ip = "<<IPConverter::ToStrFromNumericalIP(ip)<<" strict = "<<strict <<" relaxed = "<<bl->second);
       return true;
     }
-
+    LOG_GENERAL(INFO, "Chetan Blacklist::Add() ip = "<<IPConverter::ToStrFromNumericalIP(ip)<<" strict = "<<strict <<" relaxed = "<<bl->second);
     return bl->second;
   }
   return false;
@@ -55,6 +56,9 @@ void Blacklist::Add(const uint128_t& ip, const bool strict,
   if (!m_enabled) {
     return;
   }
+  LOG_GENERAL(INFO, "Chetan Blacklist::Add() ip = "
+                        << IPConverter::ToStrFromNumericalIP(ip) << " strict = "
+                        << strict << " ignoreWhitelist = " << ignoreWhitelist);
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
   if (ignoreWhitelist || (m_whitelistedIP.end() == m_whitelistedIP.find(ip))) {
@@ -62,6 +66,13 @@ void Blacklist::Add(const uint128_t& ip, const bool strict,
     // already existed, then over-ride strictness
     if (!res.second) {
       res.first->second = strict;
+      LOG_GENERAL(INFO, "Chetan if blacklist it as strict = "<<res.first->second);
+    } else {
+      LOG_GENERAL(INFO,
+                  "Chetan else Blacklist::Add() first = "
+                      << IPConverter::ToStrFromNumericalIP(res.first->first)
+                      << " second = " << res.first->second
+                      << " status = " << res.second);
     }
   } else {
     LOG_GENERAL(INFO,
