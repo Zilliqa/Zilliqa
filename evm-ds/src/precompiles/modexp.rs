@@ -133,7 +133,8 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
     // Multiply the cost by 20 if the modulus is even, to account for the slow implementation of `BigUint::modpow`.
     // Based on https://github.com/paritytech/frontier/blob/master/frame/evm/precompile/modexp/src/lib.rs
     // Licensed under the Apache License, Version 2.0.
-    let cost = core::cmp::max(200, saturating_round(gas)).saturating_mul(if (modulus % 2).is_zero() { 20 } else { 0 });
+    let cost = core::cmp::max(200, saturating_round(gas))
+        .saturating_mul(if (modulus % 2).is_zero() { 20 } else { 0 });
 
     Ok(cost)
 }

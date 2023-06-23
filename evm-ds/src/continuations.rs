@@ -29,6 +29,12 @@ pub struct Continuations {
     next_continuation_id: u64,
 }
 
+impl Default for Continuations {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Continuations {
     pub fn new() -> Self {
         Self {
