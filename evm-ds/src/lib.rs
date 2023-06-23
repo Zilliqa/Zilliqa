@@ -8,4 +8,5 @@ mod precompiles;
 mod pretty_printer;
 pub mod protos;
 mod scillabackend;
+pub mod tracing_logging;
 pub use evm;
