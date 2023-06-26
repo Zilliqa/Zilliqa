@@ -200,6 +200,7 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     // At this point we don't support any named calls from Scilla to EVM
     for (const auto &param : msg["params"]) {
       if (param.isMember("vname") && param["vname"] == "_EvmCall") {
+        LOG_GENERAL(INFO, "Found _EvmCall tag in message, reverting");
         receipt.AddError(CALL_CONTRACT_FAILED);
         return ScillaCallParseResult{
             .success = false,
@@ -250,6 +251,8 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
       // accounts only if there's no handler, otherwise revert
       if (CpsRunEvm::ProbeERC165Interface(acc_store, cpsContext,
                                           scillaArgs.dest, recipient)) {
+        LOG_GENERAL(
+            INFO, "Found ScillaReceiver interface in dest contract, reverting");
         return ScillaCallParseResult{
             .success = false,
             .failureType = ScillaCallParseResult::NON_RECOVERABLE};
