@@ -26,6 +26,7 @@
 
 /// Should be run from a folder with dsnodes.xml and constants.xml and a folder
 /// named "persistence" consisting of the persistence
+std::string g_nodeIdentity={""};
 
 using namespace std;
 int main() {

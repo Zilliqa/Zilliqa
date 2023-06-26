@@ -44,3 +44,18 @@ void CommonUtils::ReleaseSTLMemoryCache() {
 bool CommonUtils::IsVacuousEpoch(const uint64_t& epochNum) {
   return ((epochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW) == 0;
 }
+
+string CommonUtils::Execute(const string& cmd) {
+  array<char, 128> buffer{};
+  string result;
+  shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+
+  if (!pipe) throw std::runtime_error("popen() failed!");
+
+  while (!feof(pipe.get())) {
+    if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
+      result += buffer.data();
+  }
+
+  return result;
+}

@@ -21,9 +21,11 @@
 #include "common/BaseType.h"
 
 namespace CommonUtils {
+using namespace std;
 void ReleaseSTLMemoryCache();
 
 bool IsVacuousEpoch(const uint64_t& epochNum);
+string Execute(const string& cmd);
 }  // namespace CommonUtils
 
 #endif  // ZILLIQA_SRC_LIBUTILS_COMMONUTILS_H_

@@ -42,6 +42,8 @@ using namespace boost::multiprecision;
 #define ERROR_UNHANDLED_EXCEPTION -3
 #define ERROR_IN_CONSTANTS -4
 
+std::string g_nodeIdentity={""};
+
 namespace po = boost::program_options;
 
 int main(int argc, const char* argv[]) {
@@ -170,6 +172,8 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
+    g_nodeIdentity = identity;
+    LOG_GENERAL(INFO,"Chetan node identity in main = "<<g_nodeIdentity);
     Metrics::GetInstance().Initialize(identity);
     zil::trace::Tracing::Initialize(identity);
     Logging::GetInstance().Initialize(identity);

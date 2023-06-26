@@ -148,6 +148,7 @@ std::map<uint128_t, uint16_t> P2PComm::m_peerConnectionCount;
 std::mutex P2PComm::m_mutexBufferEvent;
 std::map<std::string, struct bufferevent*> P2PComm::m_bufferEventMap;
 
+
 /// Comparison operator for ordering the list of message hashes.
 struct HashCompare {
   bool operator()(const zbytes& l, const zbytes& r) {

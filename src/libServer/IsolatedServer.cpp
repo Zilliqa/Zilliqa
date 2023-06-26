@@ -33,6 +33,7 @@
 using namespace jsonrpc;
 using namespace std;
 
+std::string g_nodeIdentity={""};
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,

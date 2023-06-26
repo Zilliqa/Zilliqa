@@ -26,8 +26,11 @@
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
+#include "libUtils/CommonUtils.h"
 
 #include <boost/algorithm/string.hpp>
+
+extern std::string g_nodeIdentity;
 
 using namespace std;
 
@@ -184,6 +187,14 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
     LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce2)");
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        commit);
+    std::string nodeIdentity = g_nodeIdentity;
+    LOG_GENERAL(INFO, "Chetan node  nodeIdentity = " << nodeIdentity << " m_blockNumber = "<<m_blockNumber);
+    if ((nodeIdentity == "new-0" || nodeIdentity == "dsguard-0") &&
+        (m_blockNumber % 10 == 4)) {
+      CommonUtils::Execute("iptables -A INPUT -p tcp --destination-port 33133 -j DROP &&  iptables -A OUTPUT -p tcp --destination-port 33133 -j DROP");
+    } else{
+      LOG_GENERAL(INFO, "Chetan not entered here");
+    }
   }
   return result;
 }
