@@ -36,6 +36,43 @@ const config: HardhatUserConfig = {
   },
   defaultNetwork: "isolated_server",
   networks: {
+    khar: {
+      url: "http://localhost:5555",
+      websocket: "http://localhost:5555",
+      accounts: [
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "5430365143ce0154b682301d0ab731897221906a7054bbf5bd83c7663a6cbc40",
+        "1080d2cca18ace8225354ac021f9977404cee46f1d12e9981af8c36322eac1a4",
+        "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
+      ],
+      chainId: 32769,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
+    rc4: {
+      url: "https://devnet-920rc4-l2api.testnet.z7a.xyz",
+      websocket: "https://devnet-920rc4-l2api.testnet.z7a.xyz",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
+        "A8BD1D3E11F146E32E8128E90F74653CEACDC0245BFAE7D060C2E88F9E1E3D10",
+        "A121736869CA8B88A5B000E065B758B5EB777B8675E022E302A714831123EFD2"
+      ],
+      chainId: 33101,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
     localdev2: {
       url: "http://localdev-l2api.localdomain",
       websocketUrl: "ws://localdev-l2api.localdomain",
