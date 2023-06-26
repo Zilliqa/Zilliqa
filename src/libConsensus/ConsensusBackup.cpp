@@ -189,10 +189,9 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
                                        commit);
     std::string nodeIdentity = g_nodeIdentity;
     LOG_GENERAL(INFO, "Chetan node  nodeIdentity = " << nodeIdentity << " m_blockNumber = "<<m_blockNumber);
-    if ((nodeIdentity == "new-0" || nodeIdentity == "dsguard-0") &&
-        (m_blockNumber % 10 == 4)) {
+    if (nodeIdentity == "new-0" && (m_blockNumber % 10 == 4)) {
       CommonUtils::Execute("iptables -A INPUT -p tcp --destination-port 33133 -j DROP &&  iptables -A OUTPUT -p tcp --destination-port 33133 -j DROP");
-    } else{
+    } else {
       LOG_GENERAL(INFO, "Chetan not entered here");
     }
   }
