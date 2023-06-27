@@ -40,7 +40,6 @@ class BlockHeaderBase : public SerializableDataBlock {
       : m_version(version),
         m_committeeHash(committeeHash),
         m_prevHash(prevHash) {
-    std::cout << "argh" << std::endl;
   }
 
   /// Calculate my hash

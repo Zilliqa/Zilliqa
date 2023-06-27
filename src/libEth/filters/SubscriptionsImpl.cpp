@@ -157,6 +157,9 @@ void SubscriptionsImpl::Start(
   m_newHeadTemplate = m_pendingTxnTemplate;
   m_newHeadTemplate["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
 
+  //m_newHeadAltTemplate = m_newHeadTemplate;
+  //m_newHeadAltTemplate["params"]["subscription"] = "0x1a";
+
   m_eventTemplate = m_newHeadTemplate;
 }
 
@@ -164,15 +167,26 @@ void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
   Lock lk(m_mutex);
 
   if (m_subscribedToNewHeads.empty()) {
+    std::cerr << "*********** NOT sending subscribed!" << std::endl;
     return;
   }
-
-  m_newHeadTemplate["params"]["result"] = m_blockByHash(blockHash);
-  auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
 
   assert(m_websocketServer);
 
   for (auto& conn : m_subscribedToNewHeads) {
+
+    m_newHeadTemplate["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
+    m_newHeadTemplate["params"]["result"] = m_blockByHash(blockHash);
+    auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
+
+    std::cerr << "*********** sending subscribed!" << *msg <<  std::endl;
+    //m_websocketServer->SendMessage(3, msg);
+    m_websocketServer->SendMessage(conn->id, msg);
+
+    m_newHeadTemplate["params"]["subscription"] = "0x1a";
+    m_newHeadTemplate["params"]["result"] = m_blockByHash(blockHash);
+    msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
+    std::cerr << "*********** sending subscribed second!" << *msg <<  std::endl;
     m_websocketServer->SendMessage(conn->id, msg);
   }
 }
@@ -300,6 +314,7 @@ void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
   if (it == m_connections.end()) {
     return;
   }
+  std::cerr << "*********** OnSessionDisconnected" << std::endl;
   const auto& conn = it->second;
   m_subscribedToPendingTxns.erase(conn);
   m_subscribedToNewHeads.erase(conn);
@@ -319,6 +334,7 @@ SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
     }
   } else if (subscription_id == SUBSCR_ID_FOR_NEW_HEADS) {
     if (conn->subscribedToNewHeads) {
+      std::cerr << "*********** OnUnsub" << std::endl;
       m_subscribedToNewHeads.erase(conn);
       conn->subscribedToNewHeads = false;
       result = true;
@@ -344,15 +360,25 @@ SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
 
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
     const ConnectionPtr& conn, Json::Value&& request_id) {
+
+  std::cerr << "*********** OnSub!!!" << request_id  << std::endl;
+
+  auto subId = SUBSCR_ID_FOR_NEW_HEADS;
+
   if (!conn->subscribedToNewHeads) {
     conn->subscribedToNewHeads = true;
     m_subscribedToNewHeads.insert(conn);
+  } else {
+    std::cerr << "*********** OnSub already subscribed " << request_id << std::endl;
+    subId = "0x1a";
   }
+
+  std::cerr << "*********** respond... " << request_id  << std::endl;
 
   Json::Value json;
   json["jsonrpc"] = "2.0";
   json["id"] = std::move(request_id);
-  json["result"] = SUBSCR_ID_FOR_NEW_HEADS;
+  json["result"] = subId;
   return std::make_shared<std::string>(JsonWrite(json));
 }
 

@@ -130,6 +130,8 @@ class SubscriptionsImpl {
   /// Template for new head message
   Json::Value m_newHeadTemplate;
 
+  //Json::Value m_newHeadAltTemplate;
+
   /// Template for event log message
   Json::Value m_eventTemplate;
 
