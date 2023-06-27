@@ -131,7 +131,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
-  retJson["hash"] = std::string{"0x"} + prev.hex();
+  retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["parentHash"] = std::string{"0x"} + prev.hex();
   // sha3Uncles is calculated as Keccak256(RLP([]))
   retJson["sha3Uncles"] =

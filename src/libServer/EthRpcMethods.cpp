@@ -1542,7 +1542,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
   // hack me
   auto blockNum = txBlock.GetHeader().GetBlockNum();
 
-  if (blockNum > 1) {
+  if (blockNum > 0) {
     auto txBlockTmp = m_sharedMediator.m_txBlockChain.GetBlock(blockNum-1);
 
     std::cerr << txBlockTmp.GetHeader().GetPrevHash() << std::endl;
