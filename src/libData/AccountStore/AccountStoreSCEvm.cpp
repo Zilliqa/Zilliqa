@@ -408,7 +408,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     }
 
     // This needs to be outside the above as needs to include possibility of non evm tx
-    if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    if(ARCHIVAL_LOOKUP_WITH_TX_TRACES && evmContext.GetTranID()) {
       if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(evmContext.GetTranID(),
                                                                     addresses_touched, blockNum)) {
         LOG_GENERAL(INFO,
