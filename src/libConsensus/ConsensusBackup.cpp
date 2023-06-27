@@ -190,7 +190,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
     std::string nodeIdentity = g_nodeIdentity;
     LOG_GENERAL(INFO, "Chetan node  nodeIdentity = " << nodeIdentity << " m_blockNumber = "<<m_blockNumber);
     if (nodeIdentity == "new-0" && (m_blockNumber % 10 == 4)) {
-      CommonUtils::Execute("iptables -A INPUT -p tcp --destination-port 33133 -j DROP &&  iptables -A OUTPUT -p tcp --destination-port 33133 -j DROP");
+      //CommonUtils::Execute("iptables -A INPUT -p tcp --destination-port 33133 -j DROP &&  iptables -A OUTPUT -p tcp --destination-port 33133 -j DROP");
+      CommonUtils::Execute("pkill zilliqa");
     } else {
       LOG_GENERAL(INFO, "Chetan not entered here");
     }

@@ -325,7 +325,7 @@ bool ConsensusLeader::StartConsensusSubsets() {
   shuffle(peerInfo.begin(), peerInfo.end(), randomEngine);
 
   P2PComm::GetInstance().SendMessage(peerInfo, challenge,
-                                     zil::p2p::START_BYTE_NORMAL, true, true);
+                                     zil::p2p::START_BYTE_NORMAL, true, true, true);
 
   return true;
 }
@@ -570,7 +570,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     }
 
     P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg,
-                                       zil::p2p::START_BYTE_NORMAL, true, true);
+                                       zil::p2p::START_BYTE_NORMAL, true, true,true);
     auto main_func = [this]() mutable -> void {
       if (m_shardCommitFailureHandlerFunc != nullptr) {
         m_shardCommitFailureHandlerFunc(m_commitFailureMap);
@@ -835,7 +835,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
         P2PComm::GetInstance().SpreadRumor(collectivesig);
       } else {
         P2PComm::GetInstance().SendMessage(
-            peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
+            peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true,true);
       }
 
       if ((m_state == COLLECTIVESIG_DONE) && (m_numOfSubsets > 1)) {
