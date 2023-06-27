@@ -206,7 +206,12 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
-        &LookupServer::GetWeb3ClientVersionI);
+        &IsolatedServer::GetWeb3ClientVersionI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("web3_clientVersionBump", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &IsolatedServer::GetWeb3ClientVersionBumpI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("web3_sha3", jsonrpc::PARAMS_BY_POSITION,

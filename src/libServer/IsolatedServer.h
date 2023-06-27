@@ -58,6 +58,20 @@ class IsolatedServer : public LookupServer,
     PostTxBlock();
   }
 
+  inline virtual void GetWeb3ClientVersionI(const Json::Value& request,
+                                               Json::Value& response) {
+
+    std::cout << "GetWeb3ClientVersionI" << std::endl;
+    response = "Zilliqa/v8.2";
+  }
+
+  inline virtual void GetWeb3ClientVersionBumpI(const Json::Value& request,
+                                            Json::Value& response) {
+    PostTxBlock();
+    std::cout << "GetWeb3ClientVersionBumpI" << std::endl;
+    response = "Zilliqa/v8.2";
+  }
+
   inline virtual void GetEvmSetIntervalMiningI(const Json::Value& request,
                                                Json::Value&) {
     m_timeDelta = request[0u].asUInt();

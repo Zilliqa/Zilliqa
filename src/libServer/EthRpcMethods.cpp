@@ -1453,8 +1453,14 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
       } else if (isNumber(blockNumberStr)) {  // exact block number
-        const uint64_t blockNum =
+        uint64_t blockNum =
             std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+
+        if(blockNum == 0) {
+          std::cerr << "Block number is 0" << std::endl;
+         blockNum++;
+        }
+
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNum);
       }
     } else {
