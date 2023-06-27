@@ -125,13 +125,13 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
 const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const TxBlock& txblock, const DSBlock& dsBlock,
-    const std::vector<TxBodySharedPtr>& transactions,
+    const std::vector<TxBodySharedPtr>& transactions, BlockHash const &prev,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
-  retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
+  retJson["hash"] = std::string{"0x"} + prev.hex();
   retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
   // sha3Uncles is calculated as Keccak256(RLP([]))
   retJson["sha3Uncles"] =

@@ -1441,7 +1441,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
             txBlock.GetHeader().GetDSBlockNum());
 
         auto toRet = JSONConversion::convertTxBlocktoEthJson(
-            txBlock, dsBlock, transactions, includeFullTransactions);
+            txBlock, dsBlock, transactions, BlockHash{}, includeFullTransactions);
 
         // Now modify the fields as if this block was in the future
         toRet["hash"] = Json::nullValue;
@@ -1456,10 +1456,10 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
         uint64_t blockNum =
             std::strtoull(blockNumberStr.c_str(), nullptr, 0);
 
-        if(blockNum == 0) {
-          std::cerr << "Block number is 0" << std::endl;
-         blockNum++;
-        }
+        //if(blockNum == 0) {
+        //  std::cerr << "Block number is 0" << std::endl;
+        // blockNum++;
+        //}
 
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNum);
       }
@@ -1539,8 +1539,21 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
     }
   }
 
-  return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 includeFullTransactions);
+  // hack me
+  auto blockNum = txBlock.GetHeader().GetBlockNum();
+
+  if (blockNum > 1) {
+    auto txBlockTmp = m_sharedMediator.m_txBlockChain.GetBlock(blockNum-1);
+
+    std::cerr << txBlockTmp.GetHeader().GetPrevHash() << std::endl;
+
+    return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
+                                                   txBlockTmp.GetHeader().GetMyHash(), includeFullTransactions);
+  } else {
+    return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
+                                                   BlockHash{}, includeFullTransactions);
+  }
+
 }
 
 Json::Value EthRpcMethods::GetEthBalance(const std::string &address,
