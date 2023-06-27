@@ -167,6 +167,8 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   }
   BindAllEvmMethods();
   PostTxBlock();
+  PostTxBlock();
+  PostTxBlock();
 }
 
 void IsolatedServer::BindAllEvmMethods() {
