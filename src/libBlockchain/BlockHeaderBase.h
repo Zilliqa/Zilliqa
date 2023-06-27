@@ -39,7 +39,9 @@ class BlockHeaderBase : public SerializableDataBlock {
                   const BlockHash& prevHash = BlockHash{})
       : m_version(version),
         m_committeeHash(committeeHash),
-        m_prevHash(prevHash) {}
+        m_prevHash(prevHash) {
+    std::cout << "argh" << std::endl;
+  }
 
   /// Calculate my hash
   BlockHash GetMyHash() const;
