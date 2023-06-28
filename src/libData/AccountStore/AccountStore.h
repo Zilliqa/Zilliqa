@@ -130,8 +130,6 @@ class AccountStore : public AccountStoreBase {
   /// repopulate the in-memory data structures from persistent storage
   bool RetrieveFromDisk();
 
-  bool RetrieveFromDiskOld();
-
   /// From AccountStoreTrie
   Account* GetAccount(const Address& address) override;
   Account* GetAccount(const Address& address, bool resetRoot);

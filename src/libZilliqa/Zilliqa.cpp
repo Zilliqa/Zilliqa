@@ -18,7 +18,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <chrono>
 
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 
 #include <Schnorr.h>
@@ -37,6 +36,7 @@
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/LocalAPIServer.h"
+#include "libUpdater/DaemonListener.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
@@ -189,7 +189,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       }
 
       if (!result) {
-      // To-do: Error recovery
+        // To-do: Error recovery
 #if 0
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
         span.SetError("dispatch failed");
@@ -474,13 +474,11 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    std::shared_ptr<boost::asio::io_context> asioCtx;
     std::shared_ptr<rpc::APIServer> apiRPC;
     std::shared_ptr<rpc::APIServer> stakingRPC;
 
-    if (LOOKUP_NODE_MODE || ENABLE_STAKING_RPC) {
-      asioCtx = std::make_shared<boost::asio::io_context>(1);
-    }
+    auto asioCtx = std::make_shared<boost::asio::io_context>(1);
+    m_mediator.m_asioCtx = asioCtx;
 
     if (LOOKUP_NODE_MODE) {
       rpc::APIServer::Options options;
@@ -596,9 +594,20 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
         }
       });
 
+      m_mediator.m_daemonListener = std::make_shared<zil::DaemonListener>(
+          *asioCtx, [mediator = &m_mediator]() {
+            return mediator->m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum();
+          });
+      LOG_GENERAL(INFO, "Starting daemon listener");
+      m_mediator.m_daemonListener->Start();
+
       LOG_GENERAL(INFO, "Starting API event loop");
       asioCtx->run();
       LOG_GENERAL(INFO, "API event loop stopped");
+      m_mediator.m_daemonListener->Stop();
+      LOG_GENERAL(INFO, "Daemon listener stopped");
     }
   };
   DetachedFunction(1, func);
