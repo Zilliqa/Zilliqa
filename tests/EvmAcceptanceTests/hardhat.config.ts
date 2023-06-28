@@ -4,6 +4,7 @@ import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 import semver from "semver";
+import "./tasks/ZilBalance"
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
