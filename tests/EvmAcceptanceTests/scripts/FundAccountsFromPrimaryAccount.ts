@@ -46,7 +46,7 @@ async function main() {
         {
           version: VERSION,
           toAddr: ethAddrConverted,
-          amount: new BN(1_000_000), // Sending an amount in Zil (1) and converting the amount to Qa
+          amount: new BN(1000_000_000_000), // Sending an amount in Zil (1) and converting the amount to Qa
           gasPrice: new BN(2000000000), // Minimum gasPrice veries. Check the `GetMinimumGasPrice` on the blockchain
           gasLimit: Long.fromNumber(2100)
         },
