@@ -32,8 +32,6 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/TimeUtils.h"
 
-#include "libUtils/JsonUtils.h"
-
 #include <future>
 #include <ranges>
 
@@ -353,10 +351,9 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
         ScillaCallParseResult::NON_RECOVERABLE) {
       return {TxnStatus::NOT_PRESENT, false, retScillaVal};
     }
-    // Allow TrapScilla call to fail and let EVM handle errored run accordingly
-    // (only for recoverable failures)
+    // In the first phase of interop unsuccessful scilla runs revert transaction
     if (GetType() == CpsRun::TrapScillaCall) {
-      return {TxnStatus::NOT_PRESENT, true, retScillaVal};
+      return {TxnStatus::NOT_PRESENT, false, retScillaVal};
     }
     span.SetError("Parsing call result failed");
     return {TxnStatus::NOT_PRESENT, false, retScillaVal};
