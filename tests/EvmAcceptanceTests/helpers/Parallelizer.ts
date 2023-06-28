@@ -5,6 +5,7 @@ import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
 import {initZilliqa, ScillaContract, Setup, UserDefinedLibrary} from "hardhat-scilla-plugin";
 import SignerPool from "./SignerPool";
+import clc from "cli-color";
 
 export type DeployOptions = {
   gasPrice?: string;
@@ -18,6 +19,8 @@ export class Parallelizer {
     if (process.env.PRIMARY_ACCOUNT !== undefined) {
       privateKey = process.env.PRIMARY_ACCOUNT;
     }
+
+    console.log(clc.red(privateKey));
   
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
     this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey], 30);
