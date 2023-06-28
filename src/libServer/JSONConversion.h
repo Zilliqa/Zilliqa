@@ -42,7 +42,7 @@ class JSONConversion {
   // converts a TxBlock to JSON object (Eth style)
   static const Json::Value convertTxBlocktoEthJson(
       const TxBlock& txblock, const DSBlock& dsBlock,
-      const std::vector<TxBodySharedPtr>& transactions, BlockHash const &prev,
+      const std::vector<TxBodySharedPtr>& transactions,
       bool includeFullTransactions = false);
   // converts raw TxBlock to JSON object (for staking)
   static const Json::Value convertRawTxBlocktoJson(const TxBlock& txblock);

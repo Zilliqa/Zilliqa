@@ -93,7 +93,6 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
   void EpochFinalized(const BlocksCache::EpochMetadata& meta) {
     uint64_t epoch = meta.epoch;
     LOG_GENERAL(INFO, "Finalized epoch " << epoch);
-    LOG_GENERAL(INFO, "block hash is: " << meta.blockHash);
 
     m_subscriptions.OnNewHead(meta.blockHash);
     for (const auto& event : meta.meta) {

@@ -125,14 +125,14 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
 const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const TxBlock& txblock, const DSBlock& dsBlock,
-    const std::vector<TxBodySharedPtr>& transactions, BlockHash const &prev,
+    const std::vector<TxBodySharedPtr>& transactions,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
   retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
-  retJson["parentHash"] = std::string{"0x"} + prev.hex();
+  retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
   // sha3Uncles is calculated as Keccak256(RLP([]))
   retJson["sha3Uncles"] =
       "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
@@ -160,8 +160,8 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   // Required by ethers
   retJson["extraData"] = "0x";
   retJson["nonce"] = "0x0";
-  retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
-  retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  retJson["receiptsRoot"] = "0x";
+  retJson["transactionsRoot"] = "0x0";
 
   Eth::LogBloom logBloom{};
 
