@@ -30,10 +30,6 @@ namespace {
 
 using Lock = std::lock_guard<std::mutex>;
 
-//static const std::string SUBSCR_ID_FOR_NEW_HEADS = "0xe";
-//static const std::string SUBSCR_ID_FOR_PENDING_TXNS = "0xf";
-//(boost::format("0x%x") % txheader.GetBlockNum()).str();
-
 struct Request {
   enum Action {
     INVALID,
@@ -170,12 +166,17 @@ void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
   }
 
   m_newHeadTemplate["params"]["result"] = m_blockByHash(blockHash);
-  auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
 
   assert(m_websocketServer);
 
+  // Loop every connection subscribed to new heads, and for that connection,
+  // loop every subscription id
   for (auto& conn : m_subscribedToNewHeads) {
-    m_websocketServer->SendMessage(conn->id, msg);
+    for(auto &subId : conn->subscribedToNewHeads) {
+      m_newHeadTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
+      auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
+      m_websocketServer->SendMessage(conn->id, msg);
+    }
   }
 }
 
@@ -187,12 +188,17 @@ void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {
   }
 
   m_pendingTxnTemplate["params"]["result"] = hash;
-  auto msg = std::make_shared<std::string>(JsonWrite(m_pendingTxnTemplate));
 
   assert(m_websocketServer);
 
+  // Loop every connection subscribed to pending txs, and for that connection,
+  // loop every subscription id
   for (auto& conn : m_subscribedToPendingTxns) {
-    m_websocketServer->SendMessage(conn->id, msg);
+    for(auto &subId : conn->subscribedToPendingTxn) {
+      m_pendingTxnTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
+      auto msg = std::make_shared<std::string>(JsonWrite(m_pendingTxnTemplate));
+      m_websocketServer->SendMessage(conn->id, msg);
+    }
   }
 }
 
