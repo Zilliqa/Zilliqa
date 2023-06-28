@@ -16,6 +16,7 @@
  */
 
 #include "SubscriptionsImpl.h"
+#include <boost/format.hpp>
 
 #include <cassert>
 
@@ -29,8 +30,9 @@ namespace {
 
 using Lock = std::lock_guard<std::mutex>;
 
-static const std::string SUBSCR_ID_FOR_NEW_HEADS = "0xe";
-static const std::string SUBSCR_ID_FOR_PENDING_TXNS = "0xf";
+//static const std::string SUBSCR_ID_FOR_NEW_HEADS = "0xe";
+//static const std::string SUBSCR_ID_FOR_PENDING_TXNS = "0xf";
+//(boost::format("0x%x") % txheader.GetBlockNum()).str();
 
 struct Request {
   enum Action {
@@ -152,10 +154,10 @@ void SubscriptionsImpl::Start(
   m_pendingTxnTemplate["jsonrpc"] = "2.0";
   m_pendingTxnTemplate["method"] = "eth_subscription";
   m_pendingTxnTemplate["params"]["result"] = "";
-  m_pendingTxnTemplate["params"]["subscription"] = SUBSCR_ID_FOR_PENDING_TXNS;
+  m_pendingTxnTemplate["params"]["subscription"] = "0x0";
 
   m_newHeadTemplate = m_pendingTxnTemplate;
-  m_newHeadTemplate["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
+  m_newHeadTemplate["params"]["subscription"] = "0x1";
 
   m_eventTemplate = m_newHeadTemplate;
 }
@@ -310,29 +312,44 @@ void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
     const ConnectionPtr& conn, Json::Value&& request_id,
     std::string&& subscription_id) {
+
   bool result = false;
-  if (subscription_id == SUBSCR_ID_FOR_PENDING_TXNS) {
-    if (conn->subscribedToPendingTxns) {
-      m_subscribedToPendingTxns.erase(conn);
-      conn->subscribedToPendingTxns = false;
-      result = true;
-    }
-  } else if (subscription_id == SUBSCR_ID_FOR_NEW_HEADS) {
-    if (conn->subscribedToNewHeads) {
-      m_subscribedToNewHeads.erase(conn);
-      conn->subscribedToNewHeads = false;
-      result = true;
-    }
-  } else {
-    auto& filters = conn->eventFilters;
-    auto it = filters.find(subscription_id);
-    if (it != filters.end()) {
-      filters.erase(it);
-      if (filters.empty()) {
-        m_subscribedToLogs.erase(conn);
+  auto const subscription_id_int = std::stoul(subscription_id, nullptr, 16);
+
+  {
+    auto& pendingTXs = conn->subscribedToPendingTxn;
+
+    auto it = pendingTXs.find(subscription_id_int);
+    if (it != pendingTXs.end()) {
+      pendingTXs.erase(it);
+      if (pendingTXs.empty()) {
+        m_subscribedToPendingTxns.erase(conn);
       }
       result = true;
     }
+  }
+
+  {
+    auto& newHeads = conn->subscribedToNewHeads;
+
+    auto it = newHeads.find(subscription_id_int);
+    if (it != newHeads.end()) {
+      newHeads.erase(it);
+      if (newHeads.empty()) {
+        m_subscribedToNewHeads.erase(conn);
+      }
+      result = true;
+    }
+  }
+
+  auto& filters = conn->eventFilters;
+  auto it = filters.find(subscription_id);
+  if (it != filters.end()) {
+    filters.erase(it);
+    if (filters.empty()) {
+      m_subscribedToLogs.erase(conn);
+    }
+    result = true;
   }
 
   Json::Value json;
@@ -344,29 +361,25 @@ SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
 
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
     const ConnectionPtr& conn, Json::Value&& request_id) {
-  if (!conn->subscribedToNewHeads) {
-    conn->subscribedToNewHeads = true;
-    m_subscribedToNewHeads.insert(conn);
-  }
+
+  auto const subId = conn->AddHeadSubscription();
 
   Json::Value json;
   json["jsonrpc"] = "2.0";
   json["id"] = std::move(request_id);
-  json["result"] = SUBSCR_ID_FOR_NEW_HEADS;
+  json["result"] = (boost::format("0x%x") % subId).str();
   return std::make_shared<std::string>(JsonWrite(json));
 }
 
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
     const ConnectionPtr& conn, Json::Value&& request_id) {
-  if (!conn->subscribedToPendingTxns) {
-    conn->subscribedToPendingTxns = true;
-    m_subscribedToPendingTxns.insert(conn);
-  }
+
+  auto const subId = conn->AddPendingTxnSubscription();
 
   Json::Value json;
   json["jsonrpc"] = "2.0";
   json["id"] = std::move(request_id);
-  json["result"] = SUBSCR_ID_FOR_PENDING_TXNS;
+  json["result"] = (boost::format("0x%x") % subId).str();
   return std::make_shared<std::string>(JsonWrite(json));
 }
 

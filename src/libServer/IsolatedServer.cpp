@@ -167,6 +167,8 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   }
   BindAllEvmMethods();
   PostTxBlock();
+  PostTxBlock();
+  PostTxBlock();
 }
 
 void IsolatedServer::BindAllEvmMethods() {
@@ -1181,9 +1183,13 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     m_txnBlockNumMap[m_blocknum].clear();
   }
 
+  auto const prevTxBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+
+  auto const prevHash = m_blocknum == 0 ? BlockHash(): prevTxBlock.GetBlockHash();
+
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
                               TxBlockHashSet(), numtxns, m_key.first,
-                              TXBLOCK_VERSION);
+                              1, TXBLOCK_VERSION, CommitteeHash(), prevHash);
 
   // In order that the m_txRootHash is not empty if there are actually TXs
   // in the microblock, set the root hash to a TXn hash if there is one
