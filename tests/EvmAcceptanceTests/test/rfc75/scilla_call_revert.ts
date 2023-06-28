@@ -69,4 +69,11 @@ describe("RFC75 ScillaCallRevert", function () {
         ).to.be.reverted;
         expect(await scillaContract.value()).to.be.eq(0);
     });
+
+    it("It should be reverted call to scilla is not successful", async function () {
+        const CALL_MODE = 0;
+        await expect(
+            solidityContract.callScilla(scillaContractAddress, "justRevert", CALL_MODE, VAL, solidityContract.address, solidityContract.address)
+        ).to.be.reverted;
+    });
 });
