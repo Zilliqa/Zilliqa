@@ -365,9 +365,9 @@ MOCHA_TIMEOUT=300000 npx hardhat test
 ## Testing a newly deployed testnet/devent
 
 *You need to have one prefunded account(private key).* Let's call it PRIMARY_ACCOUNT.
-1. Create a new network using the devent URL. Please refer to [How to define a new network for hardhat](#how-to-define-a-new-network-for-hardhat) for more info. But be sure to provide at least four different private keys for `accounts`. These accounts will be funded by your primary prefunded account. So it doesn't matter if they all have zero balances.
+1. Create a new hardhat network using the devent URL. Please refer to [How to define a new network for hardhat](#how-to-define-a-new-network-for-hardhat) for more info. But be sure to provide at least four different private keys for `accounts` in the config. These accounts will be funded by your primary prefunded account. So it doesn't matter if they all have zero balances.
 
-2. Run `PRIMARY_ACCOUNT=YOUR_PRIVATE_KEY npx hardhat run scripts/InitTests.ts`
+2. Run `PRIMARY_ACCOUNT=YOUR_PRIVATE_KEY npx hardhat run scripts/FundAccountsFromPrimaryAccount.ts --network your_new_network`
 You should see something like this output:
 ```
 Private key: db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
@@ -380,4 +380,4 @@ Balance: 999998799988000000
 ```
 It means that now all of your accounts specified in the `hardhat.config.ts` have enough funds to run tests.
 
-3. Run tests using `npx hardhat test` or any other variants of it.
+3. Run tests using `npx hardhat test --network your_new_network` or any other variants of it.

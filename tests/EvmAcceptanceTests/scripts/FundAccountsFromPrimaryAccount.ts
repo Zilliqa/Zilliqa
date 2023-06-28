@@ -5,6 +5,7 @@ import { ethers } from "ethers";
 import Long from "long";
 import hre from "hardhat"
 
+// Refer to README.md, section `Testing a newly deployed testnet/devent` for more info.
 
 async function main() {
   let zilliqa = new Zilliqa(hre.getNetworkUrl());
