@@ -175,9 +175,6 @@ void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
     for(auto &subId : conn.second->subscribedToNewHeads) {
       m_newHeadTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
       auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
-
-      std::cerr << "sending websocket message: " << msg << std::endl;
-
       m_websocketServer->SendMessage(conn.second->id, msg);
     }
   }

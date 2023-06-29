@@ -167,8 +167,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   }
   BindAllEvmMethods();
   PostTxBlock();
-  PostTxBlock();
-  PostTxBlock();
 }
 
 void IsolatedServer::BindAllEvmMethods() {
@@ -208,12 +206,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
-        &IsolatedServer::GetWeb3ClientVersionI);
-
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("web3_clientVersionBump", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &IsolatedServer::GetWeb3ClientVersionBumpI);
+        &LookupServer::GetWeb3ClientVersionI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("web3_sha3", jsonrpc::PARAMS_BY_POSITION,
