@@ -74,9 +74,12 @@ class SendJobsVariables {
                                           "Send Jobs metrics", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
-        result.Set(sendMessageToPeerCount.load(), {{"counter", "SendMessageToPeerCount"}});
-        result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
-        result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
+        result.Set(sendMessageToPeerCount.load(),
+                   {{"counter", "SendMessageToPeerCount"}});
+        result.Set(sendMessageToPeerFailed.load(),
+                   {{"counter", "SendMessageToPeerFailed"}});
+        result.Set(sendMessageToPeerSyncCount.load(),
+                   {{"counter", "SendMessageToPeerSyncCount"}});
         result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
       });
     }
@@ -116,7 +119,9 @@ inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
           ec == NETWORK_UNREACHABLE);
 }
 
-inline bool IsNodeNotRunning(const ErrorCode& ec) { return (ec == TIMED_OUT || ec == CONN_REFUSED); }
+inline bool IsNodeNotRunning(const ErrorCode& ec) {
+  return (ec == TIMED_OUT || ec == CONN_REFUSED);
+}
 
 inline Milliseconds Clock() {
   return std::chrono::duration_cast<Milliseconds>(
@@ -133,12 +138,13 @@ void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
       boost::asio::steady_timer::clock_type::time_point(Clock() + delay), ec);
 
   if (ec) {
-    LOG_GENERAL(FATAL, "Cannot set timer");
+    LOG_GENERAL(FATAL,
+                "Cannot set timer: " << ec.message() << " (" << ec << ')');
     return;
   }
 
-  timer.async_wait([obj, OnTimer](const ErrorCode& error) {
-    if (!error) {
+  timer.async_wait([obj, OnTimer](const ErrorCode& ec) {
+    if (!ec) {
       (obj->*OnTimer)();
     }
   });
@@ -250,12 +256,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
 
-    m_socket.async_connect(m_endpoint,
-                           [self = shared_from_this()](const ErrorCode& ec) {
-                             if (ec != OPERATION_ABORTED) {
-                               self->OnConnected(ec);
-                             }
-                           });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, this,
+              &PeerSendQueue::Reconnect);
+    m_socket.async_connect(m_endpoint, [self = shared_from_this()](
+                                           const ErrorCode& ec) {
+      LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
+                                          << ec.message() << " (" << ec << ')');
+      if (ec != OPERATION_ABORTED) {
+        self->OnConnected(ec);
+      }
+    });
   }
 
   void OnConnected(const ErrorCode& ec) {
@@ -364,7 +374,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     assert(ec);
 
-    WaitTimer(m_timer, Milliseconds(1000), this, &PeerSendQueue::Reconnect);
+    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS}, this,
+              &PeerSendQueue::Reconnect);
   }
 
   void Reconnect() {
@@ -469,10 +480,10 @@ class SendJobsImpl : public SendJobs,
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-      LOG_GENERAL(INFO,
-                  "Ignoring blacklisted peer " <<
-                  peer.GetPrintableIPAddress()
-                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
+      LOG_GENERAL(INFO, "Ignoring blacklisted peer "
+                            << peer.GetPrintableIPAddress()
+                            << "allow relaxed blacklist "
+                            << allow_relaxed_blacklist);
       return;
     }
 
@@ -486,7 +497,6 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
-
     if (ec) {
       LOG_GENERAL(
           INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
