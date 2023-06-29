@@ -360,6 +360,10 @@ bool Retriever::RetrieveStates() {
   return AccountStore::GetInstance().RetrieveFromDisk();
 }
 
+bool Retriever::RetrieveStatesOld() {
+  return AccountStore::GetInstance().RetrieveFromDiskOld();
+}
+
 bool Retriever::ValidateStates() {
   LOG_MARKER();
 

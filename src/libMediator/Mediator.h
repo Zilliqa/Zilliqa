@@ -27,20 +27,9 @@
 #include "libNetwork/Peer.h"
 #include "libValidator/Validator.h"
 
-namespace boost {
-namespace asio {
-
-class io_context;
-}
-}  // namespace boost
-
 class DirectoryService;
 class Node;
 class Lookup;
-
-namespace zil {
-class DaemonListener;
-}
 
 namespace evmproj::filters {
 class APICache;
@@ -173,9 +162,6 @@ class Mediator {
   bool ToProcessTransaction();
 
   uint64_t GetEarliestTrieDSEpoch(const uint64_t& currDSEpoch);
-
-  std::shared_ptr<zil::DaemonListener> m_daemonListener;
-  std::shared_ptr<boost::asio::io_context> m_asioCtx;
 };
 
 #endif  // ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_

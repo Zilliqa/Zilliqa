@@ -18,24 +18,39 @@
 #ifndef ZILLIQA_DAEMON_ZILLIQADAEMON_H_
 #define ZILLIQA_DAEMON_ZILLIQADAEMON_H_
 
-#include "ZilliqaUpdater.h"
+#include <dirent.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <algorithm>
+#include <array>
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+#include <chrono>
+#include <cstdio>
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
-#include <shared_mutex>
-
-class ZilliqaDaemon final {
+class ZilliqaDaemon {
  public:
-  ~ZilliqaDaemon() noexcept;
   ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log);
   void MonitorProcess(const std::string& name,
                       const bool startNewByDaemon = false);
   static void LOG(std::ofstream& log, const std::string& msg);
 
-  std::vector<pid_t> GetMonitoredProcIdsByName(
-      const std::string& procName) const;
-
  private:
   std::ofstream& m_log;
-  mutable std::shared_mutex m_mutex;
   std::unordered_map<std::string, std::vector<pid_t>> m_pids;
   std::unordered_map<std::string, unsigned int> m_failedMonitorProcessCount;
   std::unordered_map<pid_t, bool> m_died;
@@ -43,7 +58,6 @@ class ZilliqaDaemon final {
   int m_port, m_recovery, m_nodeIndex;
   unsigned int m_syncType;
   bool m_cseed;
-  std::unique_ptr<ZilliqaUpdater> m_updater;
 
   static std::string CurrentTimeStamp();
   static std::string Execute(const std::string& cmd);
