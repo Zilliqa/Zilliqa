@@ -34,7 +34,7 @@ describe("RFC75 ScillaCallEOA", function () {
   it("Should not be reverted when a message from scilla is sent to eoa account with call_mode = 0", async function () {
     const CALL_MODE = 0;
     await expect(solidityContract.callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL))
-        .not.to.be.reverted;
+      .not.to.be.reverted;
     expect(await scillaContract.value()).to.be.eq(VAL);
   });
 
