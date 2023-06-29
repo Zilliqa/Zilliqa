@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import hre from "hardhat";
-import {Contract} from "ethers";
+import {Contract, Signer} from "ethers";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 
@@ -9,14 +9,18 @@ describe("RFC75 ScillaCallEOA", function () {
   let scillaContract: ScillaContract;
   let scillaContractAddress: string;
 
+  let admin: Signer;
+
   const VAL = 10;
 
   beforeEach(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaCall");
+    admin = await parallelizer.takeSigner();
+    solidityContract = await parallelizer.deployContractWithSigner(admin, "ScillaCall");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
+
 
     scillaContract = await parallelizer.deployScillaContract("ScillaCallSimple");
     scillaContractAddress = scillaContract.address?.toLowerCase()!;
@@ -29,8 +33,18 @@ describe("RFC75 ScillaCallEOA", function () {
 
   it("Should not be reverted when a message from scilla is sent to eoa account with call_mode = 0", async function () {
     const CALL_MODE = 0;
-    await expect(solidityContract.callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL))
-      .not.to.be.reverted;
+    const initialBalance = await admin.getBalance();
+    console.log("Initial balance: " + initialBalance);
+    let tx = await solidityContract.connect(admin).callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
+    tx = await  tx.wait();
+    console.log("Receipt: " + JSON.stringify(tx));
+    console.log("Gas price: " + tx.gasPrice);
+    console.log("Gas USED: " + tx.gasUsed);
+    console.log("Gas cost: " + tx.gasPrice * tx.gasUsed);
+    console.log("Expected new: " + initialBalance.sub(tx.effectiveGasPrice.mul(tx.gasUsed)));
+    const finalBalance = await admin.getBalance();
+    console.log("Final balance: " + finalBalance);
+
     expect(await scillaContract.value()).to.be.eq(VAL);
   });
 
@@ -135,5 +149,16 @@ describe("RFC75 ScillaCallEOA", function () {
     );
     await expect(resp.wait()).to.be.rejected;
     expect(await scillaContract.value()).to.be.eq(0);
+  });
+
+  it("Should deduct the same amount from account as advertised in receipt", async function () {
+    const CALL_MODE = 0;
+    const initialBalance = await admin.getBalance();
+    let tx = await solidityContract.connect(admin).callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
+    tx = await  tx.wait();
+    expect(await scillaContract.value()).to.be.eq(VAL);
+    const gasCost = tx.effectiveGasPrice.mul(tx.gasUsed);
+    const finalBalance = await admin.getBalance();
+    expect(finalBalance).to.be.eq(initialBalance.sub(gasCost));
   });
 });
