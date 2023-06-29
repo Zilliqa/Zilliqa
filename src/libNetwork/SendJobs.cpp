@@ -138,9 +138,8 @@ inline Milliseconds Clock() {
 
 /// Waits for timer and calls a member function of Object,
 /// Timer must be in the scope of object (for pointers validity)
-template <typename Object, typename Time>
-void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
-               void (Object::*OnTimer)()) {
+template <typename F, typename Time>
+void WaitTimer(SteadyTimer& timer, Time delay, F onTimerHandler) {
   ErrorCode ec;
   timer.expires_at(
       boost::asio::steady_timer::clock_type::time_point(Clock() + delay), ec);
@@ -151,9 +150,10 @@ void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
     return;
   }
 
-  timer.async_wait([obj, OnTimer](const ErrorCode& ec) {
+  timer.async_wait([onTimer = std::move(onTimerHandler)](const ErrorCode& ec) {
+    LOG_GENERAL(DEBUG, "Timer expired: " << ec.message() << " (" << ec << ')');
     if (!ec) {
-      (obj->*OnTimer)();
+      onTimer();
     }
   });
 }
@@ -264,8 +264,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, this,
-              &PeerSendQueue::Reconnect);
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
+              [this]() { OnConnected(TIMED_OUT); });
     m_socket.async_connect(m_endpoint, [self = shared_from_this()](
                                            const ErrorCode& ec) {
       LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
@@ -298,7 +298,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
-        [self = shared_from_this()](const ErrorCode& ec, size_t) {
+        [self = shared_from_this()](const ErrorCode& ec, size_t count) {
+          LOG_GENERAL(DEBUG, "Wrote " << count << " bytes to "
+                                      << self->m_endpoint << ": "
+                                      << ec.message() << " (" << ec << ')');
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
           }
@@ -383,14 +386,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     assert(ec);
 
     zil::local::variables.AddReconntionToPeerCount(1);
-    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS}, this,
-              &PeerSendQueue::Reconnect);
+    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS},
+              [this]() { Reconnect(); });
   }
 
   void Reconnect() {
     if (!CheckAgainstBlacklist() || ExpiredOrDone()) {
       return;
     }
+
+    LOG_GENERAL(INFO, "Reconnecting to " << m_endpoint << "...");
 
     // TODO the current protocol is weird and it assumes reconnecting every
     // time. This should be changed!!!
