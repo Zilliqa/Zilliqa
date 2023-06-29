@@ -14,7 +14,11 @@ export type DeployOptions = {
 
 export class Parallelizer {
   constructor() {
-    const privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
+    let privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
+    if (process.env.PRIMARY_ACCOUNT !== undefined) {
+      privateKey = process.env.PRIMARY_ACCOUNT;
+    }
+  
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
     this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey], 30);
   }
