@@ -139,7 +139,8 @@ class P2PComm {
   void SendMessage(const std::deque<Peer>& peers, const zbytes& message,
                    unsigned char startByteType = zil::p2p::START_BYTE_NORMAL,
                    bool inject_trace_context = false,
-                   bool bAllowSendToRelaxedBlacklist = false);
+                   bool bAllowSendToRelaxedBlacklist = false,
+                   bool ignoreBlacklist = false);
 
   /// Sends normal message to specified peer.
   void SendMessage(const Peer& peer, const zbytes& message,
