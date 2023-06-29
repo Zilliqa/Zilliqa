@@ -161,7 +161,7 @@ void SubscriptionsImpl::Start(
 void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
   Lock lk(m_mutex);
 
-  if (m_subscribedToNewHeads.empty()) {
+  if (m_connections.empty()) {
     return;
   }
 
@@ -171,11 +171,14 @@ void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
 
   // Loop every connection subscribed to new heads, and for that connection,
   // loop every subscription id
-  for (auto& conn : m_subscribedToNewHeads) {
-    for(auto &subId : conn->subscribedToNewHeads) {
+  for (auto& conn : m_connections) {
+    for(auto &subId : conn.second->subscribedToNewHeads) {
       m_newHeadTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
       auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
-      m_websocketServer->SendMessage(conn->id, msg);
+
+      std::cerr << "sending websocket message: " << msg << std::endl;
+
+      m_websocketServer->SendMessage(conn.second->id, msg);
     }
   }
 }
@@ -183,7 +186,7 @@ void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
 void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {
   Lock lk(m_mutex);
 
-  if (m_subscribedToPendingTxns.empty()) {
+  if (m_connections.empty()) {
     return;
   }
 
@@ -193,11 +196,11 @@ void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {
 
   // Loop every connection subscribed to pending txs, and for that connection,
   // loop every subscription id
-  for (auto& conn : m_subscribedToPendingTxns) {
-    for(auto &subId : conn->subscribedToPendingTxn) {
+  for (auto& conn : m_connections) {
+    for(auto &subId : conn.second->subscribedToPendingTxn) {
       m_pendingTxnTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
       auto msg = std::make_shared<std::string>(JsonWrite(m_pendingTxnTemplate));
-      m_websocketServer->SendMessage(conn->id, msg);
+      m_websocketServer->SendMessage(conn.second->id, msg);
     }
   }
 }
@@ -309,8 +312,6 @@ void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
     return;
   }
   const auto& conn = it->second;
-  m_subscribedToPendingTxns.erase(conn);
-  m_subscribedToNewHeads.erase(conn);
   m_subscribedToLogs.erase(conn);
   m_connections.erase(it);
 }
@@ -328,9 +329,6 @@ SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
     auto it = pendingTXs.find(subscription_id_int);
     if (it != pendingTXs.end()) {
       pendingTXs.erase(it);
-      if (pendingTXs.empty()) {
-        m_subscribedToPendingTxns.erase(conn);
-      }
       result = true;
     }
   }
@@ -341,9 +339,6 @@ SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
     auto it = newHeads.find(subscription_id_int);
     if (it != newHeads.end()) {
       newHeads.erase(it);
-      if (newHeads.empty()) {
-        m_subscribedToNewHeads.erase(conn);
-      }
       result = true;
     }
   }

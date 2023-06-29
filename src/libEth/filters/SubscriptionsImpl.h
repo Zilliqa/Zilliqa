@@ -134,12 +134,6 @@ class SubscriptionsImpl {
   /// All active connections
   std::unordered_map<Id, ConnectionPtr> m_connections;
 
-  /// Connections who subscribed to pending txns
-  std::unordered_set<ConnectionPtr> m_subscribedToPendingTxns;
-
-  /// Connections who subscribed to new heads
-  std::unordered_set<ConnectionPtr> m_subscribedToNewHeads;
-
   /// Connections who subscribed to event logs
   std::unordered_set<ConnectionPtr> m_subscribedToLogs;
 
