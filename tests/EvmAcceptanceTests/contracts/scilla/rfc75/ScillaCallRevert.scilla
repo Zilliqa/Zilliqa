@@ -53,3 +53,8 @@ transition callAndForwardToEvmCall(val: Uint128, next_scilla_addr: ByStr20, reci
     as_msg = one_msg msg;
     send as_msg
 end
+
+transition justRevert()
+    e = { _exception : "Yaicksss" };
+    throw e
+end
