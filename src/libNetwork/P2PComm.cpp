@@ -1253,7 +1253,8 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
                      const PeerList& peers, const zbytes& message,
                      unsigned char startByteType,
                      bool bAllowSendToRelaxedBlacklist,
-                     bool inject_trace_context) {
+                     bool inject_trace_context,
+                     bool ignoreBlacklist) {
   if (message.size() <= MessageOffset::BODY) {
     return;
   }
@@ -1273,7 +1274,7 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
                                          inject_trace_context);
 
   for (const auto& peer : peers) {
-    sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist);
+    sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist, ignoreBlacklist);
   }
 }
 
@@ -1283,15 +1284,16 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
                           unsigned char startByteType,
                           bool inject_trace_context) {
   SendMessageImpl(m_sendJobs, peers, message, startByteType, false,
-                  inject_trace_context);
+                  inject_trace_context, false);
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
                           unsigned char startByteType,
                           bool bAllowSendToRelaxedBlacklist,
-                          bool inject_trace_context) {
+                          bool inject_trace_context,
+                          bool ignoreBlacklist) {
   SendMessageImpl(m_sendJobs, peers, message, startByteType,
-                  bAllowSendToRelaxedBlacklist, inject_trace_context);
+                  bAllowSendToRelaxedBlacklist, inject_trace_context, ignoreBlacklist);
 }
 
 void P2PComm::SendMessage(const Peer& peer, const zbytes& message,

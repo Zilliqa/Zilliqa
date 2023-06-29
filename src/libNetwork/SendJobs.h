@@ -38,15 +38,15 @@ class SendJobs {
 
   /// Enqueues message to be sent to peer
   virtual void SendMessageToPeer(const Peer& peer, RawMessage message,
-                                 bool allow_relaxed_blacklist) = 0;
+                                 bool allow_relaxed_blacklist, bool ignoreBlacklist = false) = 0;
 
   /// Helper for the function above, for the most common case
   void SendMessageToPeer(const Peer& peer, const zbytes& message,
-                         uint8_t start_byte, bool inject_trace_context) {
+                         uint8_t start_byte, bool inject_trace_context, bool ignoreBlacklist = false) {
     static const zbytes no_hash;
     SendMessageToPeer(
         peer, CreateMessage(message, no_hash, start_byte, inject_trace_context),
-        false);
+        false, ignoreBlacklist);
   }
 
   /// Sends message to peer in the current thread, without queueing.
