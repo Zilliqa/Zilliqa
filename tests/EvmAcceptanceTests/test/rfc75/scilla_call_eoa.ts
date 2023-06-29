@@ -9,13 +9,10 @@ describe("RFC75 ScillaCallEOA", function () {
   let scillaContract: ScillaContract;
   let scillaContractAddress: string;
 
-  let admin: Signer;
-
   const VAL = 10;
 
   beforeEach(async function () {
-    admin = await parallelizer.takeSigner();
-    solidityContract = await parallelizer.deployContractWithSigner(admin, "ScillaCall");
+    solidityContract = await parallelizer.deployContract( "ScillaCall");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
@@ -143,6 +140,7 @@ describe("RFC75 ScillaCallEOA", function () {
 
   it("Should deduct the same amount from account as advertised in receipt", async function () {
     const CALL_MODE = 0;
+    const admin = await solidityContract.signer;
     const initialBalance = await admin.getBalance();
     let tx = await solidityContract.connect(admin).callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
     tx = await  tx.wait();
