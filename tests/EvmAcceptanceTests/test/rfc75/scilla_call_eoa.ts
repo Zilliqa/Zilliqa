@@ -33,18 +33,8 @@ describe("RFC75 ScillaCallEOA", function () {
 
   it("Should not be reverted when a message from scilla is sent to eoa account with call_mode = 0", async function () {
     const CALL_MODE = 0;
-    const initialBalance = await admin.getBalance();
-    console.log("Initial balance: " + initialBalance);
-    let tx = await solidityContract.connect(admin).callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
-    tx = await  tx.wait();
-    console.log("Receipt: " + JSON.stringify(tx));
-    console.log("Gas price: " + tx.gasPrice);
-    console.log("Gas USED: " + tx.gasUsed);
-    console.log("Gas cost: " + tx.gasPrice * tx.gasUsed);
-    console.log("Expected new: " + initialBalance.sub(tx.effectiveGasPrice.mul(tx.gasUsed)));
-    const finalBalance = await admin.getBalance();
-    console.log("Final balance: " + finalBalance);
-
+    await expect(solidityContract.callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL))
+        .not.to.be.reverted;
     expect(await scillaContract.value()).to.be.eq(VAL);
   });
 
