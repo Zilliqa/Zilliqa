@@ -21,10 +21,6 @@ declare module "hardhat/types/runtime" {
 }
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre.isEthernalPluginEnabled = () => {
-    return !hre.config.ethernal.disabled;
-  };
-
   hre.isScillaTestingEnabled = () => {
     return hre.scillaTesting;
   };
