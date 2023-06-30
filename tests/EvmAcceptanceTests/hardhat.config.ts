@@ -1,5 +1,6 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
+import { HardhatUserConfig } from "hardhat/types";
 import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
@@ -25,16 +26,6 @@ declare module "hardhat/types/config" {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
-
-  ethernal: {
-    disabled: ENV_VARS.ethernalPassword === undefined,
-    email: ENV_VARS.ethernalEmail,
-    password: ENV_VARS.ethernalPassword,
-    workspace: ENV_VARS.ethernalWorkspace,
-    disableSync: false, // If set to true, plugin will not sync blocks & txs
-    disableTrace: false, // If set to true, plugin won't trace transaction
-    uploadAst: true // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
-  },
   defaultNetwork: "isolated_server",
   networks: {
     localdev2: {
