@@ -20,7 +20,6 @@ See the docstring for cli() for details.
 
 import click
 import datetime
-import distutils
 import glob
 import ipaddress
 import json
@@ -194,15 +193,18 @@ def print_config_advice(config):
                         "localdev-origin-internal" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
     print(f"Minikube is at {ip}")
-    print(f"""Please add
-
+    print(f"""Now run:
+cat << EOF | sudo tee -a /etc/hosts
 {hosts}
+EOF
+""");
+    if is_osx():
+        print("""And run:
+sudo minikube tunnel
 
-    to your /etc/hosts.
-""" + """
-Run:
-    sudo minikube tunnel
-""" if is_osx() else "")
+In a separate terminal
+        """)
+
 
 def minikube_env(config, driver):
     driver_env = os.environ.copy()
