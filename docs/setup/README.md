@@ -6,7 +6,7 @@ on it ..
 
 ## Create a machine
 
-This will depend on your setup, but within Zilliqa:
+This will depend on your setup, but if you're using GCP (you'll need different magic for AWS):
 
 ```
 gcloud compute instances create <machine-name> \
@@ -27,7 +27,7 @@ gcloud compute instances create <machine-name> \
 Copy the files in this directory into your home directory on the remote:
 
 ```
-gcloud compute --project <my-project> scp <my-machine>:~/work/trees/1/zilliqa/0001* .
+gcloud compute --project <my-project> scp *.sh <my-machine>:~
 ```
 
 Now ssh in with `gcloud compute ssh <machine> --tunnel-through-iap`
