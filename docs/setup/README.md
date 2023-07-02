@@ -61,6 +61,15 @@ so that it can clone repositories.  If you have your own ssh key you'd
 prefer to use, put it in `~/.ssh/id_rsa.pub` and `installme.sh` won't
 generate another.
 
+## Start isolated server
+
+You can build and run an isolated server using:
+
+```sh
+source ./setenv.sh
+cd ~/src/zilliqa/zilliqa
+./scripts/localdev.py isolated
+```
 
 ## Start localdev
 
@@ -99,6 +108,7 @@ kubectl get pod
 shows that your pods are up.
 
 You can try doing this automatically with
+
 
 ## Accessing localdev from your desktop
 
