@@ -6,31 +6,13 @@ on it ..
 
 ## Create a machine
 
-This will depend on your setup, but if you're using GCP (you'll need different magic for AWS):
-
-```
-gcloud compute instances create <machine-name> \
---image-family ubuntu-2204-lts \
---image-project ubuntu-os-cloud \
---boot-disk-size=200GB \
---metadata enable-oslogin=TRUE \
---project <my-project> \
---zone europe-west1-c \
---machine-type e2-standard-4 \
---subnet west1 \
---no-address \
---no-service-account --no-scopes
-```
+This will depend on your setup - within Zilliqa, see the wiki page on
+`Running Zilliqa 1 in cloud` for details on how to create and proxy
+into/through your own cloud machine.
 
 ## Setup
 
-Copy the files in this directory into your home directory on the remote:
-
-```
-gcloud compute --project <my-project> scp *.sh <my-machine>:~
-```
-
-Now ssh in with `gcloud compute ssh <machine> --tunnel-through-iap`
+Copy the files in this directory into your home directory on the remote, and ssh in.
 
 Run:
 
@@ -107,18 +89,18 @@ kubectl get pod
 
 shows that your pods are up.
 
-You can try doing this automatically with
+You can try doing this automatically with `runlocaldev.sh` .
 
 
 ## Accessing localdev from your desktop
 
-Do:
+See the `Running Zilliqa 1 in cloud` page for details on how to start a proxy.
 
-```sh
-gcloud compute ssh <machine> --project <project> --tunnel-through-iap -- -D 9000 -L9001:192.168.49.2:80
-```
+You should now have:
 
-The `-D 9000` starts a SOCKS proxy at `socks5://localhost:9000` which proxies into your cloud host.
+ * A SOCKS proxy `socks5://localhost:9000` which proxies into your cloud host.
+ * A port forward for port 9001 from your machine to `<minikubeip>:80` (for localdev)
+ * A port forward for port 9002 from your machine to `localhost:5555` (for isolated server)
 
 Now:
 
@@ -138,7 +120,9 @@ You should now have DevEx running. If you want to make calls:
 mitmweb --mode 'reverse:http://localhost:9001' --modify-headers "/~q/Host/localdev-l2api.localdomain" --no-web-open-browser --listen-port 9100 --web-port 9101
 ```
 
-Will open a port on `localhost:9100` you can use to talk to localdev, and monitor on port 9101.
+Will open a port on `localhost:9100` you can use to talk to localdev,
+and monitor on port 9101. You can use a similar command line (with
+`reverse:http://localhost:9002`) to proxy isolated server.
 
 
 ## Known bugs
