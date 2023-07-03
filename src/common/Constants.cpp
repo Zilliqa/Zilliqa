@@ -143,6 +143,7 @@ const unsigned int MAX_ARCHIVED_LOG_COUNT{
 const unsigned int MAX_LOG_FILE_SIZE_KB{
     ReadConstantNumeric("MAX_LOG_FILE_SIZE_KB")};
 const bool JSON_LOGGING{ReadConstantString("JSON_LOGGING") == "true"};
+const bool AUTO_UPGRADE{ReadConstantString("AUTO_UPGRADE") == "true"};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -494,9 +495,9 @@ const unsigned int MAX_WHITELISTREQ_LIMIT{
 const unsigned int SENDJOBPEERS_TIMEOUT{
     ReadConstantNumeric("SENDJOBPEERS_TIMEOUT", "node.p2pcomm.")};
 const unsigned int CONNECTION_TIMEOUT_IN_MS{
-    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_MS", "node.p2pcomm.", 30000)};
+    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_MS", "node.p2pcomm.", 2000)};
 const unsigned int RECONNECT_INTERVAL_IN_MS{
-    ReadConstantNumeric("RECONNECT_INTERVAL_IN_MS", "node.p2pcomm.", 2500)};
+    ReadConstantNumeric("RECONNECT_INTERVAL_IN_MS", "node.p2pcomm.", 2000)};
 
 // PoW constants
 const bool FULL_DATASET_MINE{
