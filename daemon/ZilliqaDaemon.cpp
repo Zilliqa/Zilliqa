@@ -19,6 +19,7 @@
 #include "ZilliqaUpdater.h"
 
 #include "common/Constants.h"
+#include "libUtils/Logger.h"
 
 #include <boost/program_options.hpp>
 
@@ -299,7 +300,7 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
 
   if (pid_parent < 0) {
     ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-    exit(EXIT_FAILURE);
+    Exit(EXIT_FAILURE);
   }
 
   if (pid_parent > 0) {
@@ -375,7 +376,8 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
                          "; ulimit -Sc unlimited; ulimit -Hc unlimited;" +
                          cmdToRun + " >> ./error_log_zilliqa 2>&1") +
                  " \"");
-  exit(0);
+
+  Exit(0);
 }
 
 void ZilliqaDaemon::StartScripts() {
@@ -388,7 +390,7 @@ void ZilliqaDaemon::StartScripts() {
 
   if (pid_parent < 0) {
     ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-    exit(EXIT_FAILURE);
+    Exit(EXIT_FAILURE);
   }
 
   auto script = (0 == m_nodeIndex) ? upload_incr_DB_script : auto_backup_script;
@@ -402,7 +404,22 @@ void ZilliqaDaemon::StartScripts() {
              (0 == m_nodeIndex ? "" : " -f 10") + " &";
   ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
   ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-  exit(0);
+
+  Exit(0);
+}
+
+void ZilliqaDaemon::Exit(int exitCode)
+{
+  // Since the updater uses the Logger and the daemon keeps fork-ing
+  // we can't realy on exit() because it will hang when the logger
+  // tries to shutdown (since the child won't have the same running threads).
+  if (m_updater)
+  {
+    m_log.flush();
+    _exit(exitCode);
+  }
+
+  exit(exitCode);
 }
 
 void ZilliqaDaemon::KillProcess(const string& procName) {

@@ -54,6 +54,7 @@ class ZilliqaDaemon final {
   void StartScripts();
   void KillProcess(const std::string& procName);
   int ReadInputs(int argc, const char* argv[]);
+  void Exit(int exitCode);
 };
 
 #endif  // ZILLIQA_DAEMON_ZILLIQADAEMON_H_
