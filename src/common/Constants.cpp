@@ -494,9 +494,9 @@ const unsigned int MAX_WHITELISTREQ_LIMIT{
 const unsigned int SENDJOBPEERS_TIMEOUT{
     ReadConstantNumeric("SENDJOBPEERS_TIMEOUT", "node.p2pcomm.")};
 const unsigned int CONNECTION_TIMEOUT_IN_MS{
-    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_MS", "node.p2pcomm.", 60000)};
+    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_MS", "node.p2pcomm.", 30000)};
 const unsigned int RECONNECT_INTERVAL_IN_MS{
-    ReadConstantNumeric("RECONNECT_INTERVAL_IN_MS", "node.p2pcomm.", 5000)};
+    ReadConstantNumeric("RECONNECT_INTERVAL_IN_MS", "node.p2pcomm.", 2500)};
 
 // PoW constants
 const bool FULL_DATASET_MINE{
