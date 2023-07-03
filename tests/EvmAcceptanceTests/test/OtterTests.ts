@@ -1,11 +1,19 @@
 import {assert, expect} from "chai";
 import {ethers} from "hardhat";
-import {expectRevert} from "@openzeppelin/test-helpers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import {parallelizer} from "../helpers";
 
-// These tests are disabled only in release/v9.2
-describe.skip("Otterscan api tests", function () {
+describe("Otterscan api tests", function () {
+
+  before(async function () {
+      const METHOD = "ots_enable";
+
+      // Make sure traceing is enabled
+      await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {
+        assert.equal(status, 200, "has status code");
+      });
+
+  });
 
   it("When we revert the TX, we can get the tx error ", async function () {
     const METHOD = "ots_getTransactionError";
@@ -21,9 +29,7 @@ describe.skip("Otterscan api tests", function () {
     // a similar passing call and use this (+30% leeway) to override the gas field
     const estimatedGas = await this.contract.estimateGas.requireCustom(true, REVERT_MESSAGE);
 
-    console.log("Estimated gas: ", estimatedGas);
-
-    const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, { gasLimit: estimatedGas.mul(130).div(100) })
+    const tx = await this.contract.requireCustom(false, REVERT_MESSAGE, {gasLimit: estimatedGas.mul(130).div(100)});
 
     await sendJsonRpcRequest(METHOD, 1, [tx.hash], (result, status) => {
       assert.equal(status, 200, "has status code");

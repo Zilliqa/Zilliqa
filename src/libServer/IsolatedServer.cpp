@@ -460,6 +460,12 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::DebugTraceTransactionI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_enable",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_BOOLEAN, NULL),
+        &EthRpcMethods::OtterscanEnableI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("ots_getInternalOperations",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, NULL),

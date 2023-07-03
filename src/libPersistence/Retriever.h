@@ -29,6 +29,7 @@ class Retriever {
   bool RetrieveTxBlocks();
   bool RetrieveBlockLink();
   bool RetrieveStates();
+  bool RetrieveStatesOld();
   bool ValidateStates();
   void CleanAll();
   bool ConstructFromStateDeltas(const uint64_t& lastBlockNum,
