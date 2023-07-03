@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import hre from "hardhat";
-import {Contract} from "ethers";
+import {Contract, Signer} from "ethers";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 
@@ -17,6 +17,7 @@ describe("RFC75 ScillaCallEOA", function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
+
 
     scillaContract = await parallelizer.deployScillaContract("ScillaCallSimple");
     scillaContractAddress = scillaContract.address?.toLowerCase()!;
@@ -135,5 +136,17 @@ describe("RFC75 ScillaCallEOA", function () {
     );
     await expect(resp.wait()).to.be.rejected;
     expect(await scillaContract.value()).to.be.eq(0);
+  });
+
+  it("Should deduct the same amount from account as advertised in receipt", async function () {
+    const CALL_MODE = 0;
+    const admin = await solidityContract.signer;
+    const initialBalance = await admin.getBalance();
+    let tx = await solidityContract.connect(admin).callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
+    tx = await  tx.wait();
+    expect(await scillaContract.value()).to.be.eq(VAL);
+    const gasCost = tx.effectiveGasPrice.mul(tx.gasUsed);
+    const finalBalance = await admin.getBalance();
+    expect(finalBalance).to.be.eq(initialBalance.sub(gasCost));
   });
 });
