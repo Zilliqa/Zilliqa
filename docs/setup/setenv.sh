@@ -9,4 +9,4 @@ export RUSTC_WRAPPER=~/.cargo/bin/sccache
 export CMAKE_VERSION=3.24.2
 export CCACHE_DIR=~/ccache
 export VCPKG_ROOT=~/vcpkg
-export PATH=$PATH:/home/richard_zilliqa_com/.local/bin
+export PATH=$PATH:~/.local/bin
