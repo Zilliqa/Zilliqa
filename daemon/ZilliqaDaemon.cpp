@@ -79,11 +79,13 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
     msg += string(" ") + argv[i];
   }
 
-  m_updater =
-      std::make_unique<ZilliqaUpdater>([this](const std::string& procName) {
-        return GetMonitoredProcIdsByName(procName);
-      });
-  m_updater->Start();
+  if (AUTO_UPGRADE) {
+    m_updater =
+        std::make_unique<ZilliqaUpdater>([this](const std::string& procName) {
+          return GetMonitoredProcIdsByName(procName);
+        });
+    m_updater->Start();
+  }
 
   ZilliqaDaemon::LOG(m_log, msg);
   StartNewProcess();
@@ -98,7 +100,8 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
   //            which could lead to deadlocks.
   {
     std::shared_lock<std::shared_mutex> guard{m_mutex};
-    noPids = m_pids[name].empty();
+    const auto iter = m_pids.find(name);
+    noPids = iter == std::end(m_pids) || iter->second.empty();
   }
 
   if (noPids) {
@@ -115,11 +118,11 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
     }
 
     std::unique_lock<std::shared_mutex> guard{m_mutex};
-    for (const pid_t& i : tmp) {
-      m_died[i] = false;
-      m_pids[name].push_back(i);
+    for (auto pid : tmp) {
+      m_died[pid] = false;
+      m_pids[name].push_back(pid);
       ZilliqaDaemon::LOG(m_log, "Started monitoring new process " + name +
-                                    " with PiD: " + to_string(i));
+                                    " with PiD: " + to_string(pid));
     }
     return;
   }
@@ -127,7 +130,8 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
   std::vector<pid_t> pids;
   {
     std::shared_lock<std::shared_mutex> guard{m_mutex};
-    pids = m_pids[name];
+    const auto iter = m_pids.find(name);
+    if (iter != std::end(m_pids)) pids = iter->second;
   }
 
   for (const pid_t& pid : pids) {

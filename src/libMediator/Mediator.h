@@ -175,7 +175,7 @@ class Mediator {
   uint64_t GetEarliestTrieDSEpoch(const uint64_t& currDSEpoch);
 
   std::shared_ptr<zil::DaemonListener> m_daemonListener;
-  std::shared_ptr<boost::asio::io_context> m_asioCtx;
+  std::shared_ptr<boost::asio::io_context> m_daemonListenerAsioCtx;
 };
 
 #endif  // ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_

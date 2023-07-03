@@ -221,7 +221,7 @@ void Mediator::IncreaseEpochNum() {
                     "Update DS block has been reached; shutting down to "
                     "upgrade zilliqa");
 
-        m_asioCtx->stop();
+        m_daemonListenerAsioCtx->stop();
         exit(0);
       }
     }

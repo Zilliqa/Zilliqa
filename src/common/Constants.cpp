@@ -143,6 +143,7 @@ const unsigned int MAX_ARCHIVED_LOG_COUNT{
 const unsigned int MAX_LOG_FILE_SIZE_KB{
     ReadConstantNumeric("MAX_LOG_FILE_SIZE_KB")};
 const bool JSON_LOGGING{ReadConstantString("JSON_LOGGING") == "true"};
+const bool AUTO_UPGRADE{ReadConstantString("AUTO_UPGRADE") == "true"};
 
 // Version constants
 const unsigned int MSG_VERSION{

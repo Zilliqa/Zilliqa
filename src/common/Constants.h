@@ -144,6 +144,7 @@ extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
 extern const bool JSON_LOGGING;
+extern const bool AUTO_UPGRADE;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
