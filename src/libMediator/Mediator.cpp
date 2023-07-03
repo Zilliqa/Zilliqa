@@ -28,6 +28,7 @@
 #include "libNode/Node.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
+#include "libUpdater/DaemonListener.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -203,6 +204,28 @@ void Mediator::IncreaseEpochNum() {
 
   LOG_GENERAL(INFO, "Epoch number is now " << m_currentEpochNum);
   LOG_STATE("Epoch = " << m_currentEpochNum);
+
+  if ((m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) && m_daemonListener) {
+    auto quiesceDSBlock = m_daemonListener->quiesceDSBlock();
+    if (quiesceDSBlock &&
+        (m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == *quiesceDSBlock)) {
+      LOG_GENERAL(
+          WARNING,
+          "Quiesce DS block has been reached; rejecting new transactions");
+      m_disableTxns = true;
+    } else {
+      auto updateDSBlock = m_daemonListener->updateDSBlock();
+      if (updateDSBlock &&
+          (m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == *updateDSBlock)) {
+        LOG_GENERAL(WARNING,
+                    "Update DS block has been reached; shutting down to "
+                    "upgrade zilliqa");
+
+        m_daemonListenerAsioCtx->stop();
+        exit(0);
+      }
+    }
+  }
 }
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }

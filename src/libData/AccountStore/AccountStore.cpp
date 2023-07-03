@@ -542,44 +542,6 @@ bool AccountStore::RetrieveFromDisk() {
   return true;
 }
 
-bool AccountStore::RetrieveFromDiskOld() {
-  // Only For migration
-  InitSoft();
-
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
-  unique_lock<mutex> g2(m_mutexDB, defer_lock);
-  lock(g, g2);
-
-  zbytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
-    // To support backward compatibilty - lookup with new binary trying to
-    // recover from old database
-    if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PutStateRoot failed "
-                        << DataConversion::CharArrayToString(rootBytes));
-        return false;
-      }
-    } else {
-      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
-      return false;
-    }
-  }
-
-  try {
-    h256 root(rootBytes);
-    LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
-    lock_guard<mutex> g(m_mutexTrie);
-    m_state.setRoot(root);
-  } catch (const boost::exception &e) {
-    LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
-                             << boost::diagnostic_information(e));
-    return false;
-  }
-  return true;
-}
-
 Account *AccountStore::GetAccountTemp(const Address &address) {
   return m_accountStoreTemp.GetAccount(address);
 }
