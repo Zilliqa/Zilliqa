@@ -61,7 +61,7 @@ std::string readPipe(boost::asio::readable_pipe& pipe) {
   return result;
 }
 
-zbytes calcSHA256(const std::filesystem::path& filePath) {
+dev::h256 calcSHA256(const std::filesystem::path& filePath) {
   std::ifstream file{filePath, std::ios_base::binary};
 
   SHA256Calculator sha2Calculator;
@@ -70,13 +70,12 @@ zbytes calcSHA256(const std::filesystem::path& filePath) {
   zbytes buffer;
   while (file) {
     buffer.resize(bufferSizeBytes);
-    auto byteCount =
-        file.readsome(reinterpret_cast<char*>(buffer.data()), buffer.size());
-    buffer.resize(byteCount);
+    file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+    buffer.resize(file.gcount());
     sha2Calculator.Update(buffer);
   }
 
-  return sha2Calculator.Finalize();
+  return dev::h256{sha2Calculator.Finalize()};
 }
 
 int downloadFromS3(boost::asio::io_context& ioContext, const std::string& url,
@@ -226,10 +225,9 @@ void ZilliqaUpdater::Download(const Json::Value& manifest) {
   std::string expectedSha256;
   boost::to_lower_copy(std::back_inserter(expectedSha256),
                        manifest["sha256"].asString());
-  auto sha256 = calcSHA256(outputFilePath);
+  auto sha256 = calcSHA256(outputFilePath).hex();
   boost::to_lower(sha256);
-  if (!std::equal(std::begin(expectedSha256), std::end(expectedSha256),
-                  std::begin(sha256)))
+  if (expectedSha256 != sha256)
     throw std::runtime_error{"checksum failed; expected " + expectedSha256};
 }
 

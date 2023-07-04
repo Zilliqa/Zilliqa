@@ -132,17 +132,17 @@ void UpdatePipe::readSome() {
 }
 
 void UpdatePipe::parseRead() {
-  for (auto first = m_read.find("|"); first != std::string::npos;
-       first = m_read.find("|")) {
-    auto last = m_read.find("|", first + 1);
+  for (auto first = m_read.find("{"); first != std::string::npos;
+       first = m_read.find("{")) {
+    auto last = m_read.find("}", first + 1);
     if (last == std::string::npos) return;
 
-    std::string_view cmd{m_read.data() + first + 1, last - first - 1};
+    std::string_view cmd{m_read.data() + first, last - first + 1};
     if (OnCommand) OnCommand(cmd);
 
     // if there was any before first, or the command couldn't be parsed properly
     // treat it as noise and discard
-    m_read.erase(0, last);
+    m_read.erase(0, last + 1);
   }
 }
 
