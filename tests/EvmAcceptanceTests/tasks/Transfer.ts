@@ -25,10 +25,12 @@ const fundEth = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
   const provider = new ethers.providers.JsonRpcProvider(hre.getNetworkUrl());
   const wallet = new ethers.Wallet(privateKey, provider); 
   console.log(`Current balance: ${clc.yellow.bold(await provider.getBalance(to))}`)
-  await wallet.sendTransaction({
+  const response = await wallet.sendTransaction({
     to: to.toString(),
     value: ethers.BigNumber.from(amount)
   })
+
+  await response.wait();    // Wait for transaction receipt
   console.log(`New balance:     ${clc.green.bold(await provider.getBalance(to))}`)
 }
 
