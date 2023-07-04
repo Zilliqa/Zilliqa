@@ -1,4 +1,4 @@
-import { BN, Zilliqa, bytes, getAddressFromPrivateKey, toChecksumAddress } from "@zilliqa-js/zilliqa";
+import { BN, Zilliqa, bytes, toChecksumAddress, units } from "@zilliqa-js/zilliqa";
 import clc from "cli-color";
 import { ethers } from "ethers";
 import { task } from "hardhat/config";
@@ -45,14 +45,15 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
   const VERSION = bytes.pack(hre.getZilliqaChainId(), msgVersion);
   zilliqa.wallet.addByPrivateKey(privateKey);
   const ethAddrConverted = toChecksumAddress(to); // Zil checksum
-  const balance = (await zilliqa.blockchain.getBalance(to)).result.balance;
+  const balance = await getZilBalance(hre, to);
   console.log(`Current balance: ${clc.yellow.bold(balance)}`)
+  
   const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(
     zilliqa.transactions.new(
       {
         version: VERSION,
         toAddr: ethAddrConverted,
-        amount: new BN(amount),
+        amount: units.toQa(amount, units.Units.Zil),
         gasPrice: new BN(2000000000),
         gasLimit: Long.fromNumber(2100)
       },
@@ -64,7 +65,7 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
     const confirmedTxn = await tx.confirm(tx.id);
     const receipt = confirmedTxn.getReceipt();
     if (receipt && receipt.success) {
-      const balance = (await zilliqa.blockchain.getBalance(to)).result.balance;
+      const balance = await getZilBalance(hre, to);
       console.log(`New balance:     ${clc.green.bold(balance)}`)
       return;
     }
@@ -75,4 +76,15 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
 
 const displayError = (error: string) => {
   console.log(clc.red.bold("Error: "), error);
+}
+
+const getZilBalance = async (hre: HardhatRuntimeEnvironment, address: string): Promise<BN> => {
+  let zilliqa = new Zilliqa(hre.getNetworkUrl());
+  const balanceResult = await zilliqa.blockchain.getBalance(address);
+
+  if (balanceResult.error) {
+    return new BN(0);
+  }
+
+  return new BN(balanceResult.result.balance);
 }
