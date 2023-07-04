@@ -16,6 +16,7 @@
  */
 
 #include "SubscriptionsImpl.h"
+#include <boost/format.hpp>
 
 #include <cassert>
 
@@ -28,9 +29,6 @@ namespace filters {
 namespace {
 
 using Lock = std::lock_guard<std::mutex>;
-
-static const std::string SUBSCR_ID_FOR_NEW_HEADS = "0xe";
-static const std::string SUBSCR_ID_FOR_PENDING_TXNS = "0xf";
 
 struct Request {
   enum Action {
@@ -152,10 +150,10 @@ void SubscriptionsImpl::Start(
   m_pendingTxnTemplate["jsonrpc"] = "2.0";
   m_pendingTxnTemplate["method"] = "eth_subscription";
   m_pendingTxnTemplate["params"]["result"] = "";
-  m_pendingTxnTemplate["params"]["subscription"] = SUBSCR_ID_FOR_PENDING_TXNS;
+  m_pendingTxnTemplate["params"]["subscription"] = "0x0";
 
   m_newHeadTemplate = m_pendingTxnTemplate;
-  m_newHeadTemplate["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
+  m_newHeadTemplate["params"]["subscription"] = "0x1";
 
   m_eventTemplate = m_newHeadTemplate;
 }
@@ -163,34 +161,44 @@ void SubscriptionsImpl::Start(
 void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
   Lock lk(m_mutex);
 
-  if (m_subscribedToNewHeads.empty()) {
+  if (m_connections.empty()) {
     return;
   }
 
   m_newHeadTemplate["params"]["result"] = m_blockByHash(blockHash);
-  auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
 
   assert(m_websocketServer);
 
-  for (auto& conn : m_subscribedToNewHeads) {
-    m_websocketServer->SendMessage(conn->id, msg);
+  // Loop every connection subscribed to new heads, and for that connection,
+  // loop every subscription id
+  for (auto& conn : m_connections) {
+    for(auto &subId : conn.second->subscribedToNewHeads) {
+      m_newHeadTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
+      auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
+      m_websocketServer->SendMessage(conn.second->id, msg);
+    }
   }
 }
 
 void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {
   Lock lk(m_mutex);
 
-  if (m_subscribedToPendingTxns.empty()) {
+  if (m_connections.empty()) {
     return;
   }
 
   m_pendingTxnTemplate["params"]["result"] = hash;
-  auto msg = std::make_shared<std::string>(JsonWrite(m_pendingTxnTemplate));
 
   assert(m_websocketServer);
 
-  for (auto& conn : m_subscribedToPendingTxns) {
-    m_websocketServer->SendMessage(conn->id, msg);
+  // Loop every connection subscribed to pending txs, and for that connection,
+  // loop every subscription id
+  for (auto& conn : m_connections) {
+    for(auto &subId : conn.second->subscribedToPendingTxn) {
+      m_pendingTxnTemplate["params"]["subscription"] = (boost::format("0x%x") % subId).str();
+      auto msg = std::make_shared<std::string>(JsonWrite(m_pendingTxnTemplate));
+      m_websocketServer->SendMessage(conn.second->id, msg);
+    }
   }
 }
 
@@ -301,8 +309,6 @@ void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
     return;
   }
   const auto& conn = it->second;
-  m_subscribedToPendingTxns.erase(conn);
-  m_subscribedToNewHeads.erase(conn);
   m_subscribedToLogs.erase(conn);
   m_connections.erase(it);
 }
@@ -310,29 +316,38 @@ void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
     const ConnectionPtr& conn, Json::Value&& request_id,
     std::string&& subscription_id) {
+
   bool result = false;
-  if (subscription_id == SUBSCR_ID_FOR_PENDING_TXNS) {
-    if (conn->subscribedToPendingTxns) {
-      m_subscribedToPendingTxns.erase(conn);
-      conn->subscribedToPendingTxns = false;
+  auto const subscription_id_int = std::stoul(subscription_id, nullptr, 16);
+
+  {
+    auto& pendingTXs = conn->subscribedToPendingTxn;
+
+    auto it = pendingTXs.find(subscription_id_int);
+    if (it != pendingTXs.end()) {
+      pendingTXs.erase(it);
       result = true;
     }
-  } else if (subscription_id == SUBSCR_ID_FOR_NEW_HEADS) {
-    if (conn->subscribedToNewHeads) {
-      m_subscribedToNewHeads.erase(conn);
-      conn->subscribedToNewHeads = false;
+  }
+
+  {
+    auto& newHeads = conn->subscribedToNewHeads;
+
+    auto it = newHeads.find(subscription_id_int);
+    if (it != newHeads.end()) {
+      newHeads.erase(it);
       result = true;
     }
-  } else {
-    auto& filters = conn->eventFilters;
-    auto it = filters.find(subscription_id);
-    if (it != filters.end()) {
-      filters.erase(it);
-      if (filters.empty()) {
-        m_subscribedToLogs.erase(conn);
-      }
-      result = true;
+  }
+
+  auto& filters = conn->eventFilters;
+  auto it = filters.find(subscription_id);
+  if (it != filters.end()) {
+    filters.erase(it);
+    if (filters.empty()) {
+      m_subscribedToLogs.erase(conn);
     }
+    result = true;
   }
 
   Json::Value json;
@@ -344,29 +359,25 @@ SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
 
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
     const ConnectionPtr& conn, Json::Value&& request_id) {
-  if (!conn->subscribedToNewHeads) {
-    conn->subscribedToNewHeads = true;
-    m_subscribedToNewHeads.insert(conn);
-  }
+
+  auto const subId = conn->AddHeadSubscription();
 
   Json::Value json;
   json["jsonrpc"] = "2.0";
   json["id"] = std::move(request_id);
-  json["result"] = SUBSCR_ID_FOR_NEW_HEADS;
+  json["result"] = (boost::format("0x%x") % subId).str();
   return std::make_shared<std::string>(JsonWrite(json));
 }
 
 SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
     const ConnectionPtr& conn, Json::Value&& request_id) {
-  if (!conn->subscribedToPendingTxns) {
-    conn->subscribedToPendingTxns = true;
-    m_subscribedToPendingTxns.insert(conn);
-  }
+
+  auto const subId = conn->AddPendingTxnSubscription();
 
   Json::Value json;
   json["jsonrpc"] = "2.0";
   json["id"] = std::move(request_id);
-  json["result"] = SUBSCR_ID_FOR_PENDING_TXNS;
+  json["result"] = (boost::format("0x%x") % subId).str();
   return std::make_shared<std::string>(JsonWrite(json));
 }
 

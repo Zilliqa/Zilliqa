@@ -25,6 +25,7 @@
 #include "Common.h"
 #include "libServer/WebsocketServer.h"
 
+
 namespace evmproj {
 namespace filters {
 
@@ -70,14 +71,32 @@ class SubscriptionsImpl {
     /// Id for websocket dispatch
     Id id = 0;
 
-    /// True if this conn subscribed to pending txns
-    bool subscribedToPendingTxns = false;
+    // populated if this conn subscribed to pending txns.
+    // since a single connection could have multiple subscriptions, we need to
+    // keep a set of subscription IDs here. They are non-overlapping
+    // with subscribedToNewHeads
+    //bool subscribedToPendingTxns = false;
+    std::unordered_set<uint64_t> subscribedToPendingTxn;
 
-    /// True if this conn subscribed to new heads
-    bool subscribedToNewHeads = false;
+    /// populated if this conn subscribed to new heads
+    std::unordered_set<uint64_t> subscribedToNewHeads;
 
     /// Event subscription -> filter
     std::unordered_map<std::string, EventFilterParams> eventFilters;
+
+    uint64_t index = 0;
+
+    uint64_t AddHeadSubscription() {
+      subscribedToNewHeads.insert(index);
+      index++;
+      return index - 1;
+    }
+
+    uint64_t AddPendingTxnSubscription() {
+      subscribedToPendingTxn.insert(index);
+      index++;
+      return index - 1;
+    }
   };
 
   using ConnectionPtr = std::shared_ptr<Connection>;
@@ -114,12 +133,6 @@ class SubscriptionsImpl {
 
   /// All active connections
   std::unordered_map<Id, ConnectionPtr> m_connections;
-
-  /// Connections who subscribed to pending txns
-  std::unordered_set<ConnectionPtr> m_subscribedToPendingTxns;
-
-  /// Connections who subscribed to new heads
-  std::unordered_set<ConnectionPtr> m_subscribedToNewHeads;
 
   /// Connections who subscribed to event logs
   std::unordered_set<ConnectionPtr> m_subscribedToLogs;
