@@ -305,6 +305,27 @@ to change some of the testing behaviors environment variables are used. They can
 - `SCILLA=false` to ignore scilla tests.
 - `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
 
+## Tasks
+A few customized tasks are added to hardhat to simplify the process of test development and debugging.
+
+### zilBalance
+To get a zilliqa-based address of a private key, send that private key to `zilBalance` task:
+```bash
+npx hardhat zilBalance db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
+```
+
+### transfer
+To transfer fund from a private key (account) to a recipient, Use `transfer`. Because every private key in zilliqa network potentially can have two different addresses (one for zilliqa itself, and one for ethereum), you need to provide address type as well.
+
+```bash
+npx hardhat transfer --from d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba --to cf671756a8238cbeb19bcb4d77fc9091e2fce1a3 --amount 1000000 --address-type eth
+```
+
+`--from` is the private key of the sender.
+`--to` is the address of the recipient.
+`--amount` is amount to be transferred.
+`--address-type` can be either `eth` or `zil`. If `eth` is used, Funds are transferred from eth-like address of the private key. Otherwise, funds are transferred from zil-like address of the private key.
+
 ## Scripts
 
 To get the balances of the current accounts, run:
