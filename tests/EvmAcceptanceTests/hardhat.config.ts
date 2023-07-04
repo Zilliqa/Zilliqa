@@ -106,13 +106,15 @@ const config: HardhatUserConfig = {
       miningState: false
     },
     testnet: {
-      url: "https://devnetnh-l2api.dev.z7a.xyz",
-      websocketUrl: "wss://devnetnh-l2api.dev.z7a.xyz",
+      url: "https://testnet-receipts-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://testnet-receipts-l2api.dev.z7a.xyz",
       accounts: [
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
         "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
-        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
-        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89"
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
       ],
       chainId: 32769,
       zilliqaNetwork: true,
