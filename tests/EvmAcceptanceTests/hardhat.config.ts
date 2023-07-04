@@ -6,6 +6,7 @@ import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 import semver from "semver";
 import "./tasks/ZilBalance"
+import "./tasks/Transfer"
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
