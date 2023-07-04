@@ -13,9 +13,9 @@ task("transfer", "A task to transfer fund")
   .setAction(async (taskArgs, hre) => {
     const { from, to, amount, fromAddressType } = taskArgs;
     if (fromAddressType === "eth") {
-      await fundEth(hre, from, to, amount);
+      await fundEth(hre, from, to.toLowerCase(), amount);
     } else if (fromAddressType === "zil") {
-      await fundZil(hre, from, to, amount);
+      await fundZil(hre, from, to.toLowerCase(), amount);
   } else {
     displayError(`--from-address-type should be either eth or zil. ${fromAddressType} is not supported`);
   }
