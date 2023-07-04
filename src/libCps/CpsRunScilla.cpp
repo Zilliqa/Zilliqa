@@ -410,8 +410,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
                                 .value = nextRunInput.amount,
                                 .calldata = nextRunInput.nextInputMessage,
                                 .edge = mArgs.edge + 1,
-                                .depth = mArgs.depth + 1};
-
+                                .depth = mArgs.depth + 1,
+                                .extras = mArgs.extras};
       auto nextRun = std::make_shared<CpsRunScilla>(
           std::move(newArgs), mExecutor, mCpsContext, CpsRun::Call);
       mExecutor.PushRun(nextRun);
