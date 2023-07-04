@@ -322,10 +322,14 @@ npx hardhat transfer --from d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b
 ```
 
 `--from` is the private key of the sender.
+`--from-address-type` can be either `eth` or `zil`. If `eth` is used, Funds are transferred from eth-based address of the private key. Otherwise, funds are transferred from zil-based address of the private key.
 `--to` is the address of the recipient.
-`--amount` is amount to be transferred.
-`--address-type` can be either `eth` or `zil`. If `eth` is used, Funds are transferred from eth-like address of the private key. Otherwise, funds are transferred from zil-like address of the private key.
+`--amount` is amount to be transferred in ZIL/ETH ZIL unit.
 
+Example:
+```bash
+npx hardhat transfer --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --to 6e2cf2789c5b705e0990c05ca959b5001c70ba87 --amount 1 --from-address-type zil 
+```
 ## Scripts
 
 To get the balances of the current accounts, run:
