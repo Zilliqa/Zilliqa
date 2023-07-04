@@ -309,7 +309,7 @@ to change some of the testing behaviors environment variables are used. They can
 A few customized tasks are added to hardhat to simplify the process of test development and debugging.
 
 ### zilBalance
-To get a zilliqa-based address of a private key, send that private key to `zilBalance` task:
+To get the balance of a zilliqa-based address of a private key, send that private key to `zilBalance` task:
 ```bash
 npx hardhat zilBalance db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
 ```
