@@ -322,9 +322,9 @@ npx hardhat transfer --from d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b
 ```
 
 `--from` is the private key of the sender.
+`--from-address-type` can be either `eth` or `zil`. If `eth` is used, Funds are transferred from eth-based address of the private key. Otherwise, funds are transferred from zil-based address of the private key.
 `--to` is the address of the recipient.
-`--amount` is amount to be transferred.
-`--address-type` can be either `eth` or `zil`. If `eth` is used, Funds are transferred from eth-like address of the private key. Otherwise, funds are transferred from zil-like address of the private key.
+`--amount` is amount to be transferred in ZIL/ETH ZIL unit.
 
 ## Scripts
 
