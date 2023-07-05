@@ -271,6 +271,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
                                           << ec.message() << " (" << ec << ')');
       if (ec != OPERATION_ABORTED) {
+        self->m_timer.cancel();
         self->OnConnected(ec);
       }
     });
