@@ -264,8 +264,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
-              [this]() { OnConnected(TIMED_OUT); });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
+      m_socket.cancel();
+      OnConnected(TIMED_OUT);
+    });
     m_socket.async_connect(m_endpoint, [self = shared_from_this()](
                                            const ErrorCode& ec) {
       LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
