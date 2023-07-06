@@ -2126,11 +2126,10 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
     response["txs"] = txs;
     response["receipts"] = receipts;
 
-    // Otterscan docs. If results are less than pagesize, results returned as-is.
-    if (!(res.size() < pageSize)) {
-      response["firstPage"] = before || !wasMore;
-      response["lastPage"] = !before || !wasMore;
-    }
+    // Otterscan docs:
+    // These are the conditions for which these variables are set to true
+    response["firstPage"] = (before && !blockNumber) || (!before && !wasMore);
+    response["lastPage"] = (!before && !blockNumber) || (before && !wasMore);
 
     return response;
   } catch (exception &e) {
