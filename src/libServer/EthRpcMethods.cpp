@@ -376,14 +376,14 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("ots_enable", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01",
-                         jsonrpc::JSON_BOOLEAN, NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_BOOLEAN,
+                         NULL),
       &EthRpcMethods::OtterscanEnableI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_getInternalOperations", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
+      jsonrpc::Procedure("ots_getInternalOperations",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::OtterscanGetInternalOperationsI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -393,20 +393,24 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::OtterscanTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_searchTransactionsBefore",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
+      jsonrpc::Procedure(
+          "ots_searchTransactionsBefore", jsonrpc::PARAMS_BY_POSITION,
+          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02",
+          jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
       &EthRpcMethods::OtterscanSearchTransactionsBeforeI);
-  
+
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_searchTransactionsAfter",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
+      jsonrpc::Procedure(
+          "ots_searchTransactionsAfter", jsonrpc::PARAMS_BY_POSITION,
+          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02",
+          jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
       &EthRpcMethods::OtterscanSearchTransactionsAfterI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("ots_getTransactionBySenderAndNonce", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER,  NULL),
+      jsonrpc::Procedure("ots_getTransactionBySenderAndNonce",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_INTEGER, NULL),
       &EthRpcMethods::OtterscanGetTransactionBySenderAndNonceI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -428,54 +432,40 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::GetDSLeaderTxnPoolI);
 
   m_lookupServer->bindAndAddExternalMethod(
-    jsonrpc::Procedure("erigon_getHeaderByNumber", jsonrpc::PARAMS_BY_POSITION,
-                       jsonrpc::JSON_OBJECT,
-                       "param01", jsonrpc::JSON_INTEGER,
-                       NULL),
-    &EthRpcMethods::GetHeaderByNumberI
-  );
+      jsonrpc::Procedure("erigon_getHeaderByNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
+                         "param01", jsonrpc::JSON_INTEGER, NULL),
+      &EthRpcMethods::GetHeaderByNumberI);
 
   m_lookupServer->bindAndAddExternalMethod(
-    jsonrpc::Procedure("ots_getApiLevel", jsonrpc::PARAMS_BY_POSITION,
-                       jsonrpc::JSON_INTEGER,
-                       NULL),
-    &EthRpcMethods::GetOtterscanApiLevelI
-  );
+      jsonrpc::Procedure("ots_getApiLevel", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_INTEGER, NULL),
+      &EthRpcMethods::GetOtterscanApiLevelI);
 
   m_lookupServer->bindAndAddExternalMethod(
-    jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
-                       jsonrpc::JSON_BOOLEAN,
-                       "param01", jsonrpc::JSON_STRING,
-                       "param02", jsonrpc::JSON_STRING,
-                       NULL),
-    &EthRpcMethods::HasCodeI
-  );
+      jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &EthRpcMethods::HasCodeI);
 
   m_lookupServer->bindAndAddExternalMethod(
-    jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
-                       jsonrpc::JSON_OBJECT,
-                       "param01", jsonrpc::JSON_INTEGER,
-                       NULL),
-    &EthRpcMethods::GetBlockDetailsI
-  );
+      jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
+                         NULL),
+      &EthRpcMethods::GetBlockDetailsI);
 
   m_lookupServer->bindAndAddExternalMethod(
-    jsonrpc::Procedure("ots_getBlockTransactions", jsonrpc::PARAMS_BY_POSITION,
-                       jsonrpc::JSON_OBJECT,
-                       "param01", jsonrpc::JSON_INTEGER,
-                       "param02", jsonrpc::JSON_INTEGER,
-                       "param03", jsonrpc::JSON_INTEGER,
-                       NULL),
-    &EthRpcMethods::GetBlockTransactionsI
-  );
+      jsonrpc::Procedure(
+          "ots_getBlockTransactions", jsonrpc::PARAMS_BY_POSITION,
+          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER, "param02",
+          jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
+      &EthRpcMethods::GetBlockTransactionsI);
 
   m_lookupServer->bindAndAddExternalMethod(
-    jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
-                       jsonrpc::JSON_OBJECT,
-                       "param01", jsonrpc::JSON_STRING,
-                       NULL),
-    &EthRpcMethods::GetContractCreatorI
-  );
+      jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::GetContractCreatorI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -763,7 +753,9 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
     } else {
       throw JsonRpcException(
           ServerBase::RPC_MISC_ERROR,
-          std::string("Only callTracer, internal_tracer, otter_call_tracer, otter_transaction_error, and raw are supported. Received: ") +
+          std::string(
+              "Only callTracer, internal_tracer, otter_call_tracer, "
+              "otter_transaction_error, and raw are supported. Received: ") +
               tracer);
     }
   } catch (exception &e) {
@@ -1376,7 +1368,8 @@ Json::Value EthRpcMethods::GetEthCode(std::string const &address,
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
   }
   std::string result{"0x"};
-  boost::algorithm::hex_lower(code.begin(), code.end(), std::back_inserter(result));
+  boost::algorithm::hex_lower(code.begin(), code.end(),
+                              std::back_inserter(result));
   return result;
 }
 
@@ -2084,39 +2077,46 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
   }
 }
 
-
-Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& address, unsigned long blockNumber, unsigned long pageSize, bool before) {
+Json::Value EthRpcMethods::OtterscanSearchTransactions(
+    const std::string &address, unsigned long blockNumber,
+    unsigned long pageSize, bool before) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "The node is not configured to store otter internal operations");
+    throw JsonRpcException(
+        ServerBase::RPC_MISC_ERROR,
+        "The node is not configured to store otter internal operations");
   }
 
   if (!TX_TRACES) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "The node is not configured to store otter internal operations");
+    throw JsonRpcException(
+        ServerBase::RPC_MISC_ERROR,
+        "The node is not configured to store otter internal operations");
   }
 
-  // if blocnumber is 0 and it's a before search, then we need to get the latest block number
+  // if blocnumber is 0 and it's a before search, then we need to get the latest
+  // block number
   if (blockNumber == 0 && before) {
-    blockNumber = m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    blockNumber = m_sharedMediator.m_txBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum();
   }
 
   try {
     bool wasMore = false;
-    const auto res =
-        BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(address, blockNumber, pageSize, before, wasMore);
+    const auto res = BlockStorage::GetBlockStorage().GetOtterTxAddressMapping(
+        address, blockNumber, pageSize, before, wasMore);
 
     Json::Value response = Json::objectValue;
     Json::Value txs = Json::arrayValue;
     Json::Value receipts = Json::arrayValue;
 
-    for(const auto& hash : res) {
+    for (const auto &hash : res) {
       // Get Tx result
       auto const txByHash = GetEthTransactionByHash(hash);
       auto txReceipt = GetEthTransactionReceipt(hash);
 
       // For some reason otterscan expects a timestamp in the receipts...
-      auto const block = GetEthBlockByNumber(txReceipt["blockNumber"].asString(), false);
+      auto const block =
+          GetEthBlockByNumber(txReceipt["blockNumber"].asString(), false);
       txReceipt["timestamp"] = block["timestamp"];
 
       txs.append(txByHash);
@@ -2126,11 +2126,10 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
     response["txs"] = txs;
     response["receipts"] = receipts;
 
-    // Otterscan docs. If results are less than pagesize, results returned as-is.
-    if (!(res.size() < pageSize)) {
-      response["firstPage"] = before || !wasMore;
-      response["lastPage"] = !before || !wasMore;
-    }
+    // Otterscan docs:
+    // These are the conditions for which these variables are set to true
+    response["firstPage"] = (before && !blockNumber) || (!before && !wasMore);
+    response["lastPage"] = (!before && !blockNumber) || (before && !wasMore);
 
     return response;
   } catch (exception &e) {
@@ -2139,20 +2138,23 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
   }
 }
 
-Json::Value EthRpcMethods::OtterscanGetTransactionBySenderAndNonce(const std::string& address, uint64_t nonce) {
+Json::Value EthRpcMethods::OtterscanGetTransactionBySenderAndNonce(
+    const std::string &address, uint64_t nonce) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "The node is not configured to store otter internal operations");
+    throw JsonRpcException(
+        ServerBase::RPC_MISC_ERROR,
+        "The node is not configured to store otter internal operations");
   }
 
   if (!TX_TRACES) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "The node is not configured to store otter internal operations");
+    throw JsonRpcException(
+        ServerBase::RPC_MISC_ERROR,
+        "The node is not configured to store otter internal operations");
   }
 
   try {
-    const auto res =
-        BlockStorage::GetBlockStorage().GetOtterAddressNonceLookup(address, nonce);
+    const auto res = BlockStorage::GetBlockStorage().GetOtterAddressNonceLookup(
+        address, nonce);
 
     // Perhaps this should just return empty array
     if (res.empty()) {
@@ -2167,15 +2169,18 @@ Json::Value EthRpcMethods::OtterscanGetTransactionBySenderAndNonce(const std::st
   }
 }
 
-Json::Value EthRpcMethods::OtterscanGetInternalOperations(const std::string &txHash, const std::string &tracer) {
+Json::Value EthRpcMethods::OtterscanGetInternalOperations(
+    const std::string &txHash, const std::string &tracer) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "The node is not configured to store otter internal operations");
+    throw JsonRpcException(
+        ServerBase::RPC_MISC_ERROR,
+        "The node is not configured to store otter internal operations");
   }
 
   if (!TX_TRACES) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "The node is not configured to store otter internal operations");
+    throw JsonRpcException(
+        ServerBase::RPC_MISC_ERROR,
+        "The node is not configured to store otter internal operations");
   }
 
   std::string trace;
@@ -2199,19 +2204,20 @@ Json::Value EthRpcMethods::OtterscanGetInternalOperations(const std::string &txH
 }
 
 Json::Value EthRpcMethods::GetHeaderByNumber(const uint64_t blockNumber) {
-  // Erigon headers are a subset of a full block - So just return the full block.
+  // Erigon headers are a subset of a full block - So just return the full
+  // block.
   return EthRpcMethods::GetEthBlockByNumber(std::to_string(blockNumber), false);
 }
 
-bool EthRpcMethods::HasCode(const std::string& address, const std::string& /*block*/) {
-  // TODO: Respect block parameter - We can probably do this by finding the contract creation transaction and comparing
-  // the block numbers.
+bool EthRpcMethods::HasCode(const std::string &address,
+                            const std::string & /*block*/) {
+  // TODO: Respect block parameter - We can probably do this by finding the
+  // contract creation transaction and comparing the block numbers.
   Address addr{address, Address::FromHex};
   unique_lock<shared_timed_mutex> lock(
       AccountStore::GetInstance().GetPrimaryMutex());
-  AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-    return AccountStore::GetInstance().GetPrimaryWriteAccess();
-  });
+  AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
+      lock, [] { return AccountStore::GetInstance().GetPrimaryWriteAccess(); });
 
   const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
   if (account) {
@@ -2225,9 +2231,14 @@ Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   Json::Value response;
 
   auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
-  bool isVacuous = CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
-  uint128_t rewards = (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR : 0);
-  uint128_t fees = (isVacuous ? 0 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
+  bool isVacuous =
+      CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
+  uint128_t rewards =
+      (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR
+                 : 0);
+  uint128_t fees =
+      (isVacuous ? 0
+                 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
   auto jsonBlock = GetEthBlockCommon(txBlock, false);
 
   jsonBlock["gasLimit"] = "0x1";
@@ -2245,7 +2256,9 @@ Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   return response;
 }
 
-Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, const uint32_t pageNumber, const uint32_t pageSize) {
+Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber,
+                                                const uint32_t pageNumber,
+                                                const uint32_t pageSize) {
   Json::Value response;
 
   auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
@@ -2259,9 +2272,11 @@ Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, cons
   std::vector<Json::Value> receipts;
   for (Json::Value::ArrayIndex i = start; i < end; i++) {
     auto transaction = transactions[i];
-    // TODO: Truncate input to 4 bytes (plus 0x) - Work out why the 0x is optional
+    // TODO: Truncate input to 4 bytes (plus 0x) - Work out why the 0x is
+    // optional
 
-    auto receipt = EthRpcMethods::GetEthTransactionReceipt(transaction["hash"].asString());
+    auto receipt =
+        EthRpcMethods::GetEthTransactionReceipt(transaction["hash"].asString());
     receipt["logs"] = Json::nullValue;
     receipt["logsBloom"] = Json::nullValue;
     receipts.push_back(receipt);
@@ -2276,10 +2291,11 @@ Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, cons
   return response;
 }
 
-Json::Value EthRpcMethods::GetContractCreator(const std::string& address) {
+Json::Value EthRpcMethods::GetContractCreator(const std::string &address) {
   Address addr{address, Address::FromHex};
 
-  dev::h256 creationTxn = BlockStorage::GetBlockStorage().GetContractCreator(addr);
+  dev::h256 creationTxn =
+      BlockStorage::GetBlockStorage().GetContractCreator(addr);
 
   if (creationTxn == dev::h256()) {
     return Json::nullValue;
@@ -2287,18 +2303,20 @@ Json::Value EthRpcMethods::GetContractCreator(const std::string& address) {
 
   TxBodySharedPtr txnBodyPtr;
   bool isPresent =
-    BlockStorage::GetBlockStorage().GetTxBody(creationTxn, txnBodyPtr);
+      BlockStorage::GetBlockStorage().GetTxBody(creationTxn, txnBodyPtr);
   if (!isPresent) {
     LOG_GENERAL(WARNING, "Contract creator transaction doesn't exist");
     return Json::nullValue;
   }
-  const TransactionWithReceipt& txnBody = *txnBodyPtr;
+  const TransactionWithReceipt &txnBody = *txnBodyPtr;
 
   Json::Value response = Json::objectValue;
 
   response["hash"] = "0x" + creationTxn.hex();
   // FIXME: This is wrong for deployer contracts.
-  // "For deployer contracts, i.e., the contract is created as a result of a method call, this corresponds to the address of the contract who created it."
+  // "For deployer contracts, i.e., the contract is created as a result of a
+  // method call, this corresponds to the address of the contract who created
+  // it."
   response["creator"] = "0x" + txnBody.GetTransaction().GetSenderAddr().hex();
 
   return response;
