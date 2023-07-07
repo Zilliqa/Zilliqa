@@ -753,7 +753,11 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
     } else if (tracer.compare("otter_internal_tracer") == 0) {
       auto const item = trace_json["otter_internal_tracer"];
-      parsed = item;
+      if(item.isNull()){
+        parsed = Json::Value::Value(Json::ValueType::arrayValue)
+      }else{
+        parsed = item;
+      }
     } else if (tracer.compare("otter_call_tracer") == 0) {
       auto const item = trace_json["otter_call_tracer"];
       parsed = item;
