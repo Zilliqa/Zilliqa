@@ -753,13 +753,22 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
     } else if (tracer.compare("otter_internal_tracer") == 0) {
       auto const item = trace_json["otter_internal_tracer"];
-      parsed = item;
+      if(item.isNull()){
+        parsed = Json::Value(Json::ValueType::arrayValue);
+      }else{
+        parsed = item;
+      }
     } else if (tracer.compare("otter_call_tracer") == 0) {
       auto const item = trace_json["otter_call_tracer"];
       parsed = item;
     } else if (tracer.compare("otter_transaction_error") == 0) {
       auto const item = trace_json["otter_transaction_error"];
-      parsed = item;
+      // If there was no error return 0x
+      if(item.isNull()){
+        parsed = Json::Value("0x");
+      }else{
+        parsed = item;
+      }
     } else {
       throw JsonRpcException(
           ServerBase::RPC_MISC_ERROR,
@@ -2096,6 +2105,9 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
                            "The node is not configured to store otter internal operations");
   }
 
+  //Records whether blockNumber was 0 on input
+  bool blockNumberWasZero = !blockNumber;
+
   // if blocnumber is 0 and it's a before search, then we need to get the latest block number
   if (blockNumber == 0 && before) {
     blockNumber = m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -2128,8 +2140,8 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
 
     // Otterscan docs:
     // These are the conditions for which these variables are set to true
-    response["firstPage"] = (before && !blockNumber) || (!before && !wasMore);
-    response["lastPage"] = (!before && !blockNumber) || (before && !wasMore);
+    response["firstPage"] = (before && blockNumberWasZero) || (!before && !wasMore);
+    response["lastPage"] = (!before && blockNumberWasZero) || (before && !wasMore);
 
     return response;
   } catch (exception &e) {
