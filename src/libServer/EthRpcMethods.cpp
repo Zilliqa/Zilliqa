@@ -759,7 +759,12 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
     } else if (tracer.compare("otter_transaction_error") == 0) {
       auto const item = trace_json["otter_transaction_error"];
-      parsed = item;
+      // If there was no error return 0x
+      if(item.isNull()){
+        parsed = Json::Value::Value("0x")
+      }else{
+        parsed = item;
+      }
     } else {
       throw JsonRpcException(
           ServerBase::RPC_MISC_ERROR,
