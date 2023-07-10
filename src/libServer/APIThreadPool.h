@@ -23,6 +23,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <sys/time.h>
 
 #include <boost/asio/io_context.hpp>
 
@@ -100,6 +101,9 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   /// Main thread processes response queue (TODO maybe revise its logic).
   void ProcessResponseQueue();
 
+  /// Set thread status. Also prints the status if it's been long enough.
+  void SetThreadStatus(size_t which, char what);
+
   /// Asio context is needed here to send replies to the network thread
   boost::asio::io_context& m_asio;
 
@@ -115,11 +119,26 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   /// Threads
   std::vector<std::thread> m_threads;
 
+  /// What am I currently doing?
+  std::vector<char> m_occupied;
+
+  /// .. and a mutex for it
+  std::mutex m_occupied_mutex;
+
+  /// Last time we logged.
+  time_t m_last_occupied_log;
+  
   /// Request queue (main thread->pool)
   utility::Queue<Request> m_requestQueue;
 
   /// Response queue (pool->main thread)
   utility::Queue<Response> m_responseQueue;
+
+  /// HWM since the last sample
+  size_t m_requestQueueHWM;
+
+  /// Time since the last sample
+  time_t m_lastSeconds;
 };
 
 }  // namespace rpc
