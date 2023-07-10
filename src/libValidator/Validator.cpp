@@ -70,9 +70,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-      return AccountStore::GetInstance().GetPrimaryWriteAccess();
-    });
     Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
@@ -224,9 +221,6 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-      return AccountStore::GetInstance().GetPrimaryWriteAccess();
-    });
     Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
