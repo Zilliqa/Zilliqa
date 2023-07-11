@@ -6,6 +6,7 @@ APT="sudo DEBIAN_FRONTEND=noninteractive apt"
 APT_INSTALL="${APT} install -yqq"
 APT_REMOVE="${APT} remove -yqq"
 VERSION=0.1.5
+CMAKE_VERSION=3.24.2
 echo Installme ${VERSION}
 
 # Install the key right off, so that the user can go and have a cup of tea whilst
