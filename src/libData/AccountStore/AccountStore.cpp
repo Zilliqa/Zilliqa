@@ -98,7 +98,6 @@ AccountStore::AccountStore()
     : m_db("state"),
       m_state(&m_db),
       m_accountStoreTemp(*this),
-      m_externalWriters{0},
       m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
   bool ipcScillaInit = false;
 
@@ -164,8 +163,6 @@ void AccountStore::InitSoft() {
 
   AccountStoreBase::Init();
   InitTrie();
-
-  m_externalWriters = 0;
 
   InitRevertibles();
 
@@ -370,13 +367,7 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
       return false;
     }
   } else {
-    if (LOOKUP_NODE_MODE) {
-      IncrementPrimaryWriteAccessCount();
-    }
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
-    if (LOOKUP_NODE_MODE) {
-      DecrementPrimaryWriteAccessCount();
-    }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
