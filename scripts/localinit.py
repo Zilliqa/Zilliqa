@@ -1013,23 +1013,6 @@ def main():
 
         return 0
 
-    if args.pod_name is not None:
-        try:
-            (_testnet, _type, _index) = args.pod_name.rsplit('-', 2)
-            if _type in ('apipub', 'apiprv'):
-                _type = 'seed-' + _type
-                _testnet = '-'.join(_testnet.split('-')[:-1])
-            args.testnet = args.testnet or _testnet
-            args.type = args.type or _type
-            args.index = args.index or _index
-            args.index = int(args.index)
-        except Exception as e:
-            print('Error parsing (testnet, type, index) from pod name {}'.format(e))
-    else:
-        if args.testnet is None or args.type is None or args.index is None:
-            print('Must specify --pod-name or all three options --testnet,--type,--index')
-            return 1
-
     args.keypairs = readline_from_file(path.join(args.conf_dir, 'secret', 'keys.txt'))
     if path.isfile(path.join(args.conf_dir, 'secret', 'new_keys.txt')):
         args.new_keypairs = readline_from_file(path.join(args.conf_dir, 'secret', 'new_keys.txt'))
@@ -1080,25 +1063,9 @@ def main():
 
     args.ip = get_my_aws_ipv4(args) if args.host_network else socket.gethostbyname(socket.gethostname())
 
-    if is_lookup(args) or is_dsguard(args) or is_normal(args) or is_seedprv(args):
-        args.normal_ips = normal_ips_from_origin
-        args.lookup_ips = lookup_ips_from_origin
-    elif is_new(args) or is_seedpub(args):
-        args.normal_ips = []
-        args.lookup_ips = lookup_ips_from_origin
-
-    if args.seed_multiplier and (is_lookup(args) or is_dsguard(args) or is_normal(args) or is_new(args)):
-        args.multiplier_ips = multiplier_ips_from_origin
-        args.seedpub_ips = seedpub_ips_from_origin
-    else:
-        args.multiplier_ips = []
-        if is_seedprv(args):
-            args.seedpub_ips = seedpub_ips_from_origin
-        else:
-            args.seedpub_ips = []
-
     # FIXME: only DS guard needs this flag, we can remove is_normal(args) here
-    args.restart = is_restarted('{}-origin'.format(args.testnet)) if is_normal(args) or is_dsguard(args) else False
+    #  args.restart = is_restarted('{}-origin'.format(args.testnet)) if is_normal(args) or is_dsguard(args) else False
+    args.restart = False
 
     if is_seedprv(args):
         args.verifier_keypair = subprocess.check_output('genkeypair').decode().strip()
@@ -1108,6 +1075,23 @@ def main():
 
 
     def generate_files(pod_name):
+        if is_lookup(args) or is_dsguard(args) or is_normal(args) or is_seedprv(args):
+            args.normal_ips = normal_ips_from_origin
+            args.lookup_ips = lookup_ips_from_origin
+        elif is_new(args) or is_seedpub(args):
+            args.normal_ips = []
+            args.lookup_ips = lookup_ips_from_origin
+
+        if args.seed_multiplier and (is_lookup(args) or is_dsguard(args) or is_normal(args) or is_new(args)):
+            args.multiplier_ips = multiplier_ips_from_origin
+            args.seedpub_ips = seedpub_ips_from_origin
+        else:
+            args.multiplier_ips = []
+            if is_seedprv(args):
+                args.seedpub_ips = seedpub_ips_from_origin
+            else:
+                args.seedpub_ips = []
+
         create_constants_xml(args)
         if is_normal(args) or is_dsguard(args):
             create_ds_whitelist_xml(args)
@@ -1116,6 +1100,24 @@ def main():
         create_dsnodes_xml(args)
         create_start_sh(args)
 
+    def generate_nodes(node_type, first_index, count):
+        for index in range(first_index, first_index + count):
+            try:
+                pod_name = f'{args.testnet}-{node_type}-{index}'
+                pod_path = os.path.join(args.out_dir, pod_name)
+
+                try:
+                    os.mkdir(pod_path)
+                except FileExistsError:
+                    pass
+
+                os.chdir(pod_path)
+
+                args.type = node_type
+                args.index = index
+                generate_files(pod_name)
+            finally:
+                os.chdir(os.getcwd())
 
     try:
         os.mkdir(args.out_dir)
@@ -1124,16 +1126,11 @@ def main():
 
     cwd = os.getcwd()
 
-    # Lookup nodes
-    for index in range(args.l):
-        try:
-            pod_name = f'{args.testnet}-lookup-{index}'
-            pod_path = os.path.join(args.out_dir, pod_name)
-            os.mkdir(pod_path)
-            os.chdir(pod_path)
-            generate_files(pod_name)
-        finally:
-            os.chdir(os.getcwd())
+    generate_nodes('lookup', 0, args.l)
+    generate_nodes('dsguard', 0, args.ds_guard)
+    generate_nodes('normal', 0, args.d - args.ds_guard)
+    generate_nodes('normal', args.d - args.ds_guard, args.n - args.d)
+    generate_nodes('seedpub', 0, sum(args.multiplier_fanout))
 
     return 0
 
