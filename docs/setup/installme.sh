@@ -6,7 +6,15 @@ APT="sudo DEBIAN_FRONTEND=noninteractive apt"
 APT_INSTALL="${APT} install -yqq"
 APT_REMOVE="${APT} remove -yqq"
 VERSION=0.1.5
+ABS_SCRIPT_PATH=$(realpath ${BASH_SOURCE:-$0})
 echo Installme ${VERSION}
+
+# Checks whether the user has correctly copied the files into the home directory and ran ./installme.sh from it
+if [ ! ${ABS_SCRIPT_PATH} = $(echo ~/installme.sh) ] ||  [ ! -f ~/setenv.sh ] || [ ! -f runlocaldev.sh ]; then
+	echo "Error: Files are not in the correct location
+The files in https://github.com/Zilliqa/Zilliqa/tree/master/docs/setup must first be copied into your home directory before running \"./installme.sh\""
+	exit 1
+fi
 
 # Install the key right off, so that the user can go and have a cup of tea whilst
 # the rest of the build runs.
