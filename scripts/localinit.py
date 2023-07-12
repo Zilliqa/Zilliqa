@@ -5,6 +5,7 @@ import argparse
 import base64
 import os
 import re
+import shutil
 import socket
 import struct
 import subprocess
@@ -947,6 +948,7 @@ def main():
     parser.add_argument('--skip-non-guard-ds', action='store_true', default=False, help='do not create pods for non-guard DS nodes')
     parser.add_argument('--conf-dir', default='/etc/zilliqa', help='The path of the mounted configmap')
     parser.add_argument('--out-dir', help='The output directory')
+    parser.add_argument('--build-dir', help='The build directory')
     parser.add_argument('--block-number-size', default=64, type=int, choices=[64, 256], help='block number size (64-bit, 256-bit)')
     # TODO: --seed-multiplier is redudant when --multiplier-fanout is used
     parser.add_argument('--seed-multiplier', action='store_true', default=True, help='Support seed multiplier')
@@ -1116,6 +1118,7 @@ def main():
         create_start_sh(args)
 
     def generate_nodes(node_type, first_index, count):
+        scripts_dir = os.path.dirname(os.path.abspath(__file__))
         for index in range(first_index, first_index + count):
             try:
                 pod_name = f'{args.testnet}-{node_type}-{index}'
@@ -1132,7 +1135,14 @@ def main():
                 args.index = index
                 generate_files(pod_name)
                 sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
-                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," start.sh')
+                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
+
+                for file_name in ['zilliqa', 'zilliqad']:
+                    try:
+                        os.link(os.path.join(args.build_dir, 'bin', file_name), file_name)
+                    except FileExistsError:
+                        pass
+
             finally:
                 os.chdir(os.getcwd())
 
