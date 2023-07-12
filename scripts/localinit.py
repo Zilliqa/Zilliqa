@@ -544,11 +544,11 @@ def create_dsnodes_xml(args):
 SED = "sed -i " + ('""' if sys.platform == 'darwin' else '')
 
 def gen_testnet_sed_string(args, fileName):
-    return f"{SED} \"/TESTNET_NAME=/c\TESTNET_NAME= \\'" + args.testnet + "\\'\" " + fileName
+    return f'{SED} "s,^TESTNET_NAME=.*$,TESTNET_NAME= \'{args.testnet}\'," {fileName}'
 
 
 def gen_bucket_sed_string(args, fileName):
-    return f"{SED} \"/BUCKET_NAME=/c\BUCKET_NAME= \\'" + args.bucket + "\\'\" " + fileName
+    return f'{SED} "s,^BUCKET_NAME=.*$,BUCKET_NAME= \'{args.bucket}\'," {fileName}'
 
 
 def create_start_sh(args):
@@ -675,11 +675,11 @@ def create_start_sh(args):
         'cp /zilliqa/scripts/download_static_DB.py /run/zilliqa/download_static_DB.py',
         'chmod u+x /run/zilliqa/download_static_DB.py',
         'o1=$(grep -oPm1 "(?<=<INCRDB_DSNUMS_WITH_STATEDELTAS>)[^<]+" /run/zilliqa/constants.xml)',
-        f'[ ! -z "$o1" ] && {SED} "/NUM_DSBLOCK=/c\\NUM_DSBLOCK= $o1" /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
-        f'[ ! -z "$o1" ] && {SED} "/NUM_DSBLOCK=/c\\NUM_DSBLOCK= $o1" /run/zilliqa/download_incr_DB.py',
+        f'[ ! -z "$o1" ] && {SED} "s,^NUM_DSBLOCK=.*$,NUM_DSBLOCK= $o1," /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
+        f'[ ! -z "$o1" ] && {SED} "s,^NUM_DSBLOCK=.*$,NUM_DSBLOCK= $o1," /run/zilliqa/download_incr_DB.py',
         'o1=$(grep -oPm1 "(?<=<NUM_FINAL_BLOCK_PER_POW>)[^<]+" /run/zilliqa/constants.xml)',
-        f'[ ! -z "$o1" ] && {SED} "/NUM_FINAL_BLOCK_PER_POW=/c\\NUM_FINAL_BLOCK_PER_POW= $o1" /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
-        f'[ ! -z "$o1" ] && {SED} "/NUM_FINAL_BLOCK_PER_POW=/c\\NUM_FINAL_BLOCK_PER_POW= $o1" /run/zilliqa/download_incr_DB.py',
+        f'[ ! -z "$o1" ] && {SED} "s,^NUM_FINAL_BLOCK_PER_POW=.*$,NUM_FINAL_BLOCK_PER_POW= $o1," /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
+        f'[ ! -z "$o1" ] && {SED} "s,^NUM_FINAL_BLOCK_PER_POW=.*$,NUM_FINAL_BLOCK_PER_POW= $o1," /run/zilliqa/download_incr_DB.py',
         gen_testnet_sed_string(args, "/run/zilliqa/upload_incr_DB.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         gen_bucket_sed_string(args, "/run/zilliqa/upload_incr_DB.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         'chmod u+x /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
