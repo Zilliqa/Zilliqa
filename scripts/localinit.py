@@ -57,6 +57,23 @@ def get_my_keypair(args):
     return subprocess.check_output('genkeypair').decode().strip()
 
 
+def get_my_ip(args):
+    if is_dsguard(args):
+        return args.normal_ips[args.index]
+
+    if is_normal(args):
+        offset = args.d if args.skip_non_guard_ds else args.ds_guard
+        return args.normal_ips[offset + args.index]
+
+    if is_lookup(args):
+        return args.lookup_ips[args.index]
+
+    if is_seedpub(args):
+        return args.seedpub_ips[args.index]
+
+    return None
+
+
 def redact_private_key(filename, ignore_index=None):
     """
     original keys.txt:
@@ -540,7 +557,7 @@ def create_start_sh(args):
     ds_port = '{0:08X}'.format(args.port)
     port_str = str(args.port)
     my_public_key, my_private_key = get_my_keypair(args).strip().split(' ')
-    my_ip = args.ip
+    my_ip = get_my_ip(args)
 
     # hex string from IPv4 or IPv6 string
     def ip_to_hex(ip):
@@ -1061,8 +1078,6 @@ def main():
     multiplier_ips_from_origin = get_ip_list_from_origin(origin_server, 'multiplier_ips.txt') if args.seed_multiplier else []
     seedpub_ips_from_origin = get_ip_list_from_origin(origin_server, 'seedpub_ips.txt') if args.seed_multiplier else []
 
-    args.ip = get_my_aws_ipv4(args) if args.host_network else socket.gethostbyname(socket.gethostname())
-
     # FIXME: only DS guard needs this flag, we can remove is_normal(args) here
     #  args.restart = is_restarted('{}-origin'.format(args.testnet)) if is_normal(args) or is_dsguard(args) else False
     args.restart = False
@@ -1082,15 +1097,15 @@ def main():
             args.normal_ips = []
             args.lookup_ips = lookup_ips_from_origin
 
-        if args.seed_multiplier and (is_lookup(args) or is_dsguard(args) or is_normal(args) or is_new(args)):
-            args.multiplier_ips = multiplier_ips_from_origin
-            args.seedpub_ips = seedpub_ips_from_origin
-        else:
-            args.multiplier_ips = []
-            if is_seedprv(args):
-                args.seedpub_ips = seedpub_ips_from_origin
-            else:
-                args.seedpub_ips = []
+        #  if args.seed_multiplier and (is_lookup(args) or is_dsguard(args) or is_normal(args) or is_new(args)):
+        args.multiplier_ips = multiplier_ips_from_origin
+        args.seedpub_ips = seedpub_ips_from_origin
+        #  else:
+            #  args.multiplier_ips = []
+            #  if is_seedprv(args):
+                #  args.seedpub_ips = seedpub_ips_from_origin
+            #  else:
+                #  args.seedpub_ips = []
 
         create_constants_xml(args)
         if is_normal(args) or is_dsguard(args):
@@ -1116,6 +1131,8 @@ def main():
                 args.type = node_type
                 args.index = index
                 generate_files(pod_name)
+                sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
+                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," start.sh')
             finally:
                 os.chdir(os.getcwd())
 
