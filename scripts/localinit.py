@@ -955,8 +955,6 @@ def main():
     parser.add_argument('--resume', action='store_true', help='Resume from persistent storage')
     parser.add_argument('--recover-from-testnet', action='store_true', help='Recover all nodes from persistent storage')
     parser.add_argument('--transaction-sender', default='0', type=str2uints, metavar='N', help='List of lookup indices that send testing transactions')
-    parser.add_argument('--seed-node', action='store_true', help='Enable seed mode')
-    parser.add_argument('--origin', action='store_true', default=False, help='Setup origin service')
     parser.add_argument('--origin-server', help='set external origin server instead using in-cluster one')
     parser.add_argument('--lookup-dns-domain', help='the DNS name for lookup, multiplier, and seedpub nodes')
     parser.add_argument('--log-path', help='Set customized log path')
@@ -966,7 +964,6 @@ def main():
     parser.add_argument('--websocket', type=str2lookup, metavar='TYPE1,TYPE2', help='enable websocket for lookup server of TYPE, can be any of {}'.format(LOOKUP_TYPES))
 
     group0 = parser.add_argument_group('Host Network Mode')
-    group0.add_argument('--host-network', action='store_true', help='enable host network mode')
     group0.add_argument('--port', type=int, help='port for zilliqa application')
 
     group1 = parser.add_argument_group('Local Testing Mode', 'for testing and debugging init.py')
@@ -977,58 +974,6 @@ def main():
     group2.add_argument('--cleanup-private-keys', action='store_true', help='clean up non-self private keys')
 
     args = parser.parse_args()
-
-    if args.origin:
-        # args.origin = True means this is for origin service
-        node2ip = {} if not args.host_network else get_node_ips()
-
-        def sort_by_index(pod_locations):
-            """Sort the list by the index in pod name
-            tuple format (POD_NAME, NODE_NAME, POD_IP)
-            """
-            get_pod_index = lambda pod: int(pod[0].rsplit('-', 1)[1])
-            return sorted(pod_locations, key=get_pod_index)
-
-        def get_ip_list(pod_locations):
-            if args.host_network:
-                return [node2ip[location[1]] for location in pod_locations]
-
-            return [location[2] for location in pod_locations]
-
-        def save_ip_list(filename, ip_list):
-            with open(filename, 'w') as f:
-                f.writelines([line + '\n' for line in ip_list])
-
-        def save_ip_port_list(filename, ip_list):
-            with open(filename, 'w') as f:
-                f.writelines([line + ':' + str(args.port) + '\n' for line in ip_list])
-
-        wait_for_statefulset_ready('{}-dsguard'.format(args.testnet))
-        wait_for_statefulset_ready('{}-normal'.format(args.testnet))
-        wait_for_statefulset_ready('{}-lookup'.format(args.testnet))
-
-        if args.seed_multiplier:
-            wait_for_statefulset_ready('{}-multiplier'.format(args.testnet))
-            wait_for_statefulset_ready('{}-seedpub'.format(args.testnet))
-
-        dsguard_ip_list = get_ip_list(sort_by_index(get_pods_locations(args.testnet, 'dsguard')))
-        normal_ip_list = get_ip_list(sort_by_index(get_pods_locations(args.testnet, 'normal')))
-        skipped_ds_dummy_ip_list = ['0.0.0.0'] * (args.d - args.ds_guard if args.skip_non_guard_ds else 0)
-
-        save_ip_list('normal_ips.txt', dsguard_ip_list + skipped_ds_dummy_ip_list + normal_ip_list)
-        save_ip_list('lookup_ips.txt', get_ip_list(sort_by_index(get_pods_locations(args.testnet, 'lookup'))))
-
-        if args.seed_multiplier:
-            save_ip_list('multiplier_ips.txt', get_ip_list(sort_by_index(get_pods_locations(args.testnet, 'multiplier'))))
-            seedpub_ips = get_ip_list(sort_by_index(get_pods_locations(args.testnet, 'seedpub')))
-            save_ip_list('seedpub_ips.txt', seedpub_ips)
-
-            total = 0
-            for (i, n) in enumerate(args.multiplier_fanout):
-                save_ip_port_list('multiplier-{}-downstreams.txt'.format(i), seedpub_ips[total: total + n])
-                total += n
-
-        return 0
 
     args.keypairs = readline_from_file(path.join(args.conf_dir, 'secret', 'keys.txt'))
     if path.isfile(path.join(args.conf_dir, 'secret', 'new_keys.txt')):
@@ -1042,13 +987,6 @@ def main():
     if args.cleanup_private_keys:
         clean_non_self_private_keys(args)
         return 0
-
-    if args.host_network:
-        if args.port is None:
-            print('--port not specified in host network mode (--host-network)')
-            return 1
-    else:
-        args.port = 30303
 
     # The origin server stores the network information
     if args.origin_server is not None:
