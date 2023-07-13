@@ -58,7 +58,7 @@ def get_my_keypair(args):
     return subprocess.check_output('genkeypair').decode().strip()
 
 
-def get_my_ip(args):
+def get_my_ip_and_port(args):
     if is_dsguard(args):
         return args.normal_ips[args.index]
 
@@ -72,7 +72,7 @@ def get_my_ip(args):
     if is_seedpub(args):
         return args.seedpub_ips[args.index]
 
-    return None
+    return (None, None)
 
 
 def redact_private_key(filename, ignore_index=None):
@@ -338,9 +338,9 @@ def create_constants_xml(args):
 
     for (index, ip, pubkey) in zip(range(len(lookup_ips)), lookup_ips, lookup_public_keys):
         lookup_peer = xtree.SubElement(lookup_nodes, "peer")
-        xtree.SubElement(lookup_peer, "ip").text = ip
+        xtree.SubElement(lookup_peer, "ip").text = ip[0]
         xtree.SubElement(lookup_peer, "pubkey").text = pubkey
-        xtree.SubElement(lookup_peer, "port").text = str(args.port)
+        xtree.SubElement(lookup_peer, "port").text = str(ip[1])
 
         if args.lookup_dns_domain is not None:
             dns = '{testnet}-lookup-{index}.{domain}'.format(testnet=args.testnet, index=index, domain=args.lookup_dns_domain)
@@ -351,9 +351,9 @@ def create_constants_xml(args):
     # upper seed takes peers from lookups, the DNS names are the same
     for (index, ip, pubkey) in zip(upper_seed_index, upper_seed_ip, upper_seed_pubkey):
         upper_seed_peer = xtree.SubElement(upper_seed_nodes, "peer")
-        xtree.SubElement(upper_seed_peer, "ip").text = ip
+        xtree.SubElement(upper_seed_peer, "ip").text = ip[0]
         xtree.SubElement(upper_seed_peer, "pubkey").text = pubkey
-        xtree.SubElement(upper_seed_peer, "port").text = str(args.port)
+        xtree.SubElement(upper_seed_peer, "port").text = str(ip[1])
 
         if args.lookup_dns_domain is not None:
             if args.seed_multiplier and not (is_seedpub(args) or is_lookup(args)):
@@ -368,9 +368,9 @@ def create_constants_xml(args):
     # l2l data providers takes peers from lookups, the DNS names are the same
     for (index, ip, pubkey) in zip(l2l_data_provider_index, l2l_data_provider_ip, l2l_data_provider_pubkey):
         l2l_data_provider_peer = xtree.SubElement(l2l_data_providers, "peer")
-        xtree.SubElement(l2l_data_provider_peer, "ip").text = ip
+        xtree.SubElement(l2l_data_provider_peer, "ip").text = ip[0]
         xtree.SubElement(l2l_data_provider_peer, "pubkey").text = pubkey
-        xtree.SubElement(l2l_data_provider_peer, "port").text = str(args.port)
+        xtree.SubElement(l2l_data_provider_peer, "port").text = str(ip[1])
 
         dns = ""
         if args.lookup_dns_domain is not None:
@@ -381,8 +381,8 @@ def create_constants_xml(args):
     multiplier_nodes = root.find('multipliers')
     for (index, ip, key) in zip(list(range(len(multiplier_ips))), multiplier_ips, multiplier_public_keys):
         multiplier_peer = xtree.SubElement(multiplier_nodes, "peer")
-        xtree.SubElement(multiplier_peer, "ip").text = ip
-        xtree.SubElement(multiplier_peer, "port").text = str(args.port)
+        xtree.SubElement(multiplier_peer, "ip").text = ip[0]
+        xtree.SubElement(multiplier_peer, "port").text = str(ip[1])
         xtree.SubElement(multiplier_peer, "pubkey").text = key
 
         if args.lookup_dns_domain is not None:
@@ -467,8 +467,8 @@ def create_ds_whitelist_xml(args):
     for (ip, pubkey) in zip(normal_ips, normal_public_keys):
         peer = xtree.SubElement(nodes, "peer")
         xtree.SubElement(peer, "pubk").text = pubkey
-        xtree.SubElement(peer, "ip").text = ip
-        xtree.SubElement(peer, "port").text = str(args.port)
+        xtree.SubElement(peer, "ip").text = ip[0]
+        xtree.SubElement(peer, "port").text = str(ip[1])
 
     tree = xtree.ElementTree(nodes)
     tree.write("ds_whitelist.xml")
@@ -499,8 +499,8 @@ def create_config_xml(args):
     for (ip, pubkey) in zip(ds_ips, ds_public_keys):
         peer = xtree.SubElement(nodes, "peer")
         xtree.SubElement(peer, "pubk").text = pubkey
-        xtree.SubElement(peer, "ip").text = ip
-        xtree.SubElement(peer, "port").text = str(args.port)
+        xtree.SubElement(peer, "ip").text = ip[0]
+        xtree.SubElement(peer, "port").text = str(ip[1])
 
     tree = xtree.ElementTree(nodes)
     tree.write("config.xml")
@@ -557,10 +557,8 @@ def create_start_sh(args):
     diff = "03"  # genesis diff
     rand1 = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a"
     rand2 = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf"
-    ds_port = '{0:08X}'.format(args.port)
-    port_str = str(args.port)
     my_public_key, my_private_key = get_my_keypair(args).strip().split(' ')
-    my_ip = get_my_ip(args)
+    my_ip, my_port = get_my_ip_and_port(args)
 
     # hex string from IPv4 or IPv6 string
     def ip_to_hex(ip):
@@ -629,7 +627,7 @@ def create_start_sh(args):
             '--privk {}'.format(my_private_key),
             '--pubk {}'.format(my_public_key),
             '--address {}'.format(my_ip),
-            '--port {}'.format(port_str),
+            '--port {}'.format(my_port),
             '--synctype {}'.format(opt_sync_type),
             '--nodetype {}'.format(args.type),
             '--nodeindex {}'.format(args.index),
@@ -638,12 +636,12 @@ def create_start_sh(args):
         ])
 
     if is_normal(args) or is_dsguard(args):
-        primary_ds_ip = args.normal_ips[0] if is_normal(args) or is_dsguard(args) else ''
+        primary_ds_ip = args.normal_ips[0]
         cmd_setprimaryds = ' '.join([
             'sendcmd',
-            '--port {}'.format(port_str),
+            '--port {}'.format(my_port),
             '--cmd cmd',
-            '--cmdarg 0100' + ip_to_hex(primary_ds_ip) + ds_port
+            '--cmdarg 0100' + ip_to_hex(primary_ds_ip[0]) + '{0:08X}'.format(primary_ds_ip[1])
         ])
     else:
         cmd_setprimaryds = ''
@@ -651,16 +649,15 @@ def create_start_sh(args):
     if is_non_ds(args):
         ds_public_keys = [k.split(' ')[0] for k in args.keypairs[0: args.d]]
         ds_ips = args.normal_ips[0: args.d]
-        ds_ports = [ds_port] * args.d
 
         cmd_startpow = ' '.join([
             'sendcmd',
-            '--port {}'.format(port_str),
+            '--port {}'.format(my_port),
             '--cmd cmd',
             '--cmdarg 0200' + block0 + ds_diff + diff + rand1 + rand2 + ''.join(
                 [
-                    ds[0] + ip_to_hex(ds[1]) + ds[2]
-                    for ds in zip(ds_public_keys, ds_ips, ds_ports)
+                    ds[0] + ip_to_hex(ds[1][0]) + str(ds[1][1])
+                    for ds in zip(ds_public_keys, ds_ips)
                 ]
             )
         ])
@@ -877,8 +874,9 @@ def get_basic_auth_link(url, username, password):
     return auth_url
 
 
-def get_ip_list_from_origin(url, resource_name):
-    return readline_from_file(url + '/' + resource_name)
+def get_ip_list_from_origin(url, resource_name, start_port):
+    ips = readline_from_file(url + '/' + resource_name)
+    return list(zip(ips, range(start_port, start_port + len(ips))))
 
 
 def generate_ip_mapping_file(ips, keypairs, port, n):
@@ -1007,14 +1005,18 @@ def main():
         return 0
 
     # Will block here until origin_server is accessible
-    lookup_ips_from_origin = get_ip_list_from_origin(origin_server, 'lookup_ips.txt')
-    normal_ips_from_origin = get_ip_list_from_origin(origin_server, 'normal_ips.txt')
+    first_lookup_port = args.port
+    lookup_ips_from_origin = get_ip_list_from_origin(origin_server, 'lookup_ips.txt', first_lookup_port)
+    first_normal_port = first_lookup_port + len(lookup_ips_from_origin)
+    normal_ips_from_origin = get_ip_list_from_origin(origin_server, 'normal_ips.txt', first_normal_port)
 
     if args.recover_from_testnet:
         generate_ip_mapping_file(normal_ips_from_origin, args.keypairs, args.port, args.n)
 
-    multiplier_ips_from_origin = get_ip_list_from_origin(origin_server, 'multiplier_ips.txt') if args.seed_multiplier else []
-    seedpub_ips_from_origin = get_ip_list_from_origin(origin_server, 'seedpub_ips.txt') if args.seed_multiplier else []
+    first_multiplier_port = first_normal_port + len(normal_ips_from_origin)
+    multiplier_ips_from_origin = get_ip_list_from_origin(origin_server, 'multiplier_ips.txt', first_multiplier_port) if args.seed_multiplier else []
+    first_seedpub_port = first_multiplier_port + len(multiplier_ips_from_origin)
+    seedpub_ips_from_origin = get_ip_list_from_origin(origin_server, 'seedpub_ips.txt', first_seedpub_port) if args.seed_multiplier else []
 
     # FIXME: only DS guard needs this flag, we can remove is_normal(args) here
     #  args.restart = is_restarted('{}-origin'.format(args.testnet)) if is_normal(args) or is_dsguard(args) else False
