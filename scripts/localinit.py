@@ -674,10 +674,10 @@ def create_start_sh(args):
         'chmod u+x /run/zilliqa/download_incr_DB.py',
         'cp /zilliqa/scripts/download_static_DB.py /run/zilliqa/download_static_DB.py',
         'chmod u+x /run/zilliqa/download_static_DB.py',
-        'o1=$(grep -oPm1 "(?<=<INCRDB_DSNUMS_WITH_STATEDELTAS>)[^<]+" /run/zilliqa/constants.xml)',
+        'o1=$(grep INCRDB_DSNUMS_WITH_STATEDELTAS /run/zilliqa/constants.xml | sed -e \'s,^[^<]*<[^>]*>\\([^<]*\\)<[^>]*>.*$,\\1,\')',
         f'[ ! -z "$o1" ] && {SED} "s,^NUM_DSBLOCK=.*$,NUM_DSBLOCK= $o1," /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         f'[ ! -z "$o1" ] && {SED} "s,^NUM_DSBLOCK=.*$,NUM_DSBLOCK= $o1," /run/zilliqa/download_incr_DB.py',
-        'o1=$(grep -oPm1 "(?<=<NUM_FINAL_BLOCK_PER_POW>)[^<]+" /run/zilliqa/constants.xml)',
+        'o1=$(grep NUM_FINAL_BLOCK_PER_POW /run/zilliqa/constants.xml | sed -e \'s,^[^<]*<[^>]*>\\([^<]*\\)<[^>]*>.*$,\\1,\')',
         f'[ ! -z "$o1" ] && {SED} "s,^NUM_FINAL_BLOCK_PER_POW=.*$,NUM_FINAL_BLOCK_PER_POW= $o1," /run/zilliqa/upload_incr_DB.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         f'[ ! -z "$o1" ] && {SED} "s,^NUM_FINAL_BLOCK_PER_POW=.*$,NUM_FINAL_BLOCK_PER_POW= $o1," /run/zilliqa/download_incr_DB.py',
         gen_testnet_sed_string(args, "/run/zilliqa/upload_incr_DB.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
@@ -689,11 +689,12 @@ def create_start_sh(args):
         'chmod u+x /run/zilliqa/auto_backup.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         'apt install python3-pip' if sys.platform != 'darwin' else '',
         'pip3 install ' + ('--user ' if sys.platform == 'darwin' else '') + 'requests clint',
-        'storage_path=$(grep -oPm1 "(?<=<STORAGE_PATH>)[^<]+" constants.xml)' if is_new(args) or is_seedprv(args) else '',
+        'storage_path=$(grep STORAGE_PATH /run/zilliqa/constants.xml | sed -e \'s,^[^<]*<[^>]*>\\([^<]*\\)<[^>]*>.*$,\\1,\')' if is_new(args) or is_seedprv(args) else '',
         gen_testnet_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_testnet_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
+        'export PATH=/run/zilliqa:$PATH',
         defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
         defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
         cmd_zilliqa_daemon(args, resume=args.resume),
@@ -1135,7 +1136,7 @@ def main():
                 sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
                 os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
 
-                for file_name in ['zilliqa', 'zilliqad']:
+                for file_name in ['zilliqa', 'zilliqad', 'sendcmd']:
                     try:
                         os.link(os.path.join(args.build_dir, 'bin', file_name), file_name)
                     except FileExistsError:
