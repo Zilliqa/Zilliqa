@@ -1118,6 +1118,8 @@ def main():
 
     def generate_nodes(node_type, first_index, count):
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
+        zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'zilliqa'))
+        scilla_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'scilla'))
         for index in range(first_index, first_index + count):
             try:
                 pod_name = f'{args.testnet}-{node_type}-{index}'
@@ -1135,9 +1137,11 @@ def main():
                 generate_files(pod_name)
                 sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
                 os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
+                os.system(f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," constants.xml')
 
                 for file_name in ['zilliqa', 'zilliqad', 'sendcmd']:
                     try:
+                        os.remove(file_name)
                         os.link(os.path.join(args.build_dir, 'bin', file_name), file_name)
                     except FileExistsError:
                         pass
