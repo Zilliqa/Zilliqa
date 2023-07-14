@@ -26,7 +26,7 @@ import requests
 ############################# constants ########################################
 ELB_WAITING_TIME_IN_MINUTES = 5
 TESTNET_READINESS_TIME_IN_MINUTES = 300
-
+lookup_rpc_port = None
 
 ############################# utility functions ################################
 
@@ -395,6 +395,15 @@ def create_constants_xml(args):
         general = root.find('general')
         general.find('LOOKUP_NODE_MODE').text = "true"
 
+        jsonrpc = root.find('jsonrpc')
+        global lookup_rpc_port 
+        if lookup_rpc_port == None:
+            lookup_rpc_port = int(jsonrpc.find('LOOKUP_RPC_PORT').text)
+
+        jsonrpc.find('LOOKUP_RPC_PORT').text = str(lookup_rpc_port)
+        lookup_rpc_port = lookup_rpc_port + 1
+
+
     transactions = root.find('transactions')
     if is_lookup(args) or is_seedpub(args) or is_seedprv(args):
         transactions.find('ENABLE_REPOPULATE').text = "true"
@@ -690,6 +699,7 @@ def create_start_sh(args):
         gen_bucket_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_testnet_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
+        'export AWS_ENDPOINT_URL=http://127.0.0.1:4566',
         'export PATH=/run/zilliqa:$PATH',
         defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
         defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
@@ -1081,6 +1091,9 @@ def main():
                 for file_name in ['zilliqa', 'zilliqad', 'sendcmd']:
                     try:
                         os.remove(file_name)
+                    except FileNotFoundError:
+                        pass
+                    try:
                         os.link(os.path.join(args.build_dir, 'bin', file_name), file_name)
                     except FileExistsError:
                         pass
