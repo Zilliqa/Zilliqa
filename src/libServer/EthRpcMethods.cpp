@@ -757,7 +757,7 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
       Json::FastWriter fastWriter;
       string output = fastWriter.write(parsed);
-      cout << output;
+      LOG_GENERAL(DEBUG, "DEBUG: " << output);
       if(parsed["result"].isNull()){
         parsed["result"] = Json::Value(Json::arrayValue);
       }
@@ -769,7 +769,7 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
       Json::FastWriter fastWriter;
       string output = fastWriter.write(parsed);
-      cout << output;
+      LOG_GENERAL(DEBUG, "DEBUG: " << output);
       // If there was no error return 0x
       if(parsed["result"].isNull()){
         parsed["result"] = Json::Value("0x");
