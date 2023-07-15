@@ -758,8 +758,8 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       Json::FastWriter fastWriter;
       string output = fastWriter.write(parsed);
       LOG_GENERAL(INFO, "DEBUG: " << output);
-      if(parsed["result"].isNull()){
-        parsed["result"] = Json::Value(Json::arrayValue);
+      if(parsed.isNull()){
+        parsed = Json::Value(Json::arrayValue);
       }
     } else if (tracer.compare("otter_call_tracer") == 0) {
       auto const item = trace_json["otter_call_tracer"];
@@ -771,8 +771,8 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       string output = fastWriter.write(item);
       LOG_GENERAL(INFO, "DEBUG: " << output);
       // If there was no error return 0x
-      if(parsed["result"].isNull()){
-        parsed["result"] = Json::Value("0x");
+      if(parsed.isNull()){
+        parsed = Json::Value("0x");
       }
     } else {
       throw JsonRpcException(
