@@ -26,6 +26,7 @@
 #include "common/CommonData.h"
 #include "common/Constants.h"
 #include "json/value.h"
+#include "json/writer.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
@@ -754,7 +755,10 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
     } else if (tracer.compare("otter_internal_tracer") == 0) {
       auto const item = trace_json["otter_internal_tracer"];
       parsed = item;
-      if(item["result"].isNull()){
+      Json::FastWriter fastWriter;
+      string output = fastWriter.write(parsed);
+      cout << output;
+      if(parsed["result"].isNull()){
         parsed["result"] = Json::Value(Json::arrayValue);
       }
     } else if (tracer.compare("otter_call_tracer") == 0) {
@@ -763,6 +767,9 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
     } else if (tracer.compare("otter_transaction_error") == 0) {
       auto const item = trace_json["otter_transaction_error"];
       parsed = item;
+      Json::FastWriter fastWriter;
+      string output = fastWriter.write(parsed);
+      cout << output;
       // If there was no error return 0x
       if(parsed["result"].isNull()){
         parsed["result"] = Json::Value("0x");
