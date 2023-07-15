@@ -753,21 +753,19 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
     } else if (tracer.compare("otter_internal_tracer") == 0) {
       auto const item = trace_json["otter_internal_tracer"];
+      parsed = item;
       if(item["result"].isNull()){
         parsed["result"] = Json::Value(Json::arrayValue);
-      }else{
-        parsed = item;
       }
     } else if (tracer.compare("otter_call_tracer") == 0) {
       auto const item = trace_json["otter_call_tracer"];
       parsed = item;
     } else if (tracer.compare("otter_transaction_error") == 0) {
       auto const item = trace_json["otter_transaction_error"];
+      parsed = item;
       // If there was no error return 0x
-      if(item["result"].isNull()){
+      if(parsed["result"].isNull()){
         parsed["result"] = Json::Value("0x");
-      }else{
-        parsed = item;
       }
     } else {
       throw JsonRpcException(
