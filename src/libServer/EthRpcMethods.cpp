@@ -769,8 +769,7 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
       Json::FastWriter fastWriter;
       string output = fastWriter.write(item);
-      LOG_GENERAL(DEBUG, "DEBUG: " << output);
-      cout << output;
+      LOG_GENERAL(INFO, "DEBUG: " << output);
       // If there was no error return 0x
       if(parsed["result"].isNull()){
         parsed["result"] = Json::Value("0x");
