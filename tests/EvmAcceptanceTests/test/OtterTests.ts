@@ -45,7 +45,7 @@ describe("Otterscan api tests", function () {
     const METHOD = "ots_getTransactionError";
 
     // Create a simple contract creation transaction that will succeed and so API request returns "Ox"
-    const Contract = await ethers.getContractFactory("Success");
+    const Contract = await ethers.getContractFactory("ZeroParamConstructor");
     const contract = await Contract.deploy();
 
     await sendJsonRpcRequest(METHOD, 1, [contract.deployTransaction.hash], (result, status) => {
@@ -93,7 +93,7 @@ describe("Otterscan api tests", function () {
 
     // Create a simple contract creation transaction which involves no internal operations
     // so API call returns []
-    const Contract = await ethers.getContractFactory("Success");
+    const Contract = await ethers.getContractFactory("ZeroParamConstructor");
     const contract = await Contract.deploy();
 
     await sendJsonRpcRequest(METHOD, 1, [contract.deployTransaction.hash], (result, status) => {
