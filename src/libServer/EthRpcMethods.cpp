@@ -198,6 +198,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         "param02", OPTIONAL_JSONTYPE(jsonrpc::JSON_STRING),
                          NULL),
       &EthRpcMethods::GetEthEstimateGasI);
 
@@ -839,13 +840,18 @@ bool EthRpcMethods::UnpackRevert(const std::string &data_in,
   return true;
 }
 
-std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
+std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json, const std::string *block_or_tag) {
   Address fromAddr;
 
   auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
 
   INC_CALLS(GetInvocationsCounter());
+
+  if (block_or_tag != nullptr && !isSupportedTag(*block_or_tag)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
+                           "Unsupported block or tag in eth_call");
+  }
 
   if (!json.isMember("from")) {
     TRACE_ERROR("Missing from account");
