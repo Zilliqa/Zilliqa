@@ -25,6 +25,7 @@ class TransactionReceipt;
 namespace libCps {
 
 struct ScillaArgs;
+struct CpsContext;
 
 struct ScillaCallParseResult {
   using Address = dev::h160;
@@ -32,13 +33,16 @@ struct ScillaCallParseResult {
   // if contract accepted sent amount from a call (should be succeeded by a
   // transfer)
   bool accepted = false;
+  enum FailureType { RECOVERABLE = 0, NON_RECOVERABLE };
+  FailureType failureType = FailureType::RECOVERABLE;
+
   struct SingleResult {
     Json::Value nextInputMessage;
     Address nextAddress;
     Amount amount;
     bool isNextContract = false;
   };
-  std::vector<SingleResult> entries;
+  std::vector<SingleResult> entries = {};
 };
 
 class ScillaHelpersCall final {
@@ -48,9 +52,9 @@ class ScillaHelpersCall final {
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   static ScillaCallParseResult ParseCallContract(
-      CpsAccountStoreInterface &acc_store, ScillaArgs &args,
-      const std::string &runnerPrint, TransactionReceipt &receipt,
-      uint32_t scilla_version);
+      CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
+      ScillaArgs &args, const std::string &runnerPrint,
+      TransactionReceipt &receipt, uint32_t scilla_version);
 
   /// convert the interpreter output into parsable json object for calling
   static ScillaCallParseResult ParseCallContractOutput(
@@ -59,8 +63,8 @@ class ScillaHelpersCall final {
 
   /// parse the output from interpreter for calling and update states
   static ScillaCallParseResult ParseCallContractJsonOutput(
-      CpsAccountStoreInterface &acc_store, ScillaArgs &args,
-      const Json::Value &_json, TransactionReceipt &receipt,
+      CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
+      ScillaArgs &args, const Json::Value &_json, TransactionReceipt &receipt,
       uint32_t pre_scilla_version);
 };
 }  // namespace libCps

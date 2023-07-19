@@ -3,7 +3,7 @@ import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import BN from "bn.js";
 import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
-import {initZilliqa, ScillaContract, Setup} from "hardhat-scilla-plugin";
+import {initZilliqa, ScillaContract, Setup, UserDefinedLibrary} from "hardhat-scilla-plugin";
 import SignerPool from "./SignerPool";
 
 export type DeployOptions = {
@@ -14,7 +14,11 @@ export type DeployOptions = {
 
 export class Parallelizer {
   constructor() {
-    const privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
+    let privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
+    if (process.env.PRIMARY_ACCOUNT !== undefined) {
+      privateKey = process.env.PRIMARY_ACCOUNT;
+    }
+  
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
     this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey], 30);
   }
@@ -30,18 +34,12 @@ export class Parallelizer {
 
     const Contract = await hh_ethers.getContractFactory(contractName);
     const deployedContract = await Contract.connect(signer).deploy(...args);
-    if (hre.isEthernalPluginEnabled()) {
-      hre.ethernal.push({name: contractName, address: deployedContract.address});
-    }
     return deployedContract;
   }
 
   async deployContractWithSigner(signer: Signer, contractName: string, ...args: any[]) {
     const Contract = await hh_ethers.getContractFactory(contractName);
     const deployedContract = await Contract.connect(signer).deploy(...args);
-    if (hre.isEthernalPluginEnabled()) {
-      hre.ethernal.push({name: contractName, address: deployedContract.address});
-    }
     return deployedContract;
   }
 
@@ -64,9 +62,6 @@ export class Parallelizer {
 
     deployedContract.options.from = signerAddress;
     deployedContract.options.gas = gasLimit;
-    if (hre.isEthernalPluginEnabled()) {
-      hre.ethernal.push({name: contractName, address: deployedContract.address});
-    }
     return deployedContract;
   }
 

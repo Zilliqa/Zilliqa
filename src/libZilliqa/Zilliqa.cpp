@@ -18,7 +18,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <chrono>
 
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 
 #include <Schnorr.h>
@@ -37,6 +36,7 @@
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/LocalAPIServer.h"
+#include "libUpdater/DaemonListener.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
@@ -93,6 +93,27 @@ const std::string_view StartByteToStr(unsigned char start_byte) {
 }
 
 #undef MATCH_CASE
+
+void StartUpdateThread(Mediator &mediator) {
+  auto asioCtx = std::make_shared<boost::asio::io_context>();
+  auto daemonListener =
+      std::make_shared<zil::DaemonListener>(*asioCtx, [&mediator]() {
+        return mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+      });
+
+  mediator.m_daemonListener = daemonListener;
+  mediator.m_daemonListenerAsioCtx = asioCtx;
+
+  std::thread thread{[asioCtx, daemonListener]() {
+    LOG_GENERAL(INFO, "Starting daemon listener");
+    daemonListener->Start();
+    asioCtx->run();
+    daemonListener->Stop();
+    LOG_GENERAL(INFO, "Daemon listener stopped");
+  }};
+
+  thread.detach();
+}
 
 }  // namespace
 
@@ -567,6 +588,10 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
                       "This lookup node not sync yet, don't start listen");
         }
       }
+    }
+
+    if (AUTO_UPGRADE) {
+      StartUpdateThread(m_mediator);
     }
 
     if (asioCtx) {

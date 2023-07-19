@@ -20,6 +20,7 @@ pub(crate) struct EvmServer {
 }
 
 impl EvmServer {
+    #[allow(dead_code)]
     pub fn new(backend_config: ScillaBackendConfig, gas_scaling_factor: u64) -> Self {
         Self {
             backend_config,
@@ -28,6 +29,7 @@ impl EvmServer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn run_json(&self, params: jsonrpc_core::Params) -> BoxFuture<Result<jsonrpc_core::Value>> {
         let args = jsonrpc_core::Value::from(params);
         if let Some(arg) = args.get(0) {
@@ -44,6 +46,7 @@ impl EvmServer {
         }
     }
 
+    #[allow(dead_code)]
     fn run(&self, args_str: String) -> BoxFuture<Result<String>> {
         let args_parsed = base64::decode(args_str)
             .map_err(|_| Error::invalid_params("cannot decode base64"))
@@ -65,6 +68,7 @@ impl EvmServer {
                 let backend =
                     ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
                 let gas_scaling_factor = self.gas_scaling_factor;
+                let is_static = args.get_is_static_call();
 
                 let node_continuation = if args.get_continuation().get_id() == 0 {
                     None
@@ -82,6 +86,7 @@ impl EvmServer {
                     backend,
                     gas_scaling_factor,
                     estimate,
+                    is_static,
                     args.get_context().to_string(),
                     node_continuation,
                     self.continuations.clone(),

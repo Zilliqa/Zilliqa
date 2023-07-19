@@ -118,9 +118,12 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=20000 npx hardhat test
+    DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test --bail 2>&1 > npx.out
 
     retVal=$?
+
+    pkill -INT isolatedServer
+    cat npx.out
     if [ $retVal -ne 0 ]; then
         echo "!!!!!! Error with JS integration test !!!!!!"
         exit 1

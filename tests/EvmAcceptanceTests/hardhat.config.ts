@@ -1,8 +1,12 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
+import { HardhatUserConfig } from "hardhat/types";
 import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
+import semver from "semver";
+import "./tasks/ZilBalance"
+import "./tasks/Transfer"
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
@@ -23,18 +27,23 @@ declare module "hardhat/types/config" {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
-
-  ethernal: {
-    disabled: ENV_VARS.ethernalPassword === undefined,
-    email: ENV_VARS.ethernalEmail,
-    password: ENV_VARS.ethernalPassword,
-    workspace: ENV_VARS.ethernalWorkspace,
-    disableSync: false, // If set to true, plugin will not sync blocks & txs
-    disableTrace: false, // If set to true, plugin won't trace transaction
-    uploadAst: true // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
-  },
   defaultNetwork: "isolated_server",
   networks: {
+    localdev2: {
+      url: "http://localdev-l2api.localdomain",
+      websocketUrl: "ws://localdev-l2api.localdomain",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+      ],
+      chainId: 0x8001,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
     isolated_server: {
       url: "http://localhost:5555/",
       websocketUrl: "ws://localhost:5555/",
@@ -97,13 +106,15 @@ const config: HardhatUserConfig = {
       miningState: false
     },
     testnet: {
-      url: "https://devnetnh-l2api.dev.z7a.xyz",
-      websocketUrl: "wss://devnetnh-l2api.dev.z7a.xyz",
+      url: "https://testnet-receipts-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://testnet-receipts-l2api.dev.z7a.xyz",
       accounts: [
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
         "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
-        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
-        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89"
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
       ],
       chainId: 32769,
       zilliqaNetwork: true,
@@ -160,6 +171,12 @@ task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")
   .addFlag("logTxnid", "Log JSON RPC ")
   .setAction((taskArgs, hre, runSuper) => {
+    const node_version = process.version;
+    if (semver.gt(node_version, "17.0.0")) {
+      console.log("⛔️", clc.redBright.bold("Zilliqa-is incompatible with your current node version."), "It should be >13.0.0 & <17.0.0.");
+      return;
+    }
+
     if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
       hre.ethers.provider.on("debug", (info) => {
         if (taskArgs.logJsonrpc) {

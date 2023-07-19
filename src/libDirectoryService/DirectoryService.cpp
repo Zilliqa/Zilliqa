@@ -58,8 +58,7 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS,
-                                          "tx.directoryservice.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
@@ -1137,15 +1136,13 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
     return false;
   }
 
-  // TODO reenable this verification after removing Multiplier communication
-  // mode
-  //  if (!m_mediator.m_lookup->VerifySenderNode(
-  //          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
-  //    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-  //              "The message sender pubkey: "
-  //                  << lookupPubKey << " is not in my lookup node list.");
-  //    return false;
-  //  }
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
 
   LOG_GENERAL(INFO,
               "Returning created transactions for " << m_mediator.m_selfPeer);

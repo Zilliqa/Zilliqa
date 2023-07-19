@@ -144,6 +144,7 @@ extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
 extern const bool JSON_LOGGING;
+extern const bool AUTO_UPGRADE;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -314,6 +315,8 @@ extern const unsigned int PENDING_TXN_QUERY_MAX_RESULTS;
 extern const bool CONNECTION_IO_USE_EPOLL;
 extern const unsigned int CONNECTION_ALL_TIMEOUT;
 extern const unsigned int CONNECTION_CALLBACK_TIMEOUT;
+extern const size_t REQUEST_PROCESSING_THREADS;
+extern const size_t REQUEST_QUEUE_SIZE;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;

@@ -1,0 +1,60 @@
+scilla_version 0
+
+
+library ScillaCallRevertLib
+
+let one_msg =
+  fun (msg : Message) =>
+  let nil_msg = Nil {Message} in
+    Cons {Message} msg nil_msg
+
+contract ScillaCallRevert
+(
+)
+
+field value: Uint128 = Uint128 0
+
+transition HandleAndIgnore(sender: ByStr20, recipient: ByStr20)
+
+end
+
+transition callWithTwoRecipients(val: Uint128, recipient1: ByStr20, recipient2: ByStr20)
+    value := val;
+    msg = {_tag : "HandleAndIgnore"; _recipient : recipient1; sender : _sender; recipient : recipient1; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg;
+    msg = {_tag : "HandleAndIgnore"; _recipient : recipient2; sender : _sender; recipient : recipient2; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg
+end
+
+transition callWithTwoRecipientsEvmCall(val: Uint128, recipient1: ByStr20, recipient2: ByStr20)
+    value := val;
+    msg = {_tag : "HandleAndIgnore"; _recipient : recipient2; sender : _sender; recipient : recipient2; _amount: Uint128 0; _EvmCall: "bar"};
+    as_msg = one_msg msg;
+    send as_msg;
+    msg = {_tag : "HandleAndIgnore"; _recipient : recipient1; sender : _sender; recipient : recipient1; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg
+end
+
+transition callAndForward(val: Uint128, next_scilla_addr: ByStr20, recipient1: ByStr20, recipient2: ByStr20)
+    value := val;
+    msg = {_tag : "callWithTwoRecipients"; _recipient : next_scilla_addr; val: val;
+           recipient1 : recipient1; recipient2 : recipient2; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg
+end
+
+transition callAndForwardToEvmCall(val: Uint128, next_scilla_addr: ByStr20, recipient1: ByStr20, recipient2: ByStr20)
+    value := val;
+    msg = {_tag : "callWithTwoRecipientsEvmCall"; _recipient : next_scilla_addr; val: val;
+           recipient1 : recipient1; recipient2 : recipient2; _amount: Uint128 0};
+    as_msg = one_msg msg;
+    send as_msg
+end
+
+transition justRevert()
+    e = { _exception : "Yaicksss" };
+    throw e
+end

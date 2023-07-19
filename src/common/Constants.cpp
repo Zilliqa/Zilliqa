@@ -143,6 +143,7 @@ const unsigned int MAX_ARCHIVED_LOG_COUNT{
 const unsigned int MAX_LOG_FILE_SIZE_KB{
     ReadConstantNumeric("MAX_LOG_FILE_SIZE_KB")};
 const bool JSON_LOGGING{ReadConstantString("JSON_LOGGING") == "true"};
+const bool AUTO_UPGRADE{ReadConstantString("AUTO_UPGRADE") == "true"};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -439,6 +440,8 @@ const unsigned int CONNECTION_ALL_TIMEOUT{
     ReadConstantNumeric("CONNECTION_ALL_TIMEOUT", "node.jsonrpc.")};
 const unsigned int CONNECTION_CALLBACK_TIMEOUT{
     ReadConstantNumeric("CONNECTION_CALLBACK_TIMEOUT", "node.jsonrpc.")};
+const size_t REQUEST_PROCESSING_THREADS{ReadConstantNumeric("REQUEST_PROCESSING_THREADS", "node.jsonrpc.", 64)};
+const size_t REQUEST_QUEUE_SIZE{ReadConstantNumeric("REQUEST_QUEUE_SIZE", "node.jsonrpc.", 65536)};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
@@ -491,6 +494,10 @@ const unsigned int MAX_WHITELISTREQ_LIMIT{
     ReadConstantNumeric("MAX_WHITELISTREQ_LIMIT", "node.p2pcomm.")};
 const unsigned int SENDJOBPEERS_TIMEOUT{
     ReadConstantNumeric("SENDJOBPEERS_TIMEOUT", "node.p2pcomm.")};
+const unsigned int CONNECTION_TIMEOUT_IN_MS{
+    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_MS", "node.p2pcomm.", 2000)};
+const unsigned int RECONNECT_INTERVAL_IN_MS{
+    ReadConstantNumeric("RECONNECT_INTERVAL_IN_MS", "node.p2pcomm.", 2000)};
 
 // PoW constants
 const bool FULL_DATASET_MINE{

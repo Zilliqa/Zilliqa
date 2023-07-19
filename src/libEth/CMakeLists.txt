@@ -16,4 +16,4 @@ add_library(EthUtils
     )
 target_include_directories(EthUtils PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries(Filters Utils)
+target_link_libraries(Filters Eth Utils)

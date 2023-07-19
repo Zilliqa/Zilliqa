@@ -2,6 +2,12 @@ configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
+add_executable(Test_EthABI Test_EthABI.cpp)
+target_include_directories(Test_EthABI PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_EthABI PUBLIC Eth Utils Boost::unit_test_framework)
+add_test(NAME Test_EthABI COMMAND Test_EthABI)
+
+
 add_executable(Test_LogEntry Test_LogEntry.cpp)
 target_include_directories(Test_LogEntry PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_LogEntry PUBLIC AccountData Utils TestUtils)

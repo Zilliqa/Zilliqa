@@ -38,6 +38,27 @@ pub(crate) fn modexp(
     }
 }
 
+fn get_mod(base_len: u64, exp_len: u64, mod_len: u64, bytes: &[u8]) -> Result<U256, ExitError> {
+    let base_len = usize::try_from(base_len)
+        .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
+    let exp_len = usize::try_from(exp_len)
+        .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
+    let mod_len = usize::try_from(mod_len)
+        .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
+
+    let base_start = 96;
+    let base_end = base_len.saturating_add(base_start);
+
+    let exp_start = base_end;
+    let exp_end = exp_len.saturating_add(exp_start);
+
+    let mod_start = exp_end;
+
+    let modulus = parse_bytes(bytes, mod_start, mod_len, |x| U256::from(x));
+
+    Ok(modulus)
+}
+
 fn calc_iter_count(exp_len: u64, base_len: u64, bytes: &[u8]) -> Result<U256, ExitError> {
     let start = usize::try_from(base_len)
         .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
@@ -107,7 +128,15 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
     let iter_count = calc_iter_count(exp_len, base_len, input)?;
     let gas = mul * iter_count / U256::from(3);
 
-    Ok(core::cmp::max(200, saturating_round(gas)))
+    let modulus = get_mod(base_len, exp_len, mod_len, input)?;
+
+    // Multiply the cost by 20 if the modulus is even, to account for the slow implementation of `BigUint::modpow`.
+    // Based on https://github.com/paritytech/frontier/blob/master/frame/evm/precompile/modexp/src/lib.rs
+    // Licensed under the Apache License, Version 2.0.
+    let cost = core::cmp::max(200, saturating_round(gas))
+        .saturating_mul(if (modulus % 2).is_zero() { 20 } else { 0 });
+
+    Ok(cost)
 }
 
 fn mul_complexity(base_len: u64, mod_len: u64) -> U256 {

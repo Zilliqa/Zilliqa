@@ -36,6 +36,7 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
@@ -283,6 +284,38 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   return status;
 }
 
+std::string stripTxTraceOut(const std::string &trace) {
+
+  Json::Value trace_json;
+  JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
+
+  //Json::Value parsed;
+  trace_json.removeMember("call_tracer");
+  trace_json.removeMember("raw_tracer");
+
+  return trace_json.toStyledString();
+}
+
+void getAddressesFromTrace(const std::string &trace, std::set<std::string> &addresses) {
+  Json::Value trace_json;
+  JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
+
+  Json::Value parsed;
+
+  auto const item = trace_json["otter_addresses_called"];
+  parsed = item;
+
+  // non 0x prefixed addresses - strip if present
+  for (auto const &address : parsed) {
+    auto addr = address.asString();
+    if (addr.substr(0, 2) == "0x") {
+      addresses.insert(addr);
+    } else {
+      addresses.insert(addr.substr(2));
+    }
+  }
+}
+
 bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        const unsigned int &numShards,
                                        const bool &isDS,
@@ -337,7 +370,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     span.AddEvent("info", {{"Calling", "cps"}});
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
-    error_code = cpsRunResult.txnStatus;
+
+    std::set<std::string> addresses_touched;
+    addresses_touched.insert(m_originAddr.hex());
+    addresses_touched.insert(m_curContractAddr.hex());
 
     if (std::holds_alternative<evm::EvmResult>(cpsRunResult.result) &&
         ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
@@ -353,9 +389,39 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
+
+        // Attempt to parse the addresses called to fulfil ots_searchTransactions*
+        // The tx has reported all addresses it has touched via call or transfer
+        // and we can use this to populate the address->tx mapping
+        getAddressesFromTrace(traces, addresses_touched);
+
+        // we want a version with only otter stuff since we store it
+        // permanently and the rest is huge
+        auto const trace_stripped = stripTxTraceOut(traces);
+
+        if (!BlockStorage::GetBlockStorage().PutOtterTrace(evmContext.GetTranID(),
+                                                        traces)) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put otter trace failed " << evmContext.GetTranID());
+        }
       }
     }
 
+    // This needs to be outside the above as needs to include possibility of non evm tx
+    if(ARCHIVAL_LOOKUP_WITH_TX_TRACES && evmContext.GetTranID()) {
+      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(evmContext.GetTranID(),
+                                                                    addresses_touched, blockNum)) {
+        LOG_GENERAL(INFO,
+                    "FAIL: Put otter addr mapping failed " << evmContext.GetTranID());
+      }
+    }
+
+    // Unless it's internal error include this transaction and form proper
+    // receipt
+    if (!cpsRunResult.isSuccess && cpsRunResult.txnStatus != TxnStatus::ERROR) {
+      error_code = TxnStatus::NOT_PRESENT;
+      return true;
+    }
     return cpsRunResult.isSuccess;
   }
   error_code = TxnStatus::NOT_PRESENT;

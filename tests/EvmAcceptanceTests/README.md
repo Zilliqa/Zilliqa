@@ -70,16 +70,6 @@ npx hardhat test --bail     # Stop running tests after the first test failure
 npx hardhat test --parallel
 ```
 
-## Run the tests with ethernal plugin
-
-```bash
-ETHERNAL_EMAIL="devops+ethernal@zilliqa.com" ETHERNAL_PASSWORD="YourPassword" ETHERNAL_WORKSPACE="Zilliqa Testnet" npx hardhat test --network public_testnet
-```
-
-Ethernal is an [EVM-based blockchain explorer](https://tryethernal.com)
-
-For more info, see [hardhat ethernal plugin](https://github.com/tryethernal/hardhat-ethernal)
-
 # How to define a new network for hardhat
 
 1. Add a new network to `hardhat.config.ts` inside `networks` property:
@@ -314,10 +304,32 @@ to change some of the testing behaviors environment variables are used. They can
 - `DEBUG=true` to enable debugging logs.
 - `SCILLA=false` to ignore scilla tests.
 - `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
-- `ETHERNAL_EMAIL="devops+ethernal@zilliqa.com"` to set Ethernal email.
-- `ETHERNAL_WORKSPACE="Zilliqa Testnet"` to set Ethernal workspace.
-- `ETHERNAL_PASSWORD="Your Password"` If it's not set, ethernal plugin will be disabled.
 
+## Tasks
+A few customized tasks are added to hardhat to simplify the process of test development and debugging.
+
+### zilBalance
+To get the balance of a zilliqa-based address of a private key, send that private key to `zilBalance` task:
+```bash
+npx hardhat zilBalance db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
+```
+
+### transfer
+To transfer fund from a private key (account) to a recipient, Use `transfer`. Because every private key in zilliqa network potentially can have two different addresses (one for zilliqa itself, and one for ethereum), you need to provide address type as well.
+
+```bash
+npx hardhat transfer --from d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba --to cf671756a8238cbeb19bcb4d77fc9091e2fce1a3 --amount 1000000 --address-type eth
+```
+
+`--from` is the private key of the sender.
+`--from-address-type` can be either `eth` or `zil`. If `eth` is used, Funds are transferred from eth-based address of the private key. Otherwise, funds are transferred from zil-based address of the private key.
+`--to` is the address of the recipient.
+`--amount` is amount to be transferred in ZIL/ETH ZIL unit.
+
+Example:
+```bash
+npx hardhat transfer --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --to 6e2cf2789c5b705e0990c05ca959b5001c70ba87 --amount 1 --from-address-type zil 
+```
 ## Scripts
 
 To get the balances of the current accounts, run:
@@ -361,3 +373,23 @@ Set the timeout as a environment variable before running the tests. It's in mill
 ```bash
 MOCHA_TIMEOUT=300000 npx hardhat test
 ```
+
+## Testing a newly deployed testnet/devent
+
+*You need to have one prefunded account(private key).* Let's call it PRIMARY_ACCOUNT.
+1. Create a new hardhat network using the devent URL. Please refer to [How to define a new network for hardhat](#how-to-define-a-new-network-for-hardhat) for more info. But be sure to provide at least four different private keys for `accounts` in the config. These accounts will be funded by your primary prefunded account. So it doesn't matter if they all have zero balances.
+
+2. Run `PRIMARY_ACCOUNT=YOUR_PRIVATE_KEY npx hardhat run scripts/FundAccountsFromPrimaryAccount.ts --network your_new_network`
+You should see something like this output:
+```
+Private key: db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
+Address: 0x7bb3B0E8A59f3f61d9Bff038f4AEb42cAE2ECce8
+Balance: 999998799988000000
+0xF0cB24aC66ba7375bF9B9C4fa91E208d9eAABD2E funded.
+0xCf671756a8238cbeb19bcB4d77fC9091e2FCE1A3 funded.
+0x05a321d0b9541ca08D7E32315CA186cc67A1602C funded.
+0x6E2cf2789C5B705E0990C05cA959b5001C70bA87 funded.
+```
+It means that now all of your accounts specified in the `hardhat.config.ts` have enough funds to run tests.
+
+3. Run tests using `npx hardhat test --network your_new_network` or any other variants of it.

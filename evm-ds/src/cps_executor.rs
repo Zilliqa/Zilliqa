@@ -14,7 +14,6 @@ use evm::{
 };
 use primitive_types::{H160, H256, U256};
 
-use crate::scillabackend::ScillaBackend;
 type PrecompileMap = BTreeMap<
     H160,
     fn(
@@ -26,8 +25,8 @@ type PrecompileMap = BTreeMap<
     ) -> Result<(PrecompileOutput, u64), PrecompileFailure>,
 >;
 
-pub struct CpsExecutor<'a> {
-    stack_executor: StackExecutor<'a, 'a, MemoryStackState<'a, 'a, ScillaBackend>, PrecompileMap>,
+pub struct CpsExecutor<'a, B: Backend> {
+    stack_executor: StackExecutor<'a, 'a, MemoryStackState<'a, 'a, B>, PrecompileMap>,
     enable_cps: bool,
 }
 
@@ -64,10 +63,10 @@ pub enum CpsReason {
     CreateInterrupt(CpsCreateInterrupt),
 }
 
-impl<'a> CpsExecutor<'a> {
+impl<'a, B: Backend> CpsExecutor<'a, B> {
     /// Create a new stack-based executor with given precompiles.
     pub fn new_with_precompiles(
-        state: MemoryStackState<'a, 'a, ScillaBackend>,
+        state: MemoryStackState<'a, 'a, B>,
         config: &'a Config,
         precompile_set: &'a PrecompileMap,
         enable_cps: bool,
@@ -130,25 +129,37 @@ impl<'a> CpsExecutor<'a> {
                 *runtime.return_data_buffer() = Vec::from(feedback.get_calldata().get_data());
                 let offset_len: U256 = U256::from(feedback.get_calldata().get_offset_len());
                 let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
-
-                match runtime.machine_mut().memory_mut().copy_large(
-                    U256::from(feedback.get_calldata().get_memory_offset()),
-                    U256::zero(),
-                    target_len,
-                    feedback.get_calldata().get_data(),
-                ) {
-                    Ok(()) => {
-                        let mut value = H256::default();
-                        let one = U256::one();
-                        one.to_big_endian(&mut value[..]);
-                        runtime.machine_mut().stack_mut().push(value)?;
+                if feedback.succeeded {
+                    match runtime.machine_mut().memory_mut().copy_large(
+                        U256::from(feedback.get_calldata().get_memory_offset()),
+                        U256::zero(),
+                        target_len,
+                        feedback.get_calldata().get_data(),
+                    ) {
+                        Ok(()) => {
+                            let mut value = H256::default();
+                            let one = U256::one();
+                            one.to_big_endian(&mut value[..]);
+                            runtime.machine_mut().stack_mut().push(value)?;
+                        }
+                        Err(_) => {
+                            let mut value = H256::default();
+                            let zero = U256::zero();
+                            zero.to_big_endian(&mut value[..]);
+                            runtime.machine_mut().stack_mut().push(value)?;
+                        }
                     }
-                    Err(_) => {
-                        let mut value = H256::default();
-                        let zero = U256::zero();
-                        zero.to_big_endian(&mut value[..]);
-                        runtime.machine_mut().stack_mut().push(value)?;
-                    }
+                } else {
+                    let _ = runtime.machine_mut().memory_mut().copy_large(
+                        U256::from(feedback.get_calldata().get_memory_offset()),
+                        U256::zero(),
+                        target_len,
+                        feedback.get_calldata().get_data(),
+                    );
+                    let mut value = H256::default();
+                    let zero = U256::zero();
+                    zero.to_big_endian(&mut value[..]);
+                    runtime.machine_mut().stack_mut().push(value)?;
                 }
             }
         }
@@ -160,12 +171,16 @@ impl<'a> CpsExecutor<'a> {
         self.stack_executor.gas()
     }
 
-    pub fn into_state(self) -> MemoryStackState<'a, 'a, ScillaBackend> {
+    pub fn into_state(self) -> MemoryStackState<'a, 'a, B> {
         self.stack_executor.into_state()
+    }
+
+    pub fn state(&self) -> &MemoryStackState<'a, 'a, B> {
+        self.stack_executor.state()
     }
 }
 
-impl<'a> Handler for CpsExecutor<'a> {
+impl<'a, B: Backend> Handler for CpsExecutor<'a, B> {
     type CreateInterrupt = CpsCreateInterrupt;
     type CreateFeedback = CpsCreateFeedback;
     type CallInterrupt = CpsCallInterrupt;
@@ -327,6 +342,10 @@ impl<'a> Handler for CpsExecutor<'a> {
                 target_gas,
             }),
         }
+    }
+
+    fn get_create_address(&mut self, scheme: CreateScheme) -> H160 {
+        self.stack_executor.create_address(scheme)
     }
 
     /// Invoke a call operation.

@@ -326,7 +326,9 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_OBJECT, NULL),
+                           jsonrpc::JSON_OBJECT,
+                           "param02", OPTIONAL_JSONTYPE(jsonrpc::JSON_STRING),
+                           NULL),
         &LookupServer::GetEthEstimateGasI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -460,11 +462,103 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::DebugTraceTransactionI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_enable",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_BOOLEAN, NULL),
+        &EthRpcMethods::OtterscanEnableI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getInternalOperations",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::OtterscanGetInternalOperationsI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getTransactionBySenderAndNonce",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER,  NULL),
+        &LookupServer::OtterscanGetTransactionBySenderAndNonceI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getTransactionError",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::OtterscanGetTransactionErrorI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_searchTransactionsBefore",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
+        &LookupServer::OtterscanSearchTransactionsBeforeI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_searchTransactionsAfter",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_INTEGER, "param03", jsonrpc::JSON_INTEGER, NULL),
+        &LookupServer::OtterscanSearchTransactionsAfterI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_traceTransaction",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::OtterscanTraceTransactionI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_traceBlockByNumber",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, "param02",
                            jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::DebugTraceBlockByNumberI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("erigon_getHeaderByNumber", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetHeaderByNumberI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getApiLevel", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetOtterscanApiLevelI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_BOOLEAN,
+                           "param01", jsonrpc::JSON_STRING,
+                           "param02", jsonrpc::JSON_STRING,
+                           NULL),
+        &EthRpcMethods::HasCodeI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getBlockDetails", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetBlockDetailsI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getBlockTransactions", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_INTEGER,
+                           "param02", jsonrpc::JSON_INTEGER,
+                           "param03", jsonrpc::JSON_INTEGER,
+                           NULL),
+        &EthRpcMethods::GetBlockTransactionsI
+    );
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("ots_getContractCreator", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT,
+                           "param01", jsonrpc::JSON_STRING,
+                           NULL),
+        &EthRpcMethods::GetContractCreatorI
+    );
   }
 }
 
@@ -610,9 +704,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
-      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-        return AccountStore::GetInstance().GetPrimaryWriteAccess();
-      });
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
@@ -658,10 +749,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         {
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
-          AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
-              lock, [] {
-                return AccountStore::GetInstance().GetPrimaryWriteAccess();
-              });
 
           const Account* account =
               AccountStore::GetInstance().GetAccount(tx.GetToAddr());
@@ -1089,9 +1176,13 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     m_txnBlockNumMap[m_blocknum].clear();
   }
 
+  auto const prevTxBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+
+  auto const prevHash = m_blocknum == 0 ? BlockHash(): prevTxBlock.GetBlockHash();
+
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
                               TxBlockHashSet(), numtxns, m_key.first,
-                              TXBLOCK_VERSION);
+                              1, TXBLOCK_VERSION, CommitteeHash(), prevHash);
 
   // In order that the m_txRootHash is not empty if there are actually TXs
   // in the microblock, set the root hash to a TXn hash if there is one

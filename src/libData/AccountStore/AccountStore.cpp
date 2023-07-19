@@ -98,7 +98,6 @@ AccountStore::AccountStore()
     : m_db("state"),
       m_state(&m_db),
       m_accountStoreTemp(*this),
-      m_externalWriters{0},
       m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
   bool ipcScillaInit = false;
 
@@ -107,7 +106,7 @@ AccountStore::AccountStore()
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
-        make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
+        make_shared<ScillaIPCServer>(this, m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
@@ -164,8 +163,6 @@ void AccountStore::InitSoft() {
 
   AccountStoreBase::Init();
   InitTrie();
-
-  m_externalWriters = 0;
 
   InitRevertibles();
 
@@ -370,13 +367,7 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
       return false;
     }
   } else {
-    if (LOOKUP_NODE_MODE) {
-      IncrementPrimaryWriteAccessCount();
-    }
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
-    if (LOOKUP_NODE_MODE) {
-      DecrementPrimaryWriteAccessCount();
-    }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
@@ -542,44 +533,6 @@ bool AccountStore::RetrieveFromDisk() {
   return true;
 }
 
-bool AccountStore::RetrieveFromDiskOld() {
-  // Only For migration
-  InitSoft();
-
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
-  unique_lock<mutex> g2(m_mutexDB, defer_lock);
-  lock(g, g2);
-
-  zbytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
-    // To support backward compatibilty - lookup with new binary trying to
-    // recover from old database
-    if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PutStateRoot failed "
-                        << DataConversion::CharArrayToString(rootBytes));
-        return false;
-      }
-    } else {
-      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
-      return false;
-    }
-  }
-
-  try {
-    h256 root(rootBytes);
-    LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
-    lock_guard<mutex> g(m_mutexTrie);
-    m_state.setRoot(root);
-  } catch (const boost::exception &e) {
-    LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
-                             << boost::diagnostic_information(e));
-    return false;
-  }
-  return true;
-}
-
 Account *AccountStore::GetAccountTemp(const Address &address) {
   return m_accountStoreTemp.GetAccount(address);
 }
@@ -640,8 +593,30 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  // Record and publish delay
+  // This needs to be outside the above as needs to include possibility of non evm tx
+  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES && transaction.GetTranID()) {
 
+    if (!BlockStorage::GetBlockStorage().PutOtterAddressNonceLookup(transaction.GetTranID(),
+                                                                    transaction.GetNonce() - 1, transaction.GetSenderAddr().hex())) {
+      LOG_GENERAL(INFO,
+                  "FAIL: Put otter addr nonce failed " << transaction.GetTranID());
+    }
+
+    // For when vanilla TX, we still want to log this for otterscan
+    if (!isEvm) {
+      std::set<std::string> addresses_touched;
+      addresses_touched.insert(transaction.GetSenderAddr().hex());
+      addresses_touched.insert(transaction.GetToAddr().hex());
+
+      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(transaction.GetTranID(),
+                                                                    addresses_touched, blockNum)) {
+        LOG_GENERAL(INFO,
+                    "FAIL: Put otter tx addr mapping failed " << transaction.GetTranID());
+      }
+    }
+  }
+
+  // Record and publish delay
   auto delay = r_timer_end(tpLatencyStart);
   double dVal = delay / 1000;
   if (dVal > 0) {

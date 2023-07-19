@@ -32,16 +32,10 @@ class Amount final {
     return Amount{qa * EVM_ZIL_SCALING_FACTOR};
   }
   constexpr uint256_t toWei() const {
-    if (std::holds_alternative<uint128_t>(m_value)) {
-      return uint256_t{std::get<uint128_t>(m_value) * EVM_ZIL_SCALING_FACTOR};
-    }
-    return std::get<uint256_t>(m_value);
+    return m_value;
   }
   constexpr uint128_t toQa() const {
-    if (std::holds_alternative<uint256_t>(m_value)) {
-      return uint128_t{std::get<uint256_t>(m_value) / EVM_ZIL_SCALING_FACTOR};
-    }
-    return std::get<uint128_t>(m_value);
+    return uint128_t{m_value / EVM_ZIL_SCALING_FACTOR};
   }
   constexpr auto operator<=(const Amount& other) const {
     return toQa() <= other.toQa();
@@ -49,12 +43,24 @@ class Amount final {
   constexpr auto operator>(const Amount& other) const {
     return !(*this <= other);
   }
+  constexpr auto operator+(const Amount& rhs) const {
+    return Amount{this->toWei() + rhs.toWei()};
+  }
+  constexpr auto operator-(const Amount& rhs) const {
+    return Amount{this->toWei() - rhs.toWei()};
+  }
+  constexpr auto operator==(const Amount& rhs) const {
+    return this->toWei() == rhs.toWei();
+  }
+  constexpr auto operator!=(const Amount& rhs) const {
+    return this->toWei() != rhs.toWei();
+  }
 
  private:
   constexpr Amount(const uint256_t& wei) : m_value(wei){};
 
  private:
-  std::variant<uint128_t, uint256_t> m_value;
+  uint256_t m_value;
 };
 }  // namespace libCps
 

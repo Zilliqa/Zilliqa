@@ -22,9 +22,11 @@
 #include "libScilla/ScillaUtils.h"
 
 #include "libCps/CpsAccountStoreInterface.h"
+#include "libCps/CpsContext.h"
 #include "libCps/CpsRunScilla.h"
 #include "libCps/ScillaHelpersCall.h"
 
+#include "CpsRunEvm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -35,17 +37,17 @@ namespace libCps {
 constexpr auto MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 ScillaCallParseResult ScillaHelpersCall::ParseCallContract(
-    CpsAccountStoreInterface &acc_store, ScillaArgs &scillaArgs,
-    const std::string &runnerPrint, TransactionReceipt &receipt,
-    uint32_t scillaVersion) {
+    CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
+    ScillaArgs &scillaArgs, const std::string &runnerPrint,
+    TransactionReceipt &receipt, uint32_t scillaVersion) {
   Json::Value jsonOutput;
   auto parseResult =
       ParseCallContractOutput(acc_store, jsonOutput, runnerPrint, receipt);
   if (!parseResult.success) {
     return parseResult;
   }
-  return ParseCallContractJsonOutput(acc_store, scillaArgs, jsonOutput, receipt,
-                                     scillaVersion);
+  return ParseCallContractJsonOutput(acc_store, cpsContext, scillaArgs,
+                                     jsonOutput, receipt, scillaVersion);
 }
 
 /// convert the interpreter output into parsable json object for calling
@@ -77,14 +79,14 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractOutput(
                           << r_timer_end(tpStart));
   }
 
-  return {true, false, {}};
+  return {true, false};
 }
 
 /// parse the output from interpreter for calling and update states
 ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
-    CpsAccountStoreInterface &acc_store, ScillaArgs &scillaArgs,
-    const Json::Value &_json, TransactionReceipt &receipt,
-    uint32_t preScillaVersion) {
+    CpsAccountStoreInterface &acc_store, CpsContext &cpsContext,
+    ScillaArgs &scillaArgs, const Json::Value &_json,
+    TransactionReceipt &receipt, uint32_t preScillaVersion) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -94,26 +96,26 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     LOG_GENERAL(
         WARNING,
         "The json output of this contract didn't contain gas_remaining");
-    if (scillaArgs.gasLimit > CONTRACT_INVOKE_GAS) {
-      scillaArgs.gasLimit -= CONTRACT_INVOKE_GAS;
+    if (cpsContext.gasTracker.GetCoreGas() > CONTRACT_INVOKE_GAS) {
+      cpsContext.gasTracker.DecreaseByCore(CONTRACT_INVOKE_GAS);
     } else {
-      scillaArgs.gasLimit = 0;
+      cpsContext.gasTracker.DecreaseByCore(cpsContext.gasTracker.GetCoreGas());
     }
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return {};
   }
-  // uint64_t startGas = gasRemained;
+  uint64_t gasRemained = 0;
   try {
-    scillaArgs.gasLimit = std::min(
-        scillaArgs.gasLimit,
+    gasRemained = std::min(
+        cpsContext.gasTracker.GetCoreGas(),
         boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
     return {};
   }
-  LOG_GENERAL(INFO, "gasRemained: " << scillaArgs.gasLimit);
-
+  cpsContext.gasTracker.SetGasCore(gasRemained);
+  LOG_GENERAL(INFO, "gasRemained: " << cpsContext.gasTracker.GetCoreGas());
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
@@ -195,6 +197,16 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
       return {};
     }
 
+    // At this point we don't support any named calls from Scilla to EVM
+    for (const auto &param : msg["params"]) {
+      if (param.isMember("vname") && param["vname"] == "_EvmCall") {
+        LOG_GENERAL(INFO, "Found _EvmCall tag in message, reverting");
+        receipt.AddError(CALL_CONTRACT_FAILED);
+        return ScillaCallParseResult{
+            .success = false,
+            .failureType = ScillaCallParseResult::NON_RECOVERABLE};
+      }
+    }
     const auto recipient = Address(msg["_recipient"].asString());
 
     // Recipient is contract
@@ -219,15 +231,41 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
 
     // ZIL-5165: Don't fail if the recipient is a user account.
     {
-      const CpsAccountStoreInterface::AccountType accountType = acc_store.GetAccountType(recipient);
+      const CpsAccountStoreInterface::AccountType accountType =
+          acc_store.GetAccountType(recipient);
       LOG_GENERAL(INFO, "Target is accountType " << accountType);
       if (accountType == CpsAccountStoreInterface::DoesNotExist ||
           accountType == CpsAccountStoreInterface::EOA) {
         LOG_GENERAL(INFO, "Target is EOA: processing.");
-        // Message sent to a non-contract account. Add something to results.entries so that if this
-        // message attempts to transfer funds, it succeeds.
-        results.entries.emplace_back(ScillaCallParseResult::SingleResult{
-            {}, recipient, amount, false});
+        // Message sent to a non-contract account. Add something to
+        // results.entries so that if this message attempts to transfer funds,
+        // it succeeds.
+        results.entries.emplace_back(
+            ScillaCallParseResult::SingleResult{{}, recipient, amount, false});
+        continue;
+      }
+    }
+
+    if (acc_store.isAccountEvmContract(recipient)) {
+      // Workaround before we have full interop: treat EVM contracts as EOA
+      // accounts only if there's no handler, otherwise revert
+      if (CpsRunEvm::ProbeERC165Interface(acc_store, cpsContext,
+                                          scillaArgs.dest, recipient)) {
+        LOG_GENERAL(
+            INFO, "Found ScillaReceiver interface in dest contract, reverting");
+        return ScillaCallParseResult{
+            .success = false,
+            .failureType = ScillaCallParseResult::NON_RECOVERABLE};
+      }
+
+      if (!scillaArgs.extras ||
+          scillaArgs.extras->scillaReceiverAddress != Address{}) {
+        return ScillaCallParseResult{
+            .success = false,
+            .failureType = ScillaCallParseResult::NON_RECOVERABLE};
+      } else {
+        results.entries.emplace_back(
+            ScillaCallParseResult::SingleResult{{}, recipient, amount, false});
         continue;
       }
     }
@@ -267,7 +305,8 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
         std::move(inputMessage), recipient, amount, isNextContract});
   }
 
-  LOG_GENERAL(INFO, "Returning success " << results.success << " entries " << results.entries.size());
+  LOG_GENERAL(INFO, "Returning success " << results.success << " entries "
+                                         << results.entries.size());
   return results;
 }
 

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG SCILLA_VERSION=v0.13.1
+ARG SCILLA_VERSION=v0.13.3
 
 # Common dependencies of the builder and runner stages.
 FROM arm64v8/ubuntu:23.04 AS base
@@ -70,7 +70,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.
     sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN cargo install sccache
+RUN cargo install --git https://github.com/rrw-zilliqa/sccache --branch rrw_compile_fix sccache --locked
+#RUN cargo install sccache
 ENV SCCACHE_CACHE_SIZE="1G"
 ENV SCCACHE_DIR="/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"

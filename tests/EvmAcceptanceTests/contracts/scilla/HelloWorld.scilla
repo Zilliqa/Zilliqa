@@ -30,3 +30,6 @@ transition getHello ()
     e = {_eventname: "getHello()"; msg: r};
     event e
 end
+transition throwError ()
+    throw
+end
