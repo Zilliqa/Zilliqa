@@ -17,7 +17,7 @@
 ARG SCILLA_VERSION=v0.13.1
 
 # Common dependencies of the builder and runner stages.
-FROM ubuntu:22.04 AS base
+FROM arm64v8/ubuntu:23.04 AS base
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -77,12 +77,11 @@ ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
 # CMake 3.24
 ARG CMAKE_VERSION=3.24.2
-RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
-    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-aarch64.sh \
     && mkdir -p "${HOME}"/.local \
-    && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
+    && bash ./cmake-${CMAKE_VERSION}-Linux-aarch64.sh --skip-license --prefix="${HOME}"/.local/ \
     && "${HOME}"/.local/bin/cmake --version \
-    && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+    && rm cmake-${CMAKE_VERSION}-Linux-aarch64.sh
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Setup ccache
@@ -97,6 +96,7 @@ ARG VCPKG_ROOT=/vcpkg
 
 RUN ccache -p && ccache -z
 
+ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 # If COMMIT_OR_TAG is a branch name or a tag, clone a shallow copy which is
 # faster; if this fails, just clone the full repo and checkout the commit.
 RUN git clone https://github.com/microsoft/vcpkg ${VCPKG_ROOT} \
@@ -113,8 +113,10 @@ COPY vcpkg.json .
 # vcpkg compiled python.
 RUN apt-get update
 RUN apt-get install -y python3-dev
-RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
-RUN apt-get remove -y python3-dev && apt-get autoremove -y
+RUN --mount=type=cache,target=/root/.cache/vcpkg/ \
+  echo "set(VCPKG_TARGET_ARCHITECTURE arm64)\nset(VCPKG_CRT_LINKAGE dynamic)\nset(VCPKG_LIBRARY_LINKAGE dynamic)\nset(VCPKG_CMAKE_SYSTEM_NAME Linux)\nset(VCPKG_FIXUP_ELF_RPATH ON)" >> ${VCPKG_ROOT}/triplets/community/arm64-linux-dynamic.cmake \
+  && ${VCPKG_ROOT}/vcpkg install --triplet=arm64-linux-dynamic
+RUN apt-get remove -y python3-dev python3 && apt-get autoremove -y
 
 ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
@@ -124,11 +126,11 @@ WORKDIR /zilliqa
 COPY src/libPersistence/*.proto src/libPersistence/
 COPY src/libUtils/*.proto src/libUtils/
 COPY evm-ds/ evm-ds
-RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/build/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
+RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/build/vcpkg_installed/arm64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
 
 RUN ls -l /zilliqa/evm-ds/target
 
-ARG VCPKG_PYTHON_PATH=/zilliqa/build/vcpkg_installed/x64-linux-dynamic/tools/python3
+ARG VCPKG_PYTHON_PATH=/zilliqa/build/vcpkg_installed/arm64-linux-dynamic/tools/python3
 ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
 ARG PYTHON3_ENV_PATH=/usr/local
 RUN ${VCPKG_PYTHON3} -m ensurepip \
@@ -136,16 +138,19 @@ RUN ${VCPKG_PYTHON3} -m ensurepip \
   && mkdir -p ${PYTHON3_ENV_PATH}/bin \
   && mkdir -p ${PYTHON3_ENV_PATH}/lib \
   && cp ${VCPKG_PYTHON_PATH}/* ${PYTHON3_ENV_PATH}/bin/ \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libffi.so /usr/local/lib  \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libssl.so* /usr/local/lib  \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libcrypto.so* /usr/local/lib  \
+  && cp /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/libffi.so /usr/local/lib  \
+  && cp /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/libssl.so* /usr/local/lib  \
+  && cp /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/libcrypto.so* /usr/local/lib  \
   && ldd ${VCPKG_PYTHON3} | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} /usr/local/lib \
-  && cp -R /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
+  && cp -R /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
 
 RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
   && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
 
 COPY docker/requirements3.txt ./
+RUN apt-get install -y patchelf \
+  && patchelf --set-rpath ${PYTHON3_ENV_PATH}/lib ${PYTHON3_ENV_PATH}/bin/python3.10
+
 RUN python3 -m pip install --upgrade pip setuptools wheel \
   && python3 -m pip install --no-cache-dir -r requirements3.txt
 
@@ -207,8 +212,8 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 
 FROM builder AS test_runner
 RUN mkdir -p \
-    /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/x64-linux-dynamic \
-    && ln -s /usr/local/lib /scilla/0/vcpkg_installed/x64-linux-dynamic
+    /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/arm64-linux-dynamic \
+    && ln -s /usr/local/lib /scilla/0/vcpkg_installed/arm64-linux-dynamic
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 # pour in scilla tests
@@ -241,7 +246,7 @@ COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /zilliqa/evm-ds/target/release/evm-ds /usr/local/bin/
 COPY --from=builder /zilliqa/evm-ds/log4rs.yml /usr/local/etc/
 
-ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
+ADD https://github.com/krallin/tini/releases/latest/download/tini-arm64 /tini
 
 # The above COPY doesn't preserve symlinks which causes gcc/g++/cc/c++
 # to hang as stand-alone binaries on Ubuntu 22.04.

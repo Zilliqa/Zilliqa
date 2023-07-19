@@ -47,6 +47,7 @@ class SendJobsVariables {
   std::atomic<int> sendMessageToPeerFailed = 0;
   std::atomic<int> sendMessageToPeerSyncCount = 0;
   std::atomic<int> activePeersSize = 0;
+  std::atomic<int> reconnectionToPeerCount = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -71,6 +72,11 @@ class SendJobsVariables {
     activePeersSize = amount;
   }
 
+  void AddReconntionToPeerCount(int count) {
+    Init();
+    reconnectionToPeerCount += count;
+  }
+
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "sendjobs.gauge",
@@ -84,6 +90,8 @@ class SendJobsVariables {
         result.Set(sendMessageToPeerSyncCount.load(),
                    {{"counter", "SendMessageToPeerSyncCount"}});
         result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
+        result.Set(reconnectionToPeerCount.load(),
+                   {{"counter", "ReconnectionToPeerCount"}});
       });
     }
   }
