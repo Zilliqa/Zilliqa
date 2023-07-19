@@ -16,6 +16,11 @@
 #define KEY_SPEC_PROCEDURE_PARAMETERS    "params"
 #define KEY_SPEC_RETURN_TYPE             "returns"
 
+
+// This is rather horrid, but the alternative is to try and rejig the whole library to make
+// C++0x enums work, which is quite disruptive.
+#define OPTIONAL_JSONTYPE(t)  ((int)((int)(t) | (int)JSON_FLAG_OPTIONAL))
+
 namespace jsonrpc
 {
     /**
@@ -40,6 +45,12 @@ namespace jsonrpc
         JSON_ARRAY = 6,
         JSON_NUMERIC = 7
     } ;
+
+    enum jsonflags_t
+    {
+      JSON_FLAG_OPTIONAL = 0x010000
+    };
+
 }
 
 #endif // JSONRPC_CPP_SPECIFICATION_H

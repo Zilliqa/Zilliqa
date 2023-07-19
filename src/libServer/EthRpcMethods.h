@@ -121,7 +121,13 @@ class EthRpcMethods {
                                          Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
-    response = this->GetEthEstimateGas(request[0u]);
+    std::string block_or_tag;
+    if (request.size()> 1) {
+      block_or_tag = request[1u].asString();
+    }
+
+    response = this->GetEthEstimateGas(request[0u],
+                                       (request.size() > 1 ? &block_or_tag : nullptr));
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
@@ -714,7 +720,7 @@ class EthRpcMethods {
   std::string DebugTraceCallEth(const Json::Value& _json,
                                 const std::string& block_or_tag,
                                 const Json::Value& tracer);
-  std::string GetEthEstimateGas(const Json::Value& _json);
+  std::string GetEthEstimateGas(const Json::Value& _json, const std::string *block_or_tag);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys,
                              std::string const& tracer = "");
   Json::Value GetBalanceAndNonce(const std::string& address);
