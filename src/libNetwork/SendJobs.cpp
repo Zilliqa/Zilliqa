@@ -44,7 +44,6 @@ class SendJobsVariables {
   std::atomic<int> sendMessageToPeerFailed = 0;
   std::atomic<int> sendMessageToPeerSyncCount = 0;
   std::atomic<int> activePeersSize = 0;
-  std::atomic<int> reconnectionToPeerCount = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -69,26 +68,16 @@ class SendJobsVariables {
     activePeersSize = amount;
   }
 
-  void AddReconntionToPeerCount(int count) {
-    Init();
-    reconnectionToPeerCount += count;
-  }
-
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "sendjobs.gauge",
                                           "Send Jobs metrics", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
-        result.Set(sendMessageToPeerCount.load(),
-                   {{"counter", "SendMessageToPeerCount"}});
-        result.Set(sendMessageToPeerFailed.load(),
-                   {{"counter", "SendMessageToPeerFailed"}});
-        result.Set(sendMessageToPeerSyncCount.load(),
-                   {{"counter", "SendMessageToPeerSyncCount"}});
+        result.Set(sendMessageToPeerCount.load(), {{"counter", "SendMessageToPeerCount"}});
+        result.Set(sendMessageToPeerFailed.load(), {{"counter", "SendMessageToPeerFailed"}});
+        result.Set(sendMessageToPeerSyncCount.load(), {{"counter", "SendMessageToPeerSyncCount"}});
         result.Set(activePeersSize.load(), {{"counter", "ActivePeersSize"}});
-        result.Set(reconnectionToPeerCount.load(),
-                   {{"counter", "ReconnectionToPeerCount"}});
       });
     }
   }
@@ -127,9 +116,7 @@ inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
           ec == NETWORK_UNREACHABLE);
 }
 
-inline bool IsNodeNotRunning(const ErrorCode& ec) {
-  return (ec == TIMED_OUT || ec == CONN_REFUSED);
-}
+inline bool IsNodeNotRunning(const ErrorCode& ec) { return (ec == TIMED_OUT || ec == CONN_REFUSED); }
 
 inline Milliseconds Clock() {
   return std::chrono::duration_cast<Milliseconds>(
@@ -138,22 +125,21 @@ inline Milliseconds Clock() {
 
 /// Waits for timer and calls a member function of Object,
 /// Timer must be in the scope of object (for pointers validity)
-template <typename F, typename Time>
-void WaitTimer(SteadyTimer& timer, Time delay, F onTimerHandler) {
+template <typename Object, typename Time>
+void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
+               void (Object::*OnTimer)()) {
   ErrorCode ec;
   timer.expires_at(
       boost::asio::steady_timer::clock_type::time_point(Clock() + delay), ec);
 
   if (ec) {
-    LOG_GENERAL(FATAL,
-                "Cannot set timer: " << ec.message() << " (" << ec << ')');
+    LOG_GENERAL(FATAL, "Cannot set timer");
     return;
   }
 
-  timer.async_wait([onTimer = std::move(onTimerHandler)](const ErrorCode& ec) {
-    LOG_GENERAL(DEBUG, "Timer expired: " << ec.message() << " (" << ec << ')');
-    if (!ec) {
-      onTimer();
+  timer.async_wait([obj, OnTimer](const ErrorCode& error) {
+    if (!error) {
+      (obj->*OnTimer)();
     }
   });
 }
@@ -264,19 +250,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
-      m_socket.cancel();
-      OnConnected(TIMED_OUT);
-    });
-    m_socket.async_connect(m_endpoint, [self = shared_from_this()](
-                                           const ErrorCode& ec) {
-      LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
-                                          << ec.message() << " (" << ec << ')');
-      if (ec != OPERATION_ABORTED) {
-        self->m_timer.cancel();
-        self->OnConnected(ec);
-      }
-    });
+    m_socket.async_connect(m_endpoint,
+                           [self = shared_from_this()](const ErrorCode& ec) {
+                             if (ec != OPERATION_ABORTED) {
+                               self->OnConnected(ec);
+                             }
+                           });
   }
 
   void OnConnected(const ErrorCode& ec) {
@@ -301,10 +280,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
-        [self = shared_from_this()](const ErrorCode& ec, size_t count) {
-          LOG_GENERAL(DEBUG, "Wrote " << count << " bytes to "
-                                      << self->m_endpoint << ": "
-                                      << ec.message() << " (" << ec << ')');
+        [self = shared_from_this()](const ErrorCode& ec, size_t) {
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
           }
@@ -388,9 +364,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     assert(ec);
 
-    zil::local::variables.AddReconntionToPeerCount(1);
-    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS},
-              [this]() { Reconnect(); });
+    WaitTimer(m_timer, Milliseconds(1000), this, &PeerSendQueue::Reconnect);
   }
 
   void Reconnect() {
@@ -497,10 +471,10 @@ class SendJobsImpl : public SendJobs,
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-      LOG_GENERAL(INFO, "Ignoring blacklisted peer "
-                            << peer.GetPrintableIPAddress()
-                            << "allow relaxed blacklist "
-                            << allow_relaxed_blacklist);
+      LOG_GENERAL(INFO,
+                  "Ignoring blacklisted peer " <<
+                  peer.GetPrintableIPAddress()
+                  << "allow relaxed blacklist " << allow_relaxed_blacklist);
       return;
     }
 
@@ -514,6 +488,7 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
+
     if (ec) {
       LOG_GENERAL(
           INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
