@@ -27,8 +27,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/container/small_vector.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 
 #include "SendJobs.h"
 
@@ -125,6 +123,13 @@ inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
                                         !allow_relaxed_blacklist);
 }
 
+inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
+  return (ec == HOST_UNREACHABLE || ec == NETWORK_DOWN ||
+          ec == NETWORK_UNREACHABLE);
+}
+
+inline bool IsNodeNotRunning(const ErrorCode& ec) { return (ec == TIMED_OUT || ec == CONN_REFUSED); }
+
 inline Milliseconds Clock() {
   return std::chrono::duration_cast<Milliseconds>(
       boost::asio::steady_timer::clock_type::now().time_since_epoch());
@@ -149,41 +154,6 @@ void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
       (obj->*OnTimer)();
     }
   });
-}
-
-std::set<Peer> ExtractMultipliers() {
-  using boost::property_tree::ptree;
-
-  std::set<Peer> peers;
-
-  try {
-    ptree pt;
-    read_xml("constants.xml", pt);
-    for (const ptree::value_type& v : pt.get_child("node.multipliers")) {
-      if (v.first == "peer") {
-        struct in_addr ip_addr {};
-        inet_pton(AF_INET, v.second.get<std::string>("ip").c_str(), &ip_addr);
-        if (ip_addr.s_addr == 0) {
-          LOG_GENERAL(WARNING, "Ignoring zero multiplier IP");
-          continue;
-        }
-        auto port = v.second.get<uint32_t>("port");
-        if (port == 0) {
-          LOG_GENERAL(WARNING, "Ignoring zero multiplier port");
-          continue;
-        }
-        auto inserted = peers.emplace(uint128_t(ip_addr.s_addr), port);
-        if (inserted.second) {
-          LOG_GENERAL(INFO, "Found multiplier at " << *inserted.first);
-        }
-      }
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Cannot read multipliers from constants.xml: " << e.what());
-  }
-
-  return peers;
 }
 
 /// Returns a dummy buffer to read into (we really need to use reads in this
@@ -255,14 +225,13 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   using DoneCallback = std::function<void(const Peer& peer)>;
 
   PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb, Peer peer,
-                bool is_multiplier, bool no_wait)
+                bool no_wait = false)
       : m_asioContext(ctx),
         m_doneCallback(done_cb),
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
         m_timer(m_asioContext),
         m_messageExpireTime(std::max(15000u, TX_DISTRIBUTE_TIME_IN_MS * 5 / 6)),
-        m_isMultiplier(is_multiplier),
         m_noWait(no_wait) {}
 
   ~PeerSendQueue() { Close(); }
@@ -386,7 +355,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void SendMessage() {
     if (!FindNotExpiredMessage()) {
-      if (m_connected && !m_noWait && !m_isMultiplier) {
+      if (m_connected && !m_noWait) {
         m_inIdleTimeout = true;
         WaitTimer(m_timer, IDLE_TIMEOUT, this, &PeerSendQueue::OnIdleTimer);
       } else {
@@ -439,12 +408,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_queue.pop_front();
 
-    if (m_isMultiplier) {
-      m_connected = false;
-      Reconnect();
-    } else {
-      SendMessage();
-    }
+    SendMessage();
   }
 
   void ScheduleReconnectOrGiveUp() {
@@ -493,8 +457,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   // TODO: make it explicit for various kinds of messages
   Milliseconds m_messageExpireTime;
 
-  bool m_isMultiplier;
-
   // If true, then this instance will nolonger disturb the owner which may not
   // exist at the moment (shared_ptr may be live in some async operations)
   bool m_closed = false;
@@ -512,7 +474,6 @@ class SendJobsImpl : public SendJobs,
  public:
   SendJobsImpl()
       : m_doneCallback([this](const Peer& peer) { OnPeerQueueFinished(peer); }),
-        m_multipliers(ExtractMultipliers()),
         m_workerThread([this] { WorkerThread(); }) {}
 
   ~SendJobsImpl() override {
@@ -555,8 +516,8 @@ class SendJobsImpl : public SendJobs,
       localCtx.stop();
     };
 
-    auto peerCtx = std::make_shared<PeerSendQueue>(
-        localCtx, doneCallback, std::move(peer), false, true);
+    auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
+                                                   std::move(peer), true);
     peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();
@@ -575,9 +536,8 @@ class SendJobsImpl : public SendJobs,
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
-      bool is_multiplier = m_multipliers.contains(peer);
-      ctx = std::make_shared<PeerSendQueue>(
-          m_asioCtx, m_doneCallback, std::move(peer), is_multiplier, false);
+      ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback,
+                                            std::move(peer));
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
@@ -611,7 +571,6 @@ class SendJobsImpl : public SendJobs,
 
   AsioContext m_asioCtx;
   PeerSendQueue::DoneCallback m_doneCallback;
-  std::set<Peer> m_multipliers;
   std::thread m_workerThread;
   std::map<Peer, std::shared_ptr<PeerSendQueue>> m_activePeers;
 };
