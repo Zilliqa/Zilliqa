@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -568,6 +568,7 @@ def create_start_sh(args):
     rand2 = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf"
     my_public_key, my_private_key = get_my_keypair(args).strip().split(' ')
     my_ip, my_port = get_my_ip_and_port(args)
+    my_ns = 'zil-ns-{}'.format(int(my_ip[my_ip.rfind('.') + 1:]))
 
     # hex string from IPv4 or IPv6 string
     def ip_to_hex(ip):
@@ -665,7 +666,7 @@ def create_start_sh(args):
             '--cmd cmd',
             '--cmdarg 0200' + block0 + ds_diff + diff + rand1 + rand2 + ''.join(
                 [
-                    ds[0] + ip_to_hex(ds[1][0]) + str(ds[1][1])
+                    ds[0] + ip_to_hex(ds[1][0]) + '{0:08X}'.format(ds[1][1])
                     for ds in zip(ds_public_keys, ds_ips)
                 ]
             )
@@ -693,7 +694,7 @@ def create_start_sh(args):
         gen_testnet_sed_string(args, "/run/zilliqa/auto_backup.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         gen_bucket_sed_string(args, "/run/zilliqa/auto_backup.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         'chmod u+x /run/zilliqa/auto_backup.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
-        'pip3 install ' + ('--user ' if sys.platform == 'darwin' else '') + 'requests clint',
+        #'pip3 install ' + ('--user ' if sys.platform == 'darwin' else '') + 'requests clint',
         'storage_path=$(grep STORAGE_PATH /run/zilliqa/constants.xml | sed -e \'s,^[^<]*<[^>]*>\\([^<]*\\)<[^>]*>.*$,\\1,\')' if is_new(args) or is_seedprv(args) else '',
         gen_testnet_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
@@ -721,9 +722,14 @@ def create_start_sh(args):
 
     start_sh.extend(cmd_recovery)
 
-    with open('start.sh', 'w') as f:
+    with open('netns_start.sh', 'w') as f:
         for line in start_sh:
             f.write(line + '\n')
+
+    with open('start.sh', 'w') as f:
+        f.write(f'sudo bash -c "source /root/.bash_profile; ip netns exec {my_ns} sh netns_start.sh"')
+
+    return my_ns
 
 
 def wait_for_aws_elb_ready(name):
@@ -1063,9 +1069,10 @@ def main():
             create_shard_whitelist_xml(args)
         create_config_xml(args)
         create_dsnodes_xml(args)
-        create_start_sh(args)
+        return create_start_sh(args)
 
     def generate_nodes(node_type, first_index, count):
+        node_nss = []
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
         zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'zilliqa'))
         scilla_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'scilla'))
@@ -1083,9 +1090,9 @@ def main():
 
                 args.type = node_type
                 args.index = index
-                generate_files(pod_name)
+                node_nss.append(generate_files(pod_name))
                 sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
-                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
+                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," netns_start.sh')
                 os.system(f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
 
                 for file_name in ['zilliqa', 'zilliqad', 'sendcmd']:
@@ -1101,6 +1108,8 @@ def main():
             finally:
                 os.chdir(os.getcwd())
 
+        return node_nss
+
     try:
         os.mkdir(args.out_dir)
     except FileExistsError:
@@ -1108,11 +1117,12 @@ def main():
 
     cwd = os.getcwd()
 
-    generate_nodes('lookup', 0, args.l)
-    generate_nodes('dsguard', 0, args.ds_guard)
-    generate_nodes('normal', 0, args.d - args.ds_guard)
-    generate_nodes('normal', args.d - args.ds_guard, args.n - args.d)
-    generate_nodes('seedpub', 0, sum(args.multiplier_fanout))
+    nss = []
+    nss = nss + generate_nodes('lookup', 0, args.l)
+    nss = nss + generate_nodes('dsguard', 0, args.ds_guard)
+    nss = nss + generate_nodes('normal', 0, args.d - args.ds_guard)
+    nss = nss + generate_nodes('normal', args.d - args.ds_guard, args.n - args.d)
+    nss = nss + generate_nodes('seedpub', 0, sum(args.multiplier_fanout))
 
     return 0
 
