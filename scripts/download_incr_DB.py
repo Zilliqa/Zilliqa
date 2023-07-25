@@ -133,7 +133,7 @@ def RsyncBlockChainData(source,destination):
 	print("Command = " + bashCommand)	
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	print("Copied local historical-data persistence to main persistence!")
+	print(f'Copied local historical-data persistence to main persistence! (error: {error})')
 
 def Diff(list1, list2):
 	return (list(list(set(list1)-set(list2)) + list(set(list2)-set(list1))))
