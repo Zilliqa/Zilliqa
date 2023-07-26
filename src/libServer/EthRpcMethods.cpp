@@ -2262,6 +2262,7 @@ Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, cons
   auto jsonBlock = GetEthBlockCommon(txBlock, true);
 
   auto transactions = jsonBlock["transactions"];
+  jsonBlock["transactionCount"] = transactions.size();
 
   auto start = pageNumber * pageSize;
   auto end = std::min(transactions.size(), (pageNumber + 1) * pageSize);
