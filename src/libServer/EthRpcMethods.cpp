@@ -2240,8 +2240,6 @@ Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   uint128_t fees = (isVacuous ? 0 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
   auto jsonBlock = GetEthBlockCommon(txBlock, false);
 
-  jsonBlock["gasLimit"] = "0x1";
-
   jsonBlock.removeMember("transactions");
   jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
   jsonBlock["logsBloom"] = Json::nullValue;
