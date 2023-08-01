@@ -162,8 +162,12 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
 #define LOG_GENERAL(level, msg) \
   { TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
 
+#ifndef Q4_SPECIAL
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
+#else
+#define LOG_MARKER()
+#endif
 
 #define LOG_MARKER_CONTITIONAL(conditional) \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__, conditional};
