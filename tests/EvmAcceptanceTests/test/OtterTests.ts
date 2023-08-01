@@ -41,6 +41,22 @@ describe("Otterscan api tests", function () {
     });
   });
 
+  it("When TX succeeds, we can get 0x", async function () {
+    const METHOD = "ots_getTransactionError";
+
+    // Create a simple contract creation transaction that will succeed and so API request returns "Ox"
+    const Contract = await ethers.getContractFactory("SimpleContract");
+    const contract = await Contract.deploy();
+
+    await sendJsonRpcRequest(METHOD, 1, [contract.deployTransaction.hash], (result, status) => {
+      assert.equal(status, 200, "has status code");
+
+      let jsonObject = result.result;
+
+      assert.equal(jsonObject, "0x");
+    });
+  });
+
   it("We can get the otter internal operations", async function () {
     const METHOD = "ots_getInternalOperations";
 
@@ -69,6 +85,23 @@ describe("Otterscan api tests", function () {
 
       assert.equal(jsonObject[0]["type"], 0, "has correct type for transfer");
       assert.equal(jsonObject[3]["type"], 1, "has correct type for self destruct");
+    });
+  });
+
+  it("When a contract has no internal operations, we get empty list", async function () {
+    const METHOD = "ots_getInternalOperations";
+
+    // Create a simple contract creation transaction which involves no internal operations
+    // so API call returns []
+    const Contract = await ethers.getContractFactory("SimpleContract");
+    const contract = await Contract.deploy();
+
+    await sendJsonRpcRequest(METHOD, 1, [contract.deployTransaction.hash], (result, status) => {
+      assert.equal(status, 200, "has status code");
+
+      let jsonObject = result.result;
+
+      assert(Array.isArray(jsonObject) && !jsonObject.length);
     });
   });
 
