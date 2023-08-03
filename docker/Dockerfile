@@ -79,7 +79,7 @@ ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 # CMake 3.24
 ARG CMAKE_VERSION=3.24.2
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
-    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \
     && mkdir -p "${HOME}"/.local \
     && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
     && "${HOME}"/.local/bin/cmake --version \

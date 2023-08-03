@@ -27,7 +27,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -268,7 +268,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Clear();
-  P2PComm::ClearPeerConnectionCount();
 
   CleanWhitelistReqs();
   m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
@@ -334,7 +333,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // CommitTxnPacketBuffer();
@@ -519,6 +518,8 @@ bool Node::ProcessVCDSBlocksMessage(
 
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    LOG_EXTRA("Shards updated " << m_mediator.m_ds->m_shards.size() << "->"
+                                << t_shards.size());
     m_mediator.m_ds->m_shards = std::move(t_shards);
   }
 
@@ -713,7 +714,6 @@ bool Node::ProcessVCDSBlocksMessage(
     ResetConsensusId();
     // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
-    P2PComm::GetInstance().ClearPeerConnectionCount();
 
     m_mediator.m_node->CleanWhitelistReqs();
 

@@ -26,7 +26,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -787,7 +787,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, mb_message);
+  zil::p2p::GetInstance().SendMessage(peer, mb_message);
 
   return true;
 }

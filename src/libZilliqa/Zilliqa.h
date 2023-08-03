@@ -37,7 +37,6 @@
 /// Main Zilliqa class.
 class Zilliqa {
  public:
-  // TODO shared instead of unique due to lambda move capture limitations
   using Msg = std::shared_ptr<zil::p2p::Message>;
 
  private:
@@ -82,9 +81,6 @@ class Zilliqa {
 
   /// Forwards an incoming message for processing by the appropriate subclass.
   void Dispatch(Msg message);
-
-  static std::string FormatMessageName(unsigned char msgType,
-                                       unsigned char instruction);
 };
 
 #endif  // ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
