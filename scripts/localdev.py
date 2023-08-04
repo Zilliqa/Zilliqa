@@ -393,7 +393,7 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     helm_remove_repository(config, 'grafana')
 
-def prometheus_up(config, testnet_name, count = 23):
+def prometheus_up(config, testnet_name, count = 24):
     """ Let helm deploy prometheus """
     ips = []
     while True:
@@ -421,6 +421,10 @@ def prometheus_up(config, testnet_name, count = 23):
             ips.append(pod_ip)
 
         if len(ips) != count:
+            # If for some reason you see the following line repeating indefinitely when
+            # bringing up a devnet, it's most likely because the count is incorrect either
+            # due to a change in write_testnet_configuration or in the testnet repo (perhaps
+            # someone added/removed pods?).
             print(f"Waiting for all pods to be assigned an IP...")
             time.sleep(2)
         else:
@@ -519,11 +523,11 @@ def up_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts, p
 
 def up(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file):
     minikube = get_minikube_ip(config)
-    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file)
+    count = write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, persistence, key_file)
     localstack_up(config)
     grafana_up(config, testnet_name)
     start_testnet(config, testnet_name, persistence)
-    prometheus_up(config, testnet_name)
+    prometheus_up(config, testnet_name, count)
     tempo_up(config, testnet_name)
     restart_ingress(config);
     print("Ingress restarted; you should be ready to go...");
@@ -715,15 +719,23 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         print(f"Removing old testnet configuration ..")
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
+
+    node_count = "20"
+    lookup_count = "1"
+    multiplier_fanout = "2"
+    fireblocks_enabled = "true"
+
+    count = int(node_count) + int(lookup_count) + sum([int(x) for x in multiplier_fanout.split(',')]) + (1 if fireblocks_enabled == "true" else 0)
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
         os.path.join(ZILLIQA_DIR, "constants.xml"),
         "--image", zilliqa_image,
-        "-n", "20",
+        "-n", node_count,
         "-d", "5",
-        "-l", "1",
+        "-l", lookup_count,
         "--guard", "4/10",
         "--gentxn", "false",
-        "--multiplier-fanout", "2",
+        "--multiplier-fanout", multiplier_fanout,
+        "--fireblocks-enabled", fireblocks_enabled,
         "--host-network", "false",
         "--https", "localdomain",
         "--seed-multiplier", "true",
@@ -752,6 +764,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     output_config = config_file.toprettyxml(newl='')
     with open(constants_xml_target_path, 'w') as f:
         f.write(output_config)
+
+    return count 
 
 def kill_mitmweb(config, pidfile_name):
     pidfile = Pidfile(config, pidfile_name)
