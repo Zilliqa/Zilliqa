@@ -1,12 +1,12 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
-import { HardhatUserConfig } from "hardhat/types";
+import {HardhatUserConfig} from "hardhat/types";
 import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 import semver from "semver";
-import "./tasks/ZilBalance"
-import "./tasks/Transfer"
+import "./tasks/ZilBalance";
+import "./tasks/Transfer";
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
@@ -58,22 +58,6 @@ const config: HardhatUserConfig = {
       protocolVersion: 0x41,
       zilliqaNetwork: true,
       miningState: false
-    },
-    ganache: {
-      url: "http://localhost:7545",
-      websocketUrl: "ws://localhost:7545",
-      chainId: 1337,
-      web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
-      protocolVersion: 0x3f,
-      accounts: [
-        // memonic: guard same cactus near figure photo remove letter target alien initial remove
-        "67545ce31f5ca86719cf3743730435768515ebf014f84811463edcf7dcfaf91e",
-        "9be4f8840833f64d4881027f4a53961d75bc649ac4801b33f746487ca8873f14",
-        "32a75b674cc41405c914de1fe7b031b832dfd9203e1a287d09122bab689519e3",
-        "dd8ce58f8cecd59fde7000fff9944908e89364b2ef36921c35725957617ddd32"
-      ],
-      zilliqaNetwork: false,
-      miningState: true
     },
     devnet: {
       url: "https://evmdev-l2api.dev.z7a.xyz",
@@ -161,6 +145,7 @@ const config: HardhatUserConfig = {
 
 // Extend hardhat runtime environment to have some utility functions and variables.
 import "./AddConfigHelpersToHre";
+import {extendEnvironment, task} from "hardhat/config";
 extendEnvironment((hre) => {
   hre.debug = ENV_VARS.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
@@ -170,11 +155,17 @@ extendEnvironment((hre) => {
 task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")
   .addFlag("logTxnid", "Log JSON RPC ")
-  .setAction((taskArgs, hre, runSuper) => {
+  .setAction(async (taskArgs, hre, runSuper): Promise<any> => {
+    let signers = await hre.ethers.getSigners();
+    let balances = await Promise.all(signers.map((signer) => signer.getBalance()));
+  
     const node_version = process.version;
     if (semver.gt(node_version, "17.0.0")) {
-      console.log("⛔️", clc.redBright.bold("Zilliqa-is incompatible with your current node version."), "It should be >13.0.0 & <17.0.0.");
-      return;
+      throw new Error(
+        "⛔️" +
+          clc.redBright.bold("Zilliqa-is incompatible with your current node version.") +
+          "It should be >13.0.0 & <17.0.0."
+      );
     }
 
     if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
@@ -195,7 +186,10 @@ task("test")
         }
       });
     }
-    return runSuper();
+    await runSuper();
+    let newBalances = await Promise.all(signers.map((signer) => signer.getBalance()));
+    let sum = balances.map((value, index) => value.sub(newBalances[index])).reduce((prev, current) => prev.add(current));
+    console.log(`  💰 ~${clc.blackBright.bold(hre.ethers.utils.formatEther(sum))} ZILs used`);
   });
 
 export default config;
