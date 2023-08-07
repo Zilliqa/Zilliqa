@@ -1,43 +1,46 @@
-import { BN, Zilliqa, bytes, toChecksumAddress, units } from "@zilliqa-js/zilliqa";
+import {BN, Zilliqa, bytes, toChecksumAddress, units} from "@zilliqa-js/zilliqa";
 import clc from "cli-color";
-import { ethers } from "ethers";
-import { task } from "hardhat/config";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {ethers} from "ethers";
+import {task} from "hardhat/config";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
 import Long from "long";
 
 task("transfer", "A task to transfer fund")
   .addParam("from", "Sender's private key")
-  .addParam("fromAddressType", "It can be either `eth` or `zil`. If eth is selected, Eth address of private key will be used. Otherwise, the zil address will be used.")
+  .addParam(
+    "fromAddressType",
+    "It can be either `eth` or `zil`. If eth is selected, Eth address of private key will be used. Otherwise, the zil address will be used."
+  )
   .addParam("to", "Receiver's address")
   .addParam("amount", "Amount to be transferred")
   .setAction(async (taskArgs, hre) => {
-    const { from, to, amount, fromAddressType } = taskArgs;
+    const {from, to, amount, fromAddressType} = taskArgs;
     if (fromAddressType === "eth") {
       await fundEth(hre, from, to.toLowerCase(), amount);
     } else if (fromAddressType === "zil") {
       await fundZil(hre, from, to.toLowerCase(), amount);
-  } else {
-    displayError(`--from-address-type should be either eth or zil. ${fromAddressType} is not supported`);
-  }
-});
+    } else {
+      displayError(`--from-address-type should be either eth or zil. ${fromAddressType} is not supported`);
+    }
+  });
 
 const fundEth = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: string, amount: string) => {
   const provider = new ethers.providers.JsonRpcProvider(hre.getNetworkUrl());
-  const wallet = new ethers.Wallet(privateKey, provider); 
+  const wallet = new ethers.Wallet(privateKey, provider);
   if ((await wallet.getBalance()).isZero()) {
     displayError("Sender doesn't have enough fund in its eth address.");
     return;
   }
 
-  console.log(`Current balance: ${clc.yellow.bold(await provider.getBalance(to))}`)
+  console.log(`Current balance: ${clc.yellow.bold(await provider.getBalance(to))}`);
   const response = await wallet.sendTransaction({
     to: to.toString(),
     value: ethers.utils.parseEther(amount)
-  })
+  });
 
-  await response.wait();    // Wait for transaction receipt
-  console.log(`New balance:     ${clc.green.bold(await provider.getBalance(to))}`)
-}
+  await response.wait(); // Wait for transaction receipt
+  console.log(`New balance:     ${clc.green.bold(await provider.getBalance(to))}`);
+};
 
 const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: string, amount: string) => {
   let zilliqa = new Zilliqa(hre.getNetworkUrl());
@@ -46,8 +49,8 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
   zilliqa.wallet.addByPrivateKey(privateKey);
   const ethAddrConverted = toChecksumAddress(to); // Zil checksum
   const balance = await getZilBalance(hre, to);
-  console.log(`Current balance: ${clc.yellow.bold(balance)}`)
-  
+  console.log(`Current balance: ${clc.yellow.bold(balance)}`);
+
   const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(
     zilliqa.transactions.new(
       {
@@ -66,17 +69,17 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
     const receipt = confirmedTxn.getReceipt();
     if (receipt && receipt.success) {
       const balance = await getZilBalance(hre, to);
-      console.log(`New balance:     ${clc.green.bold(balance)}`)
+      console.log(`New balance:     ${clc.green.bold(balance)}`);
       return;
     }
   }
 
   displayError(`Failed to fund ${ethAddrConverted}.`);
-}
+};
 
 const displayError = (error: string) => {
   console.log(clc.red.bold("Error: "), error);
-}
+};
 
 const getZilBalance = async (hre: HardhatRuntimeEnvironment, address: string): Promise<BN> => {
   let zilliqa = new Zilliqa(hre.getNetworkUrl());
@@ -87,4 +90,4 @@ const getZilBalance = async (hre: HardhatRuntimeEnvironment, address: string): P
   }
 
   return new BN(balanceResult.result.balance);
-}
+};
