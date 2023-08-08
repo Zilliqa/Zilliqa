@@ -1067,6 +1067,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
+  LOG_GENERAL(WARNING, "TXTRACEGEN: " <<  ARCHIVAL_LOOKUP_WITH_TX_TRACES);
+
   // In this special mode, we execute the TXs as if we were a validator,
   // in order to generate and save TX traces
   if (ARCHIVAL_LOOKUP_WITH_TX_TRACES) {

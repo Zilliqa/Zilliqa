@@ -60,15 +60,15 @@ const config: HardhatUserConfig = {
       miningState: false
     },
     devnet: {
-      url: "https://evmdev-l2api.dev.z7a.xyz",
-      websocketUrl: "wss://evmdev-l2api.dev.z7a.xyz",
+      url: "https://fireb-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://fireb-l2api.dev.z7a.xyz",
       accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
-        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45"
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3"
       ],
-      chainId: 33101,
+      chainId: 32769,
       zilliqaNetwork: true,
       web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,
@@ -78,10 +78,10 @@ const config: HardhatUserConfig = {
       url: "https://evm-api-dev.zilliqa.com",
       websocketUrl: "https://evm-api-dev.zilliqa.com",
       accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
-        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45"
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3"
       ],
       chainId: 33101,
       zilliqaNetwork: true,
