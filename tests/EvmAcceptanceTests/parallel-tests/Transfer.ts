@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import {Block, Scenario, scenario, test, xtest} from "../helpers"
+import {Block, Scenario, scenario, test, xtest, it} from "../helpers"
 import { Contract } from "ethers";
 import { expect } from "chai";
 
@@ -8,11 +8,11 @@ export const forwardZilScenario = async function(contract: Contract): Promise<Sc
 
     const signer = contract.signer;
     return scenario("ForwardZil contract",
-        test("Should return zero as the initial balance of the contract",
+        it("Should return zero as the initial balance of the contract",
             async () => expect(await ethers.provider.getBalance(contract.address)).to.be.eq(0),
             Block.BLOCK_1),
         
-        test(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called`,
+        it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called`,
             async() => {
                 await contract.deposit({ value: FUND });
                 expect(await ethers.provider.getBalance(contract.address)).to.be.eq(FUND)
