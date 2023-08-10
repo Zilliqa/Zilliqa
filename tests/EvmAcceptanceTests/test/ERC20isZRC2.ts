@@ -37,17 +37,29 @@ describe("ERC20 Is ZRC2", function () {
 
     contractOwner = hre.allocateSigner();
 
-    zrc2_contract = await parallelizer.deployScillaContract(
-      "FungibleToken",
-      await contractOwner.getAddress(),
-      "ERC20isZRC2 Token",
-      "SDT",
-      2,
-      1_000
+    if(signers.length < 3) {
+      this.skip();
+    }
+
+    contractOwner = signers[0];
+
+    zrc2_contract = await hre.deployScillaContract("FungibleToken",
+        await contractOwner.getAddress(),
+        "ERC20isZRC2 Token",
+        "SDT",
+        2,
+        1_000
     );
+<<<<<<< HEAD
     alice = hre.allocateSigner();
     bob = hre.allocateSigner();
     erc20_contract = await hre.deployContractWithSigner(
+=======
+    alice = signers[1];
+    bob = signers[2];
+    erc20_contract = await parallelizer.deployContractWithSigner(
+      contractOwner,
+>>>>>>> d8168f853 (Fixing test (#3739))
       "ERC20isZRC2",
       contractOwner,
       zrc2_contract.address?.toLowerCase()
@@ -151,7 +163,7 @@ describe("ERC20 Is ZRC2", function () {
   });
 
   it("Should not be able to transfer to evm contract when _EvmCall tag is present", async function () {
-    expect(erc20_contract.connect(contractOwner).transferFailed(erc20_contract.address, 150)).to.be.reverted;
+    await expect(erc20_contract.connect(contractOwner).transferFailed(erc20_contract.address, 150)).to.be.reverted;
     const zrc2Tokens = await erc20_contract.balanceOf(erc20_contract.address);
     expect(zrc2Tokens).to.be.eq(150);
   });
@@ -175,8 +187,8 @@ describe("ERC20 Is ZRC2", function () {
 
   it("Should not be able to transfer to evm contract when scilla receiver handler is present", async function () {
     const scillaSignature = utils.id("handle_scilla_message(string,bytes)").slice(0, 10);
-    expect(await erc165_contract.supportsInterface(scillaSignature)).to.be.true;
-    expect(erc20_contract.transfer(erc165_contract.address, 150)).to.be.reverted;
+    expect(await erc165_contract.connect(contractOwner).supportsInterface(scillaSignature)).to.be.true;
+    await expect(erc20_contract.transfer(erc165_contract.address, 150)).to.be.reverted;
     const zrc2Tokens = await erc20_contract.balanceOf(erc165_contract.address);
     expect(zrc2Tokens).to.be.eq(0);
   });
