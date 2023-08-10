@@ -1,9 +1,8 @@
-import {time, loadFixture} from "@nomicfoundation/hardhat-network-helpers";
-import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {expect} from "chai";
 import {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
-const BigNumber = ethers.BigNumber;
+import { BigNumber } from "ethers";
+import { JsonRpcProvider } from "@ethersproject/providers";
 
 // Test basic cases of gas transfer.
 
@@ -53,9 +52,9 @@ describe("GasTransferTest", function () {
     //   new TestCase( ONE_GWEI, BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)),
     //   new TestCase( ONE_GWEI, ONE_GWEI, BigNumber.from(0), BigNumber.from(0)),
   ];
-  var provider;
+  let provider: JsonRpcProvider;
   var signer;
-  var myAddress;
+  let myAddress: string;
 
   before(async function () {
     provider = ethers.provider;
@@ -74,10 +73,10 @@ describe("GasTransferTest", function () {
       const startOfRoundBalance = accountBalance;
       let cumulativeGas = BigNumber.from(0);
       let block = await provider.getBlock("latest");
-      let gasPrice = block.baseFee;
-      let maxPriority = block.maxPriorityFeePerGas;
-
+      
       if (DEBUG) {
+        let gasPrice = block.baseFee;
+        let maxPriority = block.maxPriorityFeePerGas;
         console.log(`[0] I am ${myAddress}`);
         console.log(`[0] My balance is ${accountBalance}, contract does not exist`);
         console.log(`[0] feePerGas ${gasPrice} maxPriority ${maxPriority}`);

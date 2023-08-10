@@ -2,6 +2,7 @@ import {assert, expect} from "chai";
 import {Contract} from "ethers";
 import {parallelizer} from "../helpers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
+import { ethers } from "hardhat";
 
 describe("Chained Contract Calls Functionality", function () {
   let contractOne: Contract;
