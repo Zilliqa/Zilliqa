@@ -23,13 +23,17 @@ export class Chronometer {
   endTime: number;
 }
 
-export const displayStageStarted = function(message: string) {
-    console.log(clc.bold(message));
+export const displayStageStarted = function (message: string) {
+  console.log(clc.bold(message));
 }
 
-export const displayStageFinished = function(message: string, chronometer: Chronometer) {
-    console.log(clc.yellowBright.bold("  done - "),
-            clc.blackBright.bold(message), "in ",
-            clc.bold.green(chronometer.display()));
-    console.log()
+export const displayStageFinished = function (message: string, chronometer: Chronometer) {
+  console.log(clc.yellowBright.bold("  done - "),
+    clc.blackBright.bold(message), "in ",
+    clc.bold.green(chronometer.display()));
+  console.log()
+}
+
+export const displayIgnored = function (message: string) {
+  console.log(clc.yellowBright.bold("⚠️"), clc.blackBright(` ${message}`));
 }
