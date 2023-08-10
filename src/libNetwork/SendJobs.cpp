@@ -125,15 +125,6 @@ inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
                                         !allow_relaxed_blacklist);
 }
 
-inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
-  return (ec == HOST_UNREACHABLE || ec == NETWORK_DOWN ||
-          ec == NETWORK_UNREACHABLE);
-}
-
-inline bool IsNodeNotRunning(const ErrorCode& ec) {
-  return (ec == TIMED_OUT || ec == CONN_REFUSED);
-}
-
 inline Milliseconds Clock() {
   return std::chrono::duration_cast<Milliseconds>(
       boost::asio::steady_timer::clock_type::now().time_since_epoch());

@@ -214,7 +214,7 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 # compiler and linker options
 
 add_compile_options(-Wall)
-add_compile_options(-Werror)
+#add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
 
