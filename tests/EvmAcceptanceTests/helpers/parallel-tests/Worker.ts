@@ -32,8 +32,8 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
     const before = (fn: Txn) => (currentBeforeFn = fn);
 
     eval(code);
-    for (const [name, fn] of describeFns) {
-      if (!isScenarioParallel(name)) {
+    for (const [describeName, fn] of describeFns) {
+      if (!isScenarioParallel(describeName)) {
         continue;
       }
 
@@ -52,6 +52,7 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
 
         transaction_infos.push({
           txn: fn,
+          scenario_name: describeName,
           msg: name,
           run_in: block
         });
@@ -59,7 +60,7 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
 
       scenarios.push({
         before: currentBeforeFn,
-        scenario_name: name,
+        scenario_name: describeName,
         tests: transaction_infos
       });
     }

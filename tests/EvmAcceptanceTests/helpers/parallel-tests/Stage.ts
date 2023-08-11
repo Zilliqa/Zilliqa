@@ -10,8 +10,12 @@ export const runStage = async(name: string, stage: Function, done: Function, ...
   chronometer.start();
   const output = await stage(...params);
   chronometer.finish();
-  spinner.succeed();
-  const finished_message = done(params, output);
+  const {finished_message, success} = done(params, output);
+  if (success) {
+    spinner.succeed();
+  }else {
+    spinner.fail();
+  }
   displayStageFinished(finished_message, chronometer);
   return output;
 }
