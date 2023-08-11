@@ -1,78 +1,63 @@
-import { ethers } from "hardhat";
-import {ContractInfo, deployContracts} from "../helpers"
-import {runScenarios} from "../helpers"
-import {forwardZilScenario, moveZilScenario} from "../parallel-tests/Transfer"
-import {withUintScenario} from "../parallel-tests/ContractDeployment"
-import {parentScenario} from "../parallel-tests/Parent"
-import {blockchainInstructionsScenario} from "../parallel-tests/BlockchainInstructions"
-import {contractRevertScenario} from "../parallel-tests/ContractRevert"
-import {create2Scenario} from "../parallel-tests/Create2"
+import {parseTestFile} from "../helpers";
+import {Scenario, runScenarios} from "../helpers";
+import {displayIgnored} from "../helpers";
+import hre, {ethers} from "hardhat";
+import fs from "fs";
+import path from "path";
 
-import clc from "cli-color";
-import { Chronometer, displayStageFinished, displayStageStarted } from "../helpers/parallel-tests/Display";
+const PARALYZED_TEST_FILES: string[] = [
+  "./dist/test/BlockchainInstructions.js",
+  "./dist/test/Create2.js",
+//   "./dist/test/Errorneous.js",
+  "./dist/test/Delegatecall.js",
+  // // "./dist/test/ContractRevert.js",
+  "./dist/test/precompiles/EvmPrecompiles.js",
+  "./dist/test/rpc/"
+];
 
 async function main() {
-    const FUND = ethers.utils.parseUnits("1", "gwei");
-    const NUMBER = 1234;
+  hre.signer_pool.initSigners(...(await ethers.getSigners()));
 
-    const contractsToDeploy: ContractInfo[] = [
-        {
-            name: "ForwardZil",
-        },
-        {
-            name: "ForwardZil",
-        },
-        {
-            name: "WithUintConstructor",
-            args: [NUMBER]
-        },
-        {
-            name: "ParentContract",
-            value: FUND
-        },
-        {
-            name: "BlockchainInstructions",
-        },
-        {
-            name: "Revert",
-        },
-        {
-            name: "Create2Factory"
-        }
-    ]
+  let beforeFns: Promise<any>[] = [];
+  let scenarios: Scenario[] = [];
 
-    // Deploy Contracts in parallel
-    let chronometer = new Chronometer();
-    chronometer.start();
-    displayStageStarted("Contracts are being deployed...");
+  const files = PARALYZED_TEST_FILES.flatMap((filename) => {
+    if (fs.lstatSync(filename).isDirectory()) {
+      return fs
+        .readdirSync(filename, {withFileTypes: true})
+        .filter((item) => !item.isDirectory())
+        .map((item) => path.join(filename, item.name));
+    }
+    return [filename];
+  });
 
-    let [
-            forwardZil,
-            moveZilToContract, 
-            withUint,
-            parentContract,
-            blockChainInstructionsContract,
-            revertContract,
-            create2Contract
-        ] = await deployContracts(...contractsToDeploy);
+  for (const test_file of files) {
+    const parsed = await parseTestFile(test_file);
+    parsed.forEach((scenario) => {
+      if (scenario.tests.length === 0) {
+        displayIgnored(`\`${scenario.scenario_name}\` doesn't have any tests. Did you add @block-n to tests?`);
+        return;
+      }
+      if (scenario.before) {
+        beforeFns.push(scenario.before());
+      }
+      scenarios.push(scenario);
+    });
+  }
 
-    chronometer.finish();
-    displayStageFinished(`${contractsToDeploy.length} contracts deployed`, chronometer);
+  if (beforeFns.length > 0) {
+    await Promise.all(beforeFns);
+  }
 
-    await runScenarios(
-        withUintScenario(withUint, NUMBER),
-        parentScenario(parentContract, FUND),
-        await forwardZilScenario(forwardZil),
-        await moveZilScenario(moveZilToContract),
-        blockchainInstructionsScenario(blockChainInstructionsContract),
-        // contractRevertScenario(revertContract),
-        create2Scenario(create2Contract)
-    );
+  if (scenarios.length > 0) {
+    await runScenarios(...scenarios);
+  }
 }
 
 main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+``;
