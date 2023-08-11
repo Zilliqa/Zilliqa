@@ -1,6 +1,7 @@
 import clc from "cli-color";
 import {performance} from "perf_hooks";
 import {Chronometer, displayIgnored, displayStageFinished, displayStageStarted} from "./Display";
+import { runStage } from "./Stage";
 
 export type Txn = () => Promise<any>;
 
@@ -79,23 +80,18 @@ const execute = async function (txns: TransactionInfo[]) {
 };
 
 export const runScenarios = async function (...scenarios: Scenario[]) {
-  const start = performance.now();
   let blocks = new Set(scenarios.flatMap((scenario) => scenario.tests.map((test) => test.run_in)));
 
-  let chronometer: Chronometer = new Chronometer();
   for (let block of blocks) {
-    displayStageStarted(`Running tests in block ${block}...`);
-    chronometer.start();
-
-    await execute(
-      scenarios
+    const txns = scenarios
         .map((scenario) => scenario.tests)
         .flat()
         .filter((scenario) => scenario.run_in == block)
-    );
 
-    chronometer.finish();
-    const testsCount = scenarios.map((scenario) => scenario.tests.length).reduce((prev, next) => prev + next);
-    displayStageFinished(`${testsCount} tests `, chronometer);
+    await runStage(`Running tests in block ${block}...`, () => {
+      return execute(txns)
+    }, () => {
+      return `${txns.length} tests executed`
+    }, );
   }
 };

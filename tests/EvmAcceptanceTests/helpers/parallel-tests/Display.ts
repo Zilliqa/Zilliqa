@@ -29,10 +29,10 @@ export const displayStageStarted = function (message: string) {
 
 export const displayStageFinished = function (message: string, chronometer: Chronometer) {
   console.log(
-    clc.yellowBright.bold("  done - "),
-    clc.blackBright.bold(message),
-    "in ",
-    clc.bold.green(chronometer.display())
+    " ",
+    clc.blackBright(message),
+    "in",
+    clc.yellow(chronometer.display())
   );
   console.log();
 };

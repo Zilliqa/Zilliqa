@@ -7,6 +7,7 @@ export * from "./SignerPool";
 export * from "./parallel-tests/Scenario";
 export * from "./parallel-tests/Worker";
 export * from "./parallel-tests/Display";
+export * from "./parallel-tests/Stage";
 
 export function isHardhatNetworkAccountConfig(
   config: HardhatNetworkAccountsConfig | HttpNetworkAccountsConfig
