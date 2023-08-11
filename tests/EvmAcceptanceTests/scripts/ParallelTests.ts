@@ -4,18 +4,20 @@ import { displayIgnored } from "../helpers";
 import hre, { ethers } from "hardhat";
 import fs from "fs";
 import path from "path";
-import ora from "ora";
 import clc from "cli-color";
-
+import util from 'util';
+import {exec} from "child_process";
+const execa = util.promisify(exec);
 
 const PARALYZED_TEST_FILES: string[] = [
-  // "./dist/test/BlockchainInstructions.js",
-  // "./dist/test/Create2.js",
+  "./dist/test/BlockchainInstructions.js",
+  "./dist/test/Create2.js",
+  "./dist/test/Delegatecall.js",
+  // "./dist/test/Transfer.js"
   // //   "./dist/test/Errorneous.js",
-  // "./dist/test/Delegatecall.js",
   // // // "./dist/test/ContractRevert.js",
-  // "./dist/test/precompiles/EvmPrecompiles.js",
-  "./dist/test/rpc/"
+  "./dist/test/precompiles/EvmPrecompiles.js",
+  "./dist/test/rpc/",
 ];
 
 const filesToTest = (): string[] => {
@@ -54,6 +56,20 @@ const parseFiles = async (files: string[]): Promise<[Promise<any>[], Scenario[]]
 async function main() {
   hre.signer_pool.initSigners(...(await ethers.getSigners()));
 
+  await runStage("Running tsc...", async () => {
+    try {
+      await execa("tsc");
+      return "Success"
+    } catch (error: any) {
+      return `Failed (${error.stdout.split('\n').length} errors)`
+    }
+  }, (params: any, output: string) => {
+    return {
+      finished_message: output,
+      success: output === "Success" ? true : false
+    }
+  })
+
   const [beforeFns, scenarios]: [Promise<any>[], Scenario[]] = await runStage("Analyzing tests to run...",
     (files: string[]) => {
       return parseFiles(files);
@@ -81,7 +97,7 @@ async function main() {
     const tests_count = scenarios.map(scenario => scenario.tests.length).reduce((prev, current) => prev + current);
     const failedCount: number = output.length;
     return {
-      finished_message: `${scenarios.length} scenario and ${tests_count} executed` + (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
+      finished_message: `${scenarios.length} scenario and ${tests_count} tests executed` + (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
       success: failedCount === 0 ? true : false
     }
   }, scenarios)
