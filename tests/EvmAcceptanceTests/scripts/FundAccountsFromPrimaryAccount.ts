@@ -1,11 +1,9 @@
-import { getAddressFromPrivateKey } from "@zilliqa-js/crypto";
-import { BN, Zilliqa, bytes, toChecksumAddress } from "@zilliqa-js/zilliqa";
+import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
+import {BN, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
 import clc from "cli-color";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import Long from "long";
 import hre from "hardhat";
-import { HardhatNetworkAccountConfig } from "hardhat/types";
-import { isHardhatNetworkAccountConfig } from "../helpers";
 
 // Refer to README.md, section `Testing a newly deployed testnet/devent` for more info.
 
@@ -40,14 +38,8 @@ async function main() {
   }
 
   zilliqa.wallet.addByPrivateKey(privateKey);
-  if (!isHardhatNetworkAccountConfig(hre.network.config.accounts)) {
-    console.log(clc.red("Something's wrong with the config"));
-    return;
-  }
-
-  const accounts: HardhatNetworkAccountConfig[] = hre.network.config.accounts;
-  for (const element of accounts) {
-    const wallet = new ethers.Wallet(element.privateKey);
+  for (const element of hre.network["config"]["accounts"]) {
+    const wallet = new ethers.Wallet(element);
     let ethAddrConverted = toChecksumAddress(wallet.address); // Zil checksum
     const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(
       zilliqa.transactions.new(
