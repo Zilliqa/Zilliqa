@@ -8,7 +8,7 @@ import path from "path";
 const PARALYZED_TEST_FILES: string[] = [
   "./dist/test/BlockchainInstructions.js",
   "./dist/test/Create2.js",
-//   "./dist/test/Errorneous.js",
+  //   "./dist/test/Errorneous.js",
   "./dist/test/Delegatecall.js",
   // // "./dist/test/ContractRevert.js",
   "./dist/test/precompiles/EvmPrecompiles.js",

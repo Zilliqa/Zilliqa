@@ -2,7 +2,7 @@ import {extendEnvironment} from "hardhat/config";
 import {HardhatRuntimeEnvironment} from "hardhat/types/runtime";
 import SingerPool from "./helpers/parallel-tests/SignerPool";
 import {Contract, Signer} from "ethers";
-import { Contract as Web3Contract } from "web3-eth-contract";
+import {Contract as Web3Contract} from "web3-eth-contract";
 
 declare module "hardhat/types/runtime" {
   interface HardhatRuntimeEnvironment {
