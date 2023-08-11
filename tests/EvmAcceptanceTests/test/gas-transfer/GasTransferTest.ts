@@ -1,8 +1,8 @@
 import {expect} from "chai";
 import {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
-import { BigNumber } from "ethers";
-import { JsonRpcProvider } from "@ethersproject/providers";
+import {BigNumber} from "ethers";
+import {JsonRpcProvider} from "@ethersproject/providers";
 
 // Test basic cases of gas transfer.
 
@@ -73,7 +73,7 @@ describe("GasTransferTest", function () {
       const startOfRoundBalance = accountBalance;
       let cumulativeGas = BigNumber.from(0);
       let block = await provider.getBlock("latest");
-      
+
       if (DEBUG) {
         let gasPrice = block.baseFee;
         let maxPriority = block.maxPriorityFeePerGas;
