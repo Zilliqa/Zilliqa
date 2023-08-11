@@ -1,7 +1,7 @@
 import {expect} from "chai";
 import hre from "hardhat";
 import {web3} from "hardhat";
-import { Contract as Web3Contract } from "web3-eth-contract";
+import {Contract as Web3Contract} from "web3-eth-contract";
 
 describe("Precompile tests with web3.js #parallel", function () {
   let contract: Web3Contract;

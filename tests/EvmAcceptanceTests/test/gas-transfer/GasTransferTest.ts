@@ -74,13 +74,6 @@ describe("GasTransferTest", function () {
       let cumulativeGas = BigNumber.from(0);
       let block = await provider.getBlock("latest");
 
-      if (DEBUG) {
-        let gasPrice = block.baseFee;
-        let maxPriority = block.maxPriorityFeePerGas;
-        console.log(`[0] I am ${myAddress}`);
-        console.log(`[0] My balance is ${accountBalance}, contract does not exist`);
-        console.log(`[0] feePerGas ${gasPrice} maxPriority ${maxPriority}`);
-      }
       const contract = await parallelizer.deployContract("GasTransferTest", {value: testCase.constructContractWith});
 
       {

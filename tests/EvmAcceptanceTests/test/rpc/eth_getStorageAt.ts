@@ -2,7 +2,7 @@ import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {assert} from "chai";
 import hre, {web3} from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
-import { Contract } from "ethers";
+import {Contract} from "ethers";
 
 var METHOD = "eth_getStorageAt";
 
