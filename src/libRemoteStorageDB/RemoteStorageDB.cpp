@@ -345,7 +345,7 @@ Json::Value RemoteStorageDB::QueryPendingTxns(
 
     auto putTxn = [&_json](const bsoncxx::document::view& doc) -> void {
       Json::Value tmpJson;
-      tmpJson["TxnHash"] = doc["ID"].get_utf8().value.to_string();
+      tmpJson["TxnHash"] = std::string(doc["ID"].get_string());
       tmpJson["code"] = doc["status"].get_int32().value;
       _json["Txns"].append(tmpJson);
     };
