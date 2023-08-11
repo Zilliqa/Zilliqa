@@ -16,7 +16,7 @@ export class Chronometer {
   }
 
   display(): string {
-    return `${((this.endTime - this.startTime) / 1000).toPrecision(2)} s`;
+    return `${((this.endTime - this.startTime) / 1000).toFixed(2)} s`;
   }
 
   startTime: number;
