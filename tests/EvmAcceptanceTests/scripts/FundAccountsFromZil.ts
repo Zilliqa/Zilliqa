@@ -77,18 +77,16 @@ async function main() {
 
     // process confirm
     if (tx.id) {
-
       console.log(`The transaction id is:`, tx.id);
       const confirmedTxn = await tx.confirm(tx.id);
-      
+
       console.log(`The transaction status is:`);
       console.log(confirmedTxn.getReceipt());
-      
+
       let finalBal = await web3.eth.getBalance(ethAddr.address);
       console.log(`My new account balance is: ${finalBal}`);
-    }
-    else {
-      console.log("Failed")
+    } else {
+      console.log("Failed");
     }
   }
 

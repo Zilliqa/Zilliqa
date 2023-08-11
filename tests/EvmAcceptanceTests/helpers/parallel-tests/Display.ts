@@ -1,5 +1,5 @@
 import clc from "cli-color";
-import { performance } from "perf_hooks";
+import {performance} from "perf_hooks";
 
 export class Chronometer {
   constructor() {
@@ -16,7 +16,7 @@ export class Chronometer {
   }
 
   display(): string {
-    return `${((this.endTime - this.startTime) / 1000).toPrecision(2)} s`
+    return `${((this.endTime - this.startTime) / 1000).toPrecision(2)} s`;
   }
 
   startTime: number;
@@ -25,15 +25,18 @@ export class Chronometer {
 
 export const displayStageStarted = function (message: string) {
   console.log(clc.bold(message));
-}
+};
 
 export const displayStageFinished = function (message: string, chronometer: Chronometer) {
-  console.log(clc.yellowBright.bold("  done - "),
-    clc.blackBright.bold(message), "in ",
-    clc.bold.green(chronometer.display()));
-  console.log()
-}
+  console.log(
+    clc.yellowBright.bold("  done - "),
+    clc.blackBright.bold(message),
+    "in ",
+    clc.bold.green(chronometer.display())
+  );
+  console.log();
+};
 
 export const displayIgnored = function (message: string) {
   console.log(clc.yellowBright.bold("⚠️"), clc.blackBright(` ${message}`));
-}
+};
