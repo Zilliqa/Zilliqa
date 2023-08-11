@@ -15,6 +15,7 @@
 #
 
 ARG SCILLA_VERSION=v0.13.3
+ARG SCILLA_IMAGE=zilliqa/scilla:${SCILLA_VERSION}
 
 # Common dependencies of the builder and runner stages.
 FROM ubuntu:22.04 AS base
@@ -60,7 +61,7 @@ RUN apt-get update \
     vim \
     wget \
     zip \
-    && apt-get remove -y cmake python2 python3 && apt-get autoremove -y
+    && apt-get remove -y cmake python2 && apt-get autoremove -y
 
 FROM base AS builder
 ARG EXTRA_BUILD_PARAMS
@@ -71,7 +72,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN cargo install --git https://github.com/rrw-zilliqa/sccache --branch rrw_compile_fix sccache --locked
-#RUN cargo install sccache
+RUN cargo install sccache
 ENV SCCACHE_CACHE_SIZE="1G"
 ENV SCCACHE_DIR="/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
@@ -93,7 +94,7 @@ RUN ln -s "$(which ccache)" /usr/local/bin/gcc \
   && ln -s "$(which ccache)" /usr/local/bin/c++
 
 # This tag must be equivalent to the hash specified by "builtin-baseline" in vcpkg.json
-ARG VCPKG_COMMIT_OR_TAG=2022.09.27
+ARG VCPKG_COMMIT_OR_TAG=2023.07.21
 ARG VCPKG_ROOT=/vcpkg
 
 RUN ccache -p && ccache -z
@@ -110,12 +111,7 @@ COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
 COPY vcpkg.json .
 
-# python3 is unfortunately needed for upb which has a problem finding the
-# vcpkg compiled python.
-RUN apt-get update
-RUN apt-get install -y python3-dev
 RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
-RUN apt-get remove -y python3-dev && apt-get autoremove -y
 
 ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
@@ -129,31 +125,11 @@ RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/build/vcpkg_i
 
 RUN ls -l /zilliqa/evm-ds/target
 
-ARG VCPKG_PYTHON_PATH=/zilliqa/build/vcpkg_installed/x64-linux-dynamic/tools/python3
-ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
-ARG PYTHON3_ENV_PATH=/usr/local
-RUN ${VCPKG_PYTHON3} -m ensurepip \
-  && ${VCPKG_PYTHON3} -m pip install --upgrade pip \
-  && mkdir -p ${PYTHON3_ENV_PATH}/bin \
-  && mkdir -p ${PYTHON3_ENV_PATH}/lib \
-  && cp ${VCPKG_PYTHON_PATH}/* ${PYTHON3_ENV_PATH}/bin/ \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libffi.so /usr/local/lib  \
+RUN cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libffi.so /usr/local/lib  \
   && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libssl.so* /usr/local/lib  \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libcrypto.so* /usr/local/lib  \
-  && ldd ${VCPKG_PYTHON3} | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} /usr/local/lib \
-  && cp -R /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
+  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libcrypto.so* /usr/local/lib
 
-RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
-  && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
-
-COPY docker/requirements3.txt ./
-RUN python3 -m pip install --upgrade pip setuptools wheel \
-  && python3 -m pip install --no-cache-dir -r requirements3.txt
-
-RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
-  && chmod a+x /usr/bin/pip3 \
-  && rm -f /usr/bin/pip \
-  && ln -s /usr/bin/pip3 /usr/bin/pip
+RUN apt-get install -y patchelf
 
 COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
@@ -201,7 +177,7 @@ RUN strip /usr/local/bin/zilliqad \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
 
-FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
+FROM ${SCILLA_IMAGE} AS scilla
 
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
@@ -238,7 +214,6 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynamic libs
 COPY --from=builder /usr/local/bin/*     /usr/local/bin/
 COPY --from=builder /usr/local/lib/*.so* /usr/local/lib/
-COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /zilliqa/evm-ds/target/release/evm-ds /usr/local/bin/
 COPY --from=builder /zilliqa/evm-ds/log4rs.yml /usr/local/etc/
 
@@ -255,14 +230,14 @@ RUN rm -f /usr/local/bin/gcc \
     && ln -s "$(which ccache)" /usr/local/bin/cc \
     && ln -s "$(which ccache)" /usr/local/bin/c++
 
-ARG PYTHON3_ENV_PATH=/usr/local
-RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \
-  && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
-RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
-  && chmod a+x /usr/bin/pip3 \
-  && rm -f /usr/bin/pip \
-  && ln -s /usr/bin/pip3 /usr/bin/pip
+COPY docker/requirements3.txt ./
+RUN apt-get install -y patchelf python3-pip
+
+RUN python3 -m pip install --upgrade pip setuptools wheel \
+  && python3 -m pip install --no-cache-dir -r requirements3.txt \
+  && rm requirements3.txt
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
