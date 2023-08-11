@@ -4,8 +4,8 @@ import {assert} from "chai";
 const METHOD = "eth_estimateGas";
 
 // TODO: When/if we want to, assert the gas price so as to check the gas calculations.
-describe("Calling " + METHOD, function () {
-  it("should accept estimateGas with a block tag", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should accept estimateGas with a block tag @block-1", async function () {
     await sendJsonRpcRequest(
       METHOD,
       2,
@@ -26,7 +26,7 @@ describe("Calling " + METHOD, function () {
     );
   });
 
-  it("should accept estimateGas without a block tag", async function () {
+  it("should accept estimateGas without a block tag @block-1", async function () {
     await sendJsonRpcRequest(
       METHOD,
       1,
@@ -46,7 +46,7 @@ describe("Calling " + METHOD, function () {
     );
   });
 
-  it("should not accept estimateGas with an invalid block tag", async function () {
+  it("should not accept estimateGas with an invalid block tag @block-1", async function () {
     await sendJsonRpcRequest(
       METHOD,
       2,

@@ -7,14 +7,14 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getTransactionReceipt";
 
-describe("Calling " + METHOD, function () {
+describe(`Calling ${METHOD} #parallel`, function () {
   before(async function () {
     if (!hre.isZilliqaNetworkSelected()) {
       this.skip();
     }
   });
 
-  it("should return the raw transaction response", async function () {
+  it("should return the raw transaction response @block-1", async function () {
     let amount = 10_000;
     // send amount from primary to secondary account
     const to = ethers.Wallet.createRandom();
