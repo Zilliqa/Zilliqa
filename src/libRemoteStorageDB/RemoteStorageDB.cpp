@@ -16,7 +16,6 @@
  */
 
 #include "RemoteStorageDB.h"
-#include <boost/filesystem/operations.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
@@ -80,7 +79,7 @@ void RemoteStorageDB::Init(bool reset) {
     uri += "?serverSelectionTimeoutMS=" +
            to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
     if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
-        boost::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
+        std::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
       uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
              REMOTESTORAGE_DB_TLS_FILE;
     }

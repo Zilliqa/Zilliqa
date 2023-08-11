@@ -18,23 +18,22 @@
 #include "FileSystem.h"
 
 #include <algorithm>
-#include <boost/filesystem/operations.hpp>
 #include <iostream>
 
-void recursive_copy_dir(const bfs::path& src, const bfs::path& dst) {
-  if (!bfs::exists(src)) {
+void recursive_copy_dir(const std::filesystem::path& src, const std::filesystem::path& dst) {
+  if (!std::filesystem::exists(src)) {
     throw std::runtime_error("Source path: " + src.generic_string() +
                              " does not exist");
   }
-  if (bfs::is_directory(src)) {
-    if (!bfs::exists(dst)) {
-      bfs::create_directories(dst);
+  if (std::filesystem::is_directory(src)) {
+    if (!std::filesystem::exists(dst)) {
+      std::filesystem::create_directories(dst);
     }
-    for (bfs::directory_entry& item : bfs::directory_iterator(src)) {
+    for (const auto& item : std::filesystem::directory_iterator(src)) {
       recursive_copy_dir(item.path(), dst / item.path().filename());
     }
-  } else if (bfs::is_regular_file(src)) {
-    bfs::copy_file(src, dst, bfs::copy_option::overwrite_if_exists);
+  } else if (std::filesystem::is_regular_file(src)) {
+    std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing);
   } else {
     throw std::runtime_error(dst.generic_string() + " not dir or file");
   }
@@ -53,33 +52,33 @@ void recursive_copy_dir(const bfs::path& src, const bfs::path& dst) {
  *
  */
 std::vector<std::string> getAllFilesInDir(
-    const bfs::path& dirPath, const std::vector<std::string>& dirSkipList) {
+    const std::filesystem::path& dirPath, const std::vector<std::string>& dirSkipList) {
   // Create a vector of string
   std::vector<std::string> listOfFiles;
   try {
     // Check if given path exists and points to a directory
-    if (bfs::exists(dirPath) && bfs::is_directory(dirPath)) {
+    if (std::filesystem::exists(dirPath) && std::filesystem::is_directory(dirPath)) {
       // Create a Recursive Directory Iterator object and points to the starting
       // of directory
-      bfs::recursive_directory_iterator iter(dirPath);
+      std::filesystem::recursive_directory_iterator iter(dirPath);
 
       // Create a Recursive Directory Iterator object pointing to end.
-      bfs::recursive_directory_iterator end;
+      std::filesystem::recursive_directory_iterator end;
 
       // Iterate till end
       while (iter != end) {
         // Check if current entry is a directory and if exists in skip list
-        if (bfs::is_directory(iter->path()) &&
+        if (std::filesystem::is_directory(iter->path()) &&
             (std::find(dirSkipList.begin(), dirSkipList.end(),
                        iter->path().filename()) != dirSkipList.end())) {
           // Skip the iteration of current directory pointed by iterator
-          iter.no_push();
+          iter.disable_recursion_pending();
         } else {
           // Add the name in vector
           listOfFiles.push_back(iter->path().string());
         }
 
-        boost::system::error_code ec;
+        std::error_code ec;
         // Increment the iterator to point to next entry in recursive iteration
         iter.increment(ec);
         if (ec) {

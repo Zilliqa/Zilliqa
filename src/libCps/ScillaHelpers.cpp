@@ -31,7 +31,6 @@
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
 
-#include <boost/filesystem.hpp>
 #include <fstream>
 
 namespace libCps {
@@ -67,11 +66,11 @@ bool ScillaHelpers::ExportContractFiles(
   LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
 
-  boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
+  std::filesystem::remove_all("./" + SCILLA_FILES);
+  std::filesystem::create_directories("./" + SCILLA_FILES);
 
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
+  if (!(std::filesystem::exists("./" + SCILLA_LOG))) {
+    std::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -310,8 +309,8 @@ bool ScillaHelpers::PopulateExtlibsExports(
       std::string code_path = EXTLIB_FOLDER + '/' + libAddr.hex();
       code_path += LIBRARY_CODE_EXTENSION;
       std::string json_path = EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
-      if (boost::filesystem::exists(code_path) &&
-          boost::filesystem::exists(json_path)) {
+      if (std::filesystem::exists(code_path) &&
+          std::filesystem::exists(json_path)) {
         continue;
       }
 

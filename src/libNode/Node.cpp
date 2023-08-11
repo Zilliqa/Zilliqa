@@ -20,7 +20,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/asio/readable_pipe.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/start_dir.hpp>
 #include <boost/process/v2/stdio.hpp>
@@ -1327,7 +1326,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
   LOG_MARKER();
 
-  if (!boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+  if (!std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
     LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
     return;
   }
@@ -1349,8 +1348,8 @@ void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
 void Node::RemoveIpMapping() {
   LOG_MARKER();
 
-  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
-    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+  if (std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (std::filesystem::remove(IP_MAPPING_FILE_NAME)) {
       LOG_GENERAL(INFO,
                   IP_MAPPING_FILE_NAME << " has been removed successfully.");
     } else {
