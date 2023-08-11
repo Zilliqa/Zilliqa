@@ -107,9 +107,9 @@ async function main() {
     failures.forEach((failure, index) => {
       console.log(` ${clc.bold.white(index + 1)}) ${failure.scenario}`)
       console.log(`  ${clc.red("✖")} ${clc.blackBright(failure.test_case)}`)
-      console.log(`    ${clc.red.bold("Actual: ")} ${clc.red(failure.result.reason.actual)}`)
-      console.log(`    ${clc.green.bold("Expected: ")} ${clc.red(failure.result.reason.expected)}`)
-      console.log(`    ${clc.yellow.bold("Operator: ")} ${clc.red(failure.result.reason.operator)}`)
+      console.log(`    ${clc.red.bold("Actual: ")} ${clc.red((failure.result as any).reason.actual)}`)
+      console.log(`    ${clc.green.bold("Expected: ")} ${clc.red((failure.result as any).reason.expected)}`)
+      console.log(`    ${clc.yellow.bold("Operator: ")} ${clc.red((failure.result as any).reason.operator)}`)
       console.log()
     })
   }
