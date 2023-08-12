@@ -24,13 +24,6 @@ export type Scenario = {
   tests: TransactionInfo[];
 };
 
-export const scenario = function (scenario_name: string, ...tests: TransactionInfo[]): Scenario {
-  return {
-    scenario_name,
-    tests
-  };
-};
-
 export type FailureResult = {
   result: PromiseSettledResult<any>;
   test_case: string;

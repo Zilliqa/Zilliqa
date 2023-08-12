@@ -6,7 +6,7 @@ import {join} from "path";
 import clc from "cli-color";
 import ora from "ora";
 
-task("initSigners", "A task to init signers")
+task("init-signers", "A task to init signers")
   .addParam("from", "Sender's private key")
   .addParam("count", "Number of signers to be generated")
   .addParam("balance", "Balance of each newly generated signers")
