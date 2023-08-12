@@ -1,13 +1,13 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
-import clc from "cli-color";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
-import semver from "semver";
 import "./tasks/ZilBalance";
 import "./tasks/Transfer";
 import "./tasks/InitSigners";
+import "./tasks/ParallelTest";
+import "./tasks/Test";
 import fs from "fs";
 
 if (ENV_VARS.scilla) {
@@ -27,12 +27,12 @@ declare module "hardhat/types/config" {
   }
 }
 
-const loadFromSignersFile = (): string[] => {
-  return fs
-    .readFileSync(".signers")
-    .toString()
-    .split("\n")
-    .filter((input) => input.length > 0);
+const loadFromSignersFile = (network_name: string): string[] => {
+  try {
+    return JSON.parse(fs.readFileSync(`.signers/${network_name}.json`, "utf8"));
+  } catch (error) {
+    return [];
+  }
 };
 
 const config: HardhatUserConfig = {
@@ -62,7 +62,7 @@ const config: HardhatUserConfig = {
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
         "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
         "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
-        ...loadFromSignersFile()
+        ...loadFromSignersFile("isolated_server")
       ],
       chainId: 0x8001,
       web3ClientVersion: "Zilliqa/v8.2",
@@ -156,7 +156,7 @@ const config: HardhatUserConfig = {
 
 // Extend hardhat runtime environment to have some utility functions and variables.
 import "./AddConfigHelpersToHre";
-import {extendEnvironment, task} from "hardhat/config";
+import {extendEnvironment} from "hardhat/config";
 import SignerPool from "./helpers/parallel-tests/SignerPool";
 extendEnvironment(async (hre) => {
   hre.debug = ENV_VARS.debug;
@@ -165,47 +165,5 @@ extendEnvironment(async (hre) => {
   hre.signer_pool = new SignerPool();
   hre.signer_pool.initSigners(...(await hre.ethers.getSigners()));
 });
-
-task("test")
-  .addFlag("logJsonrpc", "Log JSON RPC ")
-  .addFlag("logTxnid", "Log JSON RPC ")
-  .setAction(async (taskArgs, hre, runSuper): Promise<any> => {
-    let signers = await hre.ethers.getSigners();
-    let balances = await Promise.all(signers.map((signer) => signer.getBalance()));
-
-    const node_version = process.version;
-    if (semver.gt(node_version, "17.0.0")) {
-      throw new Error(
-        "⛔️" +
-          clc.redBright.bold("Zilliqa-is incompatible with your current node version.") +
-          "It should be >13.0.0 & <17.0.0."
-      );
-    }
-
-    if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
-      hre.ethers.provider.on("debug", (info) => {
-        if (taskArgs.logJsonrpc) {
-          if (info.request) {
-            console.log("Request:", info.request);
-          }
-          if (info.response) {
-            console.log("Response:", info.response);
-          }
-        }
-
-        if (taskArgs.logTxnid) {
-          if (info.request.method == "eth_sendTransaction" || info.request.method == "eth_sendRawTransaction") {
-            console.log(clc.whiteBright.bold(`    📜 Txn ID: ${info.response}`));
-          }
-        }
-      });
-    }
-    await runSuper();
-    let newBalances = await Promise.all(signers.map((signer) => signer.getBalance()));
-    let sum = balances
-      .map((value, index) => value.sub(newBalances[index]))
-      .reduce((prev, current) => prev.add(current));
-    console.log(`  💰 ~${clc.blackBright.bold(hre.ethers.utils.formatEther(sum))} ZILs used`);
-  });
 
 export default config;
