@@ -3,4 +3,4 @@ artifacts/
 cache/
 typechain-types/
 dist/
-.signers
+.signers/
