@@ -3,8 +3,8 @@ import hre from "hardhat";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {web3} from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
-import { isHardhatNetworkAccountConfig } from "../../helpers";
-import { HardhatNetworkAccountConfig } from "hardhat/types";
+import {isHardhatNetworkAccountConfig} from "../../helpers";
+import {HardhatNetworkAccountConfig} from "hardhat/types";
 
 const METHOD = "eth_sendRawTransaction";
 
@@ -14,7 +14,7 @@ describe("Calling " + METHOD, function () {
       if (!isHardhatNetworkAccountConfig(hre.network.config.accounts)) {
         return this.skip(); // Something's wrong with the config
       }
- 
+
       const configAccounts: HardhatNetworkAccountConfig[] = hre.network.config.accounts;
       const fromAccount = web3.eth.accounts.privateKeyToAccount(configAccounts[0].privateKey);
       const destination = web3.eth.accounts.create();

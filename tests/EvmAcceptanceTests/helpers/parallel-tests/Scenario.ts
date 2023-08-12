@@ -1,6 +1,6 @@
 import clc from "cli-color";
 import {displayIgnored} from "./Display";
-import { runStage } from "./Stage";
+import {runStage} from "./Stage";
 
 export type Txn = () => Promise<any>;
 
@@ -32,10 +32,10 @@ export const scenario = function (scenario_name: string, ...tests: TransactionIn
 };
 
 export type FailureResult = {
-  result: PromiseSettledResult<any>,
-  test_case: string,
-  scenario: string,
-}
+  result: PromiseSettledResult<any>;
+  test_case: string;
+  scenario: string;
+};
 
 const execute = async function (txns: TransactionInfo[]): Promise<FailureResult[]> {
   let promises = [];
@@ -56,9 +56,9 @@ const execute = async function (txns: TransactionInfo[]): Promise<FailureResult[
         result,
         test_case: txns[index].msg,
         scenario: txns[index].scenario_name
-      })
+      });
     }
-  })
+  });
 
   return failures;
 };
@@ -70,20 +70,26 @@ export const runScenarios = async function (...scenarios: Scenario[]): Promise<F
 
   for (let block of blocks) {
     const txns = scenarios
-        .map((scenario) => scenario.tests)
-        .flat()
-        .filter((scenario) => scenario.run_in == block)
+      .map((scenario) => scenario.tests)
+      .flat()
+      .filter((scenario) => scenario.run_in == block);
 
-    await runStage(`Running tests in block ${block}...`, () => {
-      return execute(txns)
-    }, (params: any, output: FailureResult[]) => {
-      failures.push(...output)
-      const failedCount: number = output.length;
-      return {
-        finished_message: `${txns.length} tests executed` + (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
-        success: failedCount === 0 ? true : false
+    await runStage(
+      `Running tests in block ${block}...`,
+      () => {
+        return execute(txns);
+      },
+      (params: any, output: FailureResult[]) => {
+        failures.push(...output);
+        const failedCount: number = output.length;
+        return {
+          finished_message:
+            `${txns.length} tests executed` +
+            (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
+          success: failedCount === 0 ? true : false
+        };
       }
-    }, );
+    );
   }
 
   return failures;

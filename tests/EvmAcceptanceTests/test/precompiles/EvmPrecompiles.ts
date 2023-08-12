@@ -56,7 +56,7 @@ describe("Precompile tests with web3.js #parallel", function () {
     const sendResult = await contract.methods.testModexp(base, exponent, modulus).send({
       from: signer.address
     });
-    
+
     hre.signer_pool.releaseSigner(signer);
     expect(sendResult).to.be.not.null;
 

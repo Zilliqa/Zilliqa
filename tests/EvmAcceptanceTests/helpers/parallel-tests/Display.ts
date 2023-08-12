@@ -28,12 +28,7 @@ export const displayStageStarted = function (message: string) {
 };
 
 export const displayStageFinished = function (message: string, chronometer: Chronometer) {
-  console.log(
-    " ",
-    clc.blackBright(message),
-    "in",
-    clc.yellow(chronometer.display())
-  );
+  console.log(" ", clc.blackBright(message), "in", clc.yellow(chronometer.display()));
   console.log();
 };
 
