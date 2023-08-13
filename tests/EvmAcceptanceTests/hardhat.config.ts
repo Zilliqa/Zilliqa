@@ -166,4 +166,5 @@ extendEnvironment(async (hre) => {
   hre.signer_pool.initSigners(...(await hre.ethers.getSigners()));
 });
 
+import "./tasks/Balances";    // To fix tsc error
 export default config;
