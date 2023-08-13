@@ -1,9 +1,7 @@
 import hre, {web3} from "hardhat";
 import clc from "cli-color";
-import {bytes, toBech32Address, toChecksumAddress, units, Zilliqa} from "@zilliqa-js/zilliqa";
+import {bytes, toChecksumAddress, Zilliqa} from "@zilliqa-js/zilliqa";
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
-import {isHardhatNetworkAccountConfig} from "../helpers";
-import {HardhatNetworkAccountConfig} from "hardhat/types";
 const {BN, Long} = require("@zilliqa-js/util");
 
 async function main() {
@@ -28,18 +26,13 @@ async function main() {
     );
   });
 
-  if (!isHardhatNetworkAccountConfig(hre.network.config.accounts)) {
-    console.log(clc.red("Something's wrong with the config"));
-    return;
-  }
-
-  const configAccounts: HardhatNetworkAccountConfig[] = hre.network.config.accounts;
-  for (const element of configAccounts) {
+  const private_keys: string[] = (hre.network["config"]["accounts"]) as string[];
+  for (const element of private_keys) {
     console.log("");
     console.log("Starting transfer...");
 
     // Get corresponding eth account
-    let ethAddr = web3.eth.accounts.privateKeyToAccount(element.privateKey);
+    let ethAddr = web3.eth.accounts.privateKeyToAccount(element);
     let ethAddrConverted = toChecksumAddress(ethAddr.address); // Zil checksum
     let initialAccountBal = await web3.eth.getBalance(ethAddr.address);
     console.log("Account to send to (zil checksum): ", ethAddrConverted);
@@ -47,8 +40,8 @@ async function main() {
 
     // Transfer half funds to this account
     let zilliqa = new Zilliqa(hre.getNetworkUrl());
-    zilliqa.wallet.addByPrivateKey(element.privateKey);
-    const address = getAddressFromPrivateKey(element.privateKey);
+    zilliqa.wallet.addByPrivateKey(element);
+    const address = getAddressFromPrivateKey(element);
     console.log(`My ZIL account address is: ${address}`);
 
     const res = await zilliqa.blockchain.getBalance(address);
