@@ -6,16 +6,6 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
   let scenarios: Scenario[] = [];
 
   let code = await fs.promises.readFile(testFile, "utf8");
-  // code = ts.transpileModule(code, { compilerOptions:
-  //     {
-  //         forceConsistentCasingInFileNames: true,
-  //         module: ts.ModuleKind.CommonJS,
-  //         target: ts.ScriptTarget.ES2020,
-  //         esModuleInterop: true,
-  //         skipLibCheck: true,
-  //         moduleResolution: ts.ModuleResolutionKind.Node16,
-  //         strict: true,
-  //     } }).outputText;
 
   const testResult = {
     success: false,
@@ -26,10 +16,12 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
     const describeFns: [string, Txn][] = [];
     let currentDescribeFn: [string, Txn][];
     let currentBeforeFn;
+    let currentAfterFn;
     const describe = (name: string, fn: Txn) => describeFns.push([name, fn]);
     const it = (name: string, fn: Txn) => currentDescribeFn.push([name, fn]);
     const xit = (name: string, fn: Txn) => {};
     const before = (fn: Txn) => (currentBeforeFn = fn);
+    const after = (fn: Txn) => (currentAfterFn = fn);
 
     eval(code);
     for (const [describeName, fn] of describeFns) {
@@ -40,6 +32,7 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
       let transaction_infos: TransactionInfo[] = [];
       currentDescribeFn = [];
       currentBeforeFn = undefined;
+      currentAfterFn = undefined;
       fn();
 
       for (const [name, fn] of currentDescribeFn) {
@@ -60,6 +53,7 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
 
       scenarios.push({
         before: currentBeforeFn,
+        after: currentAfterFn,
         scenario_name: describeName,
         tests: transaction_infos
       });

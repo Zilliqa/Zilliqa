@@ -22,6 +22,7 @@ export type Scenario = {
   scenario_name: string;
   before?: Txn;
   tests: TransactionInfo[];
+  after?: Txn;
 };
 
 export type FailureResult = {
@@ -68,7 +69,7 @@ export const runScenarios = async function (...scenarios: Scenario[]): Promise<F
       .filter((scenario) => scenario.run_in == block);
 
     await runStage(
-      `Running tests in block ${block}...`,
+      `Running tests in block ${block + 1}...`,
       () => {
         return execute(txns);
       },
