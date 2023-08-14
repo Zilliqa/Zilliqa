@@ -31,14 +31,14 @@ Blacklist& Blacklist::GetInstance() {
 }
 
 /// P2PComm may use this function
-bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
+bool Blacklist::Exist(const BlackListKey& key, const bool strict) {
   if (!m_enabled) {
     return false;
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  const auto& bl = m_blacklistIP.find(ip);
-  if (bl != m_blacklistIP.end()) {
+  const auto& bl = m_blacklistKeyMap.find(key);
+  if (bl != m_blacklistKeyMap.end()) {
     if (strict) {
       // always return exist when strict, must be checked while sending message
       return true;
@@ -49,40 +49,41 @@ bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
   return false;
 }
 
-/// Reputation Manager may use this function
-void Blacklist::Add(const uint128_t& ip, const bool strict,
+
+void Blacklist::Add(const BlackListKey& key, const bool strict,
                     const bool ignoreWhitelist) {
   if (!m_enabled) {
     return;
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  if (ignoreWhitelist || (m_whitelistedIP.end() == m_whitelistedIP.find(ip))) {
-    const auto& res = m_blacklistIP.emplace(ip, strict);
+  if (ignoreWhitelist || (m_whitelistedIP.end() == m_whitelistedIP.find(key.ip))) {
+    const auto& res = m_blacklistKeyMap.emplace(key, strict);
     // already existed, then over-ride strictness
     if (!res.second) {
       res.first->second = strict;
     }
   } else {
     LOG_GENERAL(INFO,
-                "Whitelisted IP: " << IPConverter::ToStrFromNumericalIP(ip));
+                "Whitelisted IP: " << IPConverter::ToStrFromNumericalIP(key.ip));
   }
 }
 
+
 /// Reputation Manager may use this function
-void Blacklist::Remove(const uint128_t& ip) {
+void Blacklist::Remove(const BlackListKey& key) {
   if (!m_enabled) {
     return;
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_blacklistIP.erase(ip);
+  m_blacklistKeyMap.erase(key);
 }
 
 /// Reputation Manager may use this function
 void Blacklist::Clear() {
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_blacklistIP.clear();
+  m_blacklistKeyMap.clear();
   LOG_GENERAL(INFO, "Blacklist cleared");
 }
 
@@ -92,12 +93,12 @@ void Blacklist::Pop(unsigned int num_to_pop) {
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  LOG_GENERAL(INFO, "Num of nodes in blacklist: " << m_blacklistIP.size());
+  LOG_GENERAL(INFO, "Num of nodes in blacklist: " << m_blacklistKeyMap.size());
 
   unsigned int counter = 0;
-  for (auto it = m_blacklistIP.begin(); it != m_blacklistIP.end();) {
+  for (auto it = m_blacklistKeyMap.begin(); it != m_blacklistKeyMap.end();) {
     if (counter < num_to_pop) {
-      it = m_blacklistIP.erase(it);
+      it = m_blacklistKeyMap.erase(it);
       counter++;
     } else {
       break;
@@ -109,7 +110,7 @@ void Blacklist::Pop(unsigned int num_to_pop) {
 
 unsigned int Blacklist::SizeOfBlacklist() {
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  return m_blacklistIP.size();
+  return m_blacklistKeyMap.size();
 }
 
 void Blacklist::Enable(const bool enable) {
@@ -151,7 +152,7 @@ bool Blacklist::WhitelistSeed(const uint128_t& ip) {
   {
     // Incase it was already blacklisted, remove it.
     lock_guard<mutex> g(m_mutexBlacklistIP);
-    m_blacklistIP.erase(ip);
+    m_blacklistKeyMap.erase({ip,0,""});
   }
 
   lock_guard<mutex> g(m_mutexWhitelistedSeedsIP);

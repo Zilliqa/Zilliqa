@@ -18,7 +18,7 @@ export class Parallelizer {
     if (process.env.PRIMARY_ACCOUNT !== undefined) {
       privateKey = process.env.PRIMARY_ACCOUNT;
     }
-  
+
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
     this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey], 30);
   }

@@ -34,6 +34,27 @@ struct hash<uint128_t> {
 };
 }  // namespace std
 
+struct BlackListKey {
+        uint128_t ip;
+        uint32_t  port;
+        std::string node_id;
+
+        // Custom equality operator for BlackListKey objects
+        bool operator==(const BlackListKey& other) const {
+            return (ip == other.ip && port == other.port && node_id == other.node_id);
+        }
+  };
+
+  // Custom hash function for BlackListKey objects
+  struct BlackListKeyHash {
+        std::size_t operator()(const BlackListKey& key) const {
+            std::size_t hash1 = std::hash<std::string>{}(key.ip.convert_to<std::string>());
+            std::size_t hash2 = std::hash<int>{}(key.port);
+            return hash1 ^ (hash2 << 1);
+        }
+  };
+
+
 class Blacklist {
   Blacklist();
   ~Blacklist();
@@ -43,8 +64,8 @@ class Blacklist {
   void operator=(Blacklist const&) = delete;
 
   std::mutex m_mutexBlacklistIP;
-  std::unordered_map<uint128_t, bool>
-      m_blacklistIP;  // IP <-> Strict/Relaxed
+  std::unordered_map<BlackListKey, bool, BlackListKeyHash> m_blacklistKeyMap;
+  // IP/port/node     <-> Strict/Relaxed
                       // Strict -> Blacklisted for both sending and incoming msg
                       // Relaxed -> Blacklisted for incoming msg only
   std::set<uint128_t> m_whitelistedIP;
@@ -58,14 +79,17 @@ class Blacklist {
 
   /// P2PComm may use this function - whether exists in m_strictBlacklistIP or
   /// m_relaxedBlacklistIP
-  bool Exist(const uint128_t& ip, const bool strict = true);
+  bool Exist(const BlackListKey& ip, const bool strict = true);
 
   /// P2PComm may use this function to blacklist certain non responding nodes
-  void Add(const uint128_t& ip, const bool strict = true,
+  void Add(const BlackListKey& key, const bool strict = true,
            const bool ignoreWhitelist = false);
 
+
+
   /// P2PComm may use this function to remove a node form blacklist
-  void Remove(const uint128_t& ip);
+  void Remove(const BlackListKey& key);
+
 
   /// Node can clear the blacklist
   void Clear();

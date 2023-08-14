@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test_message_name) {
   {
     MessageType msgType = MessageType::DIRECTORY;
     DSInstructionType instruction = DSInstructionType::DSBLOCKCONSENSUS;
-    auto messageName = FormatMessageName(msgType, instruction);
+    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "DS_DSBLOCKCONSENSUS");
   }
 
@@ -44,35 +44,35 @@ BOOST_AUTO_TEST_CASE(test_message_name) {
     MessageType msgType = MessageType::LOOKUP;
     LookupInstructionType instruction =
         LookupInstructionType::VCGETLATESTDSTXBLOCK;
-    auto messageName = FormatMessageName(msgType, instruction);
+    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "LOOKUP_VCGETLATESTDSTXBLOCK");
   }
 
   {
     MessageType msgType = MessageType::NODE;
     NodeInstructionType instruction = NodeInstructionType::PROPOSEGASPRICE;
-    auto messageName = FormatMessageName(msgType, instruction);
+    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "NODE_PROPOSEGASPRICE");
   }
 
   {
     MessageType msgType = MessageType::PEER;
     auto instruction = 0;
-    auto messageName = FormatMessageName(msgType, instruction);
+    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "INVALID_MESSAGE");
   }
 
   {
     MessageType msgType = CONSENSUSUSER;
     auto instruction = 0;
-    auto messageName = FormatMessageName(msgType, instruction);
+    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "INVALID_MESSAGE");
   }
 
   {
     MessageType msgType = CONSENSUSUSER;
     auto instruction = -3;
-    auto messageName = FormatMessageName(msgType, instruction);
+    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "INVALID_MESSAGE");
   }
 }

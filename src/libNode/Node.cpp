@@ -2469,7 +2469,7 @@ bool Node::ProcessRemoveNodeFromBlacklist(
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
     // Blacklist - strict one - since too many whitelist request in current ds
     // epoch.
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.m_listenPortHost,""});
     return false;
   }
 
@@ -2505,7 +2505,7 @@ bool Node::ProcessRemoveNodeFromBlacklist(
     return false;
   }
 
-  Blacklist::GetInstance().Remove(ipAddress);
+  Blacklist::GetInstance().Remove({ipAddress,from.m_listenPortHost,""});
   return true;
 }
 

@@ -1320,7 +1320,7 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
+      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,0,""}) &&
           (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
             Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
@@ -3752,7 +3752,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.m_listenPortHost,""});
     return false;
   }
 
@@ -3839,7 +3839,7 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.m_listenPortHost,""});
     return false;
   }
 
@@ -5263,7 +5263,7 @@ void Lookup::RemoveSeedNodesFromBlackList() {
 
   for (const auto& node : m_seedNodes) {
     auto seedNodeIp = TryGettingResolvedIP(node.second);
-    Blacklist::GetInstance().Remove(seedNodeIp);
+    Blacklist::GetInstance().Remove({seedNodeIp,0,""});
   }
 }
 

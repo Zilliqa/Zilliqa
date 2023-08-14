@@ -11,7 +11,6 @@ describe.skip("Gas estimation with web3.js", function () {
     it("should return proper estimation [@transactional]", async function () {
       const to = SignerPool.createRandomAccount();
       const signer = await parallelizer.takeSigner();
-
       const gasAmountEst = await ethers.provider.estimateGas({
         to: to.address,
         from: signer.address,

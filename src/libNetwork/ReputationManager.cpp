@@ -38,10 +38,10 @@ bool ReputationManager::IsNodeBanned(const uint128_t& IPAddress) {
 void ReputationManager::PunishNode(const uint128_t& IPAddress,
                                    int32_t Penalty) {
   UpdateReputation(IPAddress, Penalty);
-  if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress)) {
+  if (!Blacklist::GetInstance().Exist({IPAddress,0,""}) and IsNodeBanned(IPAddress)) {
     LOG_GENERAL(INFO, "Node " << IPConverter::ToStrFromNumericalIP(IPAddress)
                               << " banned.");
-    Blacklist::GetInstance().Add(IPAddress);
+    Blacklist::GetInstance().Add({IPAddress,0,""});
   }
 }
 
@@ -126,9 +126,9 @@ std::vector<uint128_t> ReputationManager::GetAllKnownIP() {
 void ReputationManager::AwardNode(const uint128_t& IPAddress) {
   UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
-  if (Blacklist::GetInstance().Exist(IPAddress) && !IsNodeBanned(IPAddress)) {
+  if (Blacklist::GetInstance().Exist({IPAddress,0,""}) && !IsNodeBanned(IPAddress)) {
     LOG_GENERAL(INFO, "Node " << IPConverter::ToStrFromNumericalIP(IPAddress)
                               << " unbanned.");
-    Blacklist::GetInstance().Remove(IPAddress);
+    Blacklist::GetInstance().Remove({IPAddress,0,""});
   }
 }

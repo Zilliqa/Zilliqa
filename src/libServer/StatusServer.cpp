@@ -388,7 +388,7 @@ bool StatusServer::IsIPInBlacklist(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    return Blacklist::GetInstance().Exist(numIP);
+    return Blacklist::GetInstance().Exist({numIP,0,""});
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (const exception& e) {
@@ -406,7 +406,7 @@ bool StatusServer::RemoveIPFromBlacklist(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    Blacklist::GetInstance().Remove(numIP);
+    Blacklist::GetInstance().Remove({numIP,0,""});
     return true;
   } catch (const JsonRpcException& je) {
     throw je;

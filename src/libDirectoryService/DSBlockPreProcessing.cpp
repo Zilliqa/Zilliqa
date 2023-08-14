@@ -304,7 +304,7 @@ void DirectoryService::InjectPoWForDSNode(
 
     // Remove this node from blacklist if it exists
     Peer& p = rit->second;
-    Blacklist::GetInstance().Remove(p.GetIpAddress());
+    Blacklist::GetInstance().Remove({p.GetIpAddress(),p.m_listenPortHost,""});
 
     ++counter;
   }

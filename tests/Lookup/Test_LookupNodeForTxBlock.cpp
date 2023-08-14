@@ -30,7 +30,7 @@
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2P.h"
+#include "libNetwork/P2PComm.h"
 #include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE lookupnodetxblocktest
@@ -98,7 +98,7 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   Serializable::SetNumber<uint32_t>(dsblockmsg, curr_offset, (uint32_t)5001, 4);
   curr_offset += 4;
 
-  zil::p2p::GetInstance().SendMessage(lookup_node, dsblockmsg);
+  P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg);
 }
 
 BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 
   curr_offset += txblock.Serialize(txblockmsg, curr_offset);
 
-  zil::p2p::GetInstance().SendMessage(lookup_node, txblockmsg);
+  P2PComm::GetInstance().SendMessage(lookup_node, txblockmsg);
 }
 
 BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
           getTxBlockMessage, MessageOffset::BODY, 0, 1, 5000)) {
     LOG_GENERAL(WARNING, "Messenger::SetLookupGetTxBlockFromSeed failed.");
   } else {
-    zil::p2p::GetInstance().SendMessage(lookup_node, getTxBlockMessage);
+    P2PComm::GetInstance().SendMessage(lookup_node, getTxBlockMessage);
   }
 }
 
