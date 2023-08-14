@@ -6,7 +6,6 @@ chai.use(deepEqualInAnyOrder);
 import {expect} from "chai";
 import {Contract} from "ethers";
 import hre, {ethers} from "hardhat";
-import {parallelizer} from "../../helpers";
 import {Event, waitForEvents} from "./shared";
 
 describe("Subscriptions functionality", function () {
@@ -15,7 +14,7 @@ describe("Subscriptions functionality", function () {
   let provider;
   let senderAddress: string;
   before(async function () {
-    contract = await parallelizer.deployContract("Subscriptions");
+    contract = await hre.deployContract("Subscriptions");
     senderAddress = await contract.signer.getAddress();
   });
 

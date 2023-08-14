@@ -1,6 +1,5 @@
 import {assert} from "chai";
 import hre from "hardhat";
-import {parallelizer} from "../../helpers";
 import logDebug from "../../helpers/DebugHelper";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 
@@ -17,7 +16,7 @@ describe(`Calling ${METHOD} #parallel`, function () {
   });
 
   it("should return code of contract @block-1", async function () {
-    const contract = await parallelizer.deployContract("SimpleContract");
+    const contract = await hre.deployContract("SimpleContract");
     const expected = hre.artifacts.readArtifactSync("SimpleContract").deployedBytecode;
 
     await sendJsonRpcRequest(METHOD, 1, [contract.address, "latest"], (result, status) => {

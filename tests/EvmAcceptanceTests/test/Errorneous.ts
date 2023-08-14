@@ -1,7 +1,7 @@
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {expect} from "chai";
 import {Contract} from "ethers";
-import hre, {ethers} from "hardhat";
+import hre from "hardhat";
 
 // FIXME: It takes around 13 seconds to finish on iso server, is it ok?!
 describe("While Calling a method on erroneous contract with given gas limit #parallel", function () {

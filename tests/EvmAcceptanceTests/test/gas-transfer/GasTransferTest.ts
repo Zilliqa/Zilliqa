@@ -1,6 +1,5 @@
 import {expect} from "chai";
-import {ethers} from "hardhat";
-import {parallelizer} from "../../helpers";
+import hre, {ethers} from "hardhat";
 import {BigNumber} from "ethers";
 import {JsonRpcProvider} from "@ethersproject/providers";
 
@@ -74,7 +73,7 @@ describe("GasTransferTest", function () {
       let cumulativeGas = BigNumber.from(0);
       let block = await provider.getBlock("latest");
 
-      const contract = await parallelizer.deployContract("GasTransferTest", {value: testCase.constructContractWith});
+      const contract = await hre.deployContract("GasTransferTest", {value: testCase.constructContractWith});
 
       {
         await contract.deployed();

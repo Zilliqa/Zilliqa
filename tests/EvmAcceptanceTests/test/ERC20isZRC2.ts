@@ -1,10 +1,11 @@
 import {expect} from "chai";
-import {Contract, Signer, utils} from "ethers";
+import {Contract, utils} from "ethers";
 import hre, {ethers} from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../helpers";
 import {defaultAbiCoder, toUtf8Bytes} from "ethers/lib/utils";
 import {Event} from "./subscriptions/shared";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 function validateScillaEvent(scillaEventName: string, contractAddress: string, event: any) {
   expect(event["address"].toLowerCase()).to.eq(contractAddress.toLowerCase());
@@ -25,16 +26,16 @@ describe("ERC20 Is ZRC2", function () {
   let zrc2_contract: ScillaContract;
   let erc20_contract: Contract;
   let erc165_contract: Contract;
-  let contractOwner: Signer;
-  let alice: Signer;
-  let bob: Signer;
+  let contractOwner: SignerWithAddress;
+  let alice: SignerWithAddress;
+  let bob: SignerWithAddress;
 
   before(async function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
 
-    contractOwner = await parallelizer.takeSigner();
+    contractOwner = hre.allocateSigner();
 
     zrc2_contract = await parallelizer.deployScillaContract(
       "FungibleToken",
@@ -44,16 +45,20 @@ describe("ERC20 Is ZRC2", function () {
       2,
       1_000
     );
-    alice = await parallelizer.takeSigner();
-    bob = await parallelizer.takeSigner();
-    erc20_contract = await parallelizer.deployContractWithSigner(
-      contractOwner,
+    alice = hre.allocateSigner();
+    bob = hre.allocateSigner();
+    erc20_contract = await hre.deployContractWithSigner(
       "ERC20isZRC2",
+      contractOwner,
       zrc2_contract.address?.toLowerCase()
     );
 
-    erc165_contract = await parallelizer.deployContractWithSigner(contractOwner, "ContractSupportingScillaReceiver");
+    erc165_contract = await hre.deployContractWithSigner("ContractSupportingScillaReceiver", contractOwner);
   });
+
+  after(() => {
+    hre.releaseSigner(alice, bob, contractOwner);
+  })
 
   it("Interop Should be deployed successfully", async function () {
     expect(zrc2_contract.address).to.be.properAddress;

@@ -6,7 +6,7 @@ import {Contract as Web3Contract} from "web3-eth-contract";
 describe("Precompile tests with web3.js #parallel", function () {
   let contract: Web3Contract;
   before(async function () {
-    contract = await hre.deployContractWeb3("Precompiles");
+    contract = await hre.deployContractWeb3("Precompiles", {});
   });
 
   it("should return signer address when recover function is used @block-1", async function () {

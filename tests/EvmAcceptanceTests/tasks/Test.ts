@@ -37,8 +37,10 @@ task("test")
       });
     }
 
-    if (taskArgs.parallel)
+    if (taskArgs.parallel) {
+      hre.parallel = true;
       await hre.run("parallel-test")
+    }
     else 
       await runSuper();
     let newBalances = await Promise.all(signers.map((signer) => signer.getBalance()));

@@ -1,7 +1,6 @@
 import {assert, expect} from "chai";
 import {Contract} from "ethers";
 import hre, {ethers} from "hardhat";
-import {parallelizer} from "../helpers";
 import logDebug from "../helpers/DebugHelper";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 
@@ -10,7 +9,7 @@ describe("Parent Child Contract Functionality", function () {
   let parentContract: Contract;
 
   before(async function () {
-    parentContract = await parallelizer.deployContract("ParentContract", {value: INITIAL_FUND});
+    parentContract = await hre.deployContract("ParentContract", {value: INITIAL_FUND});
   });
 
   describe("General", function () {

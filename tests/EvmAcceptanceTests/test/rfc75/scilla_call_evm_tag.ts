@@ -12,7 +12,7 @@ describe("RFC75 ScillaCallEvmTag", function () {
   const VAL = 10;
 
   beforeEach(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaCall");
+    solidityContract = await hre.deployContract("ScillaCall");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();

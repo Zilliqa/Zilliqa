@@ -1,7 +1,5 @@
 import {expect} from "chai";
-import {ethers} from "hardhat";
-import {parallelizer} from "../helpers";
-import SignerPool from "../helpers/SignerPool";
+import hre, {ethers} from "hardhat";
 
 // FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
 describe.skip("Gas estimation with web3.js", function () {
@@ -9,8 +7,8 @@ describe.skip("Gas estimation with web3.js", function () {
 
   describe("When a fund transfer is made", function () {
     it("should return proper estimation [@transactional]", async function () {
-      const to = SignerPool.createRandomAccount();
-      const signer = await parallelizer.takeSigner();
+      const to = ethers.Wallet.createRandom();
+      const signer = hre.allocateSigner();
       const gasAmountEst = await ethers.provider.estimateGas({
         to: to.address,
         from: signer.address,
@@ -24,7 +22,7 @@ describe.skip("Gas estimation with web3.js", function () {
 
       const receipt = await txn.wait();
       expect(gasAmountEst).to.be.equal(receipt.gasUsed);
-      parallelizer.releaseSigner(signer);
+      hre.releaseSigner(signer);
     });
   });
 
@@ -32,7 +30,7 @@ describe.skip("Gas estimation with web3.js", function () {
     // Make sure parent contract is available for child to be called
     before(async function () {
       const amountPaid = ethers.utils.parseUnits("300", "gwei");
-      this.contract = await parallelizer.deployContract("ParentContract", {value: amountPaid});
+      this.contract = await hre.deployContract("ParentContract", {value: amountPaid});
     });
 
     it("Should return proper gas estimation [@transactional]", async function () {

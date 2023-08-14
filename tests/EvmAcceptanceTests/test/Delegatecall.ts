@@ -8,10 +8,14 @@ describe("Delegatecall functionality #parallel", function () {
   let testDelegateContract: Contract;
   let signer: SignerWithAddress;
   before(async function () {
-    signer = hre.signer_pool.takeSigner();
+    signer = hre.allocateSigner();
     delegateContract = await hre.deployContractWithSigner("Delegatecall", signer);
     testDelegateContract = await hre.deployContractWithSigner("TestDelegatecall", signer);
   });
+
+  after(function() {
+    hre.releaseSigner(signer);
+  })
 
   it("should delegate function call correctly @block-1", async function () {
     const VALUE = 1000000;
