@@ -162,7 +162,6 @@ extendEnvironment(async (hre) => {
   hre.debug = ENV_VARS.debug;
   hre.scillaTesting = ENV_VARS.scilla;
   hre.signer_pool = new SignerPool();
-  hre.signer_pool.initSigners(...(await hre.ethers.getSigners()));
 });
 
 import "./tasks/Balances";    // To fix tsc error
