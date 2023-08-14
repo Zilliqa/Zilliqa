@@ -167,4 +167,5 @@ extendEnvironment(async (hre) => {
 });
 
 import "./tasks/Balances";    // To fix tsc error
+import "./tasks/Setup";    // To fix tsc error
 export default config;

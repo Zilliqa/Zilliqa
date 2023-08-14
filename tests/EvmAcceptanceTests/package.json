@@ -53,11 +53,13 @@
   },
   "dependencies": {
     "@types/deep-equal-in-any-order": "^1.0.1",
+    "@types/terminal-kit": "^2.5.1",
     "@zilliqa-js/zilliqa": "^3.3.4",
     "cli-color": "^2.0.3",
     "deep-equal-in-any-order": "^2.0.6",
     "dotenv": "^16.0.3",
     "ora": "^3.2.0",
+    "terminal-kit": "^3.0.0",
     "yargs": "^17.7.1"
   },
   "lint-staged": {
