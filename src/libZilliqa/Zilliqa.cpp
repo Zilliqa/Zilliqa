@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem/operations.hpp>
 #include <chrono>
 
 #include <boost/asio/signal_set.hpp>
@@ -281,7 +280,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
   // shard/dscommittee and proceed accordingly.
 
   if (!LOOKUP_NODE_MODE && (SyncType::RECOVERY_ALL_SYNC == syncType)) {
-    if (!boost::filesystem::exists(STORAGE_PATH + PERSISTENCE_PATH)) {
+    if (!std::filesystem::exists(STORAGE_PATH + PERSISTENCE_PATH)) {
       syncType = SyncType::NEW_SYNC;
       m_lookup.SetSyncType(SyncType::NEW_SYNC);
     }

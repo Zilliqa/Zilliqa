@@ -19,7 +19,6 @@
 
 #include <MultiSig.h>
 #include <sys/wait.h>
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include "libUtils/DataConversion.h"
