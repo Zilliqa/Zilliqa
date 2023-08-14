@@ -77,10 +77,9 @@ ENV SCCACHE_CACHE_SIZE="1G"
 ENV SCCACHE_DIR="/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
-# CMake 3.24
-ARG CMAKE_VERSION=3.24.2
+ARG CMAKE_VERSION=3.25.1
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
-    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+    && echo "6598da34f0e3a0f763809e25cfdd646aa1d5e4d133c4277821e63ae5cfe09457 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
     && mkdir -p "${HOME}"/.local \
     && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
     && "${HOME}"/.local/bin/cmake --version \
@@ -110,6 +109,14 @@ WORKDIR /zilliqa/build
 COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
 COPY vcpkg.json .
+
+RUN apt update -y \
+  && apt install -y apt-transport-https ca-certificates gnupg curl \
+  && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
+  && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
+  && apt update -y && apt install -y google-cloud-cli
+
+ENV VCPKG_BINARY_SOURCES="default,readwrite;x-gcs,gs://vcpkg/ubuntu/22.04/x64-linux-dynamic/${VCPKG_COMMIT_OR_TAG}/,read"
 
 RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
 
