@@ -160,7 +160,6 @@ import {extendEnvironment} from "hardhat/config";
 import SignerPool from "./helpers/parallel-tests/SignerPool";
 extendEnvironment(async (hre) => {
   hre.debug = ENV_VARS.debug;
-  hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
   hre.scillaTesting = ENV_VARS.scilla;
   hre.signer_pool = new SignerPool();
   hre.signer_pool.initSigners(...(await hre.ethers.getSigners()));

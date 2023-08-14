@@ -1,15 +1,14 @@
-import {assert, expect} from "chai";
+import {assert} from "chai";
 import {Contract} from "ethers";
-import {parallelizer} from "../helpers";
-import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
+import hre from "hardhat";
 
 describe("Static Contract Calls Functionality", function () {
   let called: Contract;
   let caller: Contract;
 
   before(async function () {
-    called = await parallelizer.deployContract("Called");
-    caller = await parallelizer.deployContract("Caller");
+    called = await hre.deployContract("Called");
+    caller = await hre.deployContract("Caller");
   });
 
   describe("Static calls to contracts should not modify their value", function () {

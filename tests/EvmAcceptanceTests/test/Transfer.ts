@@ -1,7 +1,6 @@
 import {assert, expect} from "chai";
-import {BigNumber} from "ethers";
-import {ethers} from "hardhat";
-import {parallelizer} from "../helpers";
+import {BigNumber, Contract} from "ethers";
+import hre, {ethers} from "hardhat";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
@@ -11,40 +10,40 @@ async function getFee(hash: string) {
 }
 
 describe("ForwardZil contract functionality", function () {
+  let contract: Contract;
   before(async function () {
-    this.contract = await parallelizer.deployContract("ForwardZil");
-    this.signer = this.contract.signer;
+    contract = await hre.deployContract("ForwardZil");
   });
 
   it("Should return zero as the initial balance of the contract", async function () {
-    expect(await ethers.provider.getBalance(this.contract.address)).to.be.eq(0);
+    expect(await ethers.provider.getBalance(contract.address)).to.be.eq(0);
   });
 
   it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called`, async function () {
-    expect(await this.contract.deposit({value: FUND})).changeEtherBalance(this.contract.address, FUND);
+    expect(await contract.deposit({value: FUND})).changeEtherBalance(contract.address, FUND);
   });
 
   // TODO: Add notPayable contract function test.
 
   it("Should move 1 ether to the owner if withdraw function is called so 1 ether is left for the contract itself [@transactional]", async function () {
-    expect(await this.contract.withdraw()).to.changeEtherBalances(
-      [this.contract.address, this.signer.address],
+    expect(await contract.withdraw()).to.changeEtherBalances(
+      [contract.address, await contract.signer.getAddress()],
       [ethers.utils.parseEther("-1.0"), ethers.utils.parseEther("1.0")],
       {includeFee: true}
     );
   });
 
   it("should be possible to transfer ethers to the contract", async function () {
-    const prevBalance = await ethers.provider.getBalance(this.contract.address);
-    const tx = await parallelizer.sendTransaction({
-      to: this.contract.address,
+    const prevBalance = await ethers.provider.getBalance(contract.address);
+    const {response} = await hre.sendTransaction({
+      to: contract.address,
       value: FUND
     });
 
     // Get transaction receipt for the tx
-    const receipt = await tx.response.wait();
+    await response.wait();
 
-    const currentBalance = await ethers.provider.getBalance(this.contract.address);
+    const currentBalance = await ethers.provider.getBalance(contract.address);
     expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
   });
 });
@@ -53,10 +52,12 @@ describe("Transfer ethers", function () {
   it("should be possible to transfer ethers to a user account", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    await parallelizer.sendTransaction({
+    const {response} = await hre.sendTransaction({
       to: payee.address,
       value: FUND
     });
+
+    await response.wait();
 
     expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
@@ -71,7 +72,7 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
+    await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
 
@@ -124,7 +125,7 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
+    await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
 
@@ -149,7 +150,7 @@ describe("Transfer ethers", function () {
     expect(InitialOwnerbal).to.be.at.least(TRANSFER_VALUE * 1.1);
 
     // Deploy the contract
-    const singleTransfer = await parallelizer.deployContract("SingleTransfer");
+    const singleTransfer = await hre.deployContract("SingleTransfer");
 
     // call SC with a value to move funds across
     await singleTransfer.doTransfer(randomAccount, TRANSFER_VALUE, {
@@ -167,7 +168,7 @@ describe("Transfer ethers", function () {
 
     const FUND = BigNumber.from(200_000_000_000_000_000n);
 
-    const tx = await parallelizer.sendTransaction({
+    const tx = await hre.sendTransaction({
       to: rndAccount.address,
       value: FUND
     });
