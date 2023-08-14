@@ -15,6 +15,7 @@ task("init-signers", "A task to init signers")
     const {from, count, balance, append} = taskArgs;
     const accounts: string[] = [];
 
+    console.log();
     for (let i = 0; i < Number(count); ++i) {
       const spinner = ora();
       const account = ethers.Wallet.createRandom();
