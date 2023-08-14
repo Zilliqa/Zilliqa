@@ -17,12 +17,10 @@ describe(`Calling ${METHOD} #parallel`, function () {
     let amount = 10_000;
     // send amount from primary to secondary account
     const to = ethers.Wallet.createRandom();
-    const signer = hre.signer_pool.takeSigner();
-    const response = await signer.sendTransaction({
+    const {response} = await hre.sendTransaction({
       to: to.address,
       value: amount
     });
-    hre.signer_pool.releaseSigner(signer);
     const transactionHash = response.hash;
     await response.wait();
 

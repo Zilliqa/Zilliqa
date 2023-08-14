@@ -7,6 +7,7 @@ task("test")
   .addFlag("logTxnid", "Log JSON RPC ")
   .setAction(async (taskArgs, hre, runSuper): Promise<any> => {
     let signers = await hre.ethers.getSigners();
+    hre.signer_pool.initSigners(...signers);
     let balances = await Promise.all(signers.map((signer) => signer.getBalance()));
 
     const node_version = process.version;
