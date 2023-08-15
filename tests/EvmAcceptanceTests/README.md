@@ -2,7 +2,9 @@
 
 ```bash
     npm install
+    npx hardhat setup   # to run setup wizard
     npx hardhat test    # to run tests
+    npx hardhat test --parallel   # to run tests in parallel mode
     npx hardhat test --network devnet    # to run tests against the devnet
     npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
     npx hardhat test --log-txnid    # to run tests and print transaction ids.
@@ -10,12 +12,32 @@
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
-    npx hardhat test --parallel   # to run tests in parallel
     npx hardhat test test/scilla/*    # to run scilla tests only
     SCILLA=false npx hardhat test   # to disable scilla tests. `.env` file can be used as well.
 ```
 
-# Start Testing
+# Start running tests
+If it's the first time you want to run tests, or you just created [a new network](#how-to-define-a-new-network-for-hardhat) and you want to run tests against this newly added network, you're supposed to call `setup`:
+
+```bash
+npx hardhat setup --network <network_name> #If --network is not specified, the default one will be used. In our config, the default network is isolated_server
+```
+
+During setup, a dozen of signers (accounts) will be created for you and will be saved to `.signers` folder. For every network you run setup for, a new `<network_name>.json` file is created in the `.signers` folder. This signers will be used for future test runs.
+
+After the setup, run:
+```bash
+npx hardhat test --network <network_name>
+```
+This will run tests in sequential mode. *It takes more time to finish* but *has more test cases*. It's also possible to run tests in parallel using:
+
+```bash
+npx hardhat test --parallel --network <network_name>
+```
+
+More faster but with fewer test cases.
+
+# Start writing new tests
 
 ## A few simple rules before start
 
@@ -61,13 +83,30 @@ await expect(contract.withdraw())
   .to.changeEtherBalance(owner.address, ethers.utils.parseEther("1.0"));
 ```
 
+## Tag tests to run in parallel mode
+By default, test scenarios will be executed in the sequential mode, but if you want to make them run in parallel mode as well:
+
+1. Add `#parallel` tag to its `describe` description.
+
+```typescript
+describe("Blockchain Instructions contract #parallel", function () {
+```
+
+2. Specify the block number that `it` block (real test code) is supposed to run in like `@block-1`. Although most of the tests should be executed in @block-1,it t could be executed in 1, 2, 3,... . But the more depth is added to our tests, the more time we need to wait for the results.
+
+```typescript
+  it("Should be deployed successfully @block-1", async function () {
+```
+
+3. Add your test file to the list of `PARALYZED_TEST_FILES` in [ParallelTest.ts](./tasks/ParallelTest.ts:12). Don't forget to add its javascript file, not the typescript one.
+
 ## Run the tests
 
 ```bash
 npx hardhat test        # Run all the tests
 npx hardhat test --grep "something"     # Run tests containing "something" in their descriptions
-npx hardhat test --bail     # Stop running tests after the first test failure
 npx hardhat test --parallel
+npx hardhat test --bail     # Stop running tests after the first test failure
 ```
 
 # How to define a new network for hardhat
@@ -85,11 +124,13 @@ const config: any = {
       chainId: 1337,
       accounts: [
         "c95690aed4461afd835b17492ff889af72267a8bdf7d781e305576cd8f7eb182",
-        "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad"
+        "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad",
+        ...loadFromSignersFile("network_name")
       ]
     },
 ...
 ```
+Don't forget to add `...loadFromSignersFile("network_name")` at the end of you accounts, otherwise your signers from `.signers` folder won't be loaded.
 
 2. Change the default network:
 
@@ -308,6 +349,15 @@ to change some of the testing behaviors environment variables are used. They can
 ## Tasks
 
 A few customized tasks are added to hardhat to simplify the process of test development and debugging.
+
+### Balances
+To get the balances of accounts in `hardhat.config.ts` this task can be used like:
+
+```bash
+npx hardhat balances --zil # returns balances of zil-addresses of accounts
+npx hardhat balances --eth # returns balances of eth-addresses of accounts
+npx hardhat balances  # same as --eth
+```
 
 ### zilBalance
 
