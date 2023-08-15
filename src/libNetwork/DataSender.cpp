@@ -37,7 +37,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
 
   vector<Peer> allLookupNodes;
 
-  for (const auto& node : lookups) {
+  for (auto& node : lookups) {
     string url = node.second.GetHostname();
     auto resolved_ip = node.second.GetIpAddress();  // existing one
     if (!url.empty()) {
@@ -50,9 +50,8 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
       }
     }
 
-    Blacklist::GetInstance().Whitelist(
-        resolved_ip);  // exclude this lookup ip from blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost());
+    Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()});  // exclude this lookup ip from blacklisting
+    Peer tmp(resolved_ip, node.second.GetListenPortHost(),node.second.GetNodeIndentifier());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);

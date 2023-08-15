@@ -121,7 +121,7 @@ const ErrorCode NETWORK_UNREACHABLE = boost::asio::error::network_unreachable;
 namespace {
 
 inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
-  return Blacklist::GetInstance().Exist({peer.m_ipAddress,0,""},!allow_relaxed_blacklist);
+  return Blacklist::GetInstance().Exist({peer.GetIpAddress(),peer.GetListenPortHost(),peer.GetNodeIndentifier()},!allow_relaxed_blacklist);
 }
 
 inline Milliseconds Clock() {

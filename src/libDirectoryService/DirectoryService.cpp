@@ -1010,8 +1010,10 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
 
-        Blacklist::GetInstance().RemoveFromWhitelist(
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress);
+        Blacklist::GetInstance().RemoveFromWhitelist({
+            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress,
+            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_listenPortHost,
+            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.GetNodeIndentifier()}  );
         LOG_GENERAL(INFO,
                     "Removed "
                         << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
@@ -1025,7 +1027,9 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
             dsGuardNewNetworkInfo;
 
         if (GUARD_MODE) {
-          Blacklist::GetInstance().Whitelist(dsGuardNewNetworkInfo.m_ipAddress);
+          Blacklist::GetInstance().Whitelist({dsGuardNewNetworkInfo.m_ipAddress,
+                                                      dsGuardNewNetworkInfo.m_listenPortHost,
+                                                dsGuardNewNetworkInfo.GetNodeIndentifier()});
           LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
                                               << " to blacklist exclude list");
         }

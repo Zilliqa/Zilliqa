@@ -137,7 +137,7 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
 
     // Remove this node from blacklist if it exists
     Peer& p = dsComm.back().second;
-    Blacklist::GetInstance().Remove({p.GetIpAddress(),p.m_listenPortHost,""});
+    Blacklist::GetInstance().Remove({p.GetIpAddress(),p.GetListenPortHost(),p.GetNodeIndentifier()});
     dsComm.pop_back();
   }
 

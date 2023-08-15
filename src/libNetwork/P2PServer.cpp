@@ -254,7 +254,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
                              << " Adding sending node "
                              << m_remotePeer.GetPrintableIPAddress()
                              << " as strictly blacklisted");
-    Blacklist::GetInstance().Add({m_remotePeer.m_ipAddress,m_remotePeer.m_listenPortHost,""});
+    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),m_remotePeer.GetListenPortHost(),m_remotePeer.GetNodeIndentifier()});
 
     CloseSocket();
     OnConnectionClosed();
@@ -288,7 +288,7 @@ void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (state != ReadState::SUCCESS) {
     LOG_GENERAL(WARNING, "Message deserialize error: blacklisting "
                              << m_remotePeer.GetPrintableIPAddress());
-    Blacklist::GetInstance().Add({m_remotePeer.m_ipAddress,m_remotePeer.m_listenPortHost,""});
+    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),m_remotePeer.GetListenPortHost(),m_remotePeer.GetNodeIndentifier()});
 
     CloseSocket();
     OnConnectionClosed();

@@ -679,9 +679,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
     for (const auto& node : m_lookupNodes) {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
-
+      Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),""});
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
@@ -708,8 +706,7 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
 
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+      Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),""});
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
@@ -749,8 +746,7 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   int index = RandomGenerator::GetRandomInt(tmp.size());
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
-  Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this lookup ip from blacklisting
+  Blacklist::GetInstance().Whitelist({resolved_ip,tmp[index].second.GetListenPortHost(),""});
   Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
   zil::p2p::GetInstance().SendMessage(tmpPeer, message);
@@ -764,8 +760,7 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
     for (const auto& node : m_seedNodes) {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+      Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),""});
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer);
@@ -1232,7 +1227,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   bool initialDS;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.GetListenPortHost(),from.GetNodeIndentifier()} )) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1296,8 +1291,7 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   int index = RandomGenerator::GetRandomInt(m_l2lDataProviders.size());
   auto resolved_ip = TryGettingResolvedIP(m_l2lDataProviders[index].second);
 
-  Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this l2lookup ip from blacklisting
+  Blacklist::GetInstance().Whitelist({resolved_ip,m_l2lDataProviders[index].second.GetListenPortHost(),""});
   Peer tmpPeer(resolved_ip,
                m_l2lDataProviders[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
@@ -1320,10 +1314,10 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,0,""}) &&
+      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()}) &&
           (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
-            Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
+            Peer(seedNodeIpToSend, node.second.GetListenPortHost(),node.second.GetNodeIndentifier()));
       }
     }
   }
@@ -1813,7 +1807,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
   bool includeMinerInfo = false;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()}  )) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1986,7 +1980,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
   uint32_t portNo = 0;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()}  )) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2106,7 +2100,7 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint32_t portNo = 0;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2170,7 +2164,7 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint32_t portNo = 0;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2356,7 +2350,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -3721,7 +3715,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed({ipAddr,from.GetListenPortHost(),from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -3752,7 +3746,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add({from.GetIpAddress(),from.m_listenPortHost,""});
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
     return false;
   }
 
@@ -5261,9 +5255,10 @@ bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 void Lookup::RemoveSeedNodesFromBlackList() {
   lock_guard<mutex> lock(m_mutexSeedNodes);
 
-  for (const auto& node : m_seedNodes) {
+  for (auto& node : m_seedNodes) {
     auto seedNodeIp = TryGettingResolvedIP(node.second);
-    Blacklist::GetInstance().Remove({seedNodeIp,0,""});
+
+    Blacklist::GetInstance().Remove({seedNodeIp,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()});
   }
 }
 

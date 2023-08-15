@@ -2469,7 +2469,7 @@ bool Node::ProcessRemoveNodeFromBlacklist(
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
     // Blacklist - strict one - since too many whitelist request in current ds
     // epoch.
-    Blacklist::GetInstance().Add({from.GetIpAddress(),from.m_listenPortHost,""});
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
     return false;
   }
 
@@ -2505,7 +2505,7 @@ bool Node::ProcessRemoveNodeFromBlacklist(
     return false;
   }
 
-  Blacklist::GetInstance().Remove({ipAddress,from.m_listenPortHost,""});
+  Blacklist::GetInstance().Remove({ipAddress,from.GetListenPortHost(),from.GetNodeIndentifier()});
   return true;
 }
 
@@ -2901,7 +2901,9 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
                     });
 
         if (it != m_mediator.m_DSCommittee->end()) {
-          Blacklist::GetInstance().RemoveFromWhitelist(it->second.m_ipAddress);
+          Blacklist::GetInstance().RemoveFromWhitelist({it->second.m_ipAddress,
+                                                        it->second.m_listenPortHost,
+                                                        it->second.GetNodeIndentifier()}  );
           LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
                                        << " from blacklist exclude list");
         }
@@ -2922,8 +2924,9 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
                             << " new network info is "
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
       if (GUARD_MODE) {
-        Blacklist::GetInstance().Whitelist(
-            dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
+        Blacklist::GetInstance().Whitelist({dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress,
+                                             dsguardupdate.m_dsGuardNewNetworkInfo.m_listenPortHost,
+                                             dsguardupdate.m_dsGuardNewNetworkInfo.GetNodeIndentifier()});
         LOG_GENERAL(INFO,
                     "Added ds guard "
                         << dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress
