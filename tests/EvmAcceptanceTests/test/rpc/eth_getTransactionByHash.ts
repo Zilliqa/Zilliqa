@@ -2,7 +2,6 @@ import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {assert} from "chai";
 import hre, {ethers} from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
-import {parallelizer} from "../../helpers";
 
 const METHOD = "eth_getTransactionByHash";
 
@@ -17,7 +16,7 @@ describe("Calling " + METHOD, function () {
     // FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
     xit("should have valid structure in response", async function () {
       const to = ethers.Wallet.createRandom();
-      const {response, signer_address} = await parallelizer.sendTransaction({
+      const {response, signer_address} = await hre.sendTransaction({
         to: to.address,
         value: 1_000_000
       });

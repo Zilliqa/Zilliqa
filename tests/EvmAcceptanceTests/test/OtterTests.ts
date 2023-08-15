@@ -1,7 +1,6 @@
 import {assert, expect} from "chai";
-import {ethers} from "hardhat";
+import hre, {ethers} from "hardhat";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
-import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
   before(async function () {
@@ -52,7 +51,7 @@ describe("Otterscan api tests", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    const tx = await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
+    const tx = await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
 
@@ -72,9 +71,9 @@ describe("Otterscan api tests", function () {
   it("We can get the otter trace transaction", async function () {
     const METHOD = "ots_traceTransaction";
 
-    let contractOne = await parallelizer.deployContract("ContractOne");
-    let contractTwo = await parallelizer.deployContract("ContractTwo");
-    let contractThree = await parallelizer.deployContract("ContractThree");
+    let contractOne = await hre.deployContract("ContractOne");
+    let contractTwo = await hre.deployContract("ContractTwo");
+    let contractThree = await hre.deployContract("ContractThree");
 
     let addrOne = contractOne.address.toLowerCase();
     let addrTwo = contractTwo.address.toLowerCase();
@@ -159,7 +158,7 @@ describe("Otterscan api tests", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    const tx = await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
+    const tx = await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
 

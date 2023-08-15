@@ -38,7 +38,8 @@ async function main() {
   }
 
   zilliqa.wallet.addByPrivateKey(privateKey);
-  for (const element of hre.network["config"]["accounts"]) {
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+  for (const element of private_keys) {
     const wallet = new ethers.Wallet(element);
     let ethAddrConverted = toChecksumAddress(wallet.address); // Zil checksum
     const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(

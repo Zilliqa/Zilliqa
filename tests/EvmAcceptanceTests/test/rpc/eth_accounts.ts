@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_accounts";
 
-describe("Calling " + METHOD, function () {
-  it("should return an array with accounts", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return an array with accounts @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

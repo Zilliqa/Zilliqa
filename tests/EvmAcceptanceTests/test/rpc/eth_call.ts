@@ -5,8 +5,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_call";
 
-describe("Calling " + METHOD, function () {
-  it("should return the from eth call", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the from eth call @block-1", async function () {
     const contractFactory = await ethers.getContractFactory("SimpleContract");
     const [signer] = await ethers.getSigners();
 

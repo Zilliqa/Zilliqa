@@ -13,8 +13,8 @@ describe("RFC75 ScillaCallRevert", function () {
   const VAL = 99;
 
   beforeEach(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaCallRevert");
-    solidityContractReceiver = await parallelizer.deployContract("ScillaCallReceiver");
+    solidityContract = await hre.deployContract("ScillaCallRevert");
+    solidityContractReceiver = await hre.deployContract("ScillaCallReceiver");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();

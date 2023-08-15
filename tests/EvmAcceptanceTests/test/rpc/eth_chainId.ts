@@ -5,8 +5,8 @@ import hre from "hardhat";
 
 const METHOD = "eth_chainId";
 
-describe("Calling " + METHOD, function () {
-  it("should return the chain Id", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the chain Id @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

@@ -1,13 +1,18 @@
 import {expect} from "chai";
-import {parallelizer} from "../../helpers";
-import {ethers} from "hardhat";
+import hre, {ethers} from "hardhat";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Contract Deployment using Ethers.js", function () {
   describe("Contract with zero parameter constructor", function () {
+    let signer: SignerWithAddress;
     before(async function () {
-      this.signer = await parallelizer.takeSigner();
-      this.nonceBeforeDeploy = await ethers.provider.getTransactionCount(this.signer.getAddress());
-      this.zeroParamConstructor = await parallelizer.deployContractWithSigner(this.signer, "ZeroParamConstructor");
+      signer = hre.allocateSigner();
+      this.nonceBeforeDeploy = await ethers.provider.getTransactionCount(signer.getAddress());
+      this.zeroParamConstructor = await hre.deployContractWithSigner("ZeroParamConstructor", signer);
+    });
+
+    after(() => {
+      hre.releaseSigner(signer);
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -15,7 +20,7 @@ describe("Contract Deployment using Ethers.js", function () {
     });
 
     it("Should have incremented the account nonce by 1", async function () {
-      const count = await ethers.provider.getTransactionCount(this.signer.getAddress());
+      const count = await ethers.provider.getTransactionCount(signer.getAddress());
       expect(count).to.be.eq(this.nonceBeforeDeploy + 1);
     });
 
@@ -26,10 +31,9 @@ describe("Contract Deployment using Ethers.js", function () {
 
   describe("Contract with one parameter constructor", function () {
     describe("When constructor parameter is a uint256", function () {
-      let contract;
       let INITIAL_NUMBER = 100;
       before(async function () {
-        this.withUintConstructor = await parallelizer.deployContract("WithUintConstructor", INITIAL_NUMBER);
+        this.withUintConstructor = await hre.deployContract("WithUintConstructor", INITIAL_NUMBER);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -45,7 +49,7 @@ describe("Contract Deployment using Ethers.js", function () {
       let contract;
       let INITIAL_NAME = "Zilliqa";
       before(async function () {
-        this.withStringConstructor = await parallelizer.deployContract("WithStringConstructor", INITIAL_NAME);
+        this.withStringConstructor = await hre.deployContract("WithStringConstructor", INITIAL_NAME);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -61,7 +65,7 @@ describe("Contract Deployment using Ethers.js", function () {
       let contract;
       let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
       before(async function () {
-        this.withAddressConstructor = await parallelizer.deployContract("WithAddressConstructor", ADDRESS);
+        this.withAddressConstructor = await hre.deployContract("WithAddressConstructor", ADDRESS);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -76,7 +80,7 @@ describe("Contract Deployment using Ethers.js", function () {
     describe("When constructor parameter is an enum", function () {
       let ENUM = 1;
       before(async function () {
-        this.withEnumConstructor = await parallelizer.deployContract("WithEnumConstructor", ENUM);
+        this.withEnumConstructor = await hre.deployContract("WithEnumConstructor", ENUM);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -93,7 +97,7 @@ describe("Contract Deployment using Ethers.js", function () {
     let NAME = "Zilliqa";
     let NUMBER = 100;
     before(async function () {
-      this.withMultiParamConstructor = await parallelizer.deployContract("MultiParamConstructor", NAME, NUMBER);
+      this.withMultiParamConstructor = await hre.deployContract("MultiParamConstructor", NAME, NUMBER);
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -113,7 +117,7 @@ describe("Contract Deployment using Ethers.js", function () {
     let INITIAL_BALANCE = 10;
 
     before(async function () {
-      this.withPayableConstructor = await parallelizer.deployContract("WithPayableConstructor", {
+      this.withPayableConstructor = await hre.deployContract("WithPayableConstructor", {
         value: INITIAL_BALANCE
       });
     });

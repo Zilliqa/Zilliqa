@@ -1,11 +1,10 @@
 import {expect} from "chai";
-import {parallelizer} from "../../helpers";
-import {web3} from "hardhat";
+import hre, {web3} from "hardhat";
 
 describe("Contract Interaction with web3.js", function () {
   describe("When public setter function is called", function () {
     before(async function () {
-      this.contract = await parallelizer.deployContractWeb3("WithSettersAndGetters");
+      this.contract = await hre.deployContractWeb3("WithSettersAndGetters", {});
     });
 
     it("Should set uint256 internal state correctly", async function () {
