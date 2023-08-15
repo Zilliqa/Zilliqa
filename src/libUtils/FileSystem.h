@@ -18,15 +18,12 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
 #define ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
 
-#include <boost/filesystem/path.hpp>
-#include <string>
+#include <filesystem>
 #include <vector>
 
-namespace bfs = boost::filesystem;
-
 // Copy source directory to destination directory
-void recursive_copy_dir(const bfs::path& src, const bfs::path& dst);
+void recursive_copy_dir(const std::filesystem::path& src, const std::filesystem::path& dst);
 std::vector<std::string> getAllFilesInDir(
-    const bfs::path& dirPath, const std::vector<std::string>& dirSkipList = {});
+    const std::filesystem::path& dirPath, const std::vector<std::string>& dirSkipList = {});
 
 #endif  // ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_

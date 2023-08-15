@@ -27,7 +27,6 @@
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
 
-#include <boost/filesystem.hpp>
 #include <fstream>
 
 namespace libCps {
