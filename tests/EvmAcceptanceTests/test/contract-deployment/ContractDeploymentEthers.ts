@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import hre, {ethers} from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Contract Deployment using Ethers.js", function () {
   describe("Contract with zero parameter constructor", function () {
@@ -13,7 +13,7 @@ describe("Contract Deployment using Ethers.js", function () {
 
     after(() => {
       hre.releaseSigner(signer);
-    })
+    });
 
     it("Should be deployed successfully [@transactional]", async function () {
       expect(this.zeroParamConstructor.address).to.be.properAddress;

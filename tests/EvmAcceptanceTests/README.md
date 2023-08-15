@@ -17,6 +17,7 @@
 ```
 
 # Start running tests
+
 If it's the first time you want to run tests, or you just created [a new network](#how-to-define-a-new-network-for-hardhat) and you want to run tests against this newly added network, you're supposed to call `setup`:
 
 ```bash
@@ -26,10 +27,12 @@ npx hardhat setup --network <network_name> #If --network is not specified, the d
 During setup, a dozen of signers (accounts) will be created for you and will be saved to `.signers` folder. For every network you run setup for, a new `<network_name>.json` file is created in the `.signers` folder. This signers will be used for future test runs.
 
 After the setup, run:
+
 ```bash
 npx hardhat test --network <network_name>
 ```
-This will run tests in sequential mode. *It takes more time to finish* but *has more test cases*. It's also possible to run tests in parallel using:
+
+This will run tests in sequential mode. _It takes more time to finish_ but _has more test cases_. It's also possible to run tests in parallel using:
 
 ```bash
 npx hardhat test --parallel --network <network_name>
@@ -84,6 +87,7 @@ await expect(contract.withdraw())
 ```
 
 ## Tag tests to run in parallel mode
+
 By default, test scenarios will be executed in the sequential mode, but if you want to make them run in parallel mode as well:
 
 1. Add `#parallel` tag to its `describe` description.
@@ -130,6 +134,7 @@ const config: any = {
     },
 ...
 ```
+
 Don't forget to add `...loadFromSignersFile("network_name")` at the end of you accounts, otherwise your signers from `.signers` folder won't be loaded.
 
 2. Change the default network:
@@ -351,6 +356,7 @@ to change some of the testing behaviors environment variables are used. They can
 A few customized tasks are added to hardhat to simplify the process of test development and debugging.
 
 ### Balances
+
 To get the balances of accounts in `hardhat.config.ts` this task can be used like:
 
 ```bash

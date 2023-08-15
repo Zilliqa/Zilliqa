@@ -1,7 +1,7 @@
 import {expect} from "chai";
 import hre, {ethers} from "hardhat";
 import {Contract, Signer, Wallet} from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Openzeppelin role based access control functionality", function () {
   let defaultAdmin: Signer;

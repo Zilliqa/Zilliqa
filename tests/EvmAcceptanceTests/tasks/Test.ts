@@ -1,5 +1,5 @@
 import clc from "cli-color";
-import { task } from "hardhat/config";
+import {task} from "hardhat/config";
 import semver from "semver";
 
 task("test")
@@ -40,10 +40,8 @@ task("test")
 
     if (taskArgs.parallel) {
       hre.parallel = true;
-      await hre.run("parallel-test")
-    }
-    else 
-      await runSuper();
+      await hre.run("parallel-test");
+    } else await runSuper();
     let newBalances = await Promise.all(signers.map((signer) => signer.getBalance()));
     let sum = balances
       .map((value, index) => value.sub(newBalances[index]))

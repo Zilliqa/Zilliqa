@@ -26,7 +26,7 @@ async function main() {
     );
   });
 
-  const private_keys: string[] = (hre.network["config"]["accounts"]) as string[];
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
   for (const element of private_keys) {
     console.log("");
     console.log("Starting transfer...");

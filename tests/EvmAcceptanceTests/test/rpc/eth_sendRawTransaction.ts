@@ -9,7 +9,7 @@ const METHOD = "eth_sendRawTransaction";
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     it("should return a send raw transaction", async function () {
-      const private_keys: string[] = (hre.network["config"]["accounts"]) as string[];
+      const private_keys: string[] = hre.network["config"]["accounts"] as string[];
       const fromAccount = web3.eth.accounts.privateKeyToAccount(private_keys[0]);
       const destination = web3.eth.accounts.create();
       const toAddress = destination.address;

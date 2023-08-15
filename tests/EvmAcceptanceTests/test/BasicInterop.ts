@@ -1,8 +1,8 @@
-import { expect } from "chai";
-import { Contract } from "ethers";
+import {expect} from "chai";
+import {Contract} from "ethers";
 import hre from "hardhat";
-import { ScillaContract } from "hardhat-scilla-plugin";
-import { parallelizer } from "../helpers";
+import {ScillaContract} from "hardhat-scilla-plugin";
+import {parallelizer} from "../helpers";
 
 describe("BasicInterop", function () {
   // Keys used in all tests cases

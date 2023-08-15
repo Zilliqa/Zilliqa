@@ -3,7 +3,7 @@ import {Contract} from "ethers";
 import hre from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 describe("ERC20 Interop", function () {
   let zrc2_contract: ScillaContract;

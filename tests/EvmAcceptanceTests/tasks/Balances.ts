@@ -1,14 +1,14 @@
 import clc from "cli-color";
-import { task } from "hardhat/config";
-import { ethers } from "ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { BN, Zilliqa, getAddressFromPrivateKey } from "@zilliqa-js/zilliqa";
+import {task} from "hardhat/config";
+import {ethers} from "ethers";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {BN, Zilliqa, getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
 
 task("balances", "A task to get balances of signers in the config")
   .addFlag("zil", "Show balances in zil based addresses of private keys")
   .addFlag("eth", "Show balances in eth based addresses of private keys")
   .setAction(async (taskArgs, hre) => {
-    const { zil, eth } = taskArgs;
+    const {zil, eth} = taskArgs;
     if (eth) {
       await printEthBalances(hre);
     }
@@ -20,27 +20,26 @@ task("balances", "A task to get balances of signers in the config")
     if (!zil && !eth) {
       await printEthBalances(hre);
     }
-  })
+  });
 
 const printEthBalances = async (hre: HardhatRuntimeEnvironment) => {
-  const { provider } = hre.network;
+  const {provider} = hre.network;
 
   const accounts: string[] = await provider.send("eth_accounts");
   const balances = await Promise.all(
     accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"]))
   );
 
-  console.log(clc.bold.bgGreen("Eth balances"))
+  console.log(clc.bold.bgGreen("Eth balances"));
   accounts.forEach((element, index) => {
-    displayBalance(element,
-      ethers.utils.formatEther(balances[index]), 'ether')
+    displayBalance(element, ethers.utils.formatEther(balances[index]), "ether");
   });
-  console.log()
-}
+  console.log();
+};
 
 const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
   let zilliqa = new Zilliqa(hre.getNetworkUrl());
-  const private_keys: string[] = (hre.network["config"]["accounts"]) as string[];
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
   for (const private_key of private_keys) {
     const address = getAddressFromPrivateKey(private_key);
 
@@ -50,14 +49,14 @@ const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
     if (balanceResult.error) {
       error = true;
       balanceString = clc.red.bold(balanceResult.error.message);
-    }else {
+    } else {
       const balance = new BN(balanceResult.result.balance);
       balanceString = balance.toString();
     }
 
     displayBalance(address, balanceString, error ? "" : "zil");
   }
-}
+};
 
 const displayBalance = (account: string, balance: string, unit: string) => {
   console.log(
@@ -67,4 +66,4 @@ const displayBalance = (account: string, balance: string, unit: string) => {
     clc.white.bold(balance),
     clc.blackBright(unit)
   );
-}
+};

@@ -5,7 +5,7 @@ import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../helpers";
 import {defaultAbiCoder, toUtf8Bytes} from "ethers/lib/utils";
 import {Event} from "./subscriptions/shared";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 function validateScillaEvent(scillaEventName: string, contractAddress: string, event: any) {
   expect(event["address"].toLowerCase()).to.eq(contractAddress.toLowerCase());
@@ -58,7 +58,7 @@ describe("ERC20 Is ZRC2", function () {
 
   after(() => {
     hre.releaseSigner(alice, bob, contractOwner);
-  })
+  });
 
   it("Interop Should be deployed successfully", async function () {
     expect(zrc2_contract.address).to.be.properAddress;

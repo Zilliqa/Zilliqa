@@ -164,6 +164,6 @@ extendEnvironment(async (hre) => {
   hre.signer_pool = new SignerPool();
 });
 
-import "./tasks/Balances";    // To fix tsc error
-import "./tasks/Setup";    // To fix tsc error
+import "./tasks/Balances"; // To fix tsc error
+import "./tasks/Setup"; // To fix tsc error
 export default config;
