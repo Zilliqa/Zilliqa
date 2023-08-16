@@ -30,9 +30,13 @@ Procedure::Procedure(const string &name, parameterDeclaration_t paramType,
   va_start(parameters, returntype);
   const char *paramname = va_arg(parameters, const char *);
   jsontype_t type;
+  jsonflags_t flags;
+  int arg;
   while (paramname != NULL) {
-    type = (jsontype_t)va_arg(parameters, int);
-    this->AddParameter(paramname, type);
+    arg = va_arg(parameters, int);
+    flags = (jsonflags_t)(arg & 0xffff0000);
+    type = (jsontype_t)(arg & 0xffff);
+    this->AddParameter(paramname, type, flags);
     paramname = va_arg(parameters, const char *);
   }
   va_end(parameters);
@@ -47,9 +51,13 @@ Procedure::Procedure(const string &name, parameterDeclaration_t paramType,
   va_start(parameters, paramType);
   const char *paramname = va_arg(parameters, const char *);
   jsontype_t type;
+  jsonflags_t flags;
+  int arg;
   while (paramname != NULL) {
-    type = (jsontype_t)va_arg(parameters, int);
-    this->AddParameter(paramname, type);
+    arg = va_arg(parameters, int);
+    flags = (jsonflags_t)(arg & 0xffff0000);
+    type = (jsontype_t)(arg & 0xffff);
+    this->AddParameter(paramname, type, flags);
     paramname = va_arg(parameters, const char *);
   }
   va_end(parameters);
@@ -95,9 +103,9 @@ void Procedure::SetParameterDeclarationType(parameterDeclaration_t type) {
   this->paramDeclaration = type;
 }
 
-void Procedure::AddParameter(const string &name, jsontype_t type) {
+void Procedure::AddParameter(const string &name, jsontype_t type, jsonflags_t flags) {
   this->parametersName[name] = type;
-  this->parametersPosition.push_back(type);
+  this->parametersPosition.push_back(std::make_pair(type, flags));
 }
 bool Procedure::ValidateNamedParameters(const Json::Value &parameters) const {
   bool ok = parameters.isObject() || parameters.isNull();
@@ -116,13 +124,24 @@ bool Procedure::ValidatePositionalParameters(
     const Json::Value &parameters) const {
   bool ok = true;
 
-  if (parameters.size() != this->parametersPosition.size()) {
+  // If there are more parameters than we've specified, it's definitely an error
+  // (for now)
+  if (parameters.size() > this->parametersPosition.size()) {
     return false;
   }
 
+  // Otherwise, go through the parameters we've specified; if we hit the end of the
+  // parameters we're given, the rest of the specified parameters must be optional.
   for (unsigned int i = 0; ok && i < this->parametersPosition.size(); i++) {
-    ok = this->ValidateSingleParameter(this->parametersPosition.at(i),
-                                       parameters[i]);
+    if (i < parameters.size()) {
+        ok = this->ValidateSingleParameter(this->parametersPosition.at(i).first,
+                                           parameters[i]);
+      } else {
+      // No remaining parameters.
+      if (!(this->parametersPosition.at(i).second & jsonflags_t::JSON_FLAG_OPTIONAL)) {
+        ok = false;
+      }
+    }
   }
   return ok;
 }

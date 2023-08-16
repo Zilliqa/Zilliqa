@@ -326,7 +326,9 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_OBJECT, NULL),
+                           jsonrpc::JSON_OBJECT,
+                           "param02", OPTIONAL_JSONTYPE(jsonrpc::JSON_STRING),
+                           NULL),
         &LookupServer::GetEthEstimateGasI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(

@@ -19,7 +19,7 @@
 namespace jsonrpc
 {
     typedef std::map<std::string, jsontype_t> parameterNameList_t;
-    typedef std::vector<jsontype_t> parameterPositionList_t;
+    typedef std::vector<std::pair<jsontype_t, jsonflags_t>> parameterPositionList_t;
 
     typedef enum {PARAMS_BY_NAME, PARAMS_BY_POSITION} parameterDeclaration_t;
 
@@ -75,7 +75,7 @@ namespace jsonrpc
              * @param name describes the name of the parameter. In case of an positional parameters, this value can be anything.
              * @param type describes the defined type for this parameter.
              */
-            void AddParameter(const std::string& name, jsontype_t type);
+            void AddParameter(const std::string& name, jsontype_t type, jsonflags_t flags = (jsonflags_t)0);
 
             bool ValidateNamedParameters        (const Json::Value &parameters) const;
             bool ValidatePositionalParameters   (const Json::Value &parameters) const;
