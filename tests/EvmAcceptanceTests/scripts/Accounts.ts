@@ -1,6 +1,6 @@
 import hre from "hardhat";
 import clc from "cli-color";
-import {ethers} from "ethers";
+import { ethers } from "ethers";
 
 async function main() {
   const {provider} = hre.network;
@@ -10,12 +10,8 @@ async function main() {
     accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"]))
   );
   accounts.forEach((element, index) => {
-    console.log(
-      clc.bold("Account"),
-      clc.green(element),
-      clc.bold("Balance:"),
-      clc.greenBright(ethers.BigNumber.from(balances[index])).toString()
-    );
+    console.log(clc.bold("Account"), clc.green(element), clc.bold("Balance:"), clc.greenBright(
+      ethers.BigNumber.from(balances[index])).toString());
   });
 }
 

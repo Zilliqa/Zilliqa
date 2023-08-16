@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_blockNumber";
 
-describe(`Calling ${METHOD} #parallel`, function () {
-  it("should return the block number @block-1", async function () {
+describe("Calling " + METHOD, function () {
+  it("should return the block number", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

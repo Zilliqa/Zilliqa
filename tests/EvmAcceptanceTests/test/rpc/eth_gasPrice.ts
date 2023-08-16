@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_gasPrice";
 
-describe(`Calling ${METHOD} #parallel`, function () {
-  it("should return the gasPrice as specified in the ethereum protocol @block-1", async function () {
+describe("Calling " + METHOD, function () {
+  it("should return the gasPrice as specified in the ethereum protocol", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

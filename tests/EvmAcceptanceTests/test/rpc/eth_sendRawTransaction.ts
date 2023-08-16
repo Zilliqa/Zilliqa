@@ -3,20 +3,13 @@ import hre from "hardhat";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {web3} from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
-import { isHardhatNetworkAccountConfig } from "../../helpers";
-import { HardhatNetworkAccountConfig } from "hardhat/types";
 
 const METHOD = "eth_sendRawTransaction";
 
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     it("should return a send raw transaction", async function () {
-      if (!isHardhatNetworkAccountConfig(hre.network.config.accounts)) {
-        return this.skip(); // Something's wrong with the config
-      }
- 
-      const configAccounts: HardhatNetworkAccountConfig[] = hre.network.config.accounts;
-      const fromAccount = web3.eth.accounts.privateKeyToAccount(configAccounts[0].privateKey);
+      const fromAccount = web3.eth.accounts.privateKeyToAccount(hre.network["config"]["accounts"][0]);
       const destination = web3.eth.accounts.create();
       const toAddress = destination.address;
       const nonce = await web3.eth.getTransactionCount(fromAccount.address); // nonce starts counting from 0

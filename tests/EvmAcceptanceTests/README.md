@@ -306,19 +306,15 @@ to change some of the testing behaviors environment variables are used. They can
 - `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
 
 ## Tasks
-
 A few customized tasks are added to hardhat to simplify the process of test development and debugging.
 
 ### zilBalance
-
 To get the balance of a zilliqa-based address of a private key, send that private key to `zilBalance` task:
-
 ```bash
 npx hardhat zilBalance db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
 ```
 
 ### transfer
-
 To transfer fund from a private key (account) to a recipient, Use `transfer`. Because every private key in zilliqa network potentially can have two different addresses (one for zilliqa itself, and one for ethereum), you need to provide address type as well.
 
 ```bash
@@ -331,11 +327,9 @@ npx hardhat transfer --from d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b
 `--amount` is amount to be transferred in ZIL/ETH ZIL unit.
 
 Example:
-
 ```bash
-npx hardhat transfer --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --to 6e2cf2789c5b705e0990c05ca959b5001c70ba87 --amount 1 --from-address-type zil
+npx hardhat transfer --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --to 6e2cf2789c5b705e0990c05ca959b5001c70ba87 --amount 1 --from-address-type zil 
 ```
-
 ## Scripts
 
 To get the balances of the current accounts, run:
@@ -382,13 +376,11 @@ MOCHA_TIMEOUT=300000 npx hardhat test
 
 ## Testing a newly deployed testnet/devent
 
-_You need to have one prefunded account(private key)._ Let's call it PRIMARY_ACCOUNT.
-
+*You need to have one prefunded account(private key).* Let's call it PRIMARY_ACCOUNT.
 1. Create a new hardhat network using the devent URL. Please refer to [How to define a new network for hardhat](#how-to-define-a-new-network-for-hardhat) for more info. But be sure to provide at least four different private keys for `accounts` in the config. These accounts will be funded by your primary prefunded account. So it doesn't matter if they all have zero balances.
 
 2. Run `PRIMARY_ACCOUNT=YOUR_PRIVATE_KEY npx hardhat run scripts/FundAccountsFromPrimaryAccount.ts --network your_new_network`
-   You should see something like this output:
-
+You should see something like this output:
 ```
 Private key: db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3
 Address: 0x7bb3B0E8A59f3f61d9Bff038f4AEb42cAE2ECce8
@@ -398,7 +390,6 @@ Balance: 999998799988000000
 0x05a321d0b9541ca08D7E32315CA186cc67A1602C funded.
 0x6E2cf2789C5B705E0990C05cA959b5001C70bA87 funded.
 ```
-
 It means that now all of your accounts specified in the `hardhat.config.ts` have enough funds to run tests.
 
 3. Run tests using `npx hardhat test --network your_new_network` or any other variants of it.

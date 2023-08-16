@@ -5,8 +5,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_mining";
 
-describe(`Calling ${METHOD} #parallel`, function () {
-  it("should return the mining state @block-1", async function () {
+describe("Calling " + METHOD, function () {
+  it("should return the mining state", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 
