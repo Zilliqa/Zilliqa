@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <optional>
 #include <thread>
+#include <set>
 
 #include "P2PMessage.h"
 #include "ShardStruct.h"
