@@ -33,12 +33,12 @@ const filesToTest = (): string[] => {
   });
 };
 
-const parseFiles = async (files: string[]): Promise<[Promise<any>[], Scenario[]]> => {
+const parseFiles = async (files: string[], regex: RegExp): Promise<[Promise<any>[], Scenario[]]> => {
   let beforeFns: Promise<any>[] = [];
   let scenarios: Scenario[] = [];
 
   for (const test_file of files) {
-    const parsed = await parseTestFile(test_file);
+    const parsed = await parseTestFile(test_file, regex);
     parsed.forEach((scenario) => {
       if (scenario.tests.length === 0) {
         displayIgnored(`\`${scenario.scenario_name}\` doesn't have any tests. Did you add @block-n to tests?`);
@@ -55,9 +55,11 @@ const parseFiles = async (files: string[]): Promise<[Promise<any>[], Scenario[]]
 };
 
 task("parallel-test", "A task to init signers")
+  .addOptionalParam("grep", "Only run tests matching the given string or regexp")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile")
-
+    const {grep} : {grep: string | undefined} = taskArgs;
+    const regex = new RegExp(grep || "")
     await runStage(
       "Running tsc...",
       async () => {
@@ -79,7 +81,7 @@ task("parallel-test", "A task to init signers")
     const [beforeFns, scenarios]: [Promise<any>[], Scenario[]] = await runStage(
       "Analyzing tests to run...",
       (files: string[]) => {
-        return parseFiles(files);
+        return parseFiles(files, regex);
       },
       (params: string[], output: any) => {
         return {
@@ -89,7 +91,12 @@ task("parallel-test", "A task to init signers")
       },
       filesToTest()
     );
-
+    
+    if (scenarios.length === 0) {
+      displayIgnored("No scenarios found or your --grep doesn't have any matches.")
+      return;
+    }
+  
     await runStage(
       "Deploying contracts",
       (beforeFns: Promise<any>[]) => {
