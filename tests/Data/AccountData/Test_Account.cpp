@@ -150,6 +150,62 @@ BOOST_AUTO_TEST_CASE(testInit) {
   BOOST_CHECK_EQUAL(true, acc1.GetInitJson() == Json::arrayValue);
 }
 
+BOOST_AUTO_TEST_CASE(testContractCodeHash) {
+  LOG_MARKER();
+
+  Account acc1 = Account();
+
+  // Not contract
+  BOOST_CHECK_EQUAL(acc1.GetInitJson(), Json::arrayValue);
+  BOOST_CHECK_EQUAL(true, acc1.GetRawStorage(dev::h256(), true).empty());
+  BOOST_CHECK_EQUAL(acc1.GetStateJson(true), Json::arrayValue);
+  BOOST_CHECK_EQUAL(0, acc1.GetCode().size());
+
+  // Not contract
+  vector<StateEntry> entries;
+  entries.emplace_back("count", true, "Int32", "0");
+  BOOST_CHECK_EQUAL(false, acc1.SetStorage(entries));
+
+  std::pair<Json::Value, Json::Value> roots;
+  BOOST_CHECK_EQUAL(false, acc1.GetStorageJson(roots, true));
+
+  zbytes code = {'h', 'e', 'l', 'l', 'o'};
+  std::string message =
+      "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
+  zbytes data = zbytes(message.begin(), message.end());
+
+  PubKey pubKey1 = Schnorr::GenKeyPair().second;
+  Address addr1 = Account::GetAddressFromPublicKey(pubKey1);
+
+  acc1.SetImmutable(code, data);
+
+  BOOST_CHECK_EQUAL(false, code == acc1.GetCode());
+  BOOST_CHECK_EQUAL(false, addr1 == acc1.GetAddress());
+
+  BOOST_CHECK_EQUAL(true,
+                    acc1.InitContract(code, data, addr1, 0, scilla_version));
+  BOOST_CHECK_EQUAL(false,
+                    acc1.InitContract(code, data, addr1, 0, scilla_version));
+
+  SHA256Calculator sha2_one, sha2_two;
+  sha2_one.Update(code);
+  sha2_one.Update(data);
+  dev::h256 code_hash = dev::h256(sha2_one.Finalize());
+  sha2_two.Update(code);
+  dev::h256 contract_code_hash = dev::h256(sha2_two.Finalize());
+
+  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+  BOOST_CHECK_EQUAL(true, addr1 == acc1.GetAddress());
+  LOG_GENERAL(INFO,"GetContractCodeHash = "<< acc1.GetContractCodeHash());
+  LOG_GENERAL(INFO,"GetCodeHash = "<< acc1.GetCodeHash());
+  BOOST_CHECK_MESSAGE(
+      acc2.GetContractCodeHash() == contract_code_hash,
+      "expected: " << contract_code_hash << " actual: " << acc2.GetContractCodeHash() << "\n");
+  BOOST_CHECK_MESSAGE(
+      acc2.GetCodeHash() == code_hash,
+      "expected: " << code_hash << " actual: " << acc2.GetCodeHash() << "\n");
+}
+
 BOOST_AUTO_TEST_CASE(testBalance) {
   LOG_MARKER();
 
