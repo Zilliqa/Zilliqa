@@ -22,18 +22,22 @@
 #include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 namespace libCps {
 
 CpsExecuteResult CpsExecuteValidator::CheckAmount(
     const EvmProcessContext& context, const Amount& owned) {
+  const uint64_t gasLimitRounded =
+      GasConv::GasUnitsFromCoreToEth(GasConv::GasUnitsFromEthToCore(
+          context.GetTransaction().GetGasLimitEth()));
+
   uint256_t gasDepositWei;
-  if (!SafeMath<uint256_t>::mul(context.GetTransaction().GetGasLimitZil(),
+  if (!SafeMath<uint256_t>::mul(gasLimitRounded,
                                 GetGasPriceWei(context), gasDepositWei)) {
     return {TxnStatus::MATH_ERROR, false, {}};
   }
-
   const auto claimed =
       Amount::fromWei(gasDepositWei + context.GetTransaction().GetAmountWei());
   if (claimed > owned) {
@@ -77,7 +81,6 @@ CpsExecuteResult CpsExecuteValidator::CheckAmount(
                                 gasDepositQa)) {
     return {TxnStatus::MATH_ERROR, false, {}};
   }
-
   const auto claimed = Amount::fromQa(gasDepositQa + context.amount);
   if (claimed > owned) {
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};

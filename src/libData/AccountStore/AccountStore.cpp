@@ -553,7 +553,7 @@ bool AccountStore::UpdateAccountsTemp(
 
   lock(g, g2);
 
-  bool isEvm{false};
+  bool isEvm = transaction.IsEth();
 
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {
