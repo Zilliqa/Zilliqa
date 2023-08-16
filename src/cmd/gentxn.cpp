@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem.hpp>
 #include <climits>
 #include <fstream>
 #include <string>
@@ -195,7 +194,7 @@ int main(int argc, char** argv) {
     auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
 
     std::string txn_path{TXN_PATH};
-    if (!boost::filesystem::exists(txn_path)) {
+    if (!std::filesystem::exists(txn_path)) {
       std::cerr << "Cannot find path '" << txn_path
                 << "', check TXN_PATH in constants.xml\n";
       return 1;

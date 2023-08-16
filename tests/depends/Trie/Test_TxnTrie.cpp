@@ -22,7 +22,6 @@
 #include <vector>
 
 #define BOOST_TEST_MODULE trietest
-#include <boost/filesystem/path.hpp>
 #include <boost/test/included/unit_test.hpp>
 
 #include "depends/common/FixedHash.h"
@@ -40,7 +39,7 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace dev;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace js = json_spirit;
 
 static unsigned fac(unsigned _i) { return _i > 2 ? _i * fac(_i - 1) : _i; }

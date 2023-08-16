@@ -16,7 +16,6 @@
  */
 
 #include "RemoteStorageDB.h"
-#include <boost/filesystem/operations.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
@@ -80,7 +79,7 @@ void RemoteStorageDB::Init(bool reset) {
     uri += "?serverSelectionTimeoutMS=" +
            to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
     if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
-        boost::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
+        std::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
       uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
              REMOTESTORAGE_DB_TLS_FILE;
     }
@@ -345,7 +344,7 @@ Json::Value RemoteStorageDB::QueryPendingTxns(
 
     auto putTxn = [&_json](const bsoncxx::document::view& doc) -> void {
       Json::Value tmpJson;
-      tmpJson["TxnHash"] = doc["ID"].get_utf8().value.to_string();
+      tmpJson["TxnHash"] = std::string(doc["ID"].get_string());
       tmpJson["code"] = doc["status"].get_int32().value;
       _json["Txns"].append(tmpJson);
     };

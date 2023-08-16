@@ -22,11 +22,10 @@
 #include "libUtils/SysCommand.h"
 
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
 
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 ScillaClient::~ScillaClient() {
   std::string cmdStr = "pkill " + SCILLA_SERVER_BINARY + " >/dev/null &";

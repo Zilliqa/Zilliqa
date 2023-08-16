@@ -28,7 +28,6 @@
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/TimeUtils.h"
 
-#include <boost/filesystem.hpp>
 
 #define BOOST_TEST_MODULE persistencetest
 #define BOOST_TEST_DYN_LINK
