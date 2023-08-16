@@ -21,8 +21,15 @@ const PARALYZED_TEST_FILES: string[] = [
   // "./dist/test/ContractRevert.js",
 ];
 
-const filesToTest = (): string[] => {
-  return PARALYZED_TEST_FILES.flatMap((filename) => {
+const filesToTest = (userSpecifiedTestFiles: string[]): string[] => {
+  userSpecifiedTestFiles = userSpecifiedTestFiles.map(file => {
+    const parsed = path.parse(file);
+    return path.format({ ...parsed, base: '', dir: path.join("dist", parsed.dir), ext: '.js' })
+  })
+
+  const filesToTest = userSpecifiedTestFiles.length === 0 ? PARALYZED_TEST_FILES : userSpecifiedTestFiles;
+
+  return filesToTest.flatMap((filename) => {
     if (fs.lstatSync(filename).isDirectory()) {
       return fs
         .readdirSync(filename, { withFileTypes: true })
@@ -58,7 +65,7 @@ task("parallel-test", "A task to init signers")
   .addOptionalParam("grep", "Only run tests matching the given string or regexp")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile")
-    const {grep} : {grep: string | undefined} = taskArgs;
+    const {grep, testFiles} : {grep: string | undefined, testFiles: string[]} = taskArgs;
     const regex = new RegExp(grep || "")
     await runStage(
       "Running tsc...",
@@ -89,7 +96,7 @@ task("parallel-test", "A task to init signers")
           success: true
         };
       },
-      filesToTest()
+      filesToTest(testFiles)
     );
     
     if (scenarios.length === 0) {
