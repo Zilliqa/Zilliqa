@@ -1,8 +1,8 @@
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {Block, Scenario, TransactionInfo, Txn} from "./Scenario";
-
 import fs from "fs";
 
-export const parseTestFile = async function (testFile: string, regex: RegExp): Promise<Scenario[]> {
+export const parseTestFile = async function (testFile: string, regex: RegExp, hre: HardhatRuntimeEnvironment): Promise<Scenario[]> {
   let scenarios: Scenario[] = [];
 
   let code = await fs.promises.readFile(testFile, "utf8");
@@ -23,7 +23,14 @@ export const parseTestFile = async function (testFile: string, regex: RegExp): P
     const before = (fn: Txn) => (currentBeforeFn = fn);
     const after = (fn: Txn) => (currentAfterFn = fn);
 
-    eval(code);
+    try {
+      eval(code);
+    } catch (error) {
+      if (hre.debug) {
+        console.log(error);
+      }
+      return [];
+    }
     for (const [describeName, fn] of describeFns) {
       if (!isScenarioParallel(describeName)) {
         continue;
