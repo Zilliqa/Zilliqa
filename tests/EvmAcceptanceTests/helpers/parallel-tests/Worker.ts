@@ -2,7 +2,7 @@ import {Block, Scenario, TransactionInfo, Txn} from "./Scenario";
 
 import fs from "fs";
 
-export const parseTestFile = async function (testFile: string): Promise<Scenario[]> {
+export const parseTestFile = async function (testFile: string, regex: RegExp): Promise<Scenario[]> {
   let scenarios: Scenario[] = [];
 
   let code = await fs.promises.readFile(testFile, "utf8");
@@ -29,6 +29,8 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
         continue;
       }
 
+      const describeMatched = regex.test(describeName);
+
       let transaction_infos: TransactionInfo[] = [];
       currentDescribeFn = [];
       currentBeforeFn = undefined;
@@ -37,26 +39,31 @@ export const parseTestFile = async function (testFile: string): Promise<Scenario
 
       for (const [name, fn] of currentDescribeFn) {
         let block: Block;
+        const testMatched = regex.test(name);
         try {
           block = extractBlockNumber(name);
         } catch (error) {
           continue;
         }
 
-        transaction_infos.push({
-          txn: fn,
-          scenario_name: describeName,
-          msg: name,
-          run_in: block
-        });
+        if (describeMatched || testMatched) {
+          transaction_infos.push({
+            txn: fn,
+            scenario_name: describeName,
+            msg: name,
+            run_in: block
+          });
+        }
       }
 
-      scenarios.push({
-        before: currentBeforeFn,
-        after: currentAfterFn,
-        scenario_name: describeName,
-        tests: transaction_infos
-      });
+      if (describeMatched || transaction_infos.length > 0) {    // Added describeMatched to catch forgotten @block-n in test descs
+        scenarios.push({
+          before: currentBeforeFn,
+          after: currentAfterFn,
+          scenario_name: describeName,
+          tests: transaction_infos
+        });
+      }
     }
     testResult.success = true;
   } catch (error) {

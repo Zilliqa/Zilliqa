@@ -40,11 +40,11 @@ task("test")
 
     if (taskArgs.parallel) {
       hre.parallel = true;
-      await hre.run("parallel-test");
+      await hre.run("parallel-test", taskArgs);
     } else await runSuper();
     let newBalances = await Promise.all(signers.map((signer) => signer.getBalance()));
     let sum = balances
       .map((value, index) => value.sub(newBalances[index]))
       .reduce((prev, current) => prev.add(current));
-    console.log(`  💰 ~${clc.blackBright.bold(hre.ethers.utils.formatEther(sum))} ZILs used`);
+    console.log(`💰 ~${clc.blackBright.bold(hre.ethers.utils.formatEther(sum))} ZILs used`);
   });
