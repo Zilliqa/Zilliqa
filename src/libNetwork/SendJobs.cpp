@@ -121,7 +121,10 @@ const ErrorCode NETWORK_UNREACHABLE = boost::asio::error::network_unreachable;
 namespace {
 
 inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
-  return Blacklist::GetInstance().Exist({peer.GetIpAddress(),peer.GetListenPortHost(),peer.GetNodeIndentifier()},!allow_relaxed_blacklist);
+  return Blacklist::GetInstance().Exist(
+      {peer.GetIpAddress(), peer.GetListenPortHost(),
+       peer.GetNodeIndentifier()},
+      !allow_relaxed_blacklist);
 }
 
 inline Milliseconds Clock() {
@@ -574,7 +577,9 @@ class SendJobsImpl : public SendJobs,
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
-      bool is_multiplier = m_multipliers.contains(peer);
+      // TODO - Confirm
+      // bool is_multiplier = m_multipliers.contains(peer);
+      bool is_multiplier = false;
       ctx = std::make_shared<PeerSendQueue>(
           m_asioCtx, m_doneCallback, std::move(peer), is_multiplier, false);
     }
