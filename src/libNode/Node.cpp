@@ -18,7 +18,11 @@
 #include <arpa/inet.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <boost/asio/readable_pipe.hpp>
+#include <boost/process/v2/process.hpp>
+#include <boost/process/v2/start_dir.hpp>
+#include <boost/process/v2/stdio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -38,7 +42,6 @@
 #include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
-#include "libPythonRunner/PythonRunner.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -255,6 +258,22 @@ Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
+namespace {
+
+// FIXME: duplicate from daemon/ZilliqaUpdater.cpp; move to a common function.
+std::string readPipe(boost::asio::readable_pipe &pipe) {
+  std::string result;
+  boost::system::error_code errorCode;
+  while (!errorCode) {
+    std::array<char, 1024> buffer;
+    auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
+    result += std::string_view{buffer.data(), byteCount};
+  }
+
+  return result;
+}
+
+}  // namespace
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   AccountStore::GetInstance().SetPurgeStopSignal();
@@ -262,10 +281,47 @@ bool Node::DownloadPersistenceFromS3() {
     LOG_GENERAL(INFO, "Purge Already Running");
     this_thread::sleep_for(chrono::milliseconds(10));
   }
-  string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
-  return PythonRunner::RunPyFunc("download_incr_DB", "start",
-                                 {STORAGE_PATH + "/", excludembtxns},
-                                 "py_download_incr_DB.log");
+  // TODO: replace
+
+  try {
+    string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
+    boost::asio::io_context ioContext;
+    int exitCode = -1;
+    std::thread thread;
+
+    ioContext.post([&]() {
+      thread = std::thread{[&]() {
+        // Make sure SIGCHLD isn't SIG_IGN or wait() below will fail and throw
+        // and exception.
+        auto prevHandler = signal(SIGCHLD, SIG_DFL);
+        try {
+          boost::asio::readable_pipe pipe{ioContext};
+          boost::process::v2::process process{
+              ioContext,
+              "/usr/bin/python3",
+              {"download_incr_DB.py", STORAGE_PATH + "/", excludembtxns},
+              boost::process::v2::process_stdio{{}, pipe, {}}};
+          auto output = readPipe(pipe);
+          LOG_GENERAL(INFO, output);
+          exitCode = process.wait();
+          LOG_GENERAL(INFO,
+                      "Running download_incr_DB.py returned with exit code = "
+                          << exitCode);
+        } catch (std::exception &e) {
+          LOG_GENERAL(WARNING, "Failed to run/wait processes: " << e.what());
+        }
+
+        signal(SIGCHLD, prevHandler);
+        ioContext.stop();
+      }};
+    });
+    ioContext.run();
+    thread.join();
+    return exitCode == 0;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error while downloading persistence...");
+    return false;
+  }
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
@@ -771,7 +827,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     do {
       m_mediator.m_lookup->GetTxBlockFromSeedNodes(
           m_mediator.m_txBlockChain.GetBlockCount(), 0);
-    // TODO: cv fix
+      // TODO: cv fix
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
@@ -785,7 +841,8 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
   m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllSync,
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool &allowRecoveryAllSync,
                                 bool rejoiningAfterRecover) {
   LOG_MARKER();
 
@@ -1119,7 +1176,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);
   }
-  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
+  bool rejoinCondition =
+      REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
 
   if (rejoinCondition && bIpChanged) {
     LOG_GENERAL(
@@ -1268,7 +1326,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
 void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
   LOG_MARKER();
 
-  if (!boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+  if (!std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
     LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
     return;
   }
@@ -1290,8 +1348,8 @@ void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
 void Node::RemoveIpMapping() {
   LOG_MARKER();
 
-  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
-    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+  if (std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (std::filesystem::remove(IP_MAPPING_FILE_NAME)) {
       LOG_GENERAL(INFO,
                   IP_MAPPING_FILE_NAME << " has been removed successfully.");
     } else {
@@ -1534,7 +1592,6 @@ bool GetOneGenesisAddress(Address &oAddr) {
 
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
-
   zil::local::nodeVar.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2003,7 +2060,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             rejectTxns.emplace_back(status.second, status.first);
           }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to ( " << (int)status.first << ") "
+                                   << " rejected by pool due to ( "
+                                   << (int)status.first << ") "
                                    << status.first);
         }
       } else {
@@ -2019,8 +2077,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
-                                        << " TxnPool size after processing: "
-                                        << m_createdTxns.size());
+                                           << " TxnPool size after processing: "
+                                           << m_createdTxns.size());
 
     zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
@@ -3336,13 +3394,12 @@ void Node::CheckPeers(const vector<Peer> &peers) {
   zil::p2p::GetInstance().SendMessage(peers, message);
 }
 
-
-void Node::AddPendingTxn(Transaction const& tx) {
+void Node::AddPendingTxn(Transaction const &tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   // Emergency fail safe to avoid memory issues if the pool isn't getting
   // cleared somehow
-  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+  if (m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
     LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
     m_pendingTxns.clear();
   }
@@ -3355,7 +3412,7 @@ std::vector<Transaction> Node::GetPendingTxns() const {
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 
-  for (const auto &s :m_pendingTxns) {
+  for (const auto &s : m_pendingTxns) {
     ret.push_back(s.second);
   }
 

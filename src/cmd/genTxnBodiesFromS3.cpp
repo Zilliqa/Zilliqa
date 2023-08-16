@@ -19,7 +19,6 @@
 /// true
 
 #include <boost/exception/diagnostic_information.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 
@@ -60,7 +59,7 @@ int main(int argc, char* argv[]) {
       "Save the txns in json format to file")(
       "jsonOutputPath,p",
       po::value<string>(&jsonOutputPath)
-          ->default_value(bfs::current_path().string() + "/" +
+          ->default_value(std::filesystem::current_path().string() + "/" +
                           JSON_OUTPUT_FOLDER),
       "Json folder path to store txns in json format");
 
@@ -81,7 +80,7 @@ int main(int argc, char* argv[]) {
 
     string remoteS3Path = "s3://" + bucketName + "/" + backupFolderName;
     string localBackupPath =
-        bfs::current_path().string() + "/" + backupFolderName;
+        std::filesystem::current_path().string() + "/" + backupFolderName;
     // Download from S3
     if (!SysCommand::ExecuteCmd(
             SysCommand::WITHOUT_OUTPUT,
@@ -95,8 +94,8 @@ int main(int argc, char* argv[]) {
 
     // create json output folder
     if (saveToJsonFormat) {
-      if (!(boost::filesystem::exists(jsonOutputPath))) {
-        if (!boost::filesystem::create_directories(jsonOutputPath)) {
+      if (!(std::filesystem::exists(jsonOutputPath))) {
+        if (!std::filesystem::create_directories(jsonOutputPath)) {
           cerr << "Failed to created JSON output folder ! will skip creating "
                   "txns in json format"
                << endl;

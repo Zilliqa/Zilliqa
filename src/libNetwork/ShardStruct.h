@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
 #define ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
 
+#include <deque>
 #include <tuple>
 
 #include <Schnorr.h>

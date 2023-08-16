@@ -16,7 +16,6 @@
  */
 
 #include <leveldb/db.h>
-#include <boost/filesystem/operations.hpp>
 #include <regex>
 
 #include "libData/AccountStore/AccountStore.h"
@@ -104,7 +103,7 @@ AccountStore::AccountStore()
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
-    boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
+    std::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(this, m_scillaIPCServerConnector);
 
@@ -135,7 +134,7 @@ AccountStore::AccountStore()
 }
 
 AccountStore::~AccountStore() {
-  // boost::filesystem::remove_all("./state");
+  // std::filesystem::remove_all("./state");
   if (m_scillaIPCServer != nullptr) {
     m_scillaIPCServer->StopListening();
   }
@@ -554,7 +553,7 @@ bool AccountStore::UpdateAccountsTemp(
 
   lock(g, g2);
 
-  bool isEvm{false};
+  bool isEvm = transaction.IsEth();
 
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {

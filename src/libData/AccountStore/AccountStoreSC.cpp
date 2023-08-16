@@ -16,7 +16,6 @@
  */
 #include <chrono>
 
-#include <boost/filesystem.hpp>
 
 #include <unordered_map>
 #include <vector>
@@ -139,8 +138,8 @@ void AccountStoreSC::Init() {
   m_curGasLimit = 0;
   m_curGasPrice = 0;
   m_txnProcessTimeout = false;
-  boost::filesystem::remove_all(EXTLIB_FOLDER);
-  boost::filesystem::create_directories(EXTLIB_FOLDER);
+  std::filesystem::remove_all(EXTLIB_FOLDER);
+  std::filesystem::create_directories(EXTLIB_FOLDER);
 }
 
 void AccountStoreSC::InvokeInterpreter(
@@ -878,8 +877,8 @@ bool AccountStoreSC::PopulateExtlibsExports(
       std::string code_path = EXTLIB_FOLDER + '/' + libAddr.hex();
       code_path += LIBRARY_CODE_EXTENSION;
       std::string json_path = EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
-      if (boost::filesystem::exists(code_path) &&
-          boost::filesystem::exists(json_path)) {
+      if (std::filesystem::exists(code_path) &&
+          std::filesystem::exists(json_path)) {
         continue;
       }
 
@@ -925,11 +924,11 @@ bool AccountStoreSC::ExportCreateContractFiles(
         &extlibs_exports) {
   LOG_MARKER();
 
-  boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
+  std::filesystem::remove_all("./" + SCILLA_FILES);
+  std::filesystem::create_directories("./" + SCILLA_FILES);
 
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
+  if (!(std::filesystem::exists("./" + SCILLA_LOG))) {
+    std::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
   if (!ScillaUtils::PrepareRootPathWVersion(scilla_version, m_root_w_version)) {
@@ -970,7 +969,7 @@ void AccountStoreSC::ExportCommonFiles(
     std::string code_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
     code_path += LIBRARY_CODE_EXTENSION;
-    boost::filesystem::remove(code_path);
+    std::filesystem::remove(code_path);
 
     os.open(code_path);
     os << extlib_export.second.first;
@@ -978,7 +977,7 @@ void AccountStoreSC::ExportCommonFiles(
 
     std::string init_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
-    boost::filesystem::remove(init_path);
+    std::filesystem::remove(init_path);
 
     os.open(init_path);
     os << extlib_export.second.second;
@@ -993,11 +992,11 @@ bool AccountStoreSC::ExportContractFiles(
   LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
 
-  boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
+  std::filesystem::remove_all("./" + SCILLA_FILES);
+  std::filesystem::create_directories("./" + SCILLA_FILES);
 
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
+  if (!(std::filesystem::exists("./" + SCILLA_LOG))) {
+    std::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1732,8 +1731,8 @@ void AccountStoreSC::SetScillaIPCServer(
 
 void AccountStoreSC::CleanNewLibrariesCache() {
   for (const auto &addr : m_newLibrariesCreated) {
-    boost::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
-    boost::filesystem::remove(addr.hex() + ".json");
+    std::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
+    std::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
 }

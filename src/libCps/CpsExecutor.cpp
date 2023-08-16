@@ -92,6 +92,12 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   InitRun();
   const auto preValidateResult = PreValidateScillaRun(clientContext);
   if (!preValidateResult.isSuccess) {
+    mTxReceipt.RemoveAllTransitions();
+    mTxReceipt.SetCumGas(0);
+    mTxReceipt.SetResult(false);
+    mTxReceipt.AddError(RUNNER_FAILED);
+    mTxReceipt.update();
+    mAccountStore.IncreaseNonceForAccount(clientContext.origin);
     return preValidateResult;
   }
 
@@ -197,6 +203,11 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   const auto preValidateResult = PreValidateEvmRun(clientContext);
   if (!preValidateResult.isSuccess) {
+    mTxReceipt.SetResult(false);
+    mTxReceipt.AddError(RUNNER_FAILED);
+    mTxReceipt.SetCumGas(0);
+    mTxReceipt.update();
+    mAccountStore.IncreaseNonceForAccount(ProtoToAddress(clientContext.GetEvmArgs().origin()));
     return preValidateResult;
   }
 
@@ -209,8 +220,9 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
       GasTracker::CreateFromEth(clientContext.GetEvmArgs().gas_limit()),
       clientContext.GetEvmArgs().extras(),
       CpsUtils::FromEvmContext(clientContext)};
+  const auto destAddress = ProtoToAddress(clientContext.GetEvmArgs().address());
   const auto runType =
-      IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
+      (IsNullAddress(destAddress) || !mAccountStore.AccountExistsAtomic(destAddress))
           ? CpsRun::Create
           : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
@@ -282,9 +294,9 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
     // Take gas used by account even if it was a failed run
     if (isFailure) {
-      uint128_t gasCost;
+      uint256_t gasCost;
       // Convert here because we deducted in eth units.
-      if (!SafeMath<uint128_t>::mul(
+      if (!SafeMath<uint256_t>::mul(
               GasConv::GasUnitsFromCoreToEth(usedGasCore),
               CpsExecuteValidator::GetGasPriceWei(clientContext), gasCost)) {
         return {TxnStatus::ERROR, false, {}};

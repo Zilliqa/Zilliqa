@@ -19,7 +19,6 @@
 
 #include <exception>
 
-#include <boost/filesystem/operations.hpp>
 
 #include "libData/AccountStore/AccountStore.h"
 #include "libDirectoryService/DirectoryService.h"
@@ -137,7 +136,7 @@ bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
       // local persistence/stateDelta
       std::string source = STORAGE_PATH + STATEDELTAFROMS3_PATH +
                            "/stateDelta_" + std::to_string(i);
-      if (boost::filesystem::exists(source)) {
+      if (std::filesystem::exists(source)) {
         try {
           recursive_copy_dir(source, target);
         } catch (std::exception& e) {
@@ -213,9 +212,9 @@ bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
     }
   }
 
-  if (boost::filesystem::exists(STORAGE_PATH + STATEDELTAFROMS3_PATH)) {
+  if (std::filesystem::exists(STORAGE_PATH + STATEDELTAFROMS3_PATH)) {
     try {
-      boost::filesystem::remove_all(STORAGE_PATH + STATEDELTAFROMS3_PATH);
+      std::filesystem::remove_all(STORAGE_PATH + STATEDELTAFROMS3_PATH);
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Failed to remove " + STORAGE_PATH +
                                STATEDELTAFROMS3_PATH + " directory");
