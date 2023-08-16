@@ -102,8 +102,6 @@ describe("Blockchain Instructions contract #parallel", function () {
   it("Should be deployed successfully @block-1", async function () {
 ```
 
-3. Add your test file to the list of `PARALYZED_TEST_FILES` in [ParallelTest.ts](./tasks/ParallelTest.ts:12). Don't forget to add its javascript file, not the typescript one.
-
 ## Run the tests
 
 ```bash

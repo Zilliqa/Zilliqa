@@ -6,8 +6,6 @@ import {ENV_VARS} from "./helpers/EnvVarParser";
 import "./tasks/ZilBalance";
 import "./tasks/Transfer";
 import "./tasks/InitSigners";
-import "./tasks/ParallelTest";
-import "./tasks/Test";
 import fs from "fs";
 
 if (ENV_VARS.scilla) {
@@ -166,4 +164,6 @@ extendEnvironment(async (hre) => {
 
 import "./tasks/Balances"; // To fix tsc error
 import "./tasks/Setup"; // To fix tsc error
+import "./tasks/ParallelTest";
+import "./tasks/Test";
 export default config;
