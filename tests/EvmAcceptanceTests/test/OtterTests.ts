@@ -1,16 +1,19 @@
 import {assert, expect} from "chai";
 import {ethers} from "hardhat";
+import {expectRevert} from "@openzeppelin/test-helpers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import {parallelizer} from "../helpers";
 
 describe("Otterscan api tests", function () {
-  before(async function () {
-    const METHOD = "ots_enable";
 
-    // Make sure tracing is enabled
-    await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {
-      assert.equal(status, 200, "has status code");
-    });
+  before(async function () {
+      const METHOD = "ots_enable";
+
+      // Make sure traceing is enabled
+      await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {
+        assert.equal(status, 200, "has status code");
+      });
+
   });
 
   it("When we revert the TX, we can get the tx error ", async function () {

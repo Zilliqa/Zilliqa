@@ -2,7 +2,6 @@ import {assert, expect} from "chai";
 import {Contract} from "ethers";
 import {parallelizer} from "../helpers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
-import {ethers} from "hardhat";
 
 describe("Chained Contract Calls Functionality", function () {
   let contractOne: Contract;
@@ -14,7 +13,7 @@ describe("Chained Contract Calls Functionality", function () {
     contractTwo = await parallelizer.deployContract("ContractTwo");
     contractThree = await parallelizer.deployContract("ContractThree");
 
-    // Make sure tracing is enabled
+    // Make sure traceing is enabled
     const METHOD = "ots_enable";
 
     await sendJsonRpcRequest(METHOD, 1, [true], (result, status) => {

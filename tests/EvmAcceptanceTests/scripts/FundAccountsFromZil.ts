@@ -2,8 +2,6 @@ import hre, {web3} from "hardhat";
 import clc from "cli-color";
 import {bytes, toBech32Address, toChecksumAddress, units, Zilliqa} from "@zilliqa-js/zilliqa";
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
-import {isHardhatNetworkAccountConfig} from "../helpers";
-import {HardhatNetworkAccountConfig} from "hardhat/types";
 const {BN, Long} = require("@zilliqa-js/util");
 
 async function main() {
@@ -28,18 +26,12 @@ async function main() {
     );
   });
 
-  if (!isHardhatNetworkAccountConfig(hre.network.config.accounts)) {
-    console.log(clc.red("Something's wrong with the config"));
-    return;
-  }
-
-  const configAccounts: HardhatNetworkAccountConfig[] = hre.network.config.accounts;
-  for (const element of configAccounts) {
+  for (const element of hre.network["config"]["accounts"]) {
     console.log("");
     console.log("Starting transfer...");
 
     // Get corresponding eth account
-    let ethAddr = web3.eth.accounts.privateKeyToAccount(element.privateKey);
+    let ethAddr = web3.eth.accounts.privateKeyToAccount(element);
     let ethAddrConverted = toChecksumAddress(ethAddr.address); // Zil checksum
     let initialAccountBal = await web3.eth.getBalance(ethAddr.address);
     console.log("Account to send to (zil checksum): ", ethAddrConverted);
@@ -47,8 +39,8 @@ async function main() {
 
     // Transfer half funds to this account
     let zilliqa = new Zilliqa(hre.getNetworkUrl());
-    zilliqa.wallet.addByPrivateKey(element.privateKey);
-    const address = getAddressFromPrivateKey(element.privateKey);
+    zilliqa.wallet.addByPrivateKey(element);
+    const address = getAddressFromPrivateKey(element);
     console.log(`My ZIL account address is: ${address}`);
 
     const res = await zilliqa.blockchain.getBalance(address);
@@ -84,18 +76,14 @@ async function main() {
     );
 
     // process confirm
-    if (tx.id) {
-      console.log(`The transaction id is:`, tx.id);
-      const confirmedTxn = await tx.confirm(tx.id);
+    console.log(`The transaction id is:`, tx.id);
+    const confirmedTxn = await tx.confirm(tx.id);
 
-      console.log(`The transaction status is:`);
-      console.log(confirmedTxn.getReceipt());
+    console.log(`The transaction status is:`);
+    console.log(confirmedTxn.receipt);
 
-      let finalBal = await web3.eth.getBalance(ethAddr.address);
-      console.log(`My new account balance is: ${finalBal}`);
-    } else {
-      console.log("Failed");
-    }
+    let finalBal = await web3.eth.getBalance(ethAddr.address);
+    console.log(`My new account balance is: ${finalBal}`);
   }
 
   balances = await Promise.all(accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"])));

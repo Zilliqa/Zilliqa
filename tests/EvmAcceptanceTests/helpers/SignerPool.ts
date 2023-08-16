@@ -19,7 +19,7 @@ export default class SignerPool {
   public async takeSigner(): Promise<Wallet> {
     if (this.signers.length == 0) {
       // Need to create new signers
-      await this.initSigners(10, 10);
+      await this.initSigners();
     }
 
     return this.signers.pop()!;
@@ -29,16 +29,16 @@ export default class SignerPool {
     this.signers.push(...signer);
   }
 
-  public async initSigners(signersCount: number, eachSignerBalance: number) {
+  private async initSigners() {
     const signer = await SignerPool.getSignerForCurrentWorker();
-    const newSigners = Array.from({length: signersCount}, (v, k) => Wallet.createRandom().connect(ethers.provider));
+    const newSigners = Array.from({length: 10}, (v, k) => Wallet.createRandom().connect(ethers.provider));
     const BatchTransferContract = await ethers.getContractFactory("BatchTransfer");
     const batchTransfer = await BatchTransferContract.connect(signer).deploy({
-      value: ethers.utils.parseEther((signersCount * eachSignerBalance).toString())
+      value: ethers.utils.parseUnits("100", "ether")
     });
     await batchTransfer.deployed();
     const addresses = newSigners.map((signer) => signer.address);
-    await batchTransfer.batchTransfer(addresses, ethers.utils.parseUnits(eachSignerBalance.toString(), "ether"));
+    await batchTransfer.batchTransfer(addresses, ethers.utils.parseUnits("10", "ether"));
 
     this.signers.push(...newSigners);
   }
