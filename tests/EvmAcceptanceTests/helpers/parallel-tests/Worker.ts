@@ -1,6 +1,39 @@
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {Block, Scenario, TransactionInfo, Txn} from "./Scenario";
+import {Block, Scenario, TestInfo, Txn} from "./Scenario";
 import fs from "fs";
+import { getState } from 'jest-circus';
+
+const processDescribeChild = (child: any, describes: string[], regex: RegExp): [tests: TestInfo[], beforeHooks: Txn[]] => {
+  const nestedDescribes = [...describes, child.name]
+  const allTests: TestInfo[] = [];
+  const allBeforeBlocks: Txn[] = [];
+  allBeforeBlocks.push(...child.hooks.map((hook: any) => hook.fn));
+  for (const subChild of child.children) {
+    if (subChild.type === 'describeBlock') {
+      const [tests, beforeHooks] = processDescribeChild(subChild, nestedDescribes, regex);
+      allTests.push(...tests);
+      allBeforeBlocks.push(...beforeHooks);
+    } else if (subChild.type === "test") {
+      let block: Block;
+      try {
+        block = extractBlockNumber(subChild.name);
+      } catch (error) {
+        continue;
+      }
+      
+      if (regex.test(subChild.name)) {
+        allTests.push({
+          txn: subChild.fn,
+          msg: subChild.name,
+          describes: nestedDescribes,
+          run_in: block
+        })
+      }
+    }
+  }
+
+  return [allTests, allBeforeBlocks];
+}
 
 export const parseTestFile = async function (
   testFile: string,
@@ -9,77 +42,37 @@ export const parseTestFile = async function (
 ): Promise<Scenario[]> {
   let scenarios: Scenario[] = [];
 
-  let code = await fs.promises.readFile(testFile, "utf8");
-
-  const testResult = {
-    success: false,
-    errorMessage: null
-  };
+  let code = `
+  const { describe, beforeAll, it } = require("jest-circus");\n
+  const before = beforeAll;\n
+  ${await fs.promises.readFile(testFile, "utf8")}`
 
   try {
-    const describeFns: [string, Txn][] = [];
-    let currentDescribeFn: [string, Txn][];
-    let currentBeforeFn;
-    let currentAfterFn;
-    const describe = (name: string, fn: Txn) => describeFns.push([name, fn]);
-    const it = (name: string, fn: Txn) => currentDescribeFn.push([name, fn]);
-    const xit = (name: string, fn: Txn) => {};
-    const before = (fn: Txn) => (currentBeforeFn = fn);
-    const after = (fn: Txn) => (currentAfterFn = fn);
-
-    try {
-      eval(code);
-    } catch (error) {
-      if (hre.debug) {
-        console.log(error);
-      }
-      return [];
-    }
-    for (const [describeName, fn] of describeFns) {
-      if (!isScenarioParallel(describeName)) {
-        continue;
-      }
-
-      const describeMatched = regex.test(describeName);
-
-      let transaction_infos: TransactionInfo[] = [];
-      currentDescribeFn = [];
-      currentBeforeFn = undefined;
-      currentAfterFn = undefined;
-      fn();
-
-      for (const [name, fn] of currentDescribeFn) {
-        let block: Block;
-        const testMatched = regex.test(name);
-        try {
-          block = extractBlockNumber(name);
-        } catch (error) {
-          continue;
-        }
-
-        if (describeMatched || testMatched) {
-          transaction_infos.push({
-            txn: fn,
-            scenario_name: describeName,
-            msg: name,
-            run_in: block
-          });
-        }
-      }
-
-      // Added describeMatched to catch forgotten @block-n in test descs
-      if (describeMatched || transaction_infos.length > 0) {
-        scenarios.push({
-          before: currentBeforeFn,
-          after: currentAfterFn,
-          scenario_name: describeName,
-          tests: transaction_infos
-        });
-      }
-    }
-    testResult.success = true;
+    eval(code);
   } catch (error) {
-    console.log("error", error);
+    if (hre.debug) {
+      console.log(error);
+    }    
+    return [];
+  }
+
+  const state = getState();
+
+  for (const describeChild of state.rootDescribeBlock.children) {
+    const describeName = describeChild.name;
+    if (!isScenarioParallel(describeName)) {
+      continue;
+    }
+    const [tests, beforeHooks] = processDescribeChild(describeChild, [], regex);
+
+    if (regex.test(describeName) || tests.length > 0) {
+      scenarios.push({
+        scenario_name: describeName,
+        beforeHooks,
+        tests,
+
+      })
+    }
   }
 
   return scenarios;

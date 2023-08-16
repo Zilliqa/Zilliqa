@@ -10,28 +10,28 @@ export enum Block {
   BLOCK_3
 }
 
-export type TransactionInfo = {
+export type TestInfo = {
   txn: Txn;
   msg: string;
-  scenario_name: string;
+  describes: string[];   // Because `describe` blocks can be nested, this test can belong to a nested describe, this is a list of all of its describes
   run_in: Block;
   disabled?: true;
 };
 
 export type Scenario = {
   scenario_name: string;
-  before?: Txn;
-  tests: TransactionInfo[];
+  beforeHooks: Txn[];
+  tests: TestInfo[];
   after?: Txn;
 };
 
 export type FailureResult = {
   result: PromiseSettledResult<any>;
   test_case: string;
-  scenario: string;
+  describes: string[];
 };
 
-const execute = async function (txns: TransactionInfo[]): Promise<FailureResult[]> {
+const execute = async function (txns: TestInfo[]): Promise<FailureResult[]> {
   let promises = [];
   for (let txn of txns) {
     if (txn.disabled) {
@@ -49,7 +49,7 @@ const execute = async function (txns: TransactionInfo[]): Promise<FailureResult[
       failures.push({
         result,
         test_case: txns[index].msg,
-        scenario: txns[index].scenario_name
+        describes: txns[index].describes
       });
     }
   });
