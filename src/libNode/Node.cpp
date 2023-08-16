@@ -1482,6 +1482,10 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
     uint16_t lastBlockHash, uint32_t sizeOfShard,
     const DequeOfNode &shardMembers) {
   LOG_MARKER();
+  LOG_GENERAL(INFO,"STEVE lastBlockHash: " << lastBlockHash
+                                      << ", sizeOfShard: " << sizeOfShard
+                                      << ", shardMembers.size(): "
+                                      << shardMembers.size());
   if (GUARD_MODE) {
     uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
 
