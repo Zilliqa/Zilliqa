@@ -1,8 +1,12 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {Block, Scenario, TransactionInfo, Txn} from "./Scenario";
 import fs from "fs";
 
-export const parseTestFile = async function (testFile: string, regex: RegExp, hre: HardhatRuntimeEnvironment): Promise<Scenario[]> {
+export const parseTestFile = async function (
+  testFile: string,
+  regex: RegExp,
+  hre: HardhatRuntimeEnvironment
+): Promise<Scenario[]> {
   let scenarios: Scenario[] = [];
 
   let code = await fs.promises.readFile(testFile, "utf8");
@@ -63,7 +67,8 @@ export const parseTestFile = async function (testFile: string, regex: RegExp, hr
         }
       }
 
-      if (describeMatched || transaction_infos.length > 0) {    // Added describeMatched to catch forgotten @block-n in test descs
+      // Added describeMatched to catch forgotten @block-n in test descs
+      if (describeMatched || transaction_infos.length > 0) {
         scenarios.push({
           before: currentBeforeFn,
           after: currentAfterFn,
