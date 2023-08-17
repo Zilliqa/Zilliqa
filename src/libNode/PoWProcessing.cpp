@@ -31,7 +31,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -380,14 +380,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  // Instead of sending whole list at once, send 1 by 1 to prevent incidents
-  // where that particular node is down and hence the whole list is being
-  // delayed or gone
-  auto& p2pComm = P2PComm::GetInstance();
-  for (const auto& p : peerList) {
-    p2pComm.SendMessage(p, powmessage);
-  }
-
+  zil::p2p::GetInstance().SendMessage(peerList, powmessage);
   return true;
 }
 
@@ -467,6 +460,8 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   m_mediator.m_DSCommittee->clear();
   LOG_GENERAL(INFO, "DS count = " << numDS);
 
+  PubKey emptyPubKey;
+
   for (unsigned int i = 0; i < numDS; i++) {
     PubKey pubkey(message, cur_offset);
     cur_offset += PUB_KEY_SIZE;
@@ -487,10 +482,13 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
                      m_mediator.m_initialDSCommittee->size());
     }
     unsigned int i = 0;
-    for (auto const& dsNode : *m_mediator.m_DSCommittee) {
-      if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
-        LOG_CHECK_FAIL("DS PubKey", dsNode.first,
-                       m_mediator.m_initialDSCommittee->at(i));
+    for (auto& dsNode : *m_mediator.m_DSCommittee) {
+      const auto& initialPubKey = m_mediator.m_initialDSCommittee->at(i);
+      if (!(dsNode.first == initialPubKey)) {
+        LOG_CHECK_FAIL("DS PubKey", dsNode.first, initialPubKey);
+        if (dsNode.first == emptyPubKey) {
+          dsNode.first = initialPubKey;
+        }
       }
       i++;
     }

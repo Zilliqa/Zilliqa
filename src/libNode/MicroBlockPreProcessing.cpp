@@ -27,7 +27,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -310,7 +310,7 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, tx_message);
+  zil::p2p::GetInstance().SendMessage(peer, tx_message);
 
   return true;
 }
@@ -1136,7 +1136,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                 "expected to be called from LookUp node");
     return true;
   }
-
+  LOG_GENERAL(INFO, "RunConsensusOnMicroBlockWhenShardLeader: Starting microblock consensus");
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am shard leader. Creating microblock for epoch "
                 << m_mediator.m_currentEpochNum);
@@ -1294,7 +1294,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                 "expected to be called from LookUp node");
     return true;
   }
-
+  LOG_GENERAL(INFO, "RunConsensusOnMicroBlockWhenShardBackup: Starting microblock consensus");
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
             TXN_SHARD_TARGET_DIFFICULTY &&

@@ -225,6 +225,7 @@ bool AccountStoreBase::IncreaseBalance(const Address& address,
   if (account != nullptr && account->IncreaseBalance(delta)) {
     return true;
   } else if (account == nullptr) {
+    LOG_GENERAL(WARNING, "ccountStoreBase::IncreaseBalance Adding nonexisting acc: " << address << ", with balance: " << delta);
     return AddAccount(address, {delta, 0});
   }
 
@@ -258,8 +259,11 @@ bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
                                        const uint128_t& delta) {
   // LOG_MARKER();
   // FIXME: Is there any elegent way to implement this atomic change on balance?
+  LOG_GENERAL(WARNING, "AccountStoreBase::TransferBalance from " << from << ", to: " << to << ", value: " << delta);
   if (DecreaseBalance(from, delta)) {
+    LOG_GENERAL(WARNING, "AccountStoreBase::TransferBalance decrease " << from << ", to: " << to << ", value: " << delta);
     if (IncreaseBalance(to, delta)) {
+      LOG_GENERAL(WARNING, "AccountStoreBase::TransferBalance increase " << from << ", to: " << to << ", value: " << delta);
       return true;
     } else {
       if (!IncreaseBalance(from, delta)) {

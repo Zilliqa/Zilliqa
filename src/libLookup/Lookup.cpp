@@ -41,7 +41,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -89,7 +89,7 @@ class LookupVariables {
 static LookupVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 namespace {
 
@@ -183,7 +183,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
     SetDSCommitteInfo();
   }
   m_sendSCCallsToDS = true;
-  m_sendAllToDS = true;
+  m_sendAllToDS = false;
 
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
     m_extSeedKey = std::move(extSeedKey);
@@ -214,9 +214,8 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
     GetTxBlockFromSeedNodes(txBlockNum, 0);
     std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
     if (!cv_setRejoinRecovery.wait_for(
-            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL), [this]() {
-              return m_rejoinRecoverySignal.load();
-            })) {
+            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL),
+            [this]() { return m_rejoinRecoverySignal.load(); })) {
       if (m_rejoinInProgress) {
         break;
       }
@@ -680,9 +679,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
     for (const auto& node : m_lookupNodes) {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
-
+      Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),""});
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
@@ -691,7 +688,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
   }
 
   // Sending with current d-trace info (if there is an active span)
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message, true);
+  zil::p2p::GetInstance().SendBroadcastMessage(allLookupNodes, message, true);
 }
 
 void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
@@ -709,8 +706,7 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
 
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+      Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),""});
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
@@ -719,7 +715,7 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(allLookupNodes, message);
+  zil::p2p::GetInstance().SendMessage(allLookupNodes, message);
 }
 
 void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
@@ -750,11 +746,10 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   int index = RandomGenerator::GetRandomInt(tmp.size());
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
-  Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this lookup ip from blacklisting
+  Blacklist::GetInstance().Whitelist({resolved_ip,tmp[index].second.GetListenPortHost(),""});
   Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
-  P2PComm::GetInstance().SendMessage(tmpPeer, message);
+  zil::p2p::GetInstance().SendMessage(tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
@@ -765,15 +760,14 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
     for (const auto& node : m_seedNodes) {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+      Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),""});
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer);
       seedNodePeer.emplace_back(tmpPeer);
     }
   }
-  P2PComm::GetInstance().SendMessage(seedNodePeer, message);
+  zil::p2p::GetInstance().SendMessage(seedNodePeer, message);
 }
 
 zbytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
@@ -935,8 +929,8 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
     SendMessageToRandomL2lDataProvider(getmessage);
     unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
     if (!cv_vcFinalBlockProcessed.wait_for(
-                                           lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
-                                           [this]() { return m_vcFinalBlockProcessed; }) &&
+            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
+            [this]() { return m_vcFinalBlockProcessed; }) &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetVCFinalBlockFromL2lDataProvider Timeout... may be "
@@ -1103,10 +1097,10 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
 
       if (replaceMyPeerWithDefault && (key == m_mediator.m_selfKey.second)) {
         m_mediator.m_DSCommittee->emplace_back(make_pair(key, Peer()));
-        LOG_GENERAL(INFO, "Added self " << Peer());
+        LOG_GENERAL(INFO, "### Added self " << Peer());
       } else {
         m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
-        LOG_GENERAL(INFO, "Added peer " << peer);
+        LOG_GENERAL(INFO, "### Added peer " << peer);
       }
     }
   }
@@ -1233,7 +1227,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   bool initialDS;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.GetListenPortHost(),from.GetNodeIndentifier()} )) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1277,8 +1271,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, dsInfoMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, dsInfoMessage, startByte);
 
   return true;
 }
@@ -1298,16 +1291,16 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   int index = RandomGenerator::GetRandomInt(m_l2lDataProviders.size());
   auto resolved_ip = TryGettingResolvedIP(m_l2lDataProviders[index].second);
 
-  Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this l2lookup ip from blacklisting
+  Blacklist::GetInstance().Whitelist({resolved_ip,m_l2lDataProviders[index].second.GetListenPortHost(),""});
   Peer tmpPeer(resolved_ip,
                m_l2lDataProviders[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
   unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
-  }
-  P2PComm::GetInstance().SendMessage(tmpPeer, tmpPeer, message, startByte);
+  //  TODO Disabled in updated protocol
+  //if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
+  //    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
+  //}
+  zil::p2p::GetInstance().SendMessage(tmpPeer, message, startByte);
 }
 
 void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
@@ -1321,10 +1314,10 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
+      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()}) &&
           (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
-            Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
+            Peer(seedNodeIpToSend, node.second.GetListenPortHost(),node.second.GetNodeIndentifier()));
       }
     }
   }
@@ -1337,7 +1330,7 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   }
 
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
-  P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
+  zil::p2p::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -1347,10 +1340,6 @@ bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
     lock_guard<mutex> g(m_mutexExtSeedWhitelisted);
     isWhiteListed =
         (m_extSeedWhitelisted.end() != m_extSeedWhitelisted.find(pubKey));
-  }
-  // Close connection if key is not whitelisted for p2pseed
-  if (!isWhiteListed) {
-    P2PComm::GetInstance().RemoveBevAndCloseP2PConnServer(from, startByte);
   }
   return isWhiteListed;
 }
@@ -1424,8 +1413,7 @@ bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcDSBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcDSBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
-      P2PComm::GetInstance().SendMessage(requestorPeer, from, it->second,
-                                         startByte);
+      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
       return true;
     }
   }
@@ -1504,8 +1492,7 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcFinalBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcFinalBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
-      P2PComm::GetInstance().SendMessage(requestorPeer, from, it->second,
-                                         startByte);
+      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
       return true;
     }
   }
@@ -1567,8 +1554,8 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
         auto it2 = it->second.find(shardId);
         if (it2 != it->second.end()) {
           LOG_GENERAL(INFO, "Sending MbnForrwardTxn msg to " << requestorPeer);
-          P2PComm::GetInstance().SendMessage(requestorPeer, from, it2->second,
-                                             startByte);
+          zil::p2p::GetInstance().SendMessage(requestorPeer, it2->second,
+                                              startByte);
           return true;
         }
       } else {
@@ -1622,7 +1609,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
                           << consensusLeaderID << " (" << dsLeader.second
                           << ')');
 
-    P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
+    zil::p2p::GetInstance().SendMessage(dsLeader.second, retMsg);
   }
 
   // Wait for the reply from the DS leader
@@ -1820,7 +1807,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
   bool includeMinerInfo = false;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()}  )) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1857,8 +1844,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -1897,8 +1883,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
         return false;
       }
 
-      P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
-                                         startByte);
+      zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -1995,7 +1980,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
   uint32_t portNo = 0;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()}  )) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2029,8 +2014,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
     return false;
   }
   Peer requestingNode(from.m_ipAddress, portNo);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, txBlockMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, txBlockMessage,
+                                      startByte);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Sent Txblks " << lowBlockNum << " - " << highBlockNum);
   return true;
@@ -2115,7 +2100,7 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint32_t portNo = 0;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2157,8 +2142,8 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltaMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltaMessage,
+                                      startByte);
   return true;
 }
 
@@ -2179,7 +2164,7 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint32_t portNo = 0;
 
   if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2226,8 +2211,8 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltasMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltasMessage,
+                                      startByte);
   return true;
 }
 
@@ -2257,7 +2242,7 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, msg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, msg, startByte);
 
   return true;
 }
@@ -2300,6 +2285,8 @@ bool Lookup::ProcessSetShardFromSeed(
   }
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
+  LOG_EXTRA("Shards updated " << m_mediator.m_ds->m_shards.size() << "->"
+                              << shards.size());
   m_mediator.m_ds->m_shards = std::move(shards);
 
   {
@@ -2363,7 +2350,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress,from.m_listenPortHost,from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2433,7 +2420,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
   return true;
 }
 
@@ -2513,7 +2500,7 @@ bool Lookup::ProcessGetMicroBlockFromL2l(const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
   return true;
 }
 
@@ -2708,7 +2695,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
   return true;
 }
 
@@ -3094,8 +3081,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
       {
-          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-          m_rejoinRecoverySignal = true;
+        std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+        m_rejoinRecoverySignal = true;
       }
       cv_setRejoinRecovery.notify_all();
       return false;
@@ -3296,8 +3283,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         ComposeAndSendGetCosigsRewardsFromSeed(txblk_num);
         std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
         if (!cv_setCosigRewardsFromSeed.wait_for(
-                cv_lk,
-                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
+                cv_lk, std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
                 [this]() { return m_setCosigRewardsFromSeedSignal; })) {
           LOG_GENERAL(WARNING,
                       "[Retry: " << retry
@@ -3729,7 +3715,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed({ipAddr,from.GetListenPortHost(),from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -3760,7 +3746,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
     return false;
   }
 
@@ -3805,8 +3791,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
   return true;
 }
 
@@ -3848,7 +3833,7 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(),from.m_listenPortHost,""});
     return false;
   }
 
@@ -3893,8 +3878,7 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
   return true;
 }
 
@@ -4290,8 +4274,8 @@ bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
     }
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from,
-                                     offlineLookupsMessage, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, offlineLookupsMessage,
+                                      startByte);
   return true;
 }
 
@@ -4950,7 +4934,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
+  zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -4993,7 +4977,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
         return false;
       }
 
-      P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
+      zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -5271,9 +5255,10 @@ bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 void Lookup::RemoveSeedNodesFromBlackList() {
   lock_guard<mutex> lock(m_mutexSeedNodes);
 
-  for (const auto& node : m_seedNodes) {
+  for (auto& node : m_seedNodes) {
     auto seedNodeIp = TryGettingResolvedIP(node.second);
-    Blacklist::GetInstance().Remove(seedNodeIp);
+
+    Blacklist::GetInstance().Remove({seedNodeIp,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()});
   }
 }
 
@@ -5304,7 +5289,8 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
   txnShardMap[shardId].emplace_back(make_pair(tx, 0));
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " to shard "
                                  << shardId << " of fromAddr "
-                                 << tx.GetSenderAddr());
+                                 << tx.GetSenderAddr() << ", nonce: "
+                                 << tx.GetNonce());
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
     RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
                                              m_mediator.m_currentEpochNum);
@@ -5498,7 +5484,7 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
         }
       }
     }
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+    zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     DeleteTxnShardMap(shardId);
   } else {
@@ -5530,7 +5516,7 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
       }
     }
 
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+    zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
                           << " Sent DS the txns");
@@ -5812,8 +5798,8 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, dsTxBlocksMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage,
+                                      startByte);
   return true;
 }
 
@@ -5874,7 +5860,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
 
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
+  zil::p2p::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
   return true;
 }
 

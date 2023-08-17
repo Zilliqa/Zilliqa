@@ -254,14 +254,14 @@ else
   install_dir="${INSTALL_DIR}"
 fi
 
-echo "Currenct directory: $(pwd)"
+echo "Current directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
 if [ "$n_parallel"  -gt "10" ]; then
     jobs=$(( (n_parallel / 10) * 9 ))
 else
-    jobs=$(( n_parallel / 2 ))
+    jobs=16
 fi
 
 echo building using $jobs jobs

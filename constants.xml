@@ -362,7 +362,7 @@
             <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
             <METRIC_ZILLIQA_VERSION>1.2.0</METRIC_ZILLIQA_VERSION>
 
-            <METRIC_ZILLIQA_MASK>ALL</METRIC_ZILLIQA_MASK>
+            <METRIC_ZILLIQA_MASK>NONE</METRIC_ZILLIQA_MASK>
         </zilliqa>
     </metric>
     <trace>

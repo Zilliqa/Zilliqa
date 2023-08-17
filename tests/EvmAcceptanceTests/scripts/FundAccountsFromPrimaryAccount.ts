@@ -1,9 +1,9 @@
-import { getAddressFromPrivateKey } from "@zilliqa-js/crypto";
-import { BN, Zilliqa, bytes, toChecksumAddress } from "@zilliqa-js/zilliqa";
+import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
+import {BN, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
 import clc from "cli-color";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import Long from "long";
-import hre from "hardhat"
+import hre from "hardhat";
 
 // Refer to README.md, section `Testing a newly deployed testnet/devent` for more info.
 
@@ -14,26 +14,26 @@ async function main() {
 
   const privateKey = process.env.PRIMARY_ACCOUNT;
   if (privateKey === undefined) {
-    console.log(clc.bold.red('Please set PRIMARY_ACCOUNT environment variable before running this script.'))
+    console.log(clc.bold.red("Please set PRIMARY_ACCOUNT environment variable before running this script."));
     return;
   }
 
   const address = getAddressFromPrivateKey(privateKey);
 
-  console.log(`Private key: ${privateKey}`)
-  console.log(`Address: ${address}`)
+  console.log(`Private key: ${privateKey}`);
+  console.log(`Address: ${address}`);
   const balanceResult = await zilliqa.blockchain.getBalance(address);
 
   if (balanceResult.error) {
-    console.log(clc.bold.red(balanceResult.error.message))
+    console.log(clc.bold.red(balanceResult.error.message));
     return;
   }
 
   const balance = new BN(balanceResult.result.balance);
-  console.log(`Balance: ${clc.bold.green(balance)}`)
+  console.log(`Balance: ${clc.bold.green(balance)}`);
 
   if (balance.isZero()) {
-    console.log(clc.bold.red("Provided account doesn't have enough fund."))
+    console.log(clc.bold.red("Provided account doesn't have enough fund."));
     return;
   }
 
@@ -46,7 +46,7 @@ async function main() {
         {
           version: VERSION,
           toAddr: ethAddrConverted,
-          amount: new BN("1_000_000_000_00"), // Sending an amount in Zil (1) and converting the amount to Qa
+          amount: new BN("100_000_000_000_000_000"), // Sending an amount in Zil (1) and converting the amount to Qa
           gasPrice: new BN(2000000000), // Minimum gasPrice veries. Check the `GetMinimumGasPrice` on the blockchain
           gasLimit: Long.fromNumber(2100)
         },
@@ -58,12 +58,13 @@ async function main() {
       const confirmedTxn = await tx.confirm(tx.id);
       const receipt = confirmedTxn.getReceipt();
       if (receipt && receipt.success) {
-        console.log(`${ethAddrConverted}` + clc.bold.green(' funded.'))
+        const balance = await zilliqa.blockchain.getBalance(ethAddrConverted);
+        console.log(`${ethAddrConverted}` + clc.bold.green(" funded with balance: ") + clc.bold.bgBlue(balance.result.balance));
         continue;
       }
     }
 
-    console.log(clc.red(`Failed to fund ${ethAddrConverted}.`))
+    console.log(clc.red(`Failed to fund ${ethAddrConverted}.`));
   }
 }
 
