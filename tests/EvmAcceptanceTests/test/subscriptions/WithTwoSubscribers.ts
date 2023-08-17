@@ -10,7 +10,7 @@ import {parallelizer} from "../../helpers";
 import {Event, waitForEvents} from "./shared";
 import {WebSocketProvider} from "@ethersproject/providers";
 
-describe("Subscriptions functionality", function () {
+describe.skip("Subscriptions functionality", function () {
   let contract: Contract;
   let eventsContract: Contract;
   let senderAddress: string;

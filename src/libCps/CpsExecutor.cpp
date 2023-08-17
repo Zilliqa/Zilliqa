@@ -208,8 +208,12 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     mTxReceipt.SetCumGas(0);
     mTxReceipt.update();
     mAccountStore.IncreaseNonceForAccount(ProtoToAddress(clientContext.GetEvmArgs().origin()));
+    LOG_GENERAL(WARNING, "RunFromEvm: Precondition for running transaction failed");
     return preValidateResult;
   }
+
+  LOG_GENERAL(WARNING, "CpsExecutor::RunFromEvm(): From " << ProtoToAddress(clientContext.GetEvmArgs().origin()).hex()
+              << " , to: " << ProtoToAddress(clientContext.GetEvmArgs().address()).hex());
 
   TakeGasFromAccount(clientContext);
 
@@ -222,7 +226,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
       CpsUtils::FromEvmContext(clientContext)};
   const auto destAddress = ProtoToAddress(clientContext.GetEvmArgs().address());
   const auto runType =
-      (IsNullAddress(destAddress) || !mAccountStore.AccountExistsAtomic(destAddress))
+      IsNullAddress(destAddress)
           ? CpsRun::Create
           : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,

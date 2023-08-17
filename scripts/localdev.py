@@ -723,7 +723,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         "-l", "1",
         "--guard", "4/0",
         "--gentxn", "false",
-        "--multiplier-fanout", "2",
+        "--multiplier-fanout", "1",
         "--host-network", "false",
         "--https", "localdomain",
         "--seed-multiplier", "true",

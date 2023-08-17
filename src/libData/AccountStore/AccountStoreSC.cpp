@@ -1691,6 +1691,7 @@ bool AccountStoreSC::TransferBalanceAtomic(const Address &from,
                                            const Address &to,
                                            const uint128_t &delta) {
   // LOG_MARKER();
+  LOG_GENERAL(WARNING, "AccountStoreSC::TransferBalanceAtomicTransferBalanceAtomic from " << from << ", to: " << to << ", value: " << delta);
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 

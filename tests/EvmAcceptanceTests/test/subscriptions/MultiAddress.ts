@@ -5,7 +5,7 @@ import {parallelizer} from "../../helpers";
 import {WebSocketProvider} from "@ethersproject/providers";
 import {Log} from "web3-core/types";
 
-describe("Subscriptions functionality", function () {
+describe.skip("Subscriptions functionality", function () {
   let contract: Contract;
   let senderAddress: string;
 

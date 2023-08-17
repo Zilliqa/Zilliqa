@@ -554,6 +554,10 @@ std::string EthRpcMethods::CreateTransactionEth(
       TRACE_EVENT("Validated", "status", "OK");
     }
 
+    LOG_GENERAL(WARNING, "EthRpcMethods::CreateTransactionEth ADDR: " << tx.GetSenderAddr()
+                                                                      << ", NONCE: " << tx.GetNonce()
+                << ", HASH: " << tx.GetTranID().hex() << ", TO: " << tx.GetCoreInfo().toAddr.hex());
+
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
     bool priority = false;
@@ -702,12 +706,12 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
                                   << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
       throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                             "Account is not created");
+                             "Account with addr: " + address + " is not created");
     }
 
     return ret;
   } catch (const JsonRpcException &je) {
-    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
+    LOG_GENERAL(INFO, "[Error] getting balance for acc: " << address << ", msg: " << je.GetMessage());
     throw je;
   } catch (exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);

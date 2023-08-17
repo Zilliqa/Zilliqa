@@ -724,7 +724,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   uint32_t consensusID = 0;
   TxBlock txBlock;
   zbytes stateDelta;
-
+  LOG_GENERAL(WARNING, "Node::ProcessFinalBlock ENTER");
   if (LOOKUP_NODE_MODE) {
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       // Buffer the Final Block
@@ -870,7 +870,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
   zil::local::variables.SetLastBlockHeight(txBlock.GetHeader().GetBlockNum());
-
+  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ENTER");
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
@@ -1112,7 +1112,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_pendingTxns.erase(txnHash);
     }
   }
-
+  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock ENTER");
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
@@ -1320,7 +1320,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 bool Node::ProcessStateDeltaFromFinalBlock(
     const zbytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash) {
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "Node::ProcessStateDeltaFromFinalBlock ENTER");
   // Init local AccountStoreTemp first
   AccountStore::GetInstance().InitTemp();
 
@@ -1375,7 +1375,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions ENTER");
   if (!entry.m_transactions.empty()) {
     uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
@@ -1407,10 +1407,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
       }
-
+      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: " << txhash.hex() << ", NONCE: " << tran.GetNonce());
+      
       if (LOOKUP_NODE_MODE) {
         LookupServer::AddToRecentTransactions(txhash);
-
         const auto& receipt = twr.GetTransactionReceipt();
         cache_upd.AddCommittedTransaction(epochNum, shardId, txhash.hex(),
                                           receipt.GetJsonValue());
@@ -1540,7 +1540,7 @@ bool Node::ProcessMBnForwardTransaction(
                 "called from Normal node.");
     return true;
   }
-
+  LOG_GENERAL(WARNING, "Node::ProcessMBnForwardTransaction ENTER");
   LOG_MARKER();
 
 #ifdef SJ_TEST_SJ_MISSING_MBTXNS
@@ -1827,7 +1827,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "Node::ProcessMBnForwardTransactionCore ENTER");
   LOG_GENERAL(INFO, entry);
 
   {
