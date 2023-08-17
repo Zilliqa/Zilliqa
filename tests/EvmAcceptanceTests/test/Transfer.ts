@@ -172,21 +172,21 @@ describe("Transfer ethers #parallel", function () {
       to: rndAccount.address,
       value: FUND
     });
-
+    console.log("step2");
     // Get transaction receipt for the tx
-    const receipt = await tx.response.wait();
-
+    await expect(tx.response.wait()).not.to.be.rejected;
+    console.log("step3");
     rndAccount = rndAccount.connect(ethers.provider);
 
-    const TRANSFER_VALUE = 100_000_000;
+    const TRANSFER_VALUE = 1_000_000_0;
 
     // We can't use parallizer here since we need a hash of the receipt to inspect gas usage later
     const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
 
     const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE});
-
+    console.log("step4");
     await singleTransfer.deployed();
-
+    console.log("step5");
     const fee1 = await getFee(singleTransfer.deployTransaction.hash);
 
     // Need to scale down to ignore miniscule rounding differences from getFee

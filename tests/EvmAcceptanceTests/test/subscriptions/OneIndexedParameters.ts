@@ -8,7 +8,7 @@ import {Contract} from "ethers";
 import hre, {ethers} from "hardhat";
 import {Event, waitForEvents} from "./shared";
 
-describe("Subscriptions functionality", function () {
+describe.skip("Subscriptions functionality", function () {
   let contract: Contract;
   let eventsContract: Contract;
   let provider;

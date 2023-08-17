@@ -1733,6 +1733,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes& src,
                                        (unsigned int)address.size),
          address.asArray().begin());
 
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta revertible address: " << address.hex());
     const Account* oriAccount = accountStore.GetAccount(address);
     bool fullCopy = false;
     if (oriAccount == nullptr) {
@@ -1749,6 +1750,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes& src,
 
     t_account = *oriAccount;
     account = *oriAccount;
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta ProtobufToAccountDelta revertible for addr: " << address.hex());
     if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
                                 temp, revertible)) {
       LOG_GENERAL(WARNING,
@@ -1756,6 +1758,10 @@ bool Messenger::GetAccountStoreDelta(const zbytes& src,
                       << address.hex());
       return false;
     }
+
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta ProtobufToAccountDelta revertible: " << address.hex()
+                                                                                               << ", balance: " << account.GetBalance()
+                                                                                               << ", nonce: " << account.GetNonce());
 
     accountStore.AddAccountDuringDeserialization(address, account, t_account,
                                                  fullCopy, revertible);
@@ -1788,6 +1794,8 @@ bool Messenger::GetAccountStoreDelta(const zbytes& src,
                                        (unsigned int)address.size),
          address.asArray().begin());
 
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta address: " << address.hex());
+
     const Account* oriAccount = accountStoreTemp.GetAccount(address);
     bool fullCopy = false;
     if (oriAccount == nullptr) {
@@ -1805,7 +1813,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes& src,
     }
 
     account = *oriAccount;
-
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta ProtobufToAccountDelta for addr: " << address.hex());
     if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
                                 temp)) {
       LOG_GENERAL(WARNING,
@@ -1813,7 +1821,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes& src,
                       << address.hex());
       return false;
     }
-
+    LOG_GENERAL(WARNING, "DESERIALIZE DELTA ACC: " << address.hex() << ", balance: " << account.GetBalance() << ", nonce: " << account.GetNonce());
     accountStoreTemp.AddAccountDuringDeserialization(address, account);
   }
 

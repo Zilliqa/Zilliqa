@@ -26,8 +26,8 @@ using namespace boost::multiprecision;
 
 Peer::Peer() : m_ipAddress(0), m_listenPortHost(0) {}
 
-Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host)
-    : m_ipAddress(ip_address), m_listenPortHost(listen_port_host) {}
+Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host, const std::string& nodeIndentifier)
+    : m_ipAddress(ip_address), m_listenPortHost(listen_port_host), m_nodeIndentifier(nodeIndentifier) {}
 
 Peer::Peer(const zbytes& src, unsigned int offset)
     : m_ipAddress(0), m_listenPortHost(0) {
@@ -80,3 +80,4 @@ void Peer::SetHostname(const std::string& hostname) { m_hostname = hostname; }
 const uint32_t& Peer::GetListenPortHost() const { return m_listenPortHost; }
 const uint128_t& Peer::GetIpAddress() const { return m_ipAddress; }
 const std::string Peer::GetHostname() const { return m_hostname; }
+const std::string Peer::GetNodeIndentifier() const { return m_nodeIndentifier; }

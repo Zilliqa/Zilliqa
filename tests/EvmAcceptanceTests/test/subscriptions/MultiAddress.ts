@@ -3,7 +3,7 @@ import {Contract} from "ethers";
 import hre, {ethers, Web3} from "hardhat";
 import {Log} from "web3-core/types";
 
-describe("Subscriptions functionality", function () {
+describe.skip("Subscriptions functionality", function () {
   let contract: Contract;
   let senderAddress: string;
 

@@ -393,7 +393,7 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     helm_remove_repository(config, 'grafana')
 
-def prometheus_up(config, testnet_name, count = 8):
+def prometheus_up(config, testnet_name, count = 7):
     """ Let helm deploy prometheus """
     ips = []
     while True:
@@ -723,7 +723,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         "-l", "1",
         "--guard", "4/0",
         "--gentxn", "false",
-        "--multiplier-fanout", "2",
+        "--multiplier-fanout", "1",
         "--host-network", "false",
         "--https", "localdomain",
         "--seed-multiplier", "true",

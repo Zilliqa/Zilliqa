@@ -34,6 +34,7 @@ describe("ERC20 Is ZRC2", function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
+    //ethers.getDefaultProvider().pollingInterval = 500;
 
     contractOwner = hre.allocateSigner();
 
