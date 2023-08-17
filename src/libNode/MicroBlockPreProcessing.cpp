@@ -1136,7 +1136,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                 "expected to be called from LookUp node");
     return true;
   }
-
+  LOG_GENERAL(INFO, "RunConsensusOnMicroBlockWhenShardLeader: Starting microblock consensus");
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am shard leader. Creating microblock for epoch "
                 << m_mediator.m_currentEpochNum);
@@ -1294,7 +1294,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                 "expected to be called from LookUp node");
     return true;
   }
-
+  LOG_GENERAL(INFO, "RunConsensusOnMicroBlockWhenShardBackup: Starting microblock consensus");
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
             TXN_SHARD_TARGET_DIFFICULTY &&

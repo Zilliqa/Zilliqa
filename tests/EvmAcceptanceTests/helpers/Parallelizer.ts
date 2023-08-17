@@ -34,13 +34,13 @@ export class Parallelizer {
 
     const Contract = await hh_ethers.getContractFactory(contractName);
     const deployedContract = await Contract.connect(signer).deploy(...args);
-    return deployedContract;
+    return deployedContract.deployed();
   }
 
   async deployContractWithSigner(signer: Signer, contractName: string, ...args: any[]) {
-    const Contract = await hh_ethers.getContractFactory(contractName);
-    const deployedContract = await Contract.connect(signer).deploy(...args);
-    return deployedContract;
+    const Contract = await hh_ethers.getContractFactory(contractName, signer);
+    const deployedContract = await Contract.deploy(...args);
+    return deployedContract.deployed();
   }
 
   async deployContractWeb3(contractName: string, options: DeployOptions = {}, ...args: any[]) {

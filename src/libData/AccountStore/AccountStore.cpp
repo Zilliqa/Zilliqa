@@ -354,7 +354,7 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
       }
     }
   }
-
+  LOG_GENERAL(WARNING, "AccountStore::DeserializeDelta revertible " << revertible);
   if (revertible) {
     unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
     unique_lock<mutex> g2(m_mutexRevertibles, defer_lock);
@@ -705,10 +705,11 @@ void AccountStore::CommitTempRevertible() {
 
 bool AccountStore::RevertCommitTemp() {
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "AccountStore::RevertCommitTemp Commiting from temp to normal, size: " << m_addressToAccountRevChanged.size());
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
   for (auto const &entry : m_addressToAccountRevChanged) {
+    LOG_GENERAL(WARNING, "Committing account with addr: " << entry.first);
     m_addressToAccount->insert_or_assign(entry.first, entry.second);
     UpdateStateTrie(entry.first, entry.second);
   }

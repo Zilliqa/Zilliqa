@@ -5304,7 +5304,8 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
   txnShardMap[shardId].emplace_back(make_pair(tx, 0));
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " to shard "
                                  << shardId << " of fromAddr "
-                                 << tx.GetSenderAddr());
+                                 << tx.GetSenderAddr() << ", nonce: "
+                                 << tx.GetNonce());
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
     RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
                                              m_mediator.m_currentEpochNum);
