@@ -19,5 +19,9 @@ export default class SignerPool {
     this.signers.push(...signer);
   }
 
+  public count(): number {
+    return this.signers.length;
+  }
+
   private signers: SignerWithAddress[] = [];
 }
