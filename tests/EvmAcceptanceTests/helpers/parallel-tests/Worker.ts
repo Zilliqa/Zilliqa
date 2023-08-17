@@ -1,13 +1,13 @@
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {Block, Scenario, TestInfo, Txn} from "./Scenario";
 import fs from "fs";
-import { getState } from 'jest-circus';
+import { getState, resetState } from 'jest-circus';
 
 const processDescribeChild = (child: any, describes: string[], regex: RegExp): [tests: TestInfo[], beforeHooks: Txn[]] => {
   const nestedDescribes = [...describes, child.name]
   const allTests: TestInfo[] = [];
   const allBeforeBlocks: Txn[] = [];
-  allBeforeBlocks.push(...child.hooks.map((hook: any) => hook.fn));
+  allBeforeBlocks.push(...child.hooks.filter((hook: any) => hook.type === "beforeAll").map((hook: any) => hook.fn));
   for (const subChild of child.children) {
     if (subChild.type === 'describeBlock') {
       const [tests, beforeHooks] = processDescribeChild(subChild, nestedDescribes, regex);
@@ -43,9 +43,15 @@ export const parseTestFile = async function (
   let scenarios: Scenario[] = [];
 
   let code = `
-  const { describe, beforeAll, it } = require("jest-circus");\n
+  const { describe, beforeAll, afterAll, it } = require("jest-circus");\n
   const before = beforeAll;\n
+  const after = afterAll;\n
   ${await fs.promises.readFile(testFile, "utf8")}`
+
+  // Does file contain #parallel tag?? If not, skip it!
+  if (!code.includes("#parallel")) {
+    return [];
+  }
 
   try {
     eval(code);
@@ -75,6 +81,7 @@ export const parseTestFile = async function (
     }
   }
 
+  resetState();
   return scenarios;
 };
 
