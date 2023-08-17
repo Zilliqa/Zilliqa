@@ -9,18 +9,19 @@ async function getFee(hash: string) {
   return res.gasUsed.mul(res.effectiveGasPrice);
 }
 
-describe("ForwardZil contract functionality", function () {
+describe("ForwardZil contract functionality #parallel", function () {
   let contract: Contract;
   before(async function () {
     contract = await hre.deployContract("ForwardZil");
   });
 
-  it("Should return zero as the initial balance of the contract", async function () {
+  it("Should return zero as the initial balance of the contract @block-1", async function () {
     expect(await ethers.provider.getBalance(contract.address)).to.be.eq(0);
   });
 
-  it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called`, async function () {
-    expect(await contract.deposit({value: FUND})).changeEtherBalance(contract.address, FUND);
+  it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called @block-1`, async function () {
+    await contract.deposit({value: FUND});
+    expect(await ethers.provider.getBalance(contract.address)).to.be.eq(FUND);
   });
 
   // TODO: Add notPayable contract function test.
@@ -33,7 +34,7 @@ describe("ForwardZil contract functionality", function () {
     );
   });
 
-  it("should be possible to transfer ethers to the contract", async function () {
+  it("should be possible to transfer ethers to the contract @block-2", async function () {
     const prevBalance = await ethers.provider.getBalance(contract.address);
     const {response} = await hre.sendTransaction({
       to: contract.address,
@@ -48,8 +49,8 @@ describe("ForwardZil contract functionality", function () {
   });
 });
 
-describe("Transfer ethers", function () {
-  it("should be possible to transfer ethers to a user account", async function () {
+describe("Transfer ethers #parallel", function () {
+  it("should be possible to transfer ethers to a user account @block-1", async function () {
     const payee = ethers.Wallet.createRandom();
 
     const {response} = await hre.sendTransaction({
@@ -62,7 +63,7 @@ describe("Transfer ethers", function () {
     expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
 
-  it("should be possible to batch transfer using a smart contract", async function () {
+  it("should be possible to batch transfer using a smart contract @block-1", async function () {
     const ACCOUNTS_COUNT = 3;
     const ACCOUNT_VALUE = 1_000_000;
 
@@ -80,7 +81,7 @@ describe("Transfer ethers", function () {
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
   });
 
-  it("should be possible to batch transfer using a smart contract and get funds back on self destruct", async function () {
+  it("should be possible to batch transfer using a smart contract and get funds back on self destruct @block-1", async function () {
     const ACCOUNTS_COUNT = 3;
     const ACCOUNT_VALUE = 1_000_000_000;
 
@@ -93,11 +94,9 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
-    const batchTrans = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {
+    const batchTrans = await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
     });
-    await batchTrans.deployed();
 
     const fee1 = await getFee(batchTrans.deployTransaction.hash);
 
@@ -143,14 +142,14 @@ describe("Transfer ethers", function () {
     let initialBal = await ethers.provider.getBalance(randomAccount);
     expect(initialBal).to.be.eq(0);
 
-    const [owner] = await ethers.getSigners();
+    const owner = hre.allocateSigner();
     let InitialOwnerbal = await ethers.provider.getBalance(owner.address);
 
     // check enough funds + gas
     expect(InitialOwnerbal).to.be.at.least(TRANSFER_VALUE * 1.1);
 
     // Deploy the contract
-    const singleTransfer = await hre.deployContract("SingleTransfer");
+    const singleTransfer = await hre.deployContractWithSigner("SingleTransfer", owner);
 
     // call SC with a value to move funds across
     await singleTransfer.doTransfer(randomAccount, TRANSFER_VALUE, {
@@ -161,6 +160,7 @@ describe("Transfer ethers", function () {
     const receivedBal = await ethers.provider.getBalance(randomAccount);
 
     expect(receivedBal).to.be.eq(TRANSFER_VALUE);
+    hre.releaseSigner(owner);
   });
 
   it("should return check gas and funds consistency", async function () {

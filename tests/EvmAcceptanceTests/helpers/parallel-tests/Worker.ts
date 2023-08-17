@@ -46,6 +46,7 @@ export const parseTestFile = async function (
   const { describe, beforeAll, afterAll, it } = require("jest-circus");\n
   const before = beforeAll;\n
   const after = afterAll;\n
+  const xit = () => {};
   ${await fs.promises.readFile(testFile, "utf8")}`
 
   // Does file contain #parallel tag?? If not, skip it!
@@ -53,14 +54,9 @@ export const parseTestFile = async function (
     return [];
   }
 
-  try {
-    eval(code);
-  } catch (error) {
-    if (hre.debug) {
-      console.log(error);
-    }    
-    return [];
-  }
+  await fs.promises.writeFile(testFile, code);
+
+  require(fs.realpathSync(testFile))
 
   const state = getState();
 

@@ -1,17 +1,24 @@
-import {assert, expect} from "chai";
-import {Contract} from "ethers";
+import { assert, expect } from "chai";
+import { Contract } from "ethers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
-import hre, {ethers} from "hardhat";
+import hre, { ethers } from "hardhat";
 
-describe("Chained Contract Calls Functionality", function () {
+describe("Chained Contract Calls Functionality #parallel", function () {
   let contractOne: Contract;
   let contractTwo: Contract;
   let contractThree: Contract;
 
   before(async function () {
-    contractOne = await hre.deployContract("ContractOne");
-    contractTwo = await hre.deployContract("ContractTwo");
-    contractThree = await hre.deployContract("ContractThree");
+    if (hre.parallel) {
+      [contractOne, contractTwo, contractThree] = await Promise.all([
+        await hre.deployContract("ContractOne"),
+        await hre.deployContract("ContractTwo"),
+        await hre.deployContract("ContractThree")]);
+    } else {
+      contractOne = await hre.deployContract("ContractOne");
+      contractTwo = await hre.deployContract("ContractTwo");
+      contractThree = await hre.deployContract("ContractThree");
+    }
 
     // Make sure tracing is enabled
     const METHOD = "ots_enable";
@@ -21,7 +28,7 @@ describe("Chained Contract Calls Functionality", function () {
     });
   });
 
-  describe("Install and call chained contracts", function () {
+  describe("Install and call chained contracts @block-1", function () {
     it("Should create a transaction trace after child creation", async function () {
       const METHOD = "debug_traceTransaction";
       const METHOD_BLOCK = "debug_traceBlockByNumber";
@@ -33,7 +40,7 @@ describe("Chained Contract Calls Functionality", function () {
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
-      let tracer = {tracer: "callTracer"};
+      let tracer = { tracer: "callTracer" };
 
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
@@ -69,7 +76,7 @@ describe("Chained Contract Calls Functionality", function () {
         );
       });
 
-      let secondTracer = {tracer: "raw"};
+      let secondTracer = { tracer: "raw" };
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
         assert.equal(status, 200, "has status code");
@@ -86,7 +93,7 @@ describe("Chained Contract Calls Functionality", function () {
       });
     });
 
-    it("Should correctly call chained contracts", async function () {
+    it("Should correctly call chained contracts @block-2", async function () {
       let addrOne = contractOne.address.toLowerCase();
       let addrTwo = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
