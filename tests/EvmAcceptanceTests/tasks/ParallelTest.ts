@@ -13,6 +13,8 @@ task("parallel-test", "Runs test in parallel")
   .addOptionalParam("grep", "Only run tests matching the given string or regexp")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile");
+    const signersCount = hre.signer_pool.count();
+  
     const {grep, testFiles}: {grep: string | undefined; testFiles: string[]} = taskArgs;
 
     // Running Typescript
@@ -41,6 +43,8 @@ task("parallel-test", "Runs test in parallel")
 
     // Display results
     await hre.run("parallel-test:output-results", {failures});
+
+    console.log(`🪪  ${clc.bold.white(signersCount - hre.signer_pool.count())} signers used.`)
   });
 
 subtask("parallel-test:run-tsc", "Runs tsc to make sure everything's synced").setAction(async () => {
@@ -146,7 +150,7 @@ subtask("parallel-test:deploy", "Deploys contracts in parallel").setAction(async
 subtask("parallel-test:run", "Runs the tests").setAction(async (taskArgs) => {
   const {scenarios}: {scenarios: Scenario[]} = taskArgs;
   return runStage(
-    "Running tests",
+    "Running test Results",
     (scenarios: Scenario[]) => {
       return runScenarios(...scenarios);
     },
@@ -155,7 +159,8 @@ subtask("parallel-test:run", "Runs the tests").setAction(async (taskArgs) => {
       const failedCount: number = output.length;
       return {
         finished_message:
-          `${scenarios.length} scenario and ${tests_count} tests executed` +
+          `${scenarios.length} scenarios and ${tests_count} tests executed. ` +
+          `${clc.bold.greenBright(tests_count - failedCount)} ${clc.green("passed")}` +
           (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
         success: failedCount === 0 ? true : false
       };
