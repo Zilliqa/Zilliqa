@@ -126,7 +126,22 @@ bool ScillaClient::OpenServer(uint32_t version) {
   return true;
 }
 
+void ScillaClient::RestartScillaClient() {
+  LOG_MARKER();
+  if (ENABLE_SCILLA_MULTI_VERSION == true) {
+    LOG_GENERAL(INFO, "ENABLE_SCILLA_MULTI_VERSION is true");
+    for (const auto& entry : m_clients) {
+      LOG_GENERAL(INFO, "entry.first = " << entry.first);
+      CheckClient(entry.first, true);
+    }
+  } else {
+    LOG_GENERAL(INFO, "ENABLE_SCILLA_MULTI_VERSION is false");
+    CheckClient(0, true);
+  }
+}
+
 bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
+  LOG_GENERAL(INFO, "CheckClient = " << version << " enforce = " << enforce);
   std::lock_guard<std::mutex> g(m_mutexMain);
 
   if (m_clients.find(version) != m_clients.end() && !enforce) {
