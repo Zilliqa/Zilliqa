@@ -258,11 +258,9 @@ echo "Current directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
-if [ "$n_parallel"  -gt "10" ]; then
-    jobs=$(( (n_parallel / 10) * 9 ))
-else
-    jobs=16
-fi
+
+ jobs=$(n_parallel - 1)
+
 
 echo building using $jobs jobs
 
