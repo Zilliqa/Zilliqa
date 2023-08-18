@@ -32,7 +32,7 @@ const printEthBalances = async (hre: HardhatRuntimeEnvironment) => {
 
   console.log(clc.bold.bgGreen("Eth balances"));
   accounts.forEach((element, index) => {
-    displayBalance(element, ethers.utils.formatEther(balances[index]), "ether");
+    displayBalance(index, element, ethers.utils.formatEther(balances[index]), "ether");
   });
   console.log();
 };
@@ -40,6 +40,7 @@ const printEthBalances = async (hre: HardhatRuntimeEnvironment) => {
 const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
   let zilliqa = new Zilliqa(hre.getNetworkUrl());
   const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+  let index = 0;
   for (const private_key of private_keys) {
     const address = getAddressFromPrivateKey(private_key);
 
@@ -54,13 +55,13 @@ const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
       balanceString = balance.toString();
     }
 
-    displayBalance(address, balanceString, error ? "" : "zil");
+    displayBalance(++index, address, balanceString, error ? "" : "zil");
   }
 };
 
-const displayBalance = (account: string, balance: string, unit: string) => {
+const displayBalance = (index: number, account: string, balance: string, unit: string) => {
   console.log(
-    clc.blackBright("Account:"),
+    clc.blackBright(`${index + 1})`),
     clc.white.bold(account),
     clc.blackBright("\tBalance:"),
     clc.white.bold(balance),

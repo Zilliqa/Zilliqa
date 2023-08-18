@@ -60,7 +60,7 @@ task("setup", "A task to setup test suite").setAction(async (taskArgs, hre) => {
   }
 
   if (address_type == AddressType.EvmBased) {
-    await hre.run("init-signers", {from: private_key, count: "10", balance: "1", append});
+    await hre.run("init-signers", {from: private_key, count: "30", balance: "1", append});
   } else if (address_type == AddressType.ZilBased) {
     console.log("To be supported");
   }
