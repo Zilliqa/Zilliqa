@@ -1,27 +1,31 @@
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
+import {Account} from "@zilliqa-js/account"
 
 export default class SignerPool {
-  public takeSigner(): SignerWithAddress {
-    if (this.signers.length == 0) {
+  public takeEthSigner(): SignerWithAddress {
+    if (this.eth_signers.length == 0) {
       throw new Error(
         "No more signers to return. Either you haven't initialized this pool, or you just ran out of signers."
       );
     }
 
-    return this.signers.pop()!;
+    return this.eth_signers.pop()!;
   }
 
-  public initSigners(...signer: SignerWithAddress[]) {
-    this.releaseSigner(...signer);
+  public initSigners(signer: SignerWithAddress[], privateKeys: string[]) {
+    this.releaseEthSigner(...signer);
+
+    this.zil_signers.push(...privateKeys.map((key) => new Account(key)));
   }
 
-  public releaseSigner(...signer: SignerWithAddress[]) {
-    this.signers.push(...signer);
+  public releaseEthSigner(...signer: SignerWithAddress[]) {
+    this.eth_signers.push(...signer);
   }
 
-  public count(): number {
-    return this.signers.length;
+  public count(): [eth_count: number, zil_count: number] {
+    return [this.eth_signers.length, this.zil_signers.length];
   }
 
-  private signers: SignerWithAddress[] = [];
+  private eth_signers: SignerWithAddress[] = [];
+  private zil_signers: Account[] = [];
 }

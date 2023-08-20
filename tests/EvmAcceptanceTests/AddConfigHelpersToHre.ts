@@ -25,9 +25,10 @@ declare module "hardhat/types/runtime" {
     getMiningState: () => boolean;
     getNetworkName: () => string;
     getASignerForContractDeployment: () => Promise<SignerWithAddress>;
-    allocateSigner: () => SignerWithAddress;
-    releaseSigner: (...signer: SignerWithAddress[]) => void;
-    sendTransaction: (txn: TransactionRequest) => Promise<{response: TransactionResponse; signer_address: string}>;
+    allocateEthSigner: () => SignerWithAddress;
+    releaseEthSigner: (...signer: SignerWithAddress[]) => void;
+    sendEthTransaction: (txn: TransactionRequest) => Promise<{response: TransactionResponse; signer_address: string}>;
+    deployScillaContract2: (name: string, ...args: any[]) => Promise<Contract>;
     deployContract: (name: string, ...args: any[]) => Promise<Contract>;
     deployContractWithSigner: (name: string, signer: Signer, ...args: any[]) => Promise<Contract>;
     deployContractWeb3: (
@@ -81,27 +82,32 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
   hre.getASignerForContractDeployment = async (): Promise<SignerWithAddress> => {
     if (hre.parallel) {
-      return hre.signer_pool.takeSigner();
+      return hre.signer_pool.takeEthSigner();
     } else {
       return (await hre.ethers.getSigners())[0];
     }
   };
 
   /// If you call this function, consequently you must call `releaseSigner`, otherwise you'll run out of signers.
-  hre.allocateSigner = (): SignerWithAddress => {
-    return hre.signer_pool.takeSigner();
+  hre.allocateEthSigner = (): SignerWithAddress => {
+    return hre.signer_pool.takeEthSigner();
   };
 
-  hre.releaseSigner = (...signer: SignerWithAddress[]) => {
-    hre.signer_pool.releaseSigner(...signer);
+  hre.releaseEthSigner = (...signer: SignerWithAddress[]) => {
+    hre.signer_pool.releaseEthSigner(...signer);
   };
 
-  hre.sendTransaction = async (txn: TransactionRequest) => {
-    const signer = hre.allocateSigner();
+  hre.sendEthTransaction = async (txn: TransactionRequest) => {
+    const signer = hre.allocateEthSigner();
     const response = await signer.sendTransaction(txn);
-    hre.releaseSigner(signer);
+    hre.releaseEthSigner(signer);
 
     return {response, signer_address: await signer.getAddress()};
+  };
+
+  hre.deployScillaContract2 = async (name: string, ...args: any[]): Promise<Contract> => {
+    const signer = await hre.getASignerForContractDeployment();
+    return hre.deployContractWithSigner(name, signer, ...args);
   };
 
   hre.deployContract = async (name: string, ...args: any[]): Promise<Contract> => {

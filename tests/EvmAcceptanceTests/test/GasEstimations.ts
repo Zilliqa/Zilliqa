@@ -8,7 +8,7 @@ describe.skip("Gas estimation with web3.js", function () {
   describe("When a fund transfer is made", function () {
     it("should return proper estimation [@transactional]", async function () {
       const to = ethers.Wallet.createRandom();
-      const signer = hre.allocateSigner();
+      const signer = hre.allocateEthSigner();
       const gasAmountEst = await ethers.provider.estimateGas({
         to: to.address,
         from: signer.address,
@@ -22,7 +22,7 @@ describe.skip("Gas estimation with web3.js", function () {
 
       const receipt = await txn.wait();
       expect(gasAmountEst).to.be.equal(receipt.gasUsed);
-      hre.releaseSigner(signer);
+      hre.releaseEthSigner(signer);
     });
   });
 

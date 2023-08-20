@@ -22,22 +22,22 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
   });
 
   it("should not be possible to call a restricted function using an arbitrary account @block-1", async function () {
-    const notOwner = hre.allocateSigner();
+    const notOwner = hre.allocateEthSigner();
 
     await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
   
-    hre.releaseSigner(notOwner);
+    hre.releaseEthSigner(notOwner);
   });
 
   it("should be possible to call a unrestricted function @block-2", async function () {
-    const notOwner = hre.allocateSigner();
+    const notOwner = hre.allocateEthSigner();
     expect(await contract.connect(notOwner).retrieve()).to.be.equal(123);
-    hre.releaseSigner(notOwner);
+    hre.releaseEthSigner(notOwner);
   });
 
   it("should be possible to transfer ownership @block-2", async function () {
     const prevOwner = contract.signer as SignerWithAddress;
-    newOwner = hre.allocateSigner();
+    newOwner = hre.allocateEthSigner();
 
     await expect(contract.transferOwnership(newOwner.address))
       .to.emit(contract, "OwnershipTransferred")
@@ -48,6 +48,6 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
     // We changed the owner in previous test.
     await contract.connect(newOwner).renounceOwnership();
     await expect(contract.connect(newOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
-    hre.releaseSigner(newOwner);
+    hre.releaseEthSigner(newOwner);
   });
 });
