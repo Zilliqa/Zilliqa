@@ -171,7 +171,7 @@ echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
 
-jobs=$( (n_parallel -1) )
+jobs=$((n_parallel -1))
 
 
 
