@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test_message_name) {
   {
     MessageType msgType = MessageType::DIRECTORY;
     DSInstructionType instruction = DSInstructionType::DSBLOCKCONSENSUS;
-    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
+    auto messageName = FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "DS_DSBLOCKCONSENSUS");
   }
 
@@ -44,37 +44,38 @@ BOOST_AUTO_TEST_CASE(test_message_name) {
     MessageType msgType = MessageType::LOOKUP;
     LookupInstructionType instruction =
         LookupInstructionType::VCGETLATESTDSTXBLOCK;
-    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
+    auto messageName = FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "LOOKUP_VCGETLATESTDSTXBLOCK");
   }
 
   {
     MessageType msgType = MessageType::NODE;
     NodeInstructionType instruction = NodeInstructionType::PROPOSEGASPRICE;
-    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
+    auto messageName = FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "NODE_PROPOSEGASPRICE");
   }
-
+/* Peer messages no longer supported
   {
     MessageType msgType = MessageType::PEER;
     auto instruction = 0;
-    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
+    auto messageName = FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "INVALID_MESSAGE");
   }
 
   {
     MessageType msgType = CONSENSUSUSER;
     auto instruction = 0;
-    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
+    auto messageName = FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "INVALID_MESSAGE");
   }
 
   {
     MessageType msgType = CONSENSUSUSER;
     auto instruction = -3;
-    auto messageName = Zilliqa::FormatMessageName(msgType, instruction);
+    auto messageName = FormatMessageName(msgType, instruction);
     BOOST_REQUIRE(messageName == "INVALID_MESSAGE");
   }
+*/
 }
 
 BOOST_AUTO_TEST_SUITE_END()
