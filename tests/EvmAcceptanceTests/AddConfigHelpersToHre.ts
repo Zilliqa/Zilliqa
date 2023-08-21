@@ -6,9 +6,12 @@ import {Contract as Web3Contract} from "web3-eth-contract";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {TransactionRequest, TransactionResponse} from "@ethersproject/providers";
 import BN from "bn.js";
+import { ScillaContract, Setup } from "hardhat-scilla-plugin";
+import { Account } from "@zilliqa-js/zilliqa";
 
 declare module "hardhat/types/runtime" {
   interface HardhatRuntimeEnvironment {
+    zilliqaSetup: Setup;
     signer_pool: SingerPool;
     debug: boolean;
     parallel: boolean;
@@ -26,9 +29,11 @@ declare module "hardhat/types/runtime" {
     getNetworkName: () => string;
     getASignerForContractDeployment: () => Promise<SignerWithAddress>;
     allocateEthSigner: () => SignerWithAddress;
+    allocateZilSigner: () => Account;
     releaseEthSigner: (...signer: SignerWithAddress[]) => void;
     sendEthTransaction: (txn: TransactionRequest) => Promise<{response: TransactionResponse; signer_address: string}>;
-    deployScillaContract2: (name: string, ...args: any[]) => Promise<Contract>;
+    deployScillaContract2: (name: string, ...args: any[]) => Promise<ScillaContract>;
+    deployScillaContractWithSigner: (name: string, signer: Account, ...args: any[]) => Promise<ScillaContract>;
     deployContract: (name: string, ...args: any[]) => Promise<Contract>;
     deployContractWithSigner: (name: string, signer: Signer, ...args: any[]) => Promise<Contract>;
     deployContractWeb3: (
@@ -88,9 +93,14 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     }
   };
 
-  /// If you call this function, consequently you must call `releaseSigner`, otherwise you'll run out of signers.
+  /// If you call this function, consequently you must call `releaseEthSigner`, otherwise you'll run out of signers.
   hre.allocateEthSigner = (): SignerWithAddress => {
     return hre.signer_pool.takeEthSigner();
+  };
+
+  /// If you call this function, consequently you must call `releaseZilSigner`, otherwise you'll run out of signers.
+  hre.allocateZilSigner = (): Account => {
+    return hre.signer_pool.takeZilSigner();
   };
 
   hre.releaseEthSigner = (...signer: SignerWithAddress[]) => {
@@ -105,9 +115,14 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     return {response, signer_address: await signer.getAddress()};
   };
 
-  hre.deployScillaContract2 = async (name: string, ...args: any[]): Promise<Contract> => {
-    const signer = await hre.getASignerForContractDeployment();
-    return hre.deployContractWithSigner(name, signer, ...args);
+  hre.deployScillaContract2 = async (name: string, ...args: any[]): Promise<ScillaContract> => {
+    const signer = hre.signer_pool.takeZilSigner();
+    return hre.deployScillaContract(name, signer, ...args);
+  };
+
+  hre.deployScillaContractWithSigner = async (name: string, signer: Account, ...args: any[]): Promise<ScillaContract> => {
+    let contract = await hre.deployScillaContract(name, signer, ...args);
+    return contract.connect(signer);
   };
 
   hre.deployContract = async (name: string, ...args: any[]): Promise<Contract> => {

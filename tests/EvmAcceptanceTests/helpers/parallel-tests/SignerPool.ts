@@ -12,6 +12,16 @@ export default class SignerPool {
     return this.eth_signers.pop()!;
   }
 
+  public takeZilSigner(): Account{
+    if (this.zil_signers.length == 0) {
+      throw new Error(
+        "No more signers to return. Either you haven't initialized this pool, or you just ran out of signers."
+      );
+    }
+
+    return this.zil_signers.pop()!;
+  }
+
   public initSigners(signer: SignerWithAddress[], privateKeys: string[]) {
     this.releaseEthSigner(...signer);
 

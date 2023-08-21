@@ -5,6 +5,7 @@ import fs from "fs";
 import {join} from "path";
 import clc from "cli-color";
 import ora from "ora";
+import { getAddressFromPrivateKey } from "@zilliqa-js/zilliqa";
 
 task("init-signers", "A task to init signers")
   .addParam("from", "Sender's private key")
@@ -18,6 +19,10 @@ task("init-signers", "A task to init signers")
     spinner.start(`Creating ${count} accounts...`);
 
     const accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
+  
+    for (const account of accounts) {
+      await hre.run("transfer", {from, fromAddressType: "eth", to: getAddressFromPrivateKey(account.privateKey), amount: "1000"})
+    }
   
     spinner.succeed();
 

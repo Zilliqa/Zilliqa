@@ -1,17 +1,22 @@
 const {expect} = require("chai");
 import {ScillaContract} from "hardhat-scilla-plugin";
-import {parallelizer} from "../../helpers";
 import hre from "hardhat";
+import { Account } from "@zilliqa-js/zilliqa";
 
-describe("ChainId contract", () => {
+describe("ChainId contract #parallel", () => {
   let contract: ScillaContract;
+  let signer: Account;
 
-  it("Deploy chainId contract", async () => {
-    contract = await parallelizer.deployScillaContract("ChainId");
+  before(async () => {
+    signer = hre.allocateZilSigner();
+    contract = await hre.deployScillaContractWithSigner("ChainId", signer);
+  })
+
+  it("Deploy chainId contract @block-1", async () => {
     expect(contract.address).to.be.properAddress;
   });
 
-  it("Call chain id contract -  EventChainId", async () => {
+  it("Call chain id contract -  EventChainId @block-1", async () => {
     const tx = await contract.EventChainID();
 
     expect(tx).to.have.eventLogWithParams("ChainID", {value: hre.getZilliqaChainId()});

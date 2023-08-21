@@ -2,7 +2,7 @@ import clc from "cli-color";
 import {task} from "hardhat/config";
 import {ethers} from "ethers";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {BN, Zilliqa, getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
+import {BN, Zilliqa, getAddressFromPrivateKey, units} from "@zilliqa-js/zilliqa";
 
 task("balances", "A task to get balances of signers in the config")
   .addFlag("zil", "Show balances in zil based addresses of private keys")
@@ -52,7 +52,7 @@ const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
       balanceString = clc.red.bold(balanceResult.error.message);
     } else {
       const balance = new BN(balanceResult.result.balance);
-      balanceString = balance.toString();
+      balanceString = units.fromQa(balance, units.Units.Zil)
     }
 
     displayBalance(++index, address, balanceString, error ? "" : "zil");

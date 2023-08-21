@@ -9,5 +9,5 @@
     "outDir": "dist"
   },
   "include": ["./tasks", "./scripts", "./test", "./helpers"],
-  "files": ["./hardhat.config.ts"]
+  "files": ["./hardhat.config.ts", "./AddConfigHelpersToHre.ts"]
 }

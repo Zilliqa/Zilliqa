@@ -3,9 +3,6 @@ import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
-import "./tasks/ZilBalance";
-import "./tasks/Transfer";
-import "./tasks/InitSigners";
 import fs from "fs";
 
 if (ENV_VARS.scilla) {
@@ -157,13 +154,20 @@ import "./AddConfigHelpersToHre";
 import {extendEnvironment} from "hardhat/config";
 import SignerPool from "./helpers/parallel-tests/SignerPool";
 extendEnvironment(async (hre) => {
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+
   hre.debug = ENV_VARS.debug;
   hre.scillaTesting = ENV_VARS.scilla;
   hre.signer_pool = new SignerPool();
+  hre.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), private_keys, 30);
 });
 
-import "./tasks/Balances"; // To fix tsc error
-import "./tasks/Setup"; // To fix tsc error
+import "./tasks/Balances";
+import "./tasks/Setup";
 import "./tasks/ParallelTest";
 import "./tasks/Test";
+import "./tasks/ZilBalance";
+import "./tasks/Transfer";
+import "./tasks/InitSigners";
+import { initZilliqa } from "hardhat-scilla-plugin";
 export default config;
