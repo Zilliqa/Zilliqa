@@ -38,7 +38,8 @@ async function main() {
   }
 
   zilliqa.wallet.addByPrivateKey(privateKey);
-  for (const element of hre.network["config"]["accounts"]) {
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+  for (const element of private_keys) {
     const wallet = new ethers.Wallet(element);
     let ethAddrConverted = toChecksumAddress(wallet.address); // Zil checksum
     const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(
@@ -46,7 +47,7 @@ async function main() {
         {
           version: VERSION,
           toAddr: ethAddrConverted,
-          amount: new BN("100_000_000_000_000_000"), // Sending an amount in Zil (1) and converting the amount to Qa
+          amount: new BN("1_000_000_000_00"), // Sending an amount in Zil (1) and converting the amount to Qa
           gasPrice: new BN(2000000000), // Minimum gasPrice veries. Check the `GetMinimumGasPrice` on the blockchain
           gasLimit: Long.fromNumber(2100)
         },
@@ -58,8 +59,7 @@ async function main() {
       const confirmedTxn = await tx.confirm(tx.id);
       const receipt = confirmedTxn.getReceipt();
       if (receipt && receipt.success) {
-        const balance = await zilliqa.blockchain.getBalance(ethAddrConverted);
-        console.log(`${ethAddrConverted}` + clc.bold.green(" funded with balance: ") + clc.bold.bgBlue(balance.result.balance));
+        console.log(`${ethAddrConverted}` + clc.bold.green(" funded."));
         continue;
       }
     }

@@ -3,7 +3,9 @@ import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 export default class SignerPool {
   public takeSigner(): SignerWithAddress {
     if (this.signers.length == 0) {
-      throw new Error("No more signers to return");
+      throw new Error(
+        "No more signers to return. Either you haven't initialized this pool, or you just ran out of signers."
+      );
     }
 
     return this.signers.pop()!;
@@ -15,6 +17,10 @@ export default class SignerPool {
 
   public releaseSigner(...signer: SignerWithAddress[]) {
     this.signers.push(...signer);
+  }
+
+  public count(): number {
+    return this.signers.length;
   }
 
   private signers: SignerWithAddress[] = [];

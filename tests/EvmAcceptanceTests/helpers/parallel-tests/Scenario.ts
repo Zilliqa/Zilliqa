@@ -1,6 +1,6 @@
 import clc from "cli-color";
 import {displayIgnored} from "./Display";
-import { runStage } from "./Stage";
+import {runStage} from "./Stage";
 
 export type Txn = () => Promise<any>;
 
@@ -10,34 +10,28 @@ export enum Block {
   BLOCK_3
 }
 
-export type TransactionInfo = {
+export type TestInfo = {
   txn: Txn;
   msg: string;
-  scenario_name: string;
+  describes: string[];   // Because `describe` blocks can be nested, this test can belong to a nested describe, this is a list of all of its describes
   run_in: Block;
   disabled?: true;
 };
 
 export type Scenario = {
   scenario_name: string;
-  before?: Txn;
-  tests: TransactionInfo[];
-};
-
-export const scenario = function (scenario_name: string, ...tests: TransactionInfo[]): Scenario {
-  return {
-    scenario_name,
-    tests
-  };
+  beforeHooks: Txn[];
+  tests: TestInfo[];
+  after?: Txn;
 };
 
 export type FailureResult = {
-  result: PromiseSettledResult<any>,
-  test_case: string,
-  scenario: string,
-}
+  result: PromiseSettledResult<any>;
+  test_case: string;
+  describes: string[];
+};
 
-const execute = async function (txns: TransactionInfo[]): Promise<FailureResult[]> {
+const execute = async function (txns: TestInfo[]): Promise<FailureResult[]> {
   let promises = [];
   for (let txn of txns) {
     if (txn.disabled) {
@@ -55,10 +49,10 @@ const execute = async function (txns: TransactionInfo[]): Promise<FailureResult[
       failures.push({
         result,
         test_case: txns[index].msg,
-        scenario: txns[index].scenario_name
-      })
+        describes: txns[index].describes
+      });
     }
-  })
+  });
 
   return failures;
 };
@@ -70,20 +64,26 @@ export const runScenarios = async function (...scenarios: Scenario[]): Promise<F
 
   for (let block of blocks) {
     const txns = scenarios
-        .map((scenario) => scenario.tests)
-        .flat()
-        .filter((scenario) => scenario.run_in == block)
+      .map((scenario) => scenario.tests)
+      .flat()
+      .filter((scenario) => scenario.run_in == block);
 
-    await runStage(`Running tests in block ${block}...`, () => {
-      return execute(txns)
-    }, (params: any, output: FailureResult[]) => {
-      failures.push(...output)
-      const failedCount: number = output.length;
-      return {
-        finished_message: `${txns.length} tests executed` + (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
-        success: failedCount === 0 ? true : false
+    await runStage(
+      `Running tests in block ${block + 1}...`,
+      () => {
+        return execute(txns);
+      },
+      (params: any, output: FailureResult[]) => {
+        failures.push(...output);
+        const failedCount: number = output.length;
+        return {
+          finished_message:
+            `${txns.length} tests executed` +
+            (failedCount > 0 ? `, ${clc.bold.redBright(failedCount)} ${clc.red("failed")}!` : ""),
+          success: failedCount === 0 ? true : false
+        };
       }
-    }, );
+    );
   }
 
   return failures;

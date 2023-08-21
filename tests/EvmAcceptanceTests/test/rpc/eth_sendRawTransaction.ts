@@ -9,7 +9,8 @@ const METHOD = "eth_sendRawTransaction";
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     it("should return a send raw transaction", async function () {
-      const fromAccount = web3.eth.accounts.privateKeyToAccount(hre.network["config"]["accounts"][0]);
+      const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+      const fromAccount = web3.eth.accounts.privateKeyToAccount(private_keys[0]);
       const destination = web3.eth.accounts.create();
       const toAddress = destination.address;
       const nonce = await web3.eth.getTransactionCount(fromAccount.address); // nonce starts counting from 0

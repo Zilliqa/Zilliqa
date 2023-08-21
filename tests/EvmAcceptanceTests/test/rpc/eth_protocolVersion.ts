@@ -5,8 +5,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_protocolVersion";
 
-describe("Calling " + METHOD, function () {
-  it("should return the protocol version", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the protocol version @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

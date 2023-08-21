@@ -1,18 +1,16 @@
 import {expect} from "chai";
 import {Contract} from "ethers";
 import hre, {ethers, Web3} from "hardhat";
-import {parallelizer} from "../../helpers";
-import {WebSocketProvider} from "@ethersproject/providers";
 import {Log} from "web3-core/types";
 
-describe.skip("Subscriptions functionality", function () {
+describe("Subscriptions functionality", function () {
   let contract: Contract;
   let senderAddress: string;
 
   let web3 = new Web3(hre.getWebsocketUrl());
 
   before(async function () {
-    contract = await parallelizer.deployContract("Subscriptions");
+    contract = await hre.deployContract("Subscriptions");
     senderAddress = await contract.signer.getAddress();
   });
 
@@ -41,7 +39,7 @@ describe.skip("Subscriptions functionality", function () {
 
   describe("When a subscription is created with two addresses", function () {
     it("Should receive events for both addresses", async function () {
-      const secondContract = await parallelizer.deployContract("Subscriptions");
+      const secondContract = await hre.deployContract("Subscriptions");
 
       let receivedEvents: Log[] = [];
       web3.eth.subscribe("logs", {address: [contract.address, secondContract.address]}, (error, log) => {

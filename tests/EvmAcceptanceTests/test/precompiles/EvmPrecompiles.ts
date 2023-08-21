@@ -1,66 +1,71 @@
 import {expect} from "chai";
-import {parallelizer} from "../../helpers";
+import hre from "hardhat";
 import {web3} from "hardhat";
+import {Contract as Web3Contract} from "web3-eth-contract";
 
-describe("Precompile tests with web3.js", function () {
+describe("Precompile tests with web3.js #parallel", function () {
+  let contract: Web3Contract;
   before(async function () {
-    this.contract = await parallelizer.deployContractWeb3("Precompiles");
+    contract = await hre.deployContractWeb3("Precompiles", {});
   });
 
-  it("should return signer address when recover function is used", async function () {
+  it("should return signer address when recover function is used @block-1", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const docHash = web3.utils.keccak256(msg);
     const account = web3.eth.accounts.create();
     const accountAddress = account.address;
     const signed = account.sign(docHash);
-    const result = await this.contract.methods
-      .testRecovery(docHash, signed.v, signed.r, signed.s)
-      .call({gasLimit: 7500000});
+    const result = await contract.methods.testRecovery(docHash, signed.v, signed.r, signed.s).call({gasLimit: 7500000});
 
     expect(result).to.be.eq(accountAddress);
   });
 
-  it("should return input value when identity function is used [@transactional]", async function () {
+  it("should return input value when identity function is used @block-1 [@transactional]", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const hash = web3.utils.keccak256(msg);
 
-    const sendResult = await this.contract.methods.testIdentity(hash).send();
+    const sendResult = await contract.methods.testIdentity(hash).send();
     expect(sendResult).to.be.not.null;
-    const readValue = await this.contract.methods.idStored().call({gasLimit: 50000});
+    const readValue = await contract.methods.idStored().call({gasLimit: 50000});
     expect(readValue).to.be.eq(hash);
   });
 
-  it("should return correct hash when SHA2-256 function is used", async function () {
+  it("should return correct hash when SHA2-256 function is used @block-1", async function () {
     const msg = "Hello World!";
     const expectedHash = "0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069";
 
-    const readValue = await this.contract.methods.testSHA256(msg).call({gasLimit: 50000});
+    const readValue = await contract.methods.testSHA256(msg).call({gasLimit: 50000});
     expect(readValue).to.be.eq(expectedHash);
   });
 
-  it("should return correct hash when Ripemd160 function is used", async function () {
+  it("should return correct hash when Ripemd160 function is used @block-1", async function () {
     const msg = "Hello World!";
     const expectedHash = "0x8476ee4631b9b30ac2754b0ee0c47e161d3f724c";
 
-    const readValue = await this.contract.methods.testRipemd160(msg).call({gasLimit: 50000});
+    const readValue = await contract.methods.testRipemd160(msg).call({gasLimit: 50000});
     expect(readValue).to.be.eq(expectedHash);
   });
 
-  it("should return correct result when modexp function is used [@transactional]", async function () {
+  it("should return correct result when modexp function is used @block-1 [@transactional]", async function () {
     const base = 8;
     const exponent = 9;
     const modulus = 10;
     const expectedResult = 8;
 
-    const sendResult = await this.contract.methods.testModexp(base, exponent, modulus).send();
+    const signer = hre.allocateSigner();
+    const sendResult = await contract.methods.testModexp(base, exponent, modulus).send({
+      from: signer.address
+    });
+
+    hre.releaseSigner(signer);
     expect(sendResult).to.be.not.null;
 
-    const readValue = await this.contract.methods.modExpResult().call({gasLimit: 50000});
+    const readValue = await contract.methods.modExpResult().call({gasLimit: 50000});
     expect(web3.utils.toBN(readValue)).to.be.eq(web3.utils.toBN(expectedResult));
   });
 
-  it("should return correct result when ecAdd function is used", async function () {
-    const result = await this.contract.methods.testEcAdd(1, 2, 1, 2).call();
+  it("should return correct result when ecAdd function is used @block-1", async function () {
+    const result = await contract.methods.testEcAdd(1, 2, 1, 2).call();
     expect(web3.utils.toBN(result[0])).to.be.eq(
       web3.utils.toBN("030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3")
     );
@@ -69,8 +74,8 @@ describe("Precompile tests with web3.js", function () {
     );
   });
 
-  it("should return correct result when ecMul function is used", async function () {
-    const result = await this.contract.methods.testEcMul(1, 2, 2).call();
+  it("should return correct result when ecMul function is used @block-1", async function () {
+    const result = await contract.methods.testEcMul(1, 2, 2).call();
     expect(web3.utils.toBN(result[0])).to.be.eq(
       web3.utils.toBN("030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3")
     );
@@ -79,7 +84,7 @@ describe("Precompile tests with web3.js", function () {
     );
   });
 
-  it("should return correct result when ecPairing function is used", async function () {
+  it("should return correct result when ecPairing function is used @block-1", async function () {
     const input = [
       "2cf44499d5d27bb186308b7af7af02ac5bc9eeb6a3d147c186b21fb1b76e18da",
       "2c0f001f52110ccfe69108924926e45f0b0c868df0e7bde1fe16d3242dc715f6",
@@ -94,11 +99,11 @@ describe("Precompile tests with web3.js", function () {
       "2a23af9a5ce2ba2796c1f4e453a370eb0af8c212d9dc9acd8fc02c2e907baea2",
       "23a8eb0b0996252cb548a4487da97b02422ebc0e834613f954de6c7e0afdc1fc"
     ].map((n) => web3.utils.toBN(n));
-    const result = await this.contract.methods.testEcPairing(input).call();
+    const result = await contract.methods.testEcPairing(input).call();
     expect(web3.utils.toBN(result)).to.be.eq(1);
   });
 
-  it("should return correct result when blake2 function is used", async function () {
+  it("should return correct result when blake2 function is used @block-1", async function () {
     const ROUNDS = 12;
     const H = [
       "0x48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5",
@@ -118,6 +123,6 @@ describe("Precompile tests with web3.js", function () {
       "0x7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923"
     ];
 
-    expect(await this.contract.methods.testBlake2(ROUNDS, H, M, T, F).call()).to.be.deep.eq(EXPECTED);
+    expect(await contract.methods.testBlake2(ROUNDS, H, M, T, F).call()).to.be.deep.eq(EXPECTED);
   });
 });

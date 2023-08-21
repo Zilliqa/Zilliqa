@@ -16,7 +16,12 @@ export class Chronometer {
   }
 
   display(): string {
-    return `${((this.endTime - this.startTime) / 1000).toPrecision(2)} s`;
+    const seconds = this.endTime - this.startTime / 1000;
+
+    let unit = seconds > 120 ? "m" : "s";
+    let time = seconds > 120 ? (seconds / 60).toFixed(2) : seconds.toFixed(2);
+
+    return `${time} ${unit}`;
   }
 
   startTime: number;
@@ -28,12 +33,7 @@ export const displayStageStarted = function (message: string) {
 };
 
 export const displayStageFinished = function (message: string, chronometer: Chronometer) {
-  console.log(
-    " ",
-    clc.blackBright(message),
-    "in",
-    clc.yellow(chronometer.display())
-  );
+  console.log(" ", clc.blackBright(message), "in", clc.yellow(chronometer.display()));
   console.log();
 };
 

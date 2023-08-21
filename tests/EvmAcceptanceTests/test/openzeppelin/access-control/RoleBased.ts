@@ -1,26 +1,26 @@
 import {expect} from "chai";
-import {parallelizer} from "../../../helpers";
 import hre, {ethers} from "hardhat";
 import {Contract, Signer, Wallet} from "ethers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Openzeppelin role based access control functionality", function () {
   let defaultAdmin: Signer;
-  let minter: Wallet;
-  let burner: Wallet;
+  let minter: SignerWithAddress;
+  let burner: SignerWithAddress;
   let user: Wallet;
   let contract: Contract;
 
   before(async function () {
     user = ethers.Wallet.createRandom();
 
-    minter = await parallelizer.takeSigner();
-    contract = await parallelizer.deployContract("OpenZeppelinRoleBasedToken", minter.address);
+    minter = hre.allocateSigner();
+    contract = await hre.deployContract("OpenZeppelinRoleBasedToken", minter.address);
     defaultAdmin = contract.signer;
-    burner = await parallelizer.takeSigner();
+    burner = hre.allocateSigner();
   });
 
   after(function () {
-    parallelizer.releaseSigner(minter, burner);
+    hre.releaseSigner(minter, burner);
   });
 
   it("should return true if hasRole is called for minter and MINTER_ROLE", async function () {

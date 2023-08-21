@@ -1,74 +1,83 @@
-import {Block, Scenario, TransactionInfo, Txn} from "./Scenario";
-
+import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {Block, Scenario, TestInfo, Txn} from "./Scenario";
 import fs from "fs";
+import { getState, resetState } from 'jest-circus';
 
-export const parseTestFile = async function (testFile: string): Promise<Scenario[]> {
-  let scenarios: Scenario[] = [];
-
-  let code = await fs.promises.readFile(testFile, "utf8");
-  // code = ts.transpileModule(code, { compilerOptions:
-  //     {
-  //         forceConsistentCasingInFileNames: true,
-  //         module: ts.ModuleKind.CommonJS,
-  //         target: ts.ScriptTarget.ES2020,
-  //         esModuleInterop: true,
-  //         skipLibCheck: true,
-  //         moduleResolution: ts.ModuleResolutionKind.Node16,
-  //         strict: true,
-  //     } }).outputText;
-
-  const testResult = {
-    success: false,
-    errorMessage: null
-  };
-
-  try {
-    const describeFns: [string, Txn][] = [];
-    let currentDescribeFn: [string, Txn][];
-    let currentBeforeFn;
-    const describe = (name: string, fn: Txn) => describeFns.push([name, fn]);
-    const it = (name: string, fn: Txn) => currentDescribeFn.push([name, fn]);
-    const xit = (name: string, fn: Txn) => {};
-    const before = (fn: Txn) => (currentBeforeFn = fn);
-
-    eval(code);
-    for (const [describeName, fn] of describeFns) {
-      if (!isScenarioParallel(describeName)) {
+const processDescribeChild = (child: any, describes: string[], regex: RegExp): [tests: TestInfo[], beforeHooks: Txn[]] => {
+  const nestedDescribes = [...describes, child.name]
+  const allTests: TestInfo[] = [];
+  const allBeforeBlocks: Txn[] = [];
+  allBeforeBlocks.push(...child.hooks.filter((hook: any) => hook.type === "beforeAll").map((hook: any) => hook.fn));
+  for (const subChild of child.children) {
+    if (subChild.type === 'describeBlock') {
+      const [tests, beforeHooks] = processDescribeChild(subChild, nestedDescribes, regex);
+      allTests.push(...tests);
+      allBeforeBlocks.push(...beforeHooks);
+    } else if (subChild.type === "test") {
+      let block: Block;
+      try {
+        block = extractBlockNumber(subChild.name);
+      } catch (error) {
         continue;
       }
-
-      let transaction_infos: TransactionInfo[] = [];
-      currentDescribeFn = [];
-      currentBeforeFn = undefined;
-      fn();
-
-      for (const [name, fn] of currentDescribeFn) {
-        let block: Block;
-        try {
-          block = extractBlockNumber(name);
-        } catch (error) {
-          continue;
-        }
-
-        transaction_infos.push({
-          txn: fn,
-          scenario_name: describeName,
-          msg: name,
+      
+      if (regex.test(subChild.name)) {
+        allTests.push({
+          txn: subChild.fn,
+          msg: subChild.name,
+          describes: nestedDescribes,
           run_in: block
-        });
+        })
       }
-
-      scenarios.push({
-        before: currentBeforeFn,
-        scenario_name: describeName,
-        tests: transaction_infos
-      });
     }
-    testResult.success = true;
-  } catch (error) {
-    console.log("error", error);
   }
 
+  return [allTests, allBeforeBlocks];
+}
+
+export const parseTestFile = async function (
+  testFile: string,
+  regex: RegExp,
+  hre: HardhatRuntimeEnvironment
+): Promise<Scenario[]> {
+  let scenarios: Scenario[] = [];
+
+  let code = `
+  const { describe, beforeAll, afterAll, it } = require("jest-circus");\n
+  const before = beforeAll;\n
+  const after = afterAll;\n
+  const xit = () => {};
+  ${await fs.promises.readFile(testFile, "utf8")}`
+
+  // Does file contain #parallel tag?? If not, skip it!
+  if (!code.includes("#parallel")) {
+    return [];
+  }
+
+  await fs.promises.writeFile(testFile, code);
+
+  require(fs.realpathSync(testFile))
+
+  const state = getState();
+
+  for (const describeChild of state.rootDescribeBlock.children) {
+    const describeName = describeChild.name;
+    if (!isScenarioParallel(describeName)) {
+      continue;
+    }
+    const [tests, beforeHooks] = processDescribeChild(describeChild, [], regex);
+
+    if (regex.test(describeName) || tests.length > 0) {
+      scenarios.push({
+        scenario_name: describeName,
+        beforeHooks,
+        tests,
+
+      })
+    }
+  }
+
+  resetState();
   return scenarios;
 };
 

@@ -5,7 +5,7 @@ import hre from "hardhat";
 
 const METHOD = "eth_coinbase";
 
-describe("Calling " + METHOD, function () {
+describe(`Calling " + ${METHOD} #parallel`, function () {
   describe("When on Zilliqa network", function () {
     before(async function () {
       if (!hre.isZilliqaNetworkSelected()) {
@@ -13,7 +13,7 @@ describe("Calling " + METHOD, function () {
       }
     });
 
-    it("should return an error on eth_coinbase", async function () {
+    it("should return an error on eth_coinbase @block-1", async function () {
       await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
         logDebug(result);
 

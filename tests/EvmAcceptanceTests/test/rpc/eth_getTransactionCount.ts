@@ -5,9 +5,9 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getTransactionCount";
 
-describe("Calling " + METHOD, function () {
+describe(`Calling ${METHOD} #parallel`, function () {
   // Test that we get no error and that the api call returns a transaction count >= 0.
-  it("Should return the latest transaction count >= 0", async function () {
+  it("Should return the latest transaction count >= 0 @block-1", async function () {
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(METHOD, 1, [signer.address, "latest"], (result, status) => {
       logDebug(result);
@@ -26,7 +26,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("Should return the pending transaction count >= 0", async function () {
+  it("Should return the pending transaction count >= 0 @block-1", async function () {
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(METHOD, 1, [signer.address, "pending"], (result, status) => {
       logDebug(result);
