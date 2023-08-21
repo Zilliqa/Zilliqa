@@ -91,10 +91,6 @@ CMAKE_EXTRA_OPTIONS="-DCOMMIT_ID=\"${commit_id}\" ${CMAKE_EXTRA_OPTIONS}"
 for option in "$@"
 do
     case $option in
-    opencl)
-        CMAKE_EXTRA_OPTIONS="-DOPENCL_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with OpenCL"
-    ;;
     tsan)
         CMAKE_EXTRA_OPTIONS="-DTHREAD_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with ThreadSanitizer"
@@ -125,94 +121,10 @@ do
         CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with HeartBeat test"
     ;;
-    vc1)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test DS Suspend 1 - Suspend DS leader for 1 time (before DS block consensus)"
-    ;;
-    vc2)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test DS Suspend 3 - Suspend DS leader for 3 times (before DS block consensus)"
-    ;;
-    govvc2)
-        CMAKE_EXTRA_OPTIONS="-DGOVVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with GOVVC test - Suspend DS leader for 3 times (before DS block consensus)"
-    ;;
-    vc3)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test FB Suspend 1 - Suspend DS leader for 1 time (before Final block consensus)"
-    ;;
-    vc4)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test FB Suspend 3- Suspend DS leader for 3 times (before Final block consensus)"
-    ;;
-    vc5)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test VC Suspend 1 - Suspend DS leader for 1 time (before VC block consensus)"
-    ;;
-    vc6)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test VC Suspend 3 - Suspend DS leader for 3 times (before VC block consensus)"
-    ;;
-    vc7)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_PRECHECK_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test VC Precheck 1 - Caused the node to lag behind at ds epoch"
-    ;;
-    vc8)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_PRECHECK_2=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test VC Precheck 2 - Caused the node to lag behind at tx epoch"
-    ;;
-    vc9)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_RESPONSE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test FB Suspend consensus at commit done 1 - Caused the node to lag behind at tx epoch"
-    ;;
-    dm1)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSTXN_ONE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader has some txn that one of the backups doesn't have"
-    ;;
-    dm2)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSTXN_ALL=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader has some txn that all of backups don't have"
-    ;;
-    dm3)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSMB_ONE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader has more microblock received than one of the backups"
-    ;;
-    dm4)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSMB_ALL=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader has more microblock received than all of the backups"
-    ;;
-    dm5)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_BAD_ANNOUNCE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader composed invalid TxBlock"
-    ;;
-    dm6)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader composed invalid DSMicroBlock"
-    ;;
-    dm7)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_MORETXN_LEADER=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader doesn't have some txn"
-    ;;
-    dm8)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_MORETXN_HALF=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader and half of the DS doesn't have some txn"
-    ;;
-    dm9)
-        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_MOREMB_HALF=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with DSMBMerging test - DS leader and half of the DS doesn't have some microblock"
-    ;;
-    sj1)
-        CMAKE_EXTRA_OPTIONS="-DSJ_TEST_SJ_TXNBLKS_PROCESS_SLOW=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with SJ test - New Seed take long time to process txnblocks during syncup"
-    ;;
-    sj2)
-        CMAKE_EXTRA_OPTIONS="-DSJ_TEST_SJ_MISSING_MBTXNS=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
-    ;;
     evm)
         echo "Build EVM"
-	evm_build_result=$(cd evm-ds; cargo build --release)
-	exit "$evm_build_result"
+        evm_build_result=$(cd evm-ds; cargo build --release)
+	      exit "$evm_build_result"
     ;;
     ninja)
         CMAKE_EXTRA_OPTIONS="-G Ninja ${CMAKE_EXTRA_OPTIONS}"
@@ -259,7 +171,7 @@ echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
 
-jobs=$(( (n_parallel -1)))
+jobs=$((n_parallel -1))
 
 
 
