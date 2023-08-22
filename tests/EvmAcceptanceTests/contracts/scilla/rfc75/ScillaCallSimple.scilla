@@ -27,3 +27,9 @@ transition callWithEvmTag(to: ByStr20, val: Uint128)
     as_msg = one_msg msg;
     send as_msg
 end
+
+transition forward(interScilla: ByStr20, solidityContract: ByStr20, sentVal: Uint128)
+    msg = {_tag : "call"; _recipient : interScilla; _amount: Uint128 0; to: solidityContract; val: sentVal};
+    as_msg = one_msg msg;
+    send as_msg
+end

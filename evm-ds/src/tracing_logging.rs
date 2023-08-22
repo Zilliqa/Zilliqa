@@ -166,7 +166,7 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
                 input,
             } => {
                 intern_trace = Some(InternalOperationOtter {
-                    call_type: call_depth,
+                    call_type: 0,
                     from: format!("{:?}", address),
                     to: format!("{:?}", target),
                     value: format!("{:0X?}", balance),

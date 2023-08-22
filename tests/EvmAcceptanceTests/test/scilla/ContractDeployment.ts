@@ -1,6 +1,6 @@
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
-import hre from "hardhat";
+import hre, {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
 
 describe("Scilla Contract Deployment", function () {
@@ -30,6 +30,18 @@ describe("Scilla Contract Deployment", function () {
         vname: "address",
         type: "ByStr20"
       });
+    });
+
+    it("Should be possible to the get contract address using `GetContractAddressFromTransactionID`", async function () {
+      let address = (
+        await parallelizer.zilliqaSetup.zilliqa.blockchain.getContractAddressFromTransactionID(contract.deployed_by.id)
+      ).result;
+      expect(address).to.be.equal(contract.address!!.toLowerCase().replace("0x", ""));
+    });
+
+    it("Should be possible to the get contract address using `eth_getTransactionReceipt`", async function () {
+      let address = (await ethers.provider.getTransactionReceipt(`0x${contract.deployed_by.id}`)).contractAddress;
+      expect(address.toLowerCase()).to.be.equal(contract.address!!.toLowerCase());
     });
   });
 });

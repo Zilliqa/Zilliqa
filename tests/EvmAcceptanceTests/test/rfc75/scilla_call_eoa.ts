@@ -12,7 +12,7 @@ describe("RFC75 ScillaCallEOA", function () {
   const VAL = 10;
 
   beforeEach(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaCall");
+    solidityContract = await hre.deployContract("ScillaCall");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
@@ -135,5 +135,39 @@ describe("RFC75 ScillaCallEOA", function () {
     );
     await expect(resp.wait()).to.be.rejected;
     expect(await scillaContract.value()).to.be.eq(0);
+  });
+
+  it("Should deduct the same amount from account as advertised in receipt", async function () {
+    const CALL_MODE = 0;
+    const admin = await solidityContract.signer;
+    const initialBalance = await admin.getBalance();
+    let tx = await solidityContract
+      .connect(admin)
+      .callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
+    tx = await tx.wait();
+    expect(await scillaContract.value()).to.be.eq(VAL);
+    const gasCost = tx.effectiveGasPrice.mul(tx.gasUsed);
+    const finalBalance = await admin.getBalance();
+    expect(finalBalance).to.be.eq(initialBalance.sub(gasCost));
+  });
+
+  it("Should not revert when there is another scilla contract in the chain and last scilla contract sends msg back to evm", async function () {
+    const CALL_MODE = 0;
+    // Deploy intermediate scilla contract that is called by evm precompile and forwards the call to
+    // dest scilla contract which eventually sends msg back to evm contract
+    const interScillaContract = await parallelizer.deployScillaContract("ScillaCallSimple");
+    const interScillaContractAddress = interScillaContract.address?.toLowerCase()!;
+
+    await expect(
+      solidityContract.callForwardScilla(
+        interScillaContractAddress,
+        "forward",
+        CALL_MODE,
+        scillaContractAddress,
+        solidityContract.address,
+        VAL
+      )
+    ).not.to.be.reverted;
+    expect(await scillaContract.value()).to.be.eq(VAL);
   });
 });

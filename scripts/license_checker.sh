@@ -99,6 +99,6 @@ done
 if [ $error_count -gt 0 ]
 then
     echo
-    echo "$error_count file(s) has incorrect LICENSE banner"
+    echo "$error_count file(s) have an incorrect LICENSE banner"
     exit 1
 fi

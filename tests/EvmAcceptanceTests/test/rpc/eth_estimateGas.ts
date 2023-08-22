@@ -3,24 +3,65 @@ import {assert} from "chai";
 
 const METHOD = "eth_estimateGas";
 
-// TODO, finish test when  code on zilliqa is implemented to calculate the estimated gas price
+// TODO: When/if we want to, assert the gas price so as to check the gas calculations.
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should accept estimateGas with a block tag @block-1", async function () {
+    await sendJsonRpcRequest(
+      METHOD,
+      2,
+      [
+        {
+          data: "0x60806040526040516101a63803806101a68339818101604052810190610025919061006d565b806000819055505061009a565b600080fd5b6000819050919050565b61004a81610037565b811461005557600080fd5b50565b60008151905061006781610041565b92915050565b60006020828403121561008357610082610032565b5b600061009184828501610058565b91505092915050565b60fe806100a86000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80638381f58a146037578063ef5fb05b146051575b600080fd5b603d6059565b6040516048919060af565b60405180910390f35b6057605f565b005b60005481565b7f6907508952f1c853768d61a5d281b8e23ad78ab8503ddc9404e21d6affade6d3600054604051608e919060af565b60405180910390a1565b6000819050919050565b60a9816098565b82525050565b600060208201905060c2600083018460a2565b9291505056fea26469706673582212203151b21ab4ce0f1e6e7333acb907eae279eb97b81e4926925139a34fe623454e64736f6c63430008130033000000000000000000000000000000000000000000000000000000000000002a",
+          from: "0xf0cb24ac66ba7375bf9b9c4fa91e208d9eaabd2e"
+        },
+        "pending"
+      ],
+      (result, status) => {
+        assert.equal(status, 200, "has status code");
+        assert.property(result, "result", result.error ? result.error.message : "error");
+        assert.isString(result.result, "is string");
+        assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+        assert.isNumber(+result.result, "can be converted to a number");
+      }
+    );
+  });
 
-// describe("Calling " + METHOD, function () {
-//   it("should return the estimated gas as calculated over the transaction provided", async function () {
-//     await sendJsonRpcRequest(METHOD, 2, [
-//       "{\"from\":\"\", \"to\":\"\", \"value\":\"\", \"gas\":\"\", \"data\":\"\"}",
-//       "latest"],
-//       (result, status) => {
-//         console.log(result);
-//
-//         assert.equal(status, 200, 'has status code');
-//         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-//         assert.isString(result.result, 'is string');
-//         assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
-//         assert.isNumber(+result.result, 'can be converted to a number');
-//
-//         const estimatedGas = 2000000000
-//         assert.equal(+result.result, estimatedGas, 'should have an estimated gas' + estimatedGas);
-//       })
-//   })
-// })
+  it("should accept estimateGas without a block tag @block-1", async function () {
+    await sendJsonRpcRequest(
+      METHOD,
+      1,
+      [
+        {
+          data: "0x60806040526040516101a63803806101a68339818101604052810190610025919061006d565b806000819055505061009a565b600080fd5b6000819050919050565b61004a81610037565b811461005557600080fd5b50565b60008151905061006781610041565b92915050565b60006020828403121561008357610082610032565b5b600061009184828501610058565b91505092915050565b60fe806100a86000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80638381f58a146037578063ef5fb05b146051575b600080fd5b603d6059565b6040516048919060af565b60405180910390f35b6057605f565b005b60005481565b7f6907508952f1c853768d61a5d281b8e23ad78ab8503ddc9404e21d6affade6d3600054604051608e919060af565b60405180910390a1565b6000819050919050565b60a9816098565b82525050565b600060208201905060c2600083018460a2565b9291505056fea26469706673582212203151b21ab4ce0f1e6e7333acb907eae279eb97b81e4926925139a34fe623454e64736f6c63430008130033000000000000000000000000000000000000000000000000000000000000002a",
+          from: "0xf0cb24ac66ba7375bf9b9c4fa91e208d9eaabd2e"
+        }
+      ],
+      (result, status) => {
+        assert.equal(status, 200, "has status code");
+        assert.property(result, "result", result.error ? result.error.message : "error");
+        assert.isString(result.result, "is string");
+        assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+        assert.isNumber(+result.result, "can be converted to a number");
+      }
+    );
+  });
+
+  it("should not accept estimateGas with an invalid block tag @block-1", async function () {
+    await sendJsonRpcRequest(
+      METHOD,
+      2,
+      [
+        {
+          data: "0x60806040526040516101a63803806101a68339818101604052810190610025919061006d565b806000819055505061009a565b600080fd5b6000819050919050565b61004a81610037565b811461005557600080fd5b50565b60008151905061006781610041565b92915050565b60006020828403121561008357610082610032565b5b600061009184828501610058565b91505092915050565b60fe806100a86000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80638381f58a146037578063ef5fb05b146051575b600080fd5b603d6059565b6040516048919060af565b60405180910390f35b6057605f565b005b60005481565b7f6907508952f1c853768d61a5d281b8e23ad78ab8503ddc9404e21d6affade6d3600054604051608e919060af565b60405180910390a1565b6000819050919050565b60a9816098565b82525050565b600060208201905060c2600083018460a2565b9291505056fea26469706673582212203151b21ab4ce0f1e6e7333acb907eae279eb97b81e4926925139a34fe623454e64736f6c63430008130033000000000000000000000000000000000000000000000000000000000000002a",
+          from: "0xf0cb24ac66ba7375bf9b9c4fa91e208d9eaabd2e"
+        },
+        "fish"
+      ],
+      (result, status) => {
+        assert.equal(status, 200, "has status code");
+        assert.property(result, "error", "result should be an error");
+        assert.equal(result.error.code, -32602);
+      }
+    );
+  });
+});

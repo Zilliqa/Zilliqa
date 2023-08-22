@@ -160,8 +160,8 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   // Required by ethers
   retJson["extraData"] = "0x";
   retJson["nonce"] = "0x0";
-  retJson["receiptsRoot"] = "0x";
-  retJson["transactionsRoot"] = "0x0";
+  retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
   Eth::LogBloom logBloom{};
 
@@ -719,7 +719,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
     retJson["contractAddress"] =
         "0x" + Account::GetAddressForContract(
                    txn.GetTransaction().GetSenderAddr(),
-                   txn.GetTransaction().GetNonce() - 1, TRANSACTION_VERSION_ETH)
+                   txn.GetTransaction().GetNonce() - 1, txn.GetTransaction().GetVersionIdentifier())
                    .hex();
   }
   retJson["type"] = "0x0";

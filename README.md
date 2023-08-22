@@ -166,6 +166,14 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
     $ pkill zilliqa
     ```
 
+## Start a local network development environment
+
+This is similar to the above, but deploys a local testnet to a local minikube cluster.
+
+You can find documentation on how to do this on your local machine in `docs/localdev.md`.
+
+You can find scripts which will set up an Ubuntu 22.04 machine in the cloud (or install necessary dependencies on your machine) in `docs/setup/README.md`.
+
 ## Further Enquiries
 
 |          | Link(s) |

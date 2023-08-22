@@ -144,6 +144,7 @@ extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
 extern const bool JSON_LOGGING;
+extern const bool AUTO_UPGRADE;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -344,6 +345,8 @@ extern const unsigned int MAX_PEER_CONNECTION;
 extern const unsigned int MAX_PEER_CONNECTION_P2PSEED;
 extern const unsigned int MAX_WHITELISTREQ_LIMIT;
 extern const unsigned int SENDJOBPEERS_TIMEOUT;
+extern const unsigned int CONNECTION_TIMEOUT_IN_MS;
+extern const unsigned int RECONNECT_INTERVAL_IN_MS;
 
 // PoW constants
 extern const bool FULL_DATASET_MINE;

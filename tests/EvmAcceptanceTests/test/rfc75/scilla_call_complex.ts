@@ -12,7 +12,7 @@ describe("RFC75 ScillaCallComplex", function () {
   const VAL = 99;
 
   beforeEach(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaCallComplex");
+    solidityContract = await hre.deployContract("ScillaCallComplex");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();

@@ -98,7 +98,6 @@ AccountStore::AccountStore()
     : m_db("state"),
       m_state(&m_db),
       m_accountStoreTemp(*this),
-      m_externalWriters{0},
       m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
   bool ipcScillaInit = false;
 
@@ -164,8 +163,6 @@ void AccountStore::InitSoft() {
 
   AccountStoreBase::Init();
   InitTrie();
-
-  m_externalWriters = 0;
 
   InitRevertibles();
 
@@ -370,13 +367,7 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
       return false;
     }
   } else {
-    if (LOOKUP_NODE_MODE) {
-      IncrementPrimaryWriteAccessCount();
-    }
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
-    if (LOOKUP_NODE_MODE) {
-      DecrementPrimaryWriteAccessCount();
-    }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
@@ -534,44 +525,6 @@ bool AccountStore::RetrieveFromDisk() {
         return false;
       }
     }
-  } catch (const boost::exception &e) {
-    LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
-                             << boost::diagnostic_information(e));
-    return false;
-  }
-  return true;
-}
-
-bool AccountStore::RetrieveFromDiskOld() {
-  // Only For migration
-  InitSoft();
-
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
-  unique_lock<mutex> g2(m_mutexDB, defer_lock);
-  lock(g, g2);
-
-  zbytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
-    // To support backward compatibilty - lookup with new binary trying to
-    // recover from old database
-    if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PutStateRoot failed "
-                        << DataConversion::CharArrayToString(rootBytes));
-        return false;
-      }
-    } else {
-      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
-      return false;
-    }
-  }
-
-  try {
-    h256 root(rootBytes);
-    LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
-    lock_guard<mutex> g(m_mutexTrie);
-    m_state.setRoot(root);
   } catch (const boost::exception &e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
                              << boost::diagnostic_information(e));

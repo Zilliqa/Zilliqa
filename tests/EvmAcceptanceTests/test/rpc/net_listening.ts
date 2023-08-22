@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "net_listening";
 
-describe("Calling " + METHOD, function () {
-  it("should return the network listening state", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the network listening state @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

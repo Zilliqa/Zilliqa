@@ -198,6 +198,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         "param02", OPTIONAL_JSONTYPE(jsonrpc::JSON_STRING),
                          NULL),
       &EthRpcMethods::GetEthEstimateGasI);
 
@@ -753,13 +754,22 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
       parsed = item;
     } else if (tracer.compare("otter_internal_tracer") == 0) {
       auto const item = trace_json["otter_internal_tracer"];
-      parsed = item;
+      if(item.isNull()){
+        parsed = Json::Value(Json::ValueType::arrayValue);
+      }else{
+        parsed = item;
+      }
     } else if (tracer.compare("otter_call_tracer") == 0) {
       auto const item = trace_json["otter_call_tracer"];
       parsed = item;
     } else if (tracer.compare("otter_transaction_error") == 0) {
       auto const item = trace_json["otter_transaction_error"];
-      parsed = item;
+      // If there was no error return 0x
+      if(item.isNull()){
+        parsed = Json::Value("0x");
+      }else{
+        parsed = item;
+      }
     } else {
       throw JsonRpcException(
           ServerBase::RPC_MISC_ERROR,
@@ -830,13 +840,18 @@ bool EthRpcMethods::UnpackRevert(const std::string &data_in,
   return true;
 }
 
-std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
+std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json, const std::string *block_or_tag) {
   Address fromAddr;
 
   auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
 
   INC_CALLS(GetInvocationsCounter());
+
+  if (block_or_tag != nullptr && !isSupportedTag(*block_or_tag)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
+                           "Unsupported block or tag in eth_call");
+  }
 
   if (!json.isMember("from")) {
     TRACE_ERROR("Missing from account");
@@ -1364,9 +1379,6 @@ Json::Value EthRpcMethods::GetEthCode(std::string const &address,
     Address addr{address, Address::FromHex};
     unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-      return AccountStore::GetInstance().GetPrimaryWriteAccess();
-    });
 
     const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
     if (account) {
@@ -2096,6 +2108,9 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
                            "The node is not configured to store otter internal operations");
   }
 
+  //Records whether blockNumber was 0 on input
+  bool blockNumberWasZero = !blockNumber;
+
   // if blocnumber is 0 and it's a before search, then we need to get the latest block number
   if (blockNumber == 0 && before) {
     blockNumber = m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -2126,11 +2141,10 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(const std::string& addres
     response["txs"] = txs;
     response["receipts"] = receipts;
 
-    // Otterscan docs. If results are less than pagesize, results returned as-is.
-    if (!(res.size() < pageSize)) {
-      response["firstPage"] = before || !wasMore;
-      response["lastPage"] = !before || !wasMore;
-    }
+    // Otterscan docs:
+    // These are the conditions for which these variables are set to true
+    response["firstPage"] = (before && blockNumberWasZero) || (!before && !wasMore);
+    response["lastPage"] = (!before && blockNumberWasZero) || (before && !wasMore);
 
     return response;
   } catch (exception &e) {
@@ -2209,10 +2223,6 @@ bool EthRpcMethods::HasCode(const std::string& address, const std::string& /*blo
   Address addr{address, Address::FromHex};
   unique_lock<shared_timed_mutex> lock(
       AccountStore::GetInstance().GetPrimaryMutex());
-  AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-    return AccountStore::GetInstance().GetPrimaryWriteAccess();
-  });
-
   const Account *account = AccountStore::GetInstance().GetAccount(addr, true);
   if (account) {
     return !account->GetCode().empty();
@@ -2230,7 +2240,7 @@ Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   uint128_t fees = (isVacuous ? 0 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
   auto jsonBlock = GetEthBlockCommon(txBlock, false);
 
-  jsonBlock["gasLimit"] = "0x1";
+  if(jsonBlock["gasLimit"].asString() == "0x0") jsonBlock["gasLimit"] = "0x1";
 
   jsonBlock.removeMember("transactions");
   jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
@@ -2252,6 +2262,7 @@ Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber, cons
   auto jsonBlock = GetEthBlockCommon(txBlock, true);
 
   auto transactions = jsonBlock["transactions"];
+  jsonBlock["transactionCount"] = transactions.size();
 
   auto start = pageNumber * pageSize;
   auto end = std::min(transactions.size(), (pageNumber + 1) * pageSize);
