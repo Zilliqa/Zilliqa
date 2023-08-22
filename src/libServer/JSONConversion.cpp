@@ -1,19 +1,19 @@
 /*
- * Copyright (C) 2019 Zilliqa
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+* Copyright (C) 2019 Zilliqa
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #include <boost/format.hpp>
 #include <chrono>
@@ -42,720 +42,719 @@ using namespace boost::multiprecision;
 unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 
 const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
-    const vector<MicroBlockInfo>& v) {
-  Json::Value mbInfosJson = Json::arrayValue;
-  for (auto const& i : v) {
-    Json::Value t_mbInfoJson;
-    t_mbInfoJson["MicroBlockHash"] = i.m_microBlockHash.hex();
-    t_mbInfoJson["MicroBlockTxnRootHash"] = i.m_txnRootHash.hex();
-    t_mbInfoJson["MicroBlockShardId"] = i.m_shardId;
-    mbInfosJson.append(t_mbInfoJson);
-  }
-  return mbInfosJson;
+   const vector<MicroBlockInfo>& v) {
+ Json::Value mbInfosJson = Json::arrayValue;
+ for (auto const& i : v) {
+   Json::Value t_mbInfoJson;
+   t_mbInfoJson["MicroBlockHash"] = i.m_microBlockHash.hex();
+   t_mbInfoJson["MicroBlockTxnRootHash"] = i.m_txnRootHash.hex();
+   t_mbInfoJson["MicroBlockShardId"] = i.m_shardId;
+   mbInfosJson.append(t_mbInfoJson);
+ }
+ return mbInfosJson;
 }
 
 const Json::Value JSONConversion::convertBooleanVectorToJson(
-    const vector<bool>& B) {
-  Json::Value _json = Json::arrayValue;
+   const vector<bool>& B) {
+ Json::Value _json = Json::arrayValue;
 
-  for (const auto& i : B) {
-    _json.append(Json::Value(i));
-  }
-  return _json;
+ for (const auto& i : B) {
+   _json.append(Json::Value(i));
+ }
+ return _json;
 }
 
 const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
-                                                       bool verbose) {
-  Json::Value ret;
-  Json::Value ret_head;
-  Json::Value ret_body;
+                                                      bool verbose) {
+ Json::Value ret;
+ Json::Value ret_head;
+ Json::Value ret_body;
 
-  const TxBlockHeader& txheader = txblock.GetHeader();
+ const TxBlockHeader& txheader = txblock.GetHeader();
 
-  bool isVacuous = CommonUtils::IsVacuousEpoch(txheader.GetBlockNum());
+ bool isVacuous = CommonUtils::IsVacuousEpoch(txheader.GetBlockNum());
 
-  ret_head["Version"] = txheader.GetVersion();
-  ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
-  ret_head["GasUsed"] = to_string(txheader.GetGasUsed());
-  ret_head["Rewards"] = (isVacuous ? txheader.GetRewards().str() : "0");
-  ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
-  ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
-  ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
+ ret_head["Version"] = txheader.GetVersion();
+ ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
+ ret_head["GasUsed"] = to_string(txheader.GetGasUsed());
+ ret_head["Rewards"] = (isVacuous ? txheader.GetRewards().str() : "0");
+ ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
+ ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
+ ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
+ ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
 
-  ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
-  ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
-  ret_head["StateDeltaHash"] = txheader.GetStateDeltaHash().hex();
-  ret_head["NumTxns"] = txheader.GetNumTxs();
-  ret_head["NumPages"] = (txheader.GetNumTxs() / NUM_TXNS_PER_PAGE) +
-                         ((txheader.GetNumTxs() % NUM_TXNS_PER_PAGE) ? 1 : 0);
-  ret_head["NumMicroBlocks"] =
-      static_cast<uint32_t>(txblock.GetMicroBlockInfos().size());
+ ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
+ ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
+ ret_head["StateDeltaHash"] = txheader.GetStateDeltaHash().hex();
+ ret_head["NumTxns"] = txheader.GetNumTxs();
+ ret_head["NumPages"] = (txheader.GetNumTxs() / NUM_TXNS_PER_PAGE) +
+                        ((txheader.GetNumTxs() % NUM_TXNS_PER_PAGE) ? 1 : 0);
+ ret_head["NumMicroBlocks"] =
+     static_cast<uint32_t>(txblock.GetMicroBlockInfos().size());
 
-  ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
-  ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
+ ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
+ ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
 
-  std::string HeaderSignStr;
-  if (!DataConversion::SerializableToHexStr(txblock.GetCS2(), HeaderSignStr)) {
-    return ret;  // empty ret
-  }
-  ret_body["HeaderSign"] = HeaderSignStr;
-  ret_body["BlockHash"] = txblock.GetBlockHash().hex();
+ std::string HeaderSignStr;
+ if (!DataConversion::SerializableToHexStr(txblock.GetCS2(), HeaderSignStr)) {
+   return ret;  // empty ret
+ }
+ ret_body["HeaderSign"] = HeaderSignStr;
+ ret_body["BlockHash"] = txblock.GetBlockHash().hex();
 
-  if (verbose) {
-    ret_body["B2"] = convertBooleanVectorToJson(txblock.GetB2());
-    ret_body["B1"] = convertBooleanVectorToJson(txblock.GetB1());
-    string CS1string;
-    if (!DataConversion::SerializableToHexStr(txblock.GetCS1(), CS1string)) {
-      LOG_GENERAL(WARNING, "Failed to convert txblock.GetCS1()");
-      CS1string = "";
-    }
-    ret_body["CS1"] = CS1string;
-    ret_head["CommitteeHash"] = txheader.GetCommitteeHash().hex();
-  }
+ if (verbose) {
+   ret_body["B2"] = convertBooleanVectorToJson(txblock.GetB2());
+   ret_body["B1"] = convertBooleanVectorToJson(txblock.GetB1());
+   string CS1string;
+   if (!DataConversion::SerializableToHexStr(txblock.GetCS1(), CS1string)) {
+     LOG_GENERAL(WARNING, "Failed to convert txblock.GetCS1()");
+     CS1string = "";
+   }
+   ret_body["CS1"] = CS1string;
+   ret_head["CommitteeHash"] = txheader.GetCommitteeHash().hex();
+ }
 
-  ret_body["MicroBlockInfos"] =
-      convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
+ ret_body["MicroBlockInfos"] =
+     convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
 
-  ret["header"] = ret_head;
-  ret["body"] = ret_body;
+ ret["header"] = ret_head;
+ ret["body"] = ret_body;
 
-  return ret;
+ return ret;
 }
 
 const Json::Value JSONConversion::convertTxBlocktoEthJson(
-    const TxBlock& txblock, const DSBlock& dsBlock,
-    const std::vector<TxBodySharedPtr>& transactions,
-    bool includeFullTransactions) {
-  const TxBlockHeader& txheader = txblock.GetHeader();
-  Json::Value retJson;
+   const TxBlock& txblock, const DSBlock& dsBlock,
+   const std::vector<TxBodySharedPtr>& transactions,
+   bool includeFullTransactions) {
+ const TxBlockHeader& txheader = txblock.GetHeader();
+ Json::Value retJson;
 
-  retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
-  retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
-  retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
-  // sha3Uncles is calculated as Keccak256(RLP([]))
-  retJson["sha3Uncles"] =
-      "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
-  retJson["stateRoot"] = std::string{"0x"} + txheader.GetStateRootHash().hex();
-  retJson["miner"] =
-      std::string{"0x"} +
-      Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
-  retJson["difficulty"] =
-      (boost::format("0x%x") %
-       static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
-          .str();
-  retJson["totalDifficulty"] =
-      (boost::format("0x%x") %
-       static_cast<int>(dsBlock.GetHeader().GetTotalDifficulty()))
-          .str();
-  zbytes serializedTxBlock;
-  txblock.Serialize(serializedTxBlock, 0);
-  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
+ retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
+ retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
+ retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
+ // sha3Uncles is calculated as Keccak256(RLP([]))
+ retJson["sha3Uncles"] =
+     "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
+ retJson["stateRoot"] = std::string{"0x"} + txheader.GetStateRootHash().hex();
+ retJson["miner"] =
+     std::string{"0x"} +
+     Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
+ retJson["difficulty"] =
+     (boost::format("0x%x") %
+      static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
+         .str();
+ retJson["totalDifficulty"] =
+     (boost::format("0x%x") %
+      static_cast<int>(dsBlock.GetHeader().GetTotalDifficulty()))
+         .str();
+ zbytes serializedTxBlock;
+ txblock.Serialize(serializedTxBlock, 0);
+ auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
-  retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
-  retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
-  retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
-  retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
-  retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
-  // Required by ethers
-  retJson["extraData"] = "0x";
-  retJson["nonce"] = "0x0000000000000000";
-  retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
-  retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+ retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
+ retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
+ retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+ retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
+ retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
+ // Required by ethers
+ retJson["extraData"] = "0x";
+ retJson["nonce"] = "0x0000000000000000";
+ retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+ retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+ Eth::LogBloom logBloom{};
 
-  Eth::LogBloom logBloom{};
+ auto transactionsJson = Json::Value{Json::arrayValue};
+ for (size_t i = 0; i < transactions.size(); ++i) {
+   const auto& receipt = transactions[i]->GetTransactionReceipt();
+   logBloom |= Eth::GetBloomFromReceipt(receipt);
+   if (includeFullTransactions) {
+     transactionsJson.append(convertTxtoEthJson(i, *transactions[i], txblock));
+   } else {
+     transactionsJson.append(
+         "0x" + transactions[i]->GetTransaction().GetTranID().hex());
+   }
+ }
 
-  auto transactionsJson = Json::Value{Json::arrayValue};
-  for (size_t i = 0; i < transactions.size(); ++i) {
-    const auto& receipt = transactions[i]->GetTransactionReceipt();
-    logBloom |= Eth::GetBloomFromReceipt(receipt);
-    if (includeFullTransactions) {
-      transactionsJson.append(convertTxtoEthJson(i, *transactions[i], txblock));
-    } else {
-      transactionsJson.append(
-          "0x" + transactions[i]->GetTransaction().GetTranID().hex());
-    }
-  }
-
-  retJson["logsBloom"] = "0x" + logBloom.hex();
-  retJson["transactions"] = transactionsJson;
-  retJson["uncles"] = Json::arrayValue;
-  return retJson;
+ retJson["logsBloom"] = "0x" + logBloom.hex();
+ retJson["transactions"] = transactionsJson;
+ retJson["uncles"] = Json::arrayValue;
+ return retJson;
 }
 
 const Json::Value JSONConversion::convertRawTxBlocktoJson(
-    const TxBlock& txblock) {
-  Json::Value ret;
-  zbytes raw;
-  string rawstr;
+   const TxBlock& txblock) {
+ Json::Value ret;
+ zbytes raw;
+ string rawstr;
 
-  if (!txblock.Serialize(raw, 0)) {
-    LOG_GENERAL(WARNING, "Raw TxBlock conversion failed");
-    return ret;
-  }
+ if (!txblock.Serialize(raw, 0)) {
+   LOG_GENERAL(WARNING, "Raw TxBlock conversion failed");
+   return ret;
+ }
 
-  if (!DataConversion::Uint8VecToHexStr(raw, rawstr)) {
-    LOG_GENERAL(WARNING, "Raw TxBlock conversion failed");
-    return ret;
-  }
+ if (!DataConversion::Uint8VecToHexStr(raw, rawstr)) {
+   LOG_GENERAL(WARNING, "Raw TxBlock conversion failed");
+   return ret;
+ }
 
-  ret["data"] = rawstr;
-  return ret;
+ ret["data"] = rawstr;
+ return ret;
 }
 
 const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
-                                                       bool verbose) {
-  Json::Value ret;
-  Json::Value ret_header;
-  Json::Value ret_sign;
+                                                      bool verbose) {
+ Json::Value ret;
+ Json::Value ret_header;
+ Json::Value ret_sign;
 
-  const DSBlockHeader& dshead = dsblock.GetHeader();
-  string retSigstr;
-  if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retSigstr)) {
-    return ret;
-  }
-  ret_sign = retSigstr;
+ const DSBlockHeader& dshead = dsblock.GetHeader();
+ string retSigstr;
+ if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retSigstr)) {
+   return ret;
+ }
+ ret_sign = retSigstr;
 
-  ret_header["Difficulty"] = dshead.GetDifficulty();
-  ret_header["PrevHash"] = dshead.GetPrevHash().hex();
-  ret_header["LeaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
-  ret_header["BlockNum"] = to_string(dshead.GetBlockNum());
+ ret_header["Difficulty"] = dshead.GetDifficulty();
+ ret_header["PrevHash"] = dshead.GetPrevHash().hex();
+ ret_header["LeaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
+ ret_header["BlockNum"] = to_string(dshead.GetBlockNum());
 
-  ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
-  ret_header["GasPrice"] = dshead.GetGasPrice().str();
-  ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
-  if (verbose) {
-    ret_header["PoWWinnersIP"] = Json::Value(Json::arrayValue);
-  }
+ ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
+ ret_header["GasPrice"] = dshead.GetGasPrice().str();
+ ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
+ if (verbose) {
+   ret_header["PoWWinnersIP"] = Json::Value(Json::arrayValue);
+ }
 
-  for (const auto& dswinner : dshead.GetDSPoWWinners()) {
-    ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
-    if (verbose) {
-      Json::Value peer_json;
-      peer_json["IP"] = dswinner.second.GetPrintableIPAddress();
-      peer_json["port"] = dswinner.second.GetListenPortHost();
-      ret_header["PoWWinnersIP"].append(peer_json);
-    }
-  }
+ for (const auto& dswinner : dshead.GetDSPoWWinners()) {
+   ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
+   if (verbose) {
+     Json::Value peer_json;
+     peer_json["IP"] = dswinner.second.GetPrintableIPAddress();
+     peer_json["port"] = dswinner.second.GetListenPortHost();
+     ret_header["PoWWinnersIP"].append(peer_json);
+   }
+ }
 
-  if (verbose) {
-    ret_header["MembersEjected"] = Json::Value(Json::arrayValue);
-    for (const auto& memEjected : dshead.GetDSRemovePubKeys()) {
-      ret_header["MembersEjected"].append(static_cast<string>(memEjected));
-    }
-    ret["B2"] = convertBooleanVectorToJson(dsblock.GetB2());
-    ret["B1"] = convertBooleanVectorToJson(dsblock.GetB1());
+ if (verbose) {
+   ret_header["MembersEjected"] = Json::Value(Json::arrayValue);
+   for (const auto& memEjected : dshead.GetDSRemovePubKeys()) {
+     ret_header["MembersEjected"].append(static_cast<string>(memEjected));
+   }
+   ret["B2"] = convertBooleanVectorToJson(dsblock.GetB2());
+   ret["B1"] = convertBooleanVectorToJson(dsblock.GetB1());
 
-    string retCS1;
-    if (!DataConversion::SerializableToHexStr(dsblock.GetCS1(), retCS1)) {
-      LOG_GENERAL(WARNING, "Failed to convert dsblock.GetCS1()");
-      retCS1 = "";
-    }
+   string retCS1;
+   if (!DataConversion::SerializableToHexStr(dsblock.GetCS1(), retCS1)) {
+     LOG_GENERAL(WARNING, "Failed to convert dsblock.GetCS1()");
+     retCS1 = "";
+   }
 
-    ret["CS1"] = retCS1;
-    ret_header["EpochNum"] = to_string(dshead.GetEpochNum());
+   ret["CS1"] = retCS1;
+   ret_header["EpochNum"] = to_string(dshead.GetEpochNum());
 
-    ret_header["SWInfo"] = convertSWInfotoJson(dshead.GetSWInfo());
-    ret_header["Version"] = dshead.GetVersion();
-    ret_header["ShardingHash"] = dshead.GetShardingHash().hex();
-    const auto& reservedField = dshead.GetHashSetReservedField();
-    if (!reservedField.empty()) {
-      string reservedFieldStr;
-      if (!DataConversion::charArrToHexStr(reservedField, reservedFieldStr)) {
-        LOG_GENERAL(WARNING, "Failed to convert reservedField");
-        reservedFieldStr = "";
-      }
-      ret_header["ReservedField"] = reservedFieldStr;
-    }
-    ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
-  }
+   ret_header["SWInfo"] = convertSWInfotoJson(dshead.GetSWInfo());
+   ret_header["Version"] = dshead.GetVersion();
+   ret_header["ShardingHash"] = dshead.GetShardingHash().hex();
+   const auto& reservedField = dshead.GetHashSetReservedField();
+   if (!reservedField.empty()) {
+     string reservedFieldStr;
+     if (!DataConversion::charArrToHexStr(reservedField, reservedFieldStr)) {
+       LOG_GENERAL(WARNING, "Failed to convert reservedField");
+       reservedFieldStr = "";
+     }
+     ret_header["ReservedField"] = reservedFieldStr;
+   }
+   ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
+ }
 
-  ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
+ ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
 
-  for (const auto& govProposal : dshead.GetGovProposalMap()) {
-    Json::Value _tempGovProposal;
-    Json::Value _dsvotes;
-    Json::Value _shardvotes;
-    _tempGovProposal["ProposalId"] = govProposal.first;
-    for (const auto& votes : govProposal.second.first) {
-      _dsvotes["VoteValue"] = votes.first;
-      _dsvotes["VoteCount"] = votes.second;
-      _tempGovProposal["DSVotes"].append(_dsvotes);
-    }
-    for (const auto& votes : govProposal.second.second) {
-      _shardvotes["VoteValue"] = votes.first;
-      _shardvotes["VoteCount"] = votes.second;
-      _tempGovProposal["ShardVotes"].append(_shardvotes);
-    }
-    ret_header["Governance"].append(_tempGovProposal);
-  }
-  ret["header"] = ret_header;
+ for (const auto& govProposal : dshead.GetGovProposalMap()) {
+   Json::Value _tempGovProposal;
+   Json::Value _dsvotes;
+   Json::Value _shardvotes;
+   _tempGovProposal["ProposalId"] = govProposal.first;
+   for (const auto& votes : govProposal.second.first) {
+     _dsvotes["VoteValue"] = votes.first;
+     _dsvotes["VoteCount"] = votes.second;
+     _tempGovProposal["DSVotes"].append(_dsvotes);
+   }
+   for (const auto& votes : govProposal.second.second) {
+     _shardvotes["VoteValue"] = votes.first;
+     _shardvotes["VoteCount"] = votes.second;
+     _tempGovProposal["ShardVotes"].append(_shardvotes);
+   }
+   ret_header["Governance"].append(_tempGovProposal);
+ }
+ ret["header"] = ret_header;
 
-  ret["signature"] = ret_sign;
+ ret["signature"] = ret_sign;
 
-  return ret;
+ return ret;
 }
 
 const Json::Value JSONConversion::convertSWInfotoJson(const SWInfo& swInfo) {
-  Json::Value _json;
-  Json::Value zil_json = Json::Value(Json::arrayValue);
-  Json::Value scilla_json = Json::Value(Json::arrayValue);
+ Json::Value _json;
+ Json::Value zil_json = Json::Value(Json::arrayValue);
+ Json::Value scilla_json = Json::Value(Json::arrayValue);
 
-  zil_json.append(swInfo.GetZilliqaMajorVersion());
-  zil_json.append(swInfo.GetZilliqaMinorVersion());
-  zil_json.append(swInfo.GetZilliqaFixVersion());
-  zil_json.append(to_string(swInfo.GetZilliqaUpgradeDS()));
-  zil_json.append(swInfo.GetZilliqaCommit());
+ zil_json.append(swInfo.GetZilliqaMajorVersion());
+ zil_json.append(swInfo.GetZilliqaMinorVersion());
+ zil_json.append(swInfo.GetZilliqaFixVersion());
+ zil_json.append(to_string(swInfo.GetZilliqaUpgradeDS()));
+ zil_json.append(swInfo.GetZilliqaCommit());
 
-  _json["Zilliqa"] = zil_json;
+ _json["Zilliqa"] = zil_json;
 
-  scilla_json.append(swInfo.GetScillaMajorVersion());
-  scilla_json.append(swInfo.GetScillaMinorVersion());
-  scilla_json.append(swInfo.GetScillaFixVersion());
-  scilla_json.append(to_string(swInfo.GetScillaUpgradeDS()));
-  scilla_json.append(swInfo.GetScillaCommit());
+ scilla_json.append(swInfo.GetScillaMajorVersion());
+ scilla_json.append(swInfo.GetScillaMinorVersion());
+ scilla_json.append(swInfo.GetScillaFixVersion());
+ scilla_json.append(to_string(swInfo.GetScillaUpgradeDS()));
+ scilla_json.append(swInfo.GetScillaCommit());
 
-  _json["Scilla"] = scilla_json;
+ _json["Scilla"] = scilla_json;
 
-  return _json;
+ return _json;
 }
 
 const Json::Value JSONConversion::convertRawDSBlocktoJson(
-    const DSBlock& dsblock) {
-  Json::Value ret;
-  zbytes raw;
-  string rawstr;
+   const DSBlock& dsblock) {
+ Json::Value ret;
+ zbytes raw;
+ string rawstr;
 
-  if (!dsblock.Serialize(raw, 0)) {
-    LOG_GENERAL(WARNING, "Raw DSBlock conversion failed");
-    return ret;
-  }
+ if (!dsblock.Serialize(raw, 0)) {
+   LOG_GENERAL(WARNING, "Raw DSBlock conversion failed");
+   return ret;
+ }
 
-  if (!DataConversion::Uint8VecToHexStr(raw, rawstr)) {
-    LOG_GENERAL(WARNING, "Raw DSBlock conversion failed");
-    return ret;
-  }
+ if (!DataConversion::Uint8VecToHexStr(raw, rawstr)) {
+   LOG_GENERAL(WARNING, "Raw DSBlock conversion failed");
+   return ret;
+ }
 
-  ret["data"] = rawstr;
-  return ret;
+ ret["data"] = rawstr;
+ return ret;
 }
 
 const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
-  uint32_t version = _json["version"].asUInt();
+ uint32_t version = _json["version"].asUInt();
 
-  string nonce_str = _json["nonce"].asString();
-  uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
+ string nonce_str = _json["nonce"].asString();
+ uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
-  string toAddr_str = _json["toAddr"].asString();
-  string lower_case_addr;
+ string toAddr_str = _json["toAddr"].asString();
+ string lower_case_addr;
 
-  if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
-    if (!AddressChecksum::VerifyChecksumAddressEth(toAddr_str,
-                                                   lower_case_addr)) {
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "To Address checksum does not match");
-    }
-  }
+ if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
+   if (!AddressChecksum::VerifyChecksumAddressEth(toAddr_str,
+                                                  lower_case_addr)) {
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "To Address checksum does not match");
+   }
+ }
 
-  zbytes toAddr_ser;
-  if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
-    LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for toAddr");
-  }
+ zbytes toAddr_ser;
+ if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
+   LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Invalid Hex Str for toAddr");
+ }
 
-  Address toAddr(toAddr_ser);
+ Address toAddr(toAddr_ser);
 
-  string amount_str = _json["amount"].asString();
-  uint128_t amount(amount_str);
+ string amount_str = _json["amount"].asString();
+ uint128_t amount(amount_str);
 
-  string gasPrice_str = _json["gasPrice"].asString();
-  uint128_t gasPrice(gasPrice_str);
-  string gasLimit_str = _json["gasLimit"].asString();
-  uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
+ string gasPrice_str = _json["gasPrice"].asString();
+ uint128_t gasPrice(gasPrice_str);
+ string gasLimit_str = _json["gasLimit"].asString();
+ uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
-  string pubKey_str = _json["pubKey"].asString();
-  zbytes pubKey_ser;
-  if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
-    LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for PubKey");
-  }
-  PubKey pubKey(pubKey_ser, 0);
+ string pubKey_str = _json["pubKey"].asString();
+ zbytes pubKey_ser;
+ if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
+   LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Invalid Hex Str for PubKey");
+ }
+ PubKey pubKey(pubKey_ser, 0);
 
-  string sign_str = _json["signature"].asString();
-  zbytes sign;
-  if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
-    LOG_GENERAL(WARNING, "***** Json cointaining invalid hex str for sign");
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for Signature");
-  }
+ string sign_str = _json["signature"].asString();
+ zbytes sign;
+ if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
+   LOG_GENERAL(WARNING, "***** Json cointaining invalid hex str for sign");
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Invalid Hex Str for Signature");
+ }
 
-  zbytes code, data;
+ zbytes code, data;
 
-  code = DataConversion::StringToCharArray(_json["code"].asString());
-  data = DataConversion::StringToCharArray(_json["data"].asString());
+ code = DataConversion::StringToCharArray(_json["code"].asString());
+ data = DataConversion::StringToCharArray(_json["data"].asString());
 
-  Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
-                  code, data, Signature(sign, 0));
-  LOG_GENERAL(INFO, "Tx converted");
+ Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
+                 code, data, Signature(sign, 0));
+ LOG_GENERAL(INFO, "Tx converted");
 
-  return tx1;
+ return tx1;
 }
 
 bool JSONConversion::checkStringAddress(const std::string& address) {
-  return ((address.size() == ACC_ADDR_SIZE * 2 + 2) &&
-          (address.substr(0, 2) == "0x"));
+ return ((address.size() == ACC_ADDR_SIZE * 2 + 2) &&
+         (address.substr(0, 2) == "0x"));
 }
 
 bool JSONConversion::checkJsonTx(const Json::Value& _json) {
-  bool ret = true;
+ bool ret = true;
 
-  ret = ret && _json.isObject();
-  ret = ret && (_json.size() == JSON_TRAN_OBJECT_SIZE ||
-                _json.size() == JSON_TRAN_OBJECT_SIZE + 1);
-  if (ret && (_json.size() == JSON_TRAN_OBJECT_SIZE + 1)) {
-    ret = ret && _json.isMember("priority");
-  }
-  ret = ret && _json.isMember("nonce");
-  ret = ret && _json.isMember("toAddr");
-  ret = ret && _json.isMember("amount");
-  ret = ret && _json.isMember("signature");
-  ret = ret && _json.isMember("version");
-  ret = ret && _json.isMember("code");
-  ret = ret && _json.isMember("data");
+ ret = ret && _json.isObject();
+ ret = ret && (_json.size() == JSON_TRAN_OBJECT_SIZE ||
+               _json.size() == JSON_TRAN_OBJECT_SIZE + 1);
+ if (ret && (_json.size() == JSON_TRAN_OBJECT_SIZE + 1)) {
+   ret = ret && _json.isMember("priority");
+ }
+ ret = ret && _json.isMember("nonce");
+ ret = ret && _json.isMember("toAddr");
+ ret = ret && _json.isMember("amount");
+ ret = ret && _json.isMember("signature");
+ ret = ret && _json.isMember("version");
+ ret = ret && _json.isMember("code");
+ ret = ret && _json.isMember("data");
 
-  if (ret) {
-    if (!_json["nonce"].isIntegral()) {
-      LOG_GENERAL(INFO, "Fault in nonce");
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Nonce is not integral");
-    }
-    if (_json["amount"].isString()) {
-      try {
-        uint128_t amount(_json["amount"].asString());
-      } catch (exception& e) {
-        LOG_GENERAL(INFO, "Fault in amount " << e.what());
-        throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                        "Amount invalid string");
-      }
-    } else {
-      LOG_GENERAL(INFO, "Amount not string");
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Amount invalid string");
-    }
-    if (!_json["version"].isIntegral()) {
-      LOG_GENERAL(INFO, "Fault in version");
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Version not integral");
-    }
+ if (ret) {
+   if (!_json["nonce"].isIntegral()) {
+     LOG_GENERAL(INFO, "Fault in nonce");
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Nonce is not integral");
+   }
+   if (_json["amount"].isString()) {
+     try {
+       uint128_t amount(_json["amount"].asString());
+     } catch (exception& e) {
+       LOG_GENERAL(INFO, "Fault in amount " << e.what());
+       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                       "Amount invalid string");
+     }
+   } else {
+     LOG_GENERAL(INFO, "Amount not string");
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Amount invalid string");
+   }
+   if (!_json["version"].isIntegral()) {
+     LOG_GENERAL(INFO, "Fault in version");
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Version not integral");
+   }
 
-    if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2) {
-      LOG_GENERAL(INFO,
-                  "PubKey size wrong " << _json["pubKey"].asString().size());
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Invalid PubKey Size");
-    }
+   if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2) {
+     LOG_GENERAL(INFO,
+                 "PubKey size wrong " << _json["pubKey"].asString().size());
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Invalid PubKey Size");
+   }
 
-    if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2 &&
-        _json["signature"].asString().size() !=
-            TRAN_SIG_SIZE_UNCOMPRESSED * 2) {
-      LOG_GENERAL(INFO, "signature size wrong "
-                            << _json["signature"].asString().size());
-      LOG_GENERAL(INFO, "***** Invalid signature size");
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Invalid Signature size");
-    }
-    string toAddr = _json["toAddr"].asString();
-    string lower_case_addr;
+   if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2 &&
+       _json["signature"].asString().size() !=
+           TRAN_SIG_SIZE_UNCOMPRESSED * 2) {
+     LOG_GENERAL(INFO, "signature size wrong "
+                           << _json["signature"].asString().size());
+     LOG_GENERAL(INFO, "***** Invalid signature size");
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Invalid Signature size");
+   }
+   string toAddr = _json["toAddr"].asString();
+   string lower_case_addr;
 
-    if (!AddressChecksum::VerifyChecksumAddress(toAddr, lower_case_addr)) {
-      if (!AddressChecksum::VerifyChecksumAddressEth(toAddr, lower_case_addr)) {
-        LOG_GENERAL(INFO, "***** To Address checksum wrong "
-                              << _json["toAddr"].asString());
-        throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                        "To Addr checksum wrong");
-      }
-    }
+   if (!AddressChecksum::VerifyChecksumAddress(toAddr, lower_case_addr)) {
+     if (!AddressChecksum::VerifyChecksumAddressEth(toAddr, lower_case_addr)) {
+       LOG_GENERAL(INFO, "***** To Address checksum wrong "
+                             << _json["toAddr"].asString());
+       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                       "To Addr checksum wrong");
+     }
+   }
 
-    if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&
-        !_json["priority"].isBool()) {
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Priority should be boolean");
-    }
-  } else {
-    LOG_GENERAL(INFO, "Json Data Object has missing components");
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Missing components in Json Data Object");
-  }
+   if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&
+       !_json["priority"].isBool()) {
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Priority should be boolean");
+   }
+ } else {
+   LOG_GENERAL(INFO, "Json Data Object has missing components");
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Missing components in Json Data Object");
+ }
 
-  return ret;
+ return ret;
 }
 
 // if successfull returns lower-case to zil address
 Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json,
-                                            const std::string& toKey) {
-  if (!_json.isMember(toKey)) {
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "must contain " + toKey);
-  }
+                                           const std::string& toKey) {
+ if (!_json.isMember(toKey)) {
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "must contain " + toKey);
+ }
 
-  auto lower_case_addr = _json[toKey].asString();
+ auto lower_case_addr = _json[toKey].asString();
 
-  DataConversion::NormalizeHexString(lower_case_addr);
+ DataConversion::NormalizeHexString(lower_case_addr);
 
-  zbytes toAddr_ser;
-  if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
-    LOG_GENERAL(WARNING, "json containing invalid hex str for " << toKey);
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for " + toKey);
-  }
+ zbytes toAddr_ser;
+ if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
+   LOG_GENERAL(WARNING, "json containing invalid hex str for " << toKey);
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Invalid Hex Str for " + toKey);
+ }
 
-  return Address(toAddr_ser);
+ return Address(toAddr_ser);
 }
 
 const vector<string> JSONConversion::convertJsonArrayToVector(
-    const Json::Value& _json) {
-  if (!_json.isArray()) {
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Expected Array type");
-  }
+   const Json::Value& _json) {
+ if (!_json.isArray()) {
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Expected Array type");
+ }
 
-  vector<string> vec;
+ vector<string> vec;
 
-  for (const auto& ele : _json) {
-    ostringstream streamObj;
-    if (!ele.isString()) {
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Every array value should be a string");
-    }
-    streamObj << quoted(ele.asString());
-    vec.emplace_back(streamObj.str());
-  }
-  return vec;
+ for (const auto& ele : _json) {
+   ostringstream streamObj;
+   if (!ele.isString()) {
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Every array value should be a string");
+   }
+   streamObj << quoted(ele.asString());
+   vec.emplace_back(streamObj.str());
+ }
+ return vec;
 }
 
 const vector<pair<string, vector<string>>>
 JSONConversion::convertJsonArrayToKeys(const Json::Value& _json) {
-  if (!_json.isArray()) {
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Expected Array type");
-  }
+ if (!_json.isArray()) {
+   throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                   "Expected Array type");
+ }
 
-  vector<pair<string, vector<string>>> ret;
+ vector<pair<string, vector<string>>> ret;
 
-  std::function<bool(const Json::Value&, const string&, vector<string>,
-                     vector<pair<string, vector<string>>>&)>
-      nestHandler = [&](const Json::Value& _json, const string& entryKey,
-                        vector<string> indices,
-                        vector<pair<string, vector<string>>>& keys) -> bool {
-    for (const auto& ele : _json) {
-      if (ele.isString()) {
-        indices.emplace_back(ele.asString());
-        keys.push_back({entryKey, indices});
-      } else if (ele.isObject()) {
-        for (const auto& id : ele.getMemberNames()) {
-          if (!ele[id].isArray()) {
-            return false;
-          }
-          indices.emplace_back(id);
-          if (!nestHandler(ele[id], entryKey, indices, keys)) {
-            return false;
-          }
-        }
-      } else {
-        return false;
-      }
-    }
-    return true;
-  };
+ std::function<bool(const Json::Value&, const string&, vector<string>,
+                    vector<pair<string, vector<string>>>&)>
+     nestHandler = [&](const Json::Value& _json, const string& entryKey,
+                       vector<string> indices,
+                       vector<pair<string, vector<string>>>& keys) -> bool {
+   for (const auto& ele : _json) {
+     if (ele.isString()) {
+       indices.emplace_back(ele.asString());
+       keys.push_back({entryKey, indices});
+     } else if (ele.isObject()) {
+       for (const auto& id : ele.getMemberNames()) {
+         if (!ele[id].isArray()) {
+           return false;
+         }
+         indices.emplace_back(id);
+         if (!nestHandler(ele[id], entryKey, indices, keys)) {
+           return false;
+         }
+       }
+     } else {
+       return false;
+     }
+   }
+   return true;
+ };
 
-  for (const auto& ele : _json) {
-    if (ele.isString()) {
-      ret.push_back({ele.asString(), {}});
-    } else if (ele.isObject()) {
-      for (const auto& id : ele.getMemberNames()) {
-        if (!ele[id].isArray()) {
-          throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                          "Invalid request format for key");
-        }
-        if (!nestHandler(ele[id], id, {}, ret)) {
-          throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                          "Invalid request format for key");
-        }
-      }
-    } else {
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Invalid request format for key");
-    }
-  }
+ for (const auto& ele : _json) {
+   if (ele.isString()) {
+     ret.push_back({ele.asString(), {}});
+   } else if (ele.isObject()) {
+     for (const auto& id : ele.getMemberNames()) {
+       if (!ele[id].isArray()) {
+         throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                         "Invalid request format for key");
+       }
+       if (!nestHandler(ele[id], id, {}, ret)) {
+         throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                         "Invalid request format for key");
+       }
+     }
+   } else {
+     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                     "Invalid request format for key");
+   }
+ }
 
-  return ret;
+ return ret;
 }
 
 const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
-  Json::Value _json;
-  _json["ID"] = txn.GetTranID().hex();
-  _json["version"] = to_string(txn.GetVersion());
-  _json["nonce"] = to_string(txn.GetNonce());
-  _json["toAddr"] = txn.GetToAddr().hex();
-  _json["senderAddr"] = txn.GetSenderAddr().hex();
-  _json["amount"] = txn.GetAmountQa().str();
-  _json["signature"] = static_cast<string>(txn.GetSignature());
+ Json::Value _json;
+ _json["ID"] = txn.GetTranID().hex();
+ _json["version"] = to_string(txn.GetVersion());
+ _json["nonce"] = to_string(txn.GetNonce());
+ _json["toAddr"] = txn.GetToAddr().hex();
+ _json["senderAddr"] = txn.GetSenderAddr().hex();
+ _json["amount"] = txn.GetAmountQa().str();
+ _json["signature"] = static_cast<string>(txn.GetSignature());
 
-  _json["gasPrice"] = txn.GetGasPriceQa().str();
-  _json["gasLimit"] = to_string(txn.GetGasLimitZil());
+ _json["gasPrice"] = txn.GetGasPriceQa().str();
+ _json["gasLimit"] = to_string(txn.GetGasLimitZil());
 
-  if (!txn.GetCode().empty()) {
-    _json["code"] = DataConversion::CharArrayToString(txn.GetCode());
-  }
-  if (!txn.GetData().empty()) {
-    _json["data"] = DataConversion::CharArrayToString(txn.GetData());
-  }
+ if (!txn.GetCode().empty()) {
+   _json["code"] = DataConversion::CharArrayToString(txn.GetCode());
+ }
+ if (!txn.GetData().empty()) {
+   _json["data"] = DataConversion::CharArrayToString(txn.GetData());
+ }
 
-  return _json;
+ return _json;
 }
 
 const Json::Value JSONConversion::convertTxtoJson(
-    const TransactionWithReceipt& twr, bool isSoftConfirmed) {
-  Json::Value _json;
+   const TransactionWithReceipt& twr, bool isSoftConfirmed) {
+ Json::Value _json;
 
-  _json["ID"] = twr.GetTransaction().GetTranID().hex();
-  _json["version"] = to_string(twr.GetTransaction().GetVersion());
-  _json["nonce"] = to_string(twr.GetTransaction().GetNonce());
-  _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
-  _json["senderPubKey"] =
-      static_cast<string>(twr.GetTransaction().GetSenderPubKey());
-  _json["amount"] = twr.GetTransaction().GetAmountQa().str();
-  _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
-  _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
-  _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
-  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimitZil());
+ _json["ID"] = twr.GetTransaction().GetTranID().hex();
+ _json["version"] = to_string(twr.GetTransaction().GetVersion());
+ _json["nonce"] = to_string(twr.GetTransaction().GetNonce());
+ _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
+ _json["senderPubKey"] =
+     static_cast<string>(twr.GetTransaction().GetSenderPubKey());
+ _json["amount"] = twr.GetTransaction().GetAmountQa().str();
+ _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
+ _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
+ _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
+ _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimitZil());
 
-  auto const code = twr.GetTransaction().GetCode();
-  auto const data = twr.GetTransaction().GetData();
+ auto const code = twr.GetTransaction().GetCode();
+ auto const data = twr.GetTransaction().GetData();
 
-  // If we detect non ascii characters (i.e evm bytecode) we convert to hex
-  // this should only happen when old style API calls (GetTransaction) are made
-  // that hit on new eth-style TXs
-  if (!code.empty()) {
-    if(!DataConversion::ContainsAllAscii(code) && twr.GetTransaction().IsEth()) {
-      _json["code"] = DataConversion::Uint8VecToHexStrRet(code);
-    } else {
-      _json["code"] =
-          DataConversion::CharArrayToString(code);
-    }
-  }
-  if (!data.empty()) {
-    if(!DataConversion::ContainsAllAscii(data) && twr.GetTransaction().IsEth()) {
-      _json["data"] = DataConversion::Uint8VecToHexStrRet(data);
-    } else {
-    _json["data"] =
-        DataConversion::CharArrayToString(data);
-    }
-  }
+ // If we detect non ascii characters (i.e evm bytecode) we convert to hex
+ // this should only happen when old style API calls (GetTransaction) are made
+ // that hit on new eth-style TXs
+ if (!code.empty()) {
+   if(!DataConversion::ContainsAllAscii(code) && twr.GetTransaction().IsEth()) {
+     _json["code"] = DataConversion::Uint8VecToHexStrRet(code);
+   } else {
+     _json["code"] =
+         DataConversion::CharArrayToString(code);
+   }
+ }
+ if (!data.empty()) {
+   if(!DataConversion::ContainsAllAscii(data) && twr.GetTransaction().IsEth()) {
+     _json["data"] = DataConversion::Uint8VecToHexStrRet(data);
+   } else {
+     _json["data"] =
+         DataConversion::CharArrayToString(data);
+   }
+ }
 
-  if (isSoftConfirmed) {
-    _json["softconfirm"] = true;
-  }
+ if (isSoftConfirmed) {
+   _json["softconfirm"] = true;
+ }
 
-  return _json;
+ return _json;
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    uint64_t txindex, const TransactionWithReceipt& txn,
-    const TxBlock& txblock) {
-  const TxBlockHeader& txheader = txblock.GetHeader();
-  Json::Value retJson;
-  auto const tx = txn.GetTransaction();
+   uint64_t txindex, const TransactionWithReceipt& txn,
+   const TxBlock& txblock) {
+ const TxBlockHeader& txheader = txblock.GetHeader();
+ Json::Value retJson;
+ auto const tx = txn.GetTransaction();
 
-  retJson["blockNumber"] =
-      (boost::format("0x%x") % txheader.GetBlockNum()).str();
-  retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
-  retJson["from"] = "0x" + tx.GetSenderAddr().hex();
-  retJson["gas"] =
-      (boost::format("0x%x") %
-       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
-          .str();
-  // ethers also expectes gasLimit and ChainId
-  retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitEth()).str();
-  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
-  retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
-  retJson["hash"] = "0x" + tx.GetTranID().hex();
+ retJson["blockNumber"] =
+     (boost::format("0x%x") % txheader.GetBlockNum()).str();
+ retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
+ retJson["from"] = "0x" + tx.GetSenderAddr().hex();
+ retJson["gas"] =
+     (boost::format("0x%x") %
+      GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
+         .str();
+ // ethers also expectes gasLimit and ChainId
+ retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitEth()).str();
+ retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
+ retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
+ retJson["hash"] = "0x" + tx.GetTranID().hex();
 
-  // Concatenated Code and CallData form input entry in response json
-  std::string inputField;
+ // Concatenated Code and CallData form input entry in response json
+ std::string inputField;
 
-  if (!tx.GetCode().empty()) {
-    inputField =
-        "0x" + DataConversion::Uint8VecToHexStrRet(StripEVM(tx.GetCode()));
-  }
+ if (!tx.GetCode().empty()) {
+   inputField =
+       "0x" + DataConversion::Uint8VecToHexStrRet(StripEVM(tx.GetCode()));
+ }
 
-  if (!tx.GetData().empty()) {
-    const auto callData = DataConversion::Uint8VecToHexStrRet(tx.GetData());
-    // Append extra '0x' prefix iff GetCode() gave empty string
-    if (inputField.empty()) {
-      inputField += "0x" + callData;
-    } else {
-      inputField += callData;
-    }
-  }
-  retJson["input"] = inputField;
-  // ethers also expects 'data' field
-  retJson["data"] = inputField;
+ if (!tx.GetData().empty()) {
+   const auto callData = DataConversion::Uint8VecToHexStrRet(tx.GetData());
+   // Append extra '0x' prefix iff GetCode() gave empty string
+   if (inputField.empty()) {
+     inputField += "0x" + callData;
+   } else {
+     inputField += callData;
+   }
+ }
+ retJson["input"] = inputField;
+ // ethers also expects 'data' field
+ retJson["data"] = inputField;
 
-  // NOTE: Nonce is decremented since the internal representation is +1 due to
-  // Zil accounting
-  retJson["nonce"] =
-      (boost::format("0x%x") % (txn.GetTransaction().GetNonce() - 1)).str();
-  if (IsNullAddress(tx.GetToAddr())) {
-    retJson["to"] =
-        Json::nullValue;  // special for contract creation transactions.
-  } else {
-    retJson["to"] = "0x" + tx.GetToAddr().hex();
-  }
-  retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
-  if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
-    retJson["contractAddress"] =
-        "0x" + Account::GetAddressForContract(
-                   txn.GetTransaction().GetSenderAddr(),
-                   txn.GetTransaction().GetNonce() - 1, txn.GetTransaction().GetVersionIdentifier())
-                   .hex();
-  }
-  retJson["type"] = "0x0";
+ // NOTE: Nonce is decremented since the internal representation is +1 due to
+ // Zil accounting
+ retJson["nonce"] =
+     (boost::format("0x%x") % (txn.GetTransaction().GetNonce() - 1)).str();
+ if (IsNullAddress(tx.GetToAddr())) {
+   retJson["to"] =
+       Json::nullValue;  // special for contract creation transactions.
+ } else {
+   retJson["to"] = "0x" + tx.GetToAddr().hex();
+ }
+ retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
+ if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
+   retJson["contractAddress"] =
+       "0x" + Account::GetAddressForContract(
+                  txn.GetTransaction().GetSenderAddr(),
+                  txn.GetTransaction().GetNonce() - 1, txn.GetTransaction().GetVersionIdentifier())
+                  .hex();
+ }
+ retJson["type"] = "0x0";
 
-  std::string sig{tx.GetSignature()};
-  retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
-  retJson["r"] = GetR(sig);
-  retJson["s"] = GetS(sig);
+ std::string sig{tx.GetSignature()};
+ retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+ retJson["r"] = GetR(sig);
+ retJson["s"] = GetS(sig);
 
-  retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
-  return retJson;
+ retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
+ return retJson;
 }
 
 const Json::Value JSONConversion::convertNode(const PairOfNode& node) {
-  Json::Value _json;
-  _json["PubKey"] = static_cast<string>(node.first);
-  _json["NetworkInfo"] = static_cast<string>(node.second);
+ Json::Value _json;
+ _json["PubKey"] = static_cast<string>(node.first);
+ _json["NetworkInfo"] = static_cast<string>(node.second);
 
-  return _json;
+ return _json;
 }
 
 const Json::Value JSONConversion::convertNode(
-    const std::tuple<PubKey, Peer, uint16_t>& node) {
-  Json::Value _json;
+   const std::tuple<PubKey, Peer, uint16_t>& node) {
+ Json::Value _json;
 
-  _json["PubKey"] = static_cast<string>(get<SHARD_NODE_PUBKEY>(node));
-  _json["NetworkInfo"] = static_cast<string>(get<SHARD_NODE_PEER>(node));
-  return _json;
+ _json["PubKey"] = static_cast<string>(get<SHARD_NODE_PUBKEY>(node));
+ _json["NetworkInfo"] = static_cast<string>(get<SHARD_NODE_PEER>(node));
+ return _json;
 }
 
 const Json::Value JSONConversion::convertDequeOfNode(const DequeOfNode& nodes) {
-  Json::Value _json = Json::arrayValue;
+ Json::Value _json = Json::arrayValue;
 
-  for (const auto& node : nodes) {
-    Json::Value temp = convertNode(node);
-    _json.append(temp);
-  }
-  return _json;
+ for (const auto& node : nodes) {
+   Json::Value temp = convertNode(node);
+   _json.append(temp);
+ }
+ return _json;
 }
