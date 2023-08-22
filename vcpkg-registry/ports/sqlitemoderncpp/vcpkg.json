@@ -1,0 +1,21 @@
+{
+  "name": "sqlitemoderncpp",
+  "version-string": "hunter",
+  "port-version": 0,
+  "description": "SqliteModernCpp",
+  "homepage": "https://github.com/soramitsu/libp2p-sqlite-modern-cpp",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    {
+      "name": "sqlite3"
+    }
+  ]
+}
+

@@ -1,0 +1,9 @@
+{
+  "versions": [
+    {
+      "path": "$/ports/cpp-libp2p",
+      "version": "0.1.12",
+      "port-version": 0
+    }
+  ]
+}

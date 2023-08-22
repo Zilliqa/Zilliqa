@@ -31,8 +31,12 @@
     "libffi",
     "g3log",
     "g3sinks",
+    "tsl-hat-trie",
     "schnorr",
+    "sqlitemoderncpp",
+    "soralog",
     "cryptoutils",
+    "cpp-libp2p",
     {
       "name": "opentelemetry-cpp",
       "default-features": false,
@@ -62,12 +66,28 @@
       "version": "8.2.0"
     },
     {
+      "name": "sqlitemoderncpp",
+      "version-string": "hunter"
+    },
+    {
+      "name": "soralog",
+      "version": "0.1.1"
+    },
+    {
+      "name": "tsl-hat-trie",
+      "version": "1.0.0"
+    },
+    {
       "name": "g3sinks",
       "version": "2.0.1"
     },
     {
       "name": "cryptoutils",
       "version": "8.3.0#1"
+    },
+    {
+      "name": "cpp-libp2p",
+      "version": "0.1.12"
     },
     {
       "name": "opentelemetry-cpp",

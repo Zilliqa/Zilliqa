@@ -1,0 +1,9 @@
+{
+  "versions": [
+    {
+      "path": "$/ports/sqlitemoderncpp",
+      "version-string": "hunter",
+      "port-version": 0
+    }
+  ]
+}

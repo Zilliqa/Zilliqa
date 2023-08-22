@@ -1,0 +1,125 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1721d8c..d0ee68a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,13 +6,6 @@ if (CCACHE_FOUND)
+     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+ endif (CCACHE_FOUND)
+ 
+-set(CMAKE_TOOLCHAIN_FILE
+-    "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
+-    CACHE FILEPATH "Default toolchain"
+-    )
+-
+-include("cmake/Hunter/init.cmake")
+-
+ cmake_policy(SET CMP0048 NEW)
+ project(soralog VERSION 0.0.7 LANGUAGES CXX)
+ 
+@@ -36,8 +29,6 @@ set_property(GLOBAL PROPERTY TEST_TARGETS)
+ 
+ include(cmake/functions.cmake)
+ include(cmake/toolchain/compiler.cmake)
+-include(cmake/toolchain/cxx17.cmake)
+-include(cmake/dependencies.cmake)
+ include(cmake/sanitizers.cmake)
+ 
+ if(CLANG_TIDY)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 7d959ba..19595d6 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -3,6 +3,9 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
++find_package(yaml-cpp CONFIG REQUIRED)
++find_package(fmt CONFIG REQUIRED)
++
+ include_directories(SYSTEM
+     PUBLIC
+         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+@@ -21,14 +24,14 @@ target_link_libraries(sink INTERFACE
+     fmt::fmt
+     )
+ 
+-add_library(sink_to_nowhere
++add_library(sink_to_nowhere STATIC
+     impl/sink_to_nowhere.cpp
+     )
+ target_link_libraries(sink_to_nowhere
+     sink
+     )
+ 
+-add_library(sink_to_console
++add_library(sink_to_console STATIC
+     impl/sink_to_console.cpp
+     )
+ target_link_libraries(sink_to_console
+@@ -36,7 +39,7 @@ target_link_libraries(sink_to_console
+     pthread
+     )
+ 
+-add_library(sink_to_file
++add_library(sink_to_file STATIC
+     impl/sink_to_file.cpp
+     )
+ target_link_libraries(sink_to_file
+@@ -44,7 +47,7 @@ target_link_libraries(sink_to_file
+     pthread
+     )
+ 
+-add_library(sink_to_syslog
++add_library(sink_to_syslog STATIC
+     impl/sink_to_syslog.cpp
+     )
+ target_link_libraries(sink_to_syslog
+@@ -52,18 +55,18 @@ target_link_libraries(sink_to_syslog
+     pthread
+     )
+ 
+-add_library(multisink
++add_library(multisink STATIC
+     impl/multisink.cpp
+     )
+ target_link_libraries(multisink
+     sink
+     )
+ 
+-add_library(group
++add_library(group STATIC
+     group.cpp
+     )
+ 
+-add_library(logger
++add_library(logger STATIC
+     logger.cpp
+     )
+ target_link_libraries(logger
+@@ -79,22 +82,22 @@ target_link_libraries(configurator INTERFACE
+     multisink
+     )
+ 
+-add_library(configurator_yaml
++add_library(configurator_yaml STATIC
+     impl/configurator_from_yaml.cpp
+     )
+ target_link_libraries(configurator_yaml
+-    yaml-cpp::yaml-cpp
++    yaml-cpp
+     configurator
+     )
+ 
+-add_library(fallback_configurator
++add_library(fallback_configurator STATIC
+     impl/fallback_configurator.cpp
+     )
+ target_link_libraries(fallback_configurator
+     configurator
+     )
+ 
+-add_library(logging_system
++add_library(logging_system STATIC
+     logging_system.cpp
+     )
+ target_link_libraries(logging_system

@@ -1,0 +1,29 @@
+{
+  "name": "cpp-libp2p",
+  "version": "0.1.12",
+  "port-version": 0,
+  "description": "C++ libP2P",
+  "homepage": "https://github.com/libp2p/cpp-libp2p",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "boost-random",
+    "boost-filesystem",
+    "boost-outcome",
+    "boost-program-options",
+    "openssl",
+    "protobuf",
+    "c-ares",
+    "fmt",
+    "soralog",
+    "tsl-hat-trie",
+    "sqlitemoderncpp",
+    "ms-gsl"
+  ]
+}

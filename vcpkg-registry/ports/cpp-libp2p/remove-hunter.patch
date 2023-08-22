@@ -1,0 +1,411 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 370f17c..092819c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -16,8 +16,6 @@ set(CMAKE_TOOLCHAIN_FILE
+ cmake_policy(SET CMP0048 NEW)
+ cmake_policy(SET CMP0135 NEW)
+ 
+-include("cmake/Hunter/init.cmake")
+-
+ project(libp2p VERSION 0.0.1 LANGUAGES C CXX)
+ 
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+@@ -47,7 +45,21 @@ set_property(GLOBAL PROPERTY TEST_TARGETS)
+ include(CheckCXXCompilerFlag)
+ include(cmake/install.cmake)
+ include(cmake/libp2p_add_library.cmake)
+-include(cmake/dependencies.cmake)
++
++find_package(Boost CONFIG REQUIRED random filesystem program_options)
++find_package(OpenSSL REQUIRED)
++include(FindProtobuf)
++set(protobuf_MODULE_COMPATIBLE TRUE)
++find_package(Protobuf CONFIG REQUIRED)
++find_package(Threads)
++find_package(c-ares CONFIG REQUIRED)
++find_package(fmt CONFIG REQUIRED)
++find_package(yaml-cpp CONFIG REQUIRED)
++find_package(soralog CONFIG REQUIRED)
++find_package(tsl-hat-trie CONFIG REQUIRED)
++find_package(SQLiteModernCpp CONFIG REQUIRED)
++find_package(Microsoft.GSL CONFIG REQUIRED)
++
+ include(cmake/functions.cmake)
+ include(cmake/san.cmake)
+ 
+diff --git a/include/libp2p/common/asio_buffer.hpp b/include/libp2p/common/asio_buffer.hpp
+index ff4bdb5..0b59078 100644
+--- a/include/libp2p/common/asio_buffer.hpp
++++ b/include/libp2p/common/asio_buffer.hpp
+@@ -8,6 +8,7 @@
+ 
+ #include <boost/asio/buffer.hpp>
+ #include <libp2p/common/span_size.hpp>
++#include <gsl/narrow>
+ 
+ namespace libp2p {
+   inline boost::asio::const_buffer asioBuffer(gsl::span<const uint8_t> s) {
+diff --git a/include/libp2p/crypto/ecdsa_provider/ecdsa_provider_impl.hpp b/include/libp2p/crypto/ecdsa_provider/ecdsa_provider_impl.hpp
+index f8603d6..32ccf60 100644
+--- a/include/libp2p/crypto/ecdsa_provider/ecdsa_provider_impl.hpp
++++ b/include/libp2p/crypto/ecdsa_provider/ecdsa_provider_impl.hpp
+@@ -44,7 +44,7 @@ namespace libp2p::crypto::ecdsa {
+     template <typename KeyType>
+     outcome::result<KeyType> convertEcKeyToBytes(
+         const std::shared_ptr<EC_KEY> &ec_key,
+-        int (*converter)(EC_KEY *, uint8_t **)) const;
++        int (*converter)(const EC_KEY *, uint8_t **)) const;
+ 
+     /**
+      * @brief Convert bytes to EC_KEY
+diff --git a/include/libp2p/log/configurator.hpp b/include/libp2p/log/configurator.hpp
+index 819f447..1f8fcfd 100644
+--- a/include/libp2p/log/configurator.hpp
++++ b/include/libp2p/log/configurator.hpp
+@@ -8,13 +8,10 @@
+ 
+ #include <soralog/impl/configurator_from_yaml.hpp>
+ 
+-#include <boost/di.hpp>
+-
+ namespace libp2p::log {
+ 
+   class Configurator : public soralog::ConfiguratorFromYAML {
+    public:
+-    BOOST_DI_INJECT_TRAITS();
+ 
+     Configurator();
+ 
+diff --git a/include/libp2p/protocol_muxer/multiselect/parser.hpp b/include/libp2p/protocol_muxer/multiselect/parser.hpp
+index 6e0bcfc..e2df414 100644
+--- a/include/libp2p/protocol_muxer/multiselect/parser.hpp
++++ b/include/libp2p/protocol_muxer/multiselect/parser.hpp
+@@ -24,7 +24,7 @@ namespace libp2p::protocol_muxer::multiselect::detail {
+     /// Number of messages in a packet will rarely exceed 4
+     using Messages = boost::container::small_vector<Message, 4>;
+ 
+-    using IndexType = gsl::span<const uint8_t>::index_type;
++    using IndexType = gsl::span<const uint8_t>::size_type;
+ 
+     /// State similar to that of VarintPrefixReader
+     enum State {
+diff --git a/src/basic/CMakeLists.txt b/src/basic/CMakeLists.txt
+index fcc9428..73a39ba 100644
+--- a/src/basic/CMakeLists.txt
++++ b/src/basic/CMakeLists.txt
+@@ -31,6 +31,7 @@ libp2p_add_library(p2p_message_read_writer
+ target_link_libraries(p2p_message_read_writer
+     p2p_message_read_writer_error
+     p2p_varint_reader
++    p2p_byteutil
+     )
+ 
+ libp2p_add_library(p2p_protobuf_message_read_writer
+diff --git a/src/common/CMakeLists.txt b/src/common/CMakeLists.txt
+index 1fb5f5d..7f6d102 100644
+--- a/src/common/CMakeLists.txt
++++ b/src/common/CMakeLists.txt
+@@ -8,6 +8,7 @@ libp2p_add_library(p2p_hexutil
+     )
+ target_link_libraries(p2p_hexutil
+     Boost::boost
++    Microsoft.GSL::GSL
+     )
+ 
+ libp2p_add_library(p2p_byteutil
+diff --git a/src/crypto/CMakeLists.txt b/src/crypto/CMakeLists.txt
+index 0e27376..2aa012e 100644
+--- a/src/crypto/CMakeLists.txt
++++ b/src/crypto/CMakeLists.txt
+@@ -37,4 +37,6 @@ libp2p_add_library(p2p_crypto_common
+     )
+ target_link_libraries(p2p_crypto_common
+     p2p_crypto_error
++    Microsoft.GSL::GSL
++    OpenSSL::Crypto
+     )
+diff --git a/src/crypto/ecdsa_provider/ecdsa_provider_impl.cpp b/src/crypto/ecdsa_provider/ecdsa_provider_impl.cpp
+index c32268c..f22bf75 100644
+--- a/src/crypto/ecdsa_provider/ecdsa_provider_impl.cpp
++++ b/src/crypto/ecdsa_provider/ecdsa_provider_impl.cpp
+@@ -81,7 +81,7 @@ namespace libp2p::crypto::ecdsa {
+   template <typename KeyType>
+   outcome::result<KeyType> EcdsaProviderImpl::convertEcKeyToBytes(
+       const std::shared_ptr<EC_KEY> &ec_key,
+-      int (*converter)(EC_KEY *, uint8_t **)) const {
++      int (*converter)(const EC_KEY *, uint8_t **)) const {
+     KeyType key{};
+     int generated_size = converter(ec_key.get(), nullptr);
+     if (generated_size != key.size()) {
+diff --git a/src/crypto/key_marshaller/CMakeLists.txt b/src/crypto/key_marshaller/CMakeLists.txt
+index ac7982f..3ff8a8b 100644
+--- a/src/crypto/key_marshaller/CMakeLists.txt
++++ b/src/crypto/key_marshaller/CMakeLists.txt
+@@ -10,4 +10,5 @@ target_link_libraries(p2p_key_marshaller
+     p2p_crypto_error
+     p2p_crypto_key
+     p2p_keys_proto
++    protobuf::libprotobuf 
+     )
+diff --git a/src/layer/websocket/CMakeLists.txt b/src/layer/websocket/CMakeLists.txt
+index b55fc21..7e16ea3 100644
+--- a/src/layer/websocket/CMakeLists.txt
++++ b/src/layer/websocket/CMakeLists.txt
+@@ -18,9 +18,11 @@ libp2p_add_library(p2p_websocket_connection
+     )
+ target_link_libraries(p2p_websocket_connection
+     Boost::boost
++    p2p_multiaddress
+     p2p_byteutil
+     p2p_read_buffer
+     p2p_write_queue
+     p2p_connection_error
+     p2p_sha
++    p2p_basic_scheduler
+     )
+diff --git a/src/muxer/yamux/CMakeLists.txt b/src/muxer/yamux/CMakeLists.txt
+index e4a813c..50b551c 100644
+--- a/src/muxer/yamux/CMakeLists.txt
++++ b/src/muxer/yamux/CMakeLists.txt
+@@ -23,4 +23,5 @@ target_link_libraries(p2p_yamuxed_connection
+     p2p_read_buffer
+     p2p_write_queue
+     p2p_connection_error
++    p2p_basic_scheduler
+     )
+diff --git a/src/network/cares/CMakeLists.txt b/src/network/cares/CMakeLists.txt
+index 7c10bd2..0073585 100644
+--- a/src/network/cares/CMakeLists.txt
++++ b/src/network/cares/CMakeLists.txt
+@@ -8,5 +8,6 @@ libp2p_add_library(p2p_cares
+     )
+ target_link_libraries(p2p_cares
+     c-ares::cares
++    p2p_logger
+     ${CMAKE_THREAD_LIBS_INIT}
+     )
+diff --git a/src/network/impl/CMakeLists.txt b/src/network/impl/CMakeLists.txt
+index eb83f7a..32f52af 100644
+--- a/src/network/impl/CMakeLists.txt
++++ b/src/network/impl/CMakeLists.txt
+@@ -33,6 +33,7 @@ target_link_libraries(p2p_dialer
+     p2p_multiselect
+     p2p_peer_id
+     p2p_logger
++    p2p_basic_scheduler
+     )
+ 
+ 
+@@ -41,6 +42,7 @@ libp2p_add_library(p2p_network
+     )
+ target_link_libraries(p2p_network
+     Boost::boost
++    Microsoft.GSL::GSL
+     )
+ 
+ libp2p_add_library(p2p_transport_manager
+@@ -55,6 +57,8 @@ libp2p_add_library(p2p_connection_manager
+     )
+ target_link_libraries(p2p_connection_manager
+     Boost::boost
++    p2p_logger
++    p2p_peer_id
+     )
+ 
+ libp2p_add_library(p2p_dnsaddr_resolver
+@@ -63,4 +67,5 @@ libp2p_add_library(p2p_dnsaddr_resolver
+ target_link_libraries(p2p_dnsaddr_resolver
+     Boost::boost
+     p2p_cares
++    p2p_multiaddress
+     )
+diff --git a/src/peer/CMakeLists.txt b/src/peer/CMakeLists.txt
+index 5aea50a..25be427 100644
+--- a/src/peer/CMakeLists.txt
++++ b/src/peer/CMakeLists.txt
+@@ -13,6 +13,7 @@ libp2p_add_library(p2p_address_repository
+     )
+ target_link_libraries(p2p_address_repository
+     Boost::boost
++    Microsoft.GSL::GSL
+     )
+ 
+ libp2p_add_library(p2p_peer_errors
+diff --git a/src/protocol/gossip/impl/CMakeLists.txt b/src/protocol/gossip/impl/CMakeLists.txt
+index 0455013..cc7201c 100644
+--- a/src/protocol/gossip/impl/CMakeLists.txt
++++ b/src/protocol/gossip/impl/CMakeLists.txt
+@@ -24,4 +24,5 @@ target_link_libraries(p2p_gossip
+     p2p_peer_id
+     p2p_cid
+     p2p_gossip_proto
++    p2p_basic_scheduler
+     )
+diff --git a/src/protocol/kademlia/impl/CMakeLists.txt b/src/protocol/kademlia/impl/CMakeLists.txt
+index 80ba280..5bbdab7 100644
+--- a/src/protocol/kademlia/impl/CMakeLists.txt
++++ b/src/protocol/kademlia/impl/CMakeLists.txt
+@@ -18,6 +18,7 @@ libp2p_add_library(p2p_kademlia
+ target_link_libraries(p2p_kademlia
+     p2p_basic_scheduler
+     p2p_byteutil
++    p2p_varint_reader
+     p2p_kademlia_message
+     p2p_kademlia_error
+     )
+diff --git a/src/protocol/kademlia/impl/find_peer_executor.cpp b/src/protocol/kademlia/impl/find_peer_executor.cpp
+index aa3d63a..4cee14d 100644
+--- a/src/protocol/kademlia/impl/find_peer_executor.cpp
++++ b/src/protocol/kademlia/impl/find_peer_executor.cpp
+@@ -256,7 +256,7 @@ namespace libp2p::protocol::kademlia {
+                 peer.info.id,
+                 gsl::span(peer.info.addresses.data(),
+                           static_cast<
+-                              gsl::span<const multi::Multiaddress>::index_type>(
++                              gsl::span<const multi::Multiaddress>::size_type>(
+                               peer.info.addresses.size())),
+                 peer::ttl::kDay);
+         if (not add_addr_res) {
+diff --git a/src/protocol/kademlia/impl/find_providers_executor.cpp b/src/protocol/kademlia/impl/find_providers_executor.cpp
+index 7c61310..8a1229e 100644
+--- a/src/protocol/kademlia/impl/find_providers_executor.cpp
++++ b/src/protocol/kademlia/impl/find_providers_executor.cpp
+@@ -266,7 +266,7 @@ namespace libp2p::protocol::kademlia {
+                 peer.info.id,
+                 gsl::span(peer.info.addresses.data(),
+                           static_cast<
+-                              gsl::span<const multi::Multiaddress>::index_type>(
++                              gsl::span<const multi::Multiaddress>::size_type>(
+                               peer.info.addresses.size())),
+                 peer::ttl::kDay);
+         if (not add_addr_res) {
+@@ -297,7 +297,7 @@ namespace libp2p::protocol::kademlia {
+                 peer.info.id,
+                 gsl::span(peer.info.addresses.data(),
+                           static_cast<
+-                              gsl::span<const multi::Multiaddress>::index_type>(
++                              gsl::span<const multi::Multiaddress>::size_type>(
+                               peer.info.addresses.size())),
+                 peer::ttl::kDay);
+         if (not add_addr_res) {
+diff --git a/src/protocol/kademlia/impl/get_value_executor.cpp b/src/protocol/kademlia/impl/get_value_executor.cpp
+index 9ab5345..4d3998f 100644
+--- a/src/protocol/kademlia/impl/get_value_executor.cpp
++++ b/src/protocol/kademlia/impl/get_value_executor.cpp
+@@ -261,7 +261,7 @@ namespace libp2p::protocol::kademlia {
+                 peer.info.id,
+                 gsl::span(peer.info.addresses.data(),
+                           static_cast<
+-                              gsl::span<const multi::Multiaddress>::index_type>(
++                              gsl::span<const multi::Multiaddress>::size_type>(
+                               peer.info.addresses.size())),
+                 peer::ttl::kDay);
+         if (not add_addr_res) {
+diff --git a/src/protocol/kademlia/impl/kademlia_impl.cpp b/src/protocol/kademlia/impl/kademlia_impl.cpp
+index 4afec2e..75f1f74 100644
+--- a/src/protocol/kademlia/impl/kademlia_impl.cpp
++++ b/src/protocol/kademlia/impl/kademlia_impl.cpp
+@@ -223,7 +223,7 @@ namespace libp2p::protocol::kademlia {
+             peer_info.id,
+             gsl::span(
+                 peer_info.addresses.data(),
+-                static_cast<gsl::span<const multi::Multiaddress>::index_type>(
++                static_cast<gsl::span<const multi::Multiaddress>::size_type>(
+                     peer_info.addresses.size())),
+             permanent ? peer::ttl::kPermanent : peer::ttl::kDay);
+     if (not upsert_res) {
+@@ -480,7 +480,7 @@ namespace libp2p::protocol::kademlia {
+                   gsl::span(
+                       peer.info.addresses.data(),
+                       static_cast<
+-                          gsl::span<const multi::Multiaddress>::index_type>(
++                          gsl::span<const multi::Multiaddress>::size_type>(
+                           peer.info.addresses.size())),
+                   peer::ttl::kDay);
+         }
+diff --git a/src/protocol/kademlia/message.cpp b/src/protocol/kademlia/message.cpp
+index 9c371dc..3215811 100644
+--- a/src/protocol/kademlia/message.cpp
++++ b/src/protocol/kademlia/message.cpp
+@@ -10,6 +10,8 @@
+ #include <generated/protocol/kademlia/protobuf/kademlia.pb.h>
+ #include <libp2p/multi/uvarint.hpp>
+ 
++#include <gsl/narrow>
++
+ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, Message::Error, e) {
+   using E = libp2p::protocol::kademlia::Message::Error;
+   switch (e) {
+diff --git a/src/protocol/ping/CMakeLists.txt b/src/protocol/ping/CMakeLists.txt
+index cc59ed5..3446425 100644
+--- a/src/protocol/ping/CMakeLists.txt
++++ b/src/protocol/ping/CMakeLists.txt
+@@ -8,4 +8,7 @@ libp2p_add_library(p2p_ping
+     )
+ target_link_libraries(p2p_ping
+     Boost::boost
++    Microsoft.GSL::GSL
++    fmt::fmt
++    p2p_logger
+     )
+diff --git a/src/security/noise/CMakeLists.txt b/src/security/noise/CMakeLists.txt
+index 82ca1b0..d3e2e43 100644
+--- a/src/security/noise/CMakeLists.txt
++++ b/src/security/noise/CMakeLists.txt
+@@ -24,6 +24,7 @@ target_link_libraries(p2p_noise
+     p2p_hmac_provider
+     p2p_chachapoly_provider
+     p2p_hexutil
++    p2p_peer_id
+     )
+ 
+ libp2p_add_library(p2p_noise_handshake_message_marshaller
+diff --git a/src/security/plaintext/CMakeLists.txt b/src/security/plaintext/CMakeLists.txt
+index daa2df2..c507cbe 100644
+--- a/src/security/plaintext/CMakeLists.txt
++++ b/src/security/plaintext/CMakeLists.txt
+@@ -25,4 +25,5 @@ target_link_libraries(p2p_plaintext_exchange_message_marshaller
+     Boost::boost
+     p2p_plaintext_proto
+     p2p_key_marshaller
++    p2p_peer_id
+     )
+diff --git a/src/security/secio/CMakeLists.txt b/src/security/secio/CMakeLists.txt
+index 0445f3e..90df12c 100644
+--- a/src/security/secio/CMakeLists.txt
++++ b/src/security/secio/CMakeLists.txt
+@@ -20,6 +20,7 @@ target_link_libraries(p2p_secio
+         p2p_crypto_error
+         p2p_crypto_provider
+         p2p_sha
++        p2p_peer_id
+         )
+ 
+ libp2p_add_library(p2p_secio_propose_message_marshaller
+diff --git a/src/security/tls/CMakeLists.txt b/src/security/tls/CMakeLists.txt
+index 074290a..68d0efa 100644
+--- a/src/security/tls/CMakeLists.txt
++++ b/src/security/tls/CMakeLists.txt
+@@ -13,4 +13,8 @@ target_link_libraries(p2p_tls
+     p2p_crypto_error
+     p2p_logger
+     p2p_security_error
++    p2p_peer_id
++    p2p_ecdsa_provider
++    p2p_ed25519_provider
++    p2p_tcp_connection
+     )
+diff --git a/src/transport/impl/CMakeLists.txt b/src/transport/impl/CMakeLists.txt
+index 07b5abd..32a75df 100644
+--- a/src/transport/impl/CMakeLists.txt
++++ b/src/transport/impl/CMakeLists.txt
+@@ -16,6 +16,8 @@ libp2p_add_library(p2p_upgrader
+     )
+ target_link_libraries(p2p_upgrader
+     Boost::boost
++    Microsoft.GSL::GSL
++    p2p_converters
+     )
+ 
+ 

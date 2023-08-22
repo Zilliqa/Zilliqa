@@ -4,11 +4,16 @@
       "kind": "filesystem",
       "path": "vcpkg-registry",
       "packages": [
+        "cpp-libp2p",
+        "cryptoutils",
         "g3log",
         "g3sinks",
+        "opentelemetry-cpp",
         "schnorr",
-        "cryptoutils",
-        "opentelemetry-cpp"
+        "opentelemetry-cpp",
+        "soralog",
+        "sqlitemoderncpp",
+        "tsl-hat-trie"
       ]
     }
   ]
