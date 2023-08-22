@@ -272,6 +272,12 @@ class EthRpcMethods {
       response = this->GetDebugAccountRange();
   }
 
+  inline virtual void PrintCacheContentsI(const Json::Value& /*request*/,
+                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->PrintCacheContents();
+  }
+
   /**
    * @brief Handles json rpc 2.0 request on method: eth_coinbase.
    * Returns the client coinbase address. The coinbase address is the
@@ -737,6 +743,7 @@ class EthRpcMethods {
   Json::Value GetEthUncleBlock();
   Json::Value GetEthMining();
   Json::Value GetDebugAccountRange();
+  Json::Value PrintCacheContents();
   std::string GetEthCoinbase();
   Json::Value GetNetListening();
   std::string GetNetPeerCount();

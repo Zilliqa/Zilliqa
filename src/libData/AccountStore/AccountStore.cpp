@@ -788,8 +788,18 @@ bool AccountStore::UpdateStateTrie(const Address &address,
     return false;
   }
 
-  std::lock_guard<std::mutex> g(m_mutexTrie);
-  m_state.insert(DataConversion::StringToCharArray(address.hex()), rawBytes);
+  std::lock(m_mutexTrie, m_mutexCache);
+  std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+  std::lock_guard<std::mutex> lock2(m_mutexCache, std::adopt_lock);
+
+
+  zbytes z = DataConversion::StringToCharArray(address.hex());
+  if(!m_state.contains(z)){
+    std::array<unsigned char, 40> arr;
+    std::copy(z.begin(), z.end(), arr.begin());
+    m_cache.push_back(arr);
+  }
+  m_state.insert(z, rawBytes);
 
   return true;
 }

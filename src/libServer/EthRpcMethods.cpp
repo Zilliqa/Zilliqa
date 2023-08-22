@@ -242,6 +242,11 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::GetDebugAccountRangeI);
 
   m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_printCache", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &EthRpcMethods::PrintCacheContentsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthCoinbaseI);
@@ -1201,9 +1206,27 @@ Json::Value EthRpcMethods::GetDebugAccountRange() {
         AccountStore::GetInstance().GetPrimaryMutex());
 
     AccountStore::GetInstance().FillAddressCache();
-    AccountStore::GetInstance().PrintAddressCache();
 
     return Json::Value("this worked.");
+  } catch (const JsonRpcException &je) {
+    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
+    throw je;
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value EthRpcMethods::PrintCacheContents() {
+  INC_CALLS(GetInvocationsCounter());
+
+  try {
+    unique_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
+    AccountStore::GetInstance().PrintAddressCache();
+
+    return Json::Value("Printed contents in log.");
   } catch (const JsonRpcException &je) {
     LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
     throw je;
