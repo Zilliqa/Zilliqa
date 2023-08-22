@@ -1,8 +1,7 @@
 import {expect} from "chai";
 import hre, {ethers} from "hardhat";
 
-// FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
-describe.skip("Gas estimation with web3.js", function () {
+describe("Gas estimation with web3.js", function () {
   const CREATE2_MIN_GAS = 32000;
 
   describe("When a fund transfer is made", function () {
