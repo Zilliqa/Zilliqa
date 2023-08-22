@@ -24,6 +24,7 @@
 #include "libMediator/Mediator.h"
 #include "libMetrics/Api.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/Logger.h"
 
 class LookupServer;
 
@@ -263,6 +264,12 @@ class EthRpcMethods {
                                     Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthMining();
+  }
+
+  inline virtual void GetDebugAccountRangeI(const Json::Value& /*request*/,
+                                    Json::Value& response) {
+      LOG_MARKER_CONTITIONAL(LOG_SC);
+      response = this->GetDebugAccountRange();
   }
 
   /**
@@ -729,6 +736,7 @@ class EthRpcMethods {
   Json::Value GetEthUncleCount();
   Json::Value GetEthUncleBlock();
   Json::Value GetEthMining();
+  Json::Value GetDebugAccountRange();
   std::string GetEthCoinbase();
   Json::Value GetNetListening();
   std::string GetNetPeerCount();

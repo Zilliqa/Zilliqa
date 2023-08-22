@@ -23,9 +23,11 @@
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
+#include <vector>
 
 #include <Schnorr.h>
 #include "AccountStoreBase.h"
+#include "common/Common.h"
 #include "common/Constants.h"
 #include "common/Hashes.h"
 #include "depends/libTrie/TrieDB.h"
@@ -74,6 +76,10 @@ class AccountStore : public AccountStoreBase {
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 
   rpc::UnixDomainSocketServer m_scillaIPCServerConnector;
+
+  //cache storing the addresses in m_state
+  std::vector<std::array<unsigned char,40>> m_cache;
+  std::mutex m_mutexCache;
 
   AccountStore();
   ~AccountStore();
@@ -243,6 +249,8 @@ class AccountStore : public AccountStoreBase {
   bool UpdateStateTrieAll();
 
   void PrintAccountState() override;
+  void FillAddressCache();
+  void PrintAddressCache();
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_

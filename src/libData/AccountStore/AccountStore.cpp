@@ -19,6 +19,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <regex>
 
+#include "common/Common.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libScilla/ScillaClient.h"
@@ -843,3 +844,26 @@ void AccountStore::PrintAccountState() {
   AccountStoreBase::PrintAccountState();
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
+
+void AccountStore::FillAddressCache(){
+  std::lock(m_mutexTrie, m_mutexDB, m_mutexCache);
+  std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+  std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
+  std::lock_guard<std::mutex> lock3(m_mutexCache, std::adopt_lock);
+
+  m_cache.clear();
+
+  for(auto it = m_state.begin(); it != m_state.end(); ++it){
+    std::pair<zbytesConstRef , zbytesConstRef >item = it.at();
+    std::array<unsigned char, 40> arr;
+    std::copy(item.first.begin(), item.first.end(), arr.begin());
+    m_cache.push_back(arr);
+  }
+}
+
+void AccountStore::PrintAddressCache(){
+  for (const std::array<unsigned char, 40>& entry : m_cache) {
+    std::string address(entry.begin(), entry.end());
+    LOG_GENERAL(INFO, "Address: " << address);
+  }
+}  

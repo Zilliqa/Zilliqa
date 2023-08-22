@@ -237,6 +237,11 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::GetEthMiningI);
 
   m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_accountRange", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &EthRpcMethods::GetDebugAccountRangeI);
+
+  m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthCoinbaseI);
@@ -1186,6 +1191,26 @@ Json::Value EthRpcMethods::GetEthMining() {
   INC_CALLS(GetInvocationsCounter());
 
   return Json::Value(false);
+}
+
+Json::Value EthRpcMethods::GetDebugAccountRange() {
+  INC_CALLS(GetInvocationsCounter());
+
+  try {
+    unique_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
+    AccountStore::GetInstance().FillAddressCache();
+    AccountStore::GetInstance().PrintAddressCache();
+
+    return Json::Value("this worked.");
+  } catch (const JsonRpcException &je) {
+    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
+    throw je;
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 std::string EthRpcMethods::GetEthCoinbase() {
