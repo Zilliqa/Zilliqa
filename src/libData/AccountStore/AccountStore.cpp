@@ -872,6 +872,7 @@ void AccountStore::FillAddressCache(){
 }
 
 void AccountStore::PrintAddressCache(){
+  std::lock_guard<std::mutex> g(m_mutexCache);
   for (const std::array<unsigned char, 40>& entry : m_cache) {
     std::string address(entry.begin(), entry.end());
     LOG_GENERAL(INFO, "Address: " << address);
