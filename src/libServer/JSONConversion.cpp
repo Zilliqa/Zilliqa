@@ -159,7 +159,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
   retJson["extraData"] = "0x";
-  retJson["nonce"] = "0x0";
+  retJson["nonce"] = "0x0000000000000000";
   retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
   retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
 

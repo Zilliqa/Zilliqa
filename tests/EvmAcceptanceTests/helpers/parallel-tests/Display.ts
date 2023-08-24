@@ -1,5 +1,5 @@
 import clc from "cli-color";
-import {performance} from "perf_hooks";
+import { performance } from "perf_hooks";
 
 export class Chronometer {
   constructor() {
@@ -16,12 +16,11 @@ export class Chronometer {
   }
 
   display(): string {
-    const seconds = this.endTime - this.startTime / 1000;
-
-    let unit = seconds > 120 ? "m" : "s";
-    let time = seconds > 120 ? (seconds / 60).toFixed(2) : seconds.toFixed(2);
-
-    return `${time} ${unit}`;
+    const time = (this.endTime - this.startTime) / 1000;
+    const minutes = Math.floor(time / 60);
+    const minutesString = `${minutes}`.padStart(2, "0");
+    const seconds = `${(time - minutes * 60).toFixed(2)}`.padStart(2, "0");
+    return `${minutesString}:${seconds}`;
   }
 
   startTime: number;
