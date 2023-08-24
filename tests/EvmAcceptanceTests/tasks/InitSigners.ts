@@ -18,11 +18,7 @@ task("init-signers", "A task to init signers")
     const spinner = ora();
     spinner.start(`Creating ${count} accounts...`);
 
-    const accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
-  
-    for (const account of accounts) {
-      await hre.run("transfer", {from, fromAddressType: "eth", to: getAddressFromPrivateKey(account.privateKey), amount: "1000"})
-    }
+    const accounts = await createAccounts(hre, from, hre.ethers.utils.parseEther(balance), count);
   
     spinner.succeed();
 
@@ -50,7 +46,7 @@ const writeToFile = async (signers: string[], append: boolean, file_name: string
   await fs.promises.writeFile(join(".signers", file_name), JSON.stringify(current_signers));
 };
 
-const createAccountsEth = async (hre: HardhatRuntimeEnvironment, privateKey: string, amount: BigNumber, count: number) => {
+const createAccounts = async (hre: HardhatRuntimeEnvironment, privateKey: string, amount: BigNumber, count: number) => {
   const wallet = new ethers.Wallet(privateKey, hre.ethers.provider);
 
   if ((await wallet.getBalance()).isZero()) {
@@ -61,10 +57,10 @@ const createAccountsEth = async (hre: HardhatRuntimeEnvironment, privateKey: str
     ethers.Wallet.createRandom().connect(hre.ethers.provider)
   );
 
-  const addresses = accounts.map((signer) => signer.address);
+  const addresses = [...accounts.map((signer) => signer.address), ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())];
 
   await hre.deployContractWithSigner("BatchTransferCtor", wallet, addresses, amount, {
-    value: amount.mul(count)
+    value: amount.mul(addresses.length)
   });
 
   return accounts;
