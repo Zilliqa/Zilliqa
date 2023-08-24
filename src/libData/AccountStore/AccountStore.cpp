@@ -865,7 +865,7 @@ void AccountStore::FillAddressCache(){
 
   for(auto it = m_state.begin(); it != m_state.end(); ++it){
     std::pair<zbytesConstRef , zbytesConstRef >item = it.at();
-    std::array<unsigned char, 40> arr;
+    std::array<zbyte, 40> arr;
     std::copy(item.first.begin(), item.first.end(), arr.begin());
     m_cache.push_back(arr);
   }
@@ -873,8 +873,21 @@ void AccountStore::FillAddressCache(){
 
 void AccountStore::PrintAddressCache(){
   std::lock_guard<std::mutex> g(m_mutexCache);
-  for (const std::array<unsigned char, 40>& entry : m_cache) {
+  for (const std::array<zbyte, 40>& entry : m_cache) {
     std::string address(entry.begin(), entry.end());
     LOG_GENERAL(INFO, "Address: " << address);
   }
+
 }  
+
+std::vector<std::array<zbyte, 40>> AccountStore::GetAccountAddresses(unsigned long pageNumber, unsigned long pageSize, bool &wasMore){
+  //TODO: Implement input sanitisation before locking
+  std::lock_guard<std::mutex> g(m_mutexCache);
+  auto start = pageNumber * pageSize >= m_cache.size() ? m_cache.end() : m_cache.begin() + (pageNumber * pageSize);
+  wasMore = (pageNumber + 1) * pageSize >= m_cache.size();
+  auto end = wasMore ? m_cache.end() : m_cache.begin() + ((pageNumber + 1) * pageSize);
+
+  std::vector<std::array<zbyte, 40>> slice(end - start);
+  std::copy(start, end, slice.begin());
+  return slice;
+}

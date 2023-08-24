@@ -238,7 +238,8 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_accountRange", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_INTEGER, "param02", jsonrpc::JSON_INTEGER,
+                         NULL),
       &EthRpcMethods::GetDebugAccountRangeI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -1198,15 +1199,23 @@ Json::Value EthRpcMethods::GetEthMining() {
   return Json::Value(false);
 }
 
-Json::Value EthRpcMethods::GetDebugAccountRange() {
+Json::Value EthRpcMethods::GetDebugAccountRange(unsigned long pageNumber, unsigned long pageSize) {
   INC_CALLS(GetInvocationsCounter());
 
   try {
     unique_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-
+    //TODO: Remove this line
     AccountStore::GetInstance().FillAddressCache();
 
+    //TODO: Add input sanitation
+    bool wasMore = false;
+    auto addresses = AccountStore::GetInstance().GetAccountAddresses(pageNumber,pageSize, wasMore);
+
+  for (const std::array<zbyte, 40>& entry : addresses) {
+    std::string address(entry.begin(), entry.end());
+    LOG_GENERAL(INFO, "Address: " << address);
+  }
     return Json::Value("this worked.");
   } catch (const JsonRpcException &je) {
     LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());

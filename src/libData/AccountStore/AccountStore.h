@@ -251,6 +251,7 @@ class AccountStore : public AccountStoreBase {
   void PrintAccountState() override;
   void FillAddressCache();
   void PrintAddressCache();
+  std::vector<std::array<zbyte, 40>> GetAccountAddresses(unsigned long pageNumber, unsigned long pageSize, bool &wasMore);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_

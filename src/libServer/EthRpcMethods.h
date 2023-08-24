@@ -266,10 +266,10 @@ class EthRpcMethods {
     response = this->GetEthMining();
   }
 
-  inline virtual void GetDebugAccountRangeI(const Json::Value& /*request*/,
+  inline virtual void GetDebugAccountRangeI(const Json::Value& request,
                                     Json::Value& response) {
-      LOG_MARKER_CONTITIONAL(LOG_SC);
-      response = this->GetDebugAccountRange();
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetDebugAccountRange(request[0u].asInt64(), request[1u].asInt64());
   }
 
   inline virtual void PrintCacheContentsI(const Json::Value& /*request*/,
@@ -742,7 +742,7 @@ class EthRpcMethods {
   Json::Value GetEthUncleCount();
   Json::Value GetEthUncleBlock();
   Json::Value GetEthMining();
-  Json::Value GetDebugAccountRange();
+  Json::Value GetDebugAccountRange(unsigned long pageNumber, unsigned long pageSize);
   Json::Value PrintCacheContents();
   std::string GetEthCoinbase();
   Json::Value GetNetListening();

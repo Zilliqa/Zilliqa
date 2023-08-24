@@ -221,7 +221,8 @@ void IsolatedServer::BindAllEvmMethods() {
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_accountRange", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_INTEGER, "param02", jsonrpc::JSON_INTEGER,
+                         NULL),
         &LookupServer::GetDebugAccountRangeI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
