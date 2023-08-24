@@ -1211,12 +1211,18 @@ Json::Value EthRpcMethods::GetDebugAccountRange(unsigned long pageNumber, unsign
     //TODO: Add input sanitation
     bool wasMore = false;
     auto addresses = AccountStore::GetInstance().GetAccountAddresses(pageNumber,pageSize, wasMore);
+    Json::Value response = Json::objectValue;
+    Json::Value jsonAddresses = Json::arrayValue;
+    
+    for (const std::array<zbyte, 40>& entry : addresses) {
+      std::string address(entry.begin(), entry.end());
+      jsonAddresses.append(address);
+    }
 
-  for (const std::array<zbyte, 40>& entry : addresses) {
-    std::string address(entry.begin(), entry.end());
-    LOG_GENERAL(INFO, "Address: " << address);
-  }
-    return Json::Value("this worked.");
+    response["Addresses"] = jsonAddresses;
+    response["wasMore"] = wasMore;
+
+    return response;
   } catch (const JsonRpcException &je) {
     LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
     throw je;
