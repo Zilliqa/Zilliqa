@@ -55,7 +55,7 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
   });
 
   it("We can reach the end of addresses and see that there are no more to be seen", async function () {
-    const PAGE_NUMBER = 20;
+    const PAGE_NUMBER = Number.MAX_SAFE_INTEGER;
     const PAGE_SIZE = 1;
 
     await sendJsonRpcRequest(METHOD, 1, [PAGE_NUMBER,PAGE_SIZE], (result, status) => {
