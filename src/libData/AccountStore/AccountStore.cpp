@@ -884,8 +884,8 @@ std::vector<std::array<zbyte, 40>> AccountStore::GetAccountAddresses(unsigned lo
   //TODO: Implement input sanitisation before locking
   std::lock_guard<std::mutex> g(m_mutexCache);
   auto start = pageNumber * pageSize >= m_cache.size() ? m_cache.end() : m_cache.begin() + (pageNumber * pageSize);
-  wasMore = (pageNumber + 1) * pageSize >= m_cache.size();
-  auto end = wasMore ? m_cache.end() : m_cache.begin() + ((pageNumber + 1) * pageSize);
+  wasMore = (pageNumber + 1) * pageSize < m_cache.size();
+  auto end = wasMore ? m_cache.begin() + ((pageNumber + 1) * pageSize) : m_cache.end();
 
   std::vector<std::array<zbyte, 40>> slice(end - start);
   std::copy(start, end, slice.begin());

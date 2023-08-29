@@ -1219,7 +1219,7 @@ Json::Value EthRpcMethods::GetDebugAccountRange(unsigned long pageNumber, unsign
       jsonAddresses.append(address);
     }
 
-    response["Addresses"] = jsonAddresses;
+    response["addresses"] = jsonAddresses;
     response["wasMore"] = wasMore;
 
     return response;
