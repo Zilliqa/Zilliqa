@@ -577,11 +577,7 @@ class SendJobsImpl : public SendJobs,
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
-      // TODO - Confirm
-      bool is_multiplier = m_multipliers.contains(peer);
-      //bool is_multiplier = false;
-      ctx = std::make_shared<PeerSendQueue>(
-          m_asioCtx, m_doneCallback, std::move(peer), is_multiplier, false);
+      ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback, std::move(peer), false, false);
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);

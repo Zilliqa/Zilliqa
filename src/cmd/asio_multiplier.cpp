@@ -99,26 +99,18 @@ bool fetchDownstreams(const std::string downstreamURL,
   cpr::Response r = cpr::Get(cpr::Url{downstreamURL});
 
   if (r.status_code == 200) {
-    std::cout << "Success: " << r.status_code << std::endl;
-    std::cout << "Header Type: " << r.header["content-type"]
-              << std::endl;                                 // application/json;
-                                                            // charset=utf-8
-    std::cout << "Text : [" << r.text << "]" << std::endl;  // JSON text string
-  } else {
-    std::cout << "Error: " << r.status_code << std::endl;
-    return false;
-  };
-  // Process the response
-  if (r.status_code == 200) {
     std::string contents = r.text;
     std::vector<std::string> oldAddresses = mirrorAddresses;
-    std::vector<std::string> newAddresses =
-        removeEmptyAddr(split(contents, '\n'));
-    std::set<std::string> diffAddresses =
-        reportDifference(newAddresses, oldAddresses, addressStore);
+    std::vector<std::string> newAddresses = removeEmptyAddr(split(contents, '\n'));
+    std::set<std::string> diffAddresses = reportDifference(newAddresses, oldAddresses, addressStore);
+    for (const std::string& address : diffAddresses) {
+      std::cout << "Adding " << address << " to mirrorAddresses" << std::endl;
+      mirrorAddresses.push_back(address);
+    }
   } else {
     std::cout << "DownstreamURL " << downstreamURL
               << " may not be available at this moment" << std::endl;
+    return false;
   }
   return true;
 }
@@ -252,16 +244,21 @@ int main(int argc, char* argv[]) {
       process_message(std::move(message), our_peers);
     };
 
+    std::cout << "Starting server on port " << port << std::endl;
+
     zil::p2p::GetInstance().StartServer(ctx, port, 0, std::move(dispatcher));
     ctx.run();
   };
 
-  //DetachedFunction(1, func);
+  DetachedFunction(1, func);
 
-  // Add signal handlers etc.
+  // TODO : Add signal handlers etc.
+
+  std::cout << "Sleeping for 30 seconds" << std::endl;
+  std::this_thread::sleep_for(std::chrono::seconds(30));
 
   while (1) {
-    if (false && fetchDownstreams(url, mirrorAddresses, addressStore)) {
+    if (fetchDownstreams(url, mirrorAddresses, addressStore)) {
       for (const std::string& address : mirrorAddresses) {
         std::vector<std::string> address_pair;
         address_pair = split(address, ':');

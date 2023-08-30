@@ -528,7 +528,7 @@ def create_multiplier_start_sh(listen_port, lookupips_url):
         'echo "Listening on port {}"'.format(listen_port),
         'echo "Lookup IPs URL: {}"'.format(lookupips_url),
         'echo "Starting multiplier"',
-        '/usr/local/bin/asio_multiplier --listen "{}" --url "{}"'.format(listen_port, lookupips_url),
+        './asio_multiplier --listen "{}" --url "{}"'.format(listen_port, lookupips_url),
     ]
 
     with open('start.sh', 'w') as f:
@@ -1035,16 +1035,6 @@ def main():
     else:
         origin_server = 'http://' + get_svc_ip('{}-origin'.format(args.testnet))
 
-    # TODO: move this to a reasonble position. It depends only on origin_server and args.index
-    # Lets define this part today, Steve White 2021-05-05
-    if is_multiplier(args):
-        multi_basic_auth_url = get_basic_auth_link('{}/multiplier-{}-downstreams.txt'.format(origin_server, args.index),
-                                                   b_username, b_password)
-        create_multiplier_start_sh(':{}'.format(args.port), multi_basic_auth_url)
-        return 0
-
-    # Will block here until origin_server is accessible
-
     first_available_port = args.port
     lookup_ips_from_origin = get_ip_list_from_origin(origin_server, 'lookup_ips.txt', first_available_port)
     first_available_port = first_available_port + len(lookup_ips_from_origin)
@@ -1059,8 +1049,8 @@ def main():
     seedpub_ips_from_origin = get_ip_list_from_origin(origin_server, 'seedpub_ips.txt',
                                                       first_available_port) if args.seed_multiplier else []
 
-    # FIXME: only DS guard needs this flag, we can remove is_normal(args) here
-    #  args.restart = is_restarted('{}-origin'.format(args.testnet)) if is_normal(args) or is_dsguard(args) else False
+    first_available_port += 1
+
     args.restart = False
 
     if is_seedprv(args):
@@ -1070,7 +1060,7 @@ def main():
             f.write(args.verifier_keypair)
 
     def generate_files(pod_name):
-        if is_lookup(args) or is_dsguard(args) or is_normal(args) or is_seedprv(args):
+        if is_lookup(args) or is_dsguard(args) or is_normal(args) or is_seedprv(args) or is_multiplier(args):
             args.normal_ips = normal_ips_from_origin
             args.lookup_ips = lookup_ips_from_origin
         elif is_new(args) or is_seedpub(args):
@@ -1112,18 +1102,22 @@ def main():
                     pass
 
                 os.chdir(pod_path)
+                os.system("rm zilliqa.log")
 
                 args.type = node_type
                 args.index = index
                 args.port += 1
 
-                node_nss.append(generate_files(pod_name))
+                if (node_type != 'multiplier'):
+                    node_nss.append(generate_files(pod_name))
+                else:
+                    create_new_multiplier_file(origin_server, args, seedpub_ips_from_origin)
+                    multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
+                    create_multiplier_start_sh(multiplier_ips_from_origin[0][1], multi_basic_auth_url)
+
                 sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
-                # Looks like this was related to new code from Yaron
-                #                os.system(
-                #                    f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," netns_start.sh')
-                os.system(
-                    f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
+                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
+                os.system(f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
 
                 for file_name in ['zilliqa', 'zilliqad', 'sendcmd', 'asio_multiplier']:
                     try:
@@ -1156,9 +1150,8 @@ def main():
     nss = nss + generate_nodes('normal', 0, args.d - args.ds_guard)
     nss = nss + generate_nodes('normal', args.d - args.ds_guard, args.n - args.d)
     nss = nss + generate_nodes('seedpub', 0, sum(args.multiplier_fanout))
+    nss = nss + generate_nodes('multiplier', 0, 1)
 
-    # Now we want to rewrite the multiplier file as its nonsense
-    create_new_multiplier_file(origin_server, args, seedpub_ips_from_origin)
 
     return 0
 
@@ -1169,7 +1162,7 @@ def create_new_multiplier_file(url, args, address_list):
     except FileNotFoundError:
         print("No multiplier-downstream.txt file found - creating new one")
 
-    with open(url + "/" + "multiplier-downstream.txt", 'w') as f:
+    with open("multiplier-downstream.txt", 'w') as f:
         for addr in address_list:
             f.write(addr[0] + ":" + str(addr[1]) + "\n")
     return True
