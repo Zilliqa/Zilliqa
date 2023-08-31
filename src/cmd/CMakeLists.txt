@@ -106,3 +106,18 @@ else()
   #        really be required and resolved by fixing the (circular) dependencies.
   target_link_libraries(buildTxBlockHashesToNums PUBLIC "-Wl,--start-group" AccountData Persistence)
 endif()
+
+add_executable(connectivity connectivity.cpp)
+add_custom_command(TARGET zilliqa
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:connectivity> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(connectivity PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(connectivity Network)
+
+add_executable(multiplier multiplier.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:multiplier> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(multiplier PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(multiplier Network)
+

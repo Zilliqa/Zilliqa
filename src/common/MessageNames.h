@@ -126,4 +126,44 @@ static_assert(
 static const std::string MessageSizeKeyword = "Size of message ";
 static const std::string MessgeTimeKeyword = "Time to process message ";
 
+inline std::string FormatMessageName(unsigned char msgType,
+                              unsigned char instruction) {
+  const std::string InvalidMessageType = "INVALID_MESSAGE";
+
+  if (msgType == 127) {
+    char buff[100];
+    snprintf(buff, sizeof(buff), "Recieved a 127 - find out what this is please ?");
+    std::string buffAsStdStr = buff;
+    return buffAsStdStr;
+  }
+
+  if (msgType >= ARRAY_SIZE(MessageTypeStrings)) {
+    char buff[100];
+    snprintf(buff, sizeof(buff), "msgType >= ARRAY_SIZE(MessageTypeStrings) %02x %d", msgType, ((int)ARRAY_SIZE(MessageTypeStrings)) );
+    std::string buffAsStdStr = buff;
+
+    return buffAsStdStr;
+  }
+
+  if (NULL == MessageTypeInstructionStrings[msgType]) {
+
+    char buff[100];
+    snprintf(buff, sizeof(buff), "%d %d", msgType, instruction );
+    std::string buffAsStdStr = buff;
+
+
+    return buffAsStdStr;
+  }
+
+  if (instruction >= MessageTypeInstructionSize[msgType]) {
+    char buff[100];
+    snprintf(buff, sizeof(buff), "instruction >= MessageTypeInstructionSize[msgType] %d %d", instruction , MessageTypeInstructionSize[msgType]);
+    std::string buffAsStdStr = buff;
+    return buffAsStdStr;
+  }
+
+  return MessageTypeStrings[msgType] + "_" +
+         MessageTypeInstructionStrings[msgType][instruction];
+}
+
 #endif  // ZILLIQA_SRC_COMMON_MESSAGENAMES_H_
