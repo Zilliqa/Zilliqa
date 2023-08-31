@@ -252,11 +252,6 @@ int main(int argc, char* argv[]) {
 
   DetachedFunction(1, func);
 
-  // TODO : Add signal handlers etc.
-
-  std::cout << "Sleeping for 30 seconds" << std::endl;
-  std::this_thread::sleep_for(std::chrono::seconds(30));
-
   while (1) {
     if (fetchDownstreams(url, mirrorAddresses, addressStore)) {
       for (const std::string& address : mirrorAddresses) {

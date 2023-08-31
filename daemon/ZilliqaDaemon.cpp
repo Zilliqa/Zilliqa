@@ -397,8 +397,13 @@ void ZilliqaDaemon::StartScripts() {
 
   string cmdToRun = "ps axf | grep " + script +
                     " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
+
+#if 0
   ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
   ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+#else
+  ZilliqaDaemon::LOG(m_log, "Not running command: \"" + cmdToRun + "\"");
+#endif
 
   cmdToRun = "python3 " + m_curPath + script +
              (0 == m_nodeIndex ? "" : " -f 10") + " &";
@@ -427,7 +432,10 @@ void ZilliqaDaemon::KillProcess(const string& procName) {
   for (const auto& pid : pids) {
     ZilliqaDaemon::LOG(
         m_log, "Killing " + procName + " process before launching daemon...");
+#if 0
     kill(pid, SIGTERM);
+#else
+#endif
     ZilliqaDaemon::LOG(m_log, procName + " process killed successfully.");
   }
 }

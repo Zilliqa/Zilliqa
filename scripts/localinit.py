@@ -1102,7 +1102,6 @@ def main():
                     pass
 
                 os.chdir(pod_path)
-                os.system("rm zilliqa.log")
 
                 args.type = node_type
                 args.index = index
@@ -1111,13 +1110,19 @@ def main():
                 if (node_type != 'multiplier'):
                     node_nss.append(generate_files(pod_name))
                 else:
+                    create_constants_xml(args)
                     create_new_multiplier_file(origin_server, args, seedpub_ips_from_origin)
+                    # this is our local http.server
                     multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
                     create_multiplier_start_sh(multiplier_ips_from_origin[0][1], multi_basic_auth_url)
 
                 sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
                 os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
-                os.system(f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
+                if (node_type != 'multiplier'):
+                    try:
+                        os.system(f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
+                    except Exception as e:  # noqa
+                        print(f'Failed to replace constants.xml: {e}')
 
                 for file_name in ['zilliqa', 'zilliqad', 'sendcmd', 'asio_multiplier']:
                     try:
@@ -1151,7 +1156,6 @@ def main():
     nss = nss + generate_nodes('normal', args.d - args.ds_guard, args.n - args.d)
     nss = nss + generate_nodes('seedpub', 0, sum(args.multiplier_fanout))
     nss = nss + generate_nodes('multiplier', 0, 1)
-
 
     return 0
 

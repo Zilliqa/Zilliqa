@@ -6,7 +6,7 @@ for dir in $dirs; do
   if [ -f "$dir/start.sh" ]; then
     echo "Running start.sh in $dir..."
     cd $dir
-    ./start.sh
+    chmod +x start.sh && ./start.sh
     cd -
   else
     echo "No start.sh found in $dir"
@@ -19,7 +19,7 @@ for dir in $dirs; do
   if [ -f "$dir/start.sh" ]; then
     echo "Running start.sh in $dir..."
     cd $dir
-    ./start.sh
+    chmod +x start.sh && ./start.sh
     cd -
   else
     echo "No start.sh found in $dir"
@@ -32,7 +32,7 @@ for dir in $dirs; do
   if [ -f "$dir/start.sh" ]; then
     echo "Running start.sh in $dir..."
     cd $dir
-    ./start.sh
+    chmod +x start.sh && ./start.sh
     cd -
   else
     echo "No start.sh found in $dir"
@@ -45,7 +45,7 @@ for dir in $dirs; do
   if [ -f "$dir/start.sh" ]; then
     echo "Running start.sh in $dir..."
     cd $dir
-    ./start.sh
+    chmod +x start.sh && ./start.sh
     cd -
   else
     echo "No start.sh found in $dir"
@@ -58,7 +58,7 @@ for dir in $dirs; do
   if [ -f "$dir/start.sh" ]; then
     cd $dir
     echo "Running start.sh in $dir..."
-    ./start.sh
+    chmod +x start.sh && ./start.sh
     cd -
   else
     echo "No start.sh found in $dir"
