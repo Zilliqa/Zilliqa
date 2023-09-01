@@ -41,14 +41,7 @@ class Synchronizer;
 class LookupServer;
 class StakingServer;
 
-// The "first" element in the pair is a map of shard to its transactions
-// The "second" element in the pair counts the total number of transactions in
-// the whole map
-using TxnShardMap =
-    std::map<uint32_t, std::deque<std::pair<Transaction, uint32_t>>>;
-
-// Enum used to tell send type to seed node
-enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
+using TxnMemPool = std::vector<Transaction>;
 
 /// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable {
@@ -117,8 +110,8 @@ class Lookup : public Executable {
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
-  TxnShardMap m_txnShardMap;
-  TxnShardMap m_txnShardMapGenerated;
+  TxnMemPool m_txnMemPool;
+  TxnMemPool m_txnMemPoolGenerated;
   std::map<Address, uint64_t> m_gentxnAddrLatestNonceSent;
 
   // Get StateDeltas from seed
@@ -184,11 +177,8 @@ class Lookup : public Executable {
   // Getter for m_seedNodes
   VectorOfNode GetSeedNodes() const;
 
-  std::mutex m_txnShardMapMutex;
-  std::mutex m_txnShardMapGeneratedMutex;
-
-  std::deque<std::pair<Transaction, uint32_t>>& GetTxnFromShardMap(
-      uint32_t index);  // Use m_txnShardMapMutex with this function
+  std::mutex m_txnMemPoolMutex;
+  std::mutex m_txnMemPoolGeneratedMutex;
 
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;
@@ -201,12 +191,10 @@ class Lookup : public Executable {
   bool IsLookupNode(const Peer& peerInfo) const;
 
   // Gen n valid txns
-  bool GenTxnToSend(
-      size_t num_txn,
-      std::map<uint32_t, std::deque<std::pair<Transaction, uint32_t>>>& mp,
-      uint32_t numShards, const bool updateRemoteStorageDBForGenTxns);
-  bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& shardTxn,
-                    std::vector<Transaction>& DSTxn);
+  bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txnContainer,
+                    uint32_t numShards,
+                    const bool updateRemoteStorageDBForGenTxns);
+  bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txns);
 
   // Try resolving ip from the given peer's DNS
   uint128_t TryGettingResolvedIP(const Peer& peer) const;
@@ -226,8 +214,6 @@ class Lookup : public Executable {
   void SendMessageToRandomSeedNode(const zbytes& message) const;
 
   void SendMessageToRandomL2lDataProvider(const zbytes& message) const;
-
-  void RectifyTxnShardMap(const uint32_t, const uint32_t);
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetDSInfoFromSeedNodes();
@@ -295,13 +281,13 @@ class Lookup : public Executable {
   // protocol
   void RejoinAsNewLookup(bool fromLookup = true);
 
-  bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
-  bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
-                        TxnShardMap& txnShardMap, std::mutex& txnShardMapMutex);
+  bool AddTxnToMemPool(const Transaction& tx);
+  bool AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
+                       std::mutex& txnMemPoolMutex);
 
   void CheckBufferTxBlocks();
 
-  bool DeleteTxnShardMap(uint32_t shardId);
+  bool ClearTxnMemPool();
 
   void SetServerTrue();
 

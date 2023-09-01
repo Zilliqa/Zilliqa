@@ -51,17 +51,11 @@ class LookupServer : public Server,
   Z_I64METRIC m_callCount{Z_FL::API_SERVER, "lookup_invocation_count",
                           "Calls to Lookup Server", "Calls"};
 
-  CreateTransactionTargetFunc m_createTransactionTarget =
-      [this](const Transaction& tx, uint32_t shardId) -> bool {
-    return m_mediator.m_lookup->AddToTxnShardMap(tx, shardId);
-  };
-
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
 
-  std::pair<std::string, unsigned int> CheckContractTxnShards(
-      bool priority, unsigned int shard, const Transaction& tx,
-      unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
+  std::string CheckContractTxn(const Transaction& tx, bool toAccountExist,
+                               bool toAccountIsContract);
   mp::cpp_dec_float_50 CalculateTotalSupply();
 
  public:
@@ -82,9 +76,8 @@ class LookupServer : public Server,
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
     response = CreateTransaction(
-        request[0u], m_mediator.m_lookup->GetShardPeers().size(),
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
-        m_createTransactionTarget);
+        request[0u],
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice());
   }
 
   inline virtual void GetTransactionI(const Json::Value& request,
@@ -296,7 +289,7 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetTotalCoinSupplyAsIntI(const Json::Value& request,
-                                          Json::Value& response) {
+                                               Json::Value& response) {
     (void)request;
     static_assert(sizeof(unsigned long) <= sizeof(Json::UInt64));
     response = static_cast<Json::UInt64>(this->GetTotalCoinSupplyAsInt());
@@ -325,9 +318,7 @@ class LookupServer : public Server,
   }
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json,
-                                const unsigned int num_shards,
-                                const uint128_t& gasPrice,
-                                const CreateTransactionTargetFunc& targetFunc);
+                                const uint128_t& gasPrice);
 
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
