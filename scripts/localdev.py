@@ -41,6 +41,12 @@ SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
 
+def get_progress_arg():
+    if "NO_COLOR" in os.environ:
+        return "--progress=plain"
+    else:
+        return "--progress=auto"
+
 def is_osx():
     return sys.platform == "darwin"
 
@@ -980,7 +986,8 @@ def build_scilla(config, driver, tag):
     build_env["DOCKER_BUILDKIT"] = "1"
 
     image_name = "scilla:" + (tag if tag else gen_tag())
-    run_or_die(config, [config.docker_binary, "build", ".", "-t", image_name, "-f", os.path.join(SCILLA_DIR, "docker", "Dockerfile")], in_dir = SCILLA_DIR, env = build_env,
+    progress_arg = get_progress_arg()
+    run_or_die(config, [config.docker_binary, "build", progress_arg, ".", "-t", image_name, "-f", os.path.join(SCILLA_DIR, "docker", "Dockerfile")], in_dir = SCILLA_DIR, env = build_env,
                capture_output = False)
     return image_name
 
@@ -1074,7 +1081,8 @@ def build_zilliqa(config, driver, scilla_image, tag):
     build_env["DOCKER_BUILDKIT"] = "1"
 
     image_name = "zilliqa:" + (tag if tag else gen_tag())
-    run_or_die(config, [config.docker_binary, "build", ".", "--build-arg", f"SCILLA_IMAGE={scilla_image}", "-t", image_name, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
+    progress_arg = get_progress_arg();
+    run_or_die(config, [config.docker_binary, "build", progress_arg, ".", "--build-arg", f"SCILLA_IMAGE={scilla_image}", "-t", image_name, "-f", os.path.join(ZILLIQA_DIR, "docker", "Dockerfile")], in_dir = ZILLIQA_DIR, env = build_env,
                capture_output = False)
     return image_name
 
