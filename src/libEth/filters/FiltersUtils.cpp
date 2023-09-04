@@ -40,6 +40,7 @@ const char *BLOCKHASH_STR("blockHash");
 const char *TRANSACTIONHASH_STR("transactionHash");
 const char *TRANSACTIONINDEX_STR("transactionIndex");
 const char *DATA_STR("data");
+constexpr auto REMOVED_STR = "removed";
 
 namespace {
 constexpr char EVENT_FILTER_SUFFIX = 'a';
@@ -447,6 +448,7 @@ Json::Value CreateEventResponseTemplate() {
   v[LOGINDEX_STR] = zero;
   v[BLOCKHASH_STR] = zero;
   v[TRANSACTIONINDEX_STR] = zero;
+  v[REMOVED_STR] = "false";
   return v;
 }
 
@@ -464,6 +466,7 @@ Json::Value CreateEventResponseItem(EpochNumber epoch, const TxnHash &tx_hash,
   v[TRANSACTIONHASH_STR] = tx_hash;
   v[ADDRESS_STR] = address;
   v[DATA_STR] = NormalizeEventData(data);
+  v[REMOVED_STR] = "false";
 
   auto json_topics = Json::Value(Json::arrayValue);
   for (const auto &t : topics) {
