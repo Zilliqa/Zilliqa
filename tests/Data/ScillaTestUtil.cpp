@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem.hpp>
 #include "common/Constants.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -29,7 +28,7 @@ using namespace boost::multiprecision;
 
 bool ScillaTestUtil::ParseJsonFile(Json::Value &j,
                                    const std::string &filename) {
-  if (!boost::filesystem::is_regular_file(filename)) {
+  if (!std::filesystem::is_regular_file(filename)) {
     return false;
   }
 
@@ -53,12 +52,12 @@ uint64_t ScillaTestUtil::GetFileSize(const std::string &filename) {
 
   std::string filepath = SCILLA_FILES + "/" + filename;
 
-  if (!boost::filesystem::exists(filepath)) {
+  if (!std::filesystem::exists(filepath)) {
     LOG_GENERAL(WARNING, filename << " does not exist!");
     return 0;
   }
 
-  return boost::filesystem::file_size(filepath);
+  return std::filesystem::file_size(filepath);
 }
 
 namespace {
@@ -83,11 +82,11 @@ bool GetScillaTestHelper(const std::string &version, bool isLibrary,
 
   LOG_GENERAL(INFO, "ScillaTestUtil::testDir: " << testDir << "\n");
 
-  if (!boost::filesystem::is_directory(testDir)) {
+  if (!std::filesystem::is_directory(testDir)) {
     return false;
   }
 
-  if (!boost::filesystem::is_regular_file(scillaSourceFile)) {
+  if (!std::filesystem::is_regular_file(scillaSourceFile)) {
     return false;
   }
 

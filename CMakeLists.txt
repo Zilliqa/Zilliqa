@@ -29,37 +29,21 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
-find_package(Libevent REQUIRED)
-find_package(jsoncpp REQUIRED)
-find_package(mongocxx REQUIRED)
-find_package(bsoncxx REQUIRED)
-find_package(websocketpp REQUIRED)
-find_package(leveldb REQUIRED)
+find_package(jsoncpp CONFIG REQUIRED)
+find_package(mongocxx CONFIG REQUIRED)
+find_package(bsoncxx CONFIG REQUIRED)
+find_package(leveldb CONFIG REQUIRED)
 find_package(g3log REQUIRED)
 find_package(g3sinks REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 
-# Temporary workarounds for Python3:
-#
-# 1. Make sure PATH points to the python3 in the vcpkg tools sub-directory; otherwise on some systems find_package 
-#    will fail (e.g. if libpython3-dev is installed on Ubuntu 20.04).
-# 2. For some reason it only finds debug library upon a second call to  find_package. Otherwise, the release
-#    library will be used and if it's a debug build linkage could fail.
-set(PREV_PATH $ENV{PATH})
-set(ENV{PATH} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/python3:$ENV{PATH}")
-find_package(Python3 COMPONENTS Development REQUIRED)
-find_package(Python3 COMPONENTS Development REQUIRED)
-set(ENV{PATH} "${PREV_PATH}")
-
-include(FindProtobuf)
-set(protobuf_MODULE_COMPATIBLE TRUE)
-find_package(Protobuf REQUIRED)
+find_package(protobuf CONFIG REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
+find_package(Boost COMPONENTS system unit_test_framework program_options REQUIRED)
 
 find_package(Schnorr REQUIRED)
 find_package(CryptoUtils REQUIRED)

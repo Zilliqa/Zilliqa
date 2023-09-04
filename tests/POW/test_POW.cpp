@@ -31,7 +31,6 @@
 #define BOOST_TEST_MODULE powtest
 #define BOOST_TEST_DYN_LINK
 
-#include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
 #include <fstream>
 #include <iostream>
@@ -45,7 +44,7 @@ using zbytes = std::vector<zbyte>;
 static constexpr uint64_t ETHASH_DATASET_BYTES_INIT = 1073741824U;  // 2**30
 static constexpr uint64_t ETHASH_MIX_BYTES = 128;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 BOOST_AUTO_TEST_SUITE(powtest)
 

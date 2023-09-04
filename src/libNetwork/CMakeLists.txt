@@ -1,4 +1,4 @@
-find_package(Libevent REQUIRED)
+find_package(Libevent CONFIG REQUIRED)
 
 add_library(Network
     Peer.cpp

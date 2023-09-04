@@ -17,7 +17,6 @@
 
 #include <string>
 
-#include <boost/filesystem/operations.hpp>
 
 #include "LevelDB.h"
 #include "common/Constants.h"
@@ -42,7 +41,7 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
     this->m_dbName = dbName;
     this->m_db = NULL;
 
-    if(!(boost::filesystem::exists(path)))
+    if(!(std::filesystem::exists(path)))
     {
         LOG_GENERAL(WARNING, path + " does not exist");
         return;
@@ -62,9 +61,9 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
     }
     else
     {
-        if (!(boost::filesystem::exists(path + "/" + this->m_subdirectory)))
+        if (!(std::filesystem::exists(path + "/" + this->m_subdirectory)))
         {
-            boost::filesystem::create_directories(path + "/" + this->m_subdirectory);
+            std::filesystem::create_directories(path + "/" + this->m_subdirectory);
         }
         m_open_db_path = path + "/" + this->m_subdirectory + "/" + this->m_dbName;
         status = leveldb::DB::Open(m_options, 
@@ -97,9 +96,9 @@ LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bo
     // Its default value is false, and the non-diagnostic path is preserved
     // from the original code.
     string db_path = diagnostic ? (m_subdirectory + PERSISTENCE_PATH) : (STORAGE_PATH + PERSISTENCE_PATH + (m_subdirectory.empty() ? "" : "/" + m_subdirectory));
-    if (!boost::filesystem::exists(db_path))
+    if (!std::filesystem::exists(db_path))
     {
-        boost::filesystem::create_directories(db_path);
+        std::filesystem::create_directories(db_path);
     }
 
     m_open_db_path = db_path + "/" + this->m_dbName;
@@ -549,7 +548,7 @@ int LevelDB::DeleteDBForNormalNode()
 
     if(this->m_subdirectory.size())
     {
-        boost::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName);
+        std::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName);
     }
 
     return 0;
@@ -559,7 +558,7 @@ bool LevelDB::ResetDBForNormalNode()
 {
     if(DeleteDBForNormalNode() == 0 && this->m_subdirectory.empty())
     {
-        boost::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_dbName);
+        std::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
         options.max_open_files = 256;
@@ -602,7 +601,7 @@ bool LevelDB::ResetDBForLookupNode()
 {
     if(DeleteDBForLookupNode()==0)
     {
-        boost::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_dbName);
+        std::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
         options.max_open_files = 256;

@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem/operations.hpp>
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
 #include "libNode/Node.h"

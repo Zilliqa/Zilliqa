@@ -96,7 +96,11 @@ bool CheckMinimumNumOfCPUCoresReq() {
 }
 
 bool CheckMinimumHardwareRequired() {
+#ifndef __APPLE__
   return CheckMinimumRAMReq() && CheckMinimumNumOfCPUCoresReq();
+#else
+  return true;
+#endif
 }
 
 }  // namespace HardwareSpecification
