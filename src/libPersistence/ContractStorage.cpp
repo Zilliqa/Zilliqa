@@ -432,12 +432,9 @@ bool ContractStorage::FetchExternalStateValue(
       type = "ByStr20";
     }
   } else if (query.name() == "_codehash") {
-    dev::h256 codeHash;
-    if (account->GetContractCodeHash(codeHash)) {
-      special_query = "\"0x" + codeHash.hex() + "\"";
-      type = "ByStr32";
-    } else
-      return false;
+    dev::h256 codeHash = account->GetCodeHash();
+    special_query = "\"0x" + codeHash.hex() + "\"";
+    type = "ByStr32";
   } else if (query.name() == "_code") {
     // Get the code directly from the account storage.
     zbytes code = account->GetCode();
