@@ -177,6 +177,8 @@ class Lookup : public Executable {
   // Getter for m_seedNodes
   VectorOfNode GetSeedNodes() const;
 
+  auto GetTransactionsFromMemPool() const { return m_txnMemPool; }
+
   std::mutex m_txnMemPoolMutex;
   std::mutex m_txnMemPoolGeneratedMutex;
 
@@ -293,7 +295,7 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread(const uint32_t, bool newDSEpoch = false);
+  void SenderTxnBatchThread(bool newDSEpoch = false);
 
   void SendTxnPacketPrepare(const uint32_t oldNumShards,
                             const uint32_t newNumShards,

@@ -5307,8 +5307,7 @@ bool Lookup::ClearTxnMemPool() {
   return true;
 }
 
-void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards,
-                                  bool newDSEpoch) {
+void Lookup::SenderTxnBatchThread(bool newDSEpoch) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SenderTxnBatchThread not expected to be called from "
@@ -5620,58 +5619,14 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  vector<Transaction> txnsShard;
-  vector<Transaction> txnsDS;
-
-  if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, txnsShard,
-                                             txnsDS)) {
-    LOG_GENERAL(WARNING, "Failed to Messenger::GetForwardTxnBlockFromSeed");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Recvd from " << from);
-
-  if (!ARCHIVAL_LOOKUP) {
-    uint32_t shard_size = m_mediator.m_ds->GetNumShards();
-
-    if (!(m_sendSCCallsToDS || m_sendAllToDS)) {
-      for (const auto& txn : txnsShard) {
-        unsigned int shard = txn.GetShardIndex(shard_size);
-        AddToTxnShardMap(txn, shard);
-      }
-    } else if (m_sendAllToDS) {
-      for (const auto& txn : txnsShard) {
-        AddToTxnShardMap(txn, shard_size);
-      }
-    } else {
-      LOG_GENERAL(INFO, "Sending all contract calls to DS committee");
-      for (const auto& txn : txnsShard) {
-        const Transaction::ContractType txnType =
-            Transaction::GetTransactionType(txn);
-        if (txnType == Transaction::ContractType::CONTRACT_CALL) {
-          AddToTxnShardMap(txn, shard_size);
-        } else {
-          unsigned int shard = txn.GetShardIndex(shard_size);
-          AddToTxnShardMap(txn, shard);
-        }
-      }
-    }
-
-    LOG_GENERAL(INFO, "Size of DS txns " << txnsDS.size());
-
-    for (const auto& txn : txnsDS) {
-      AddToTxnShardMap(txn, shard_size);
-    }
-    if (REMOTESTORAGE_DB_ENABLE) {
-      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
-    }
+  // TODO: this should be reworked once we drop support for Lookup nodes
+  // I'm either upper seed (archival lookup) for external nodes or a Lookup for
+  // private seed nodes
+  if (ARCHIVAL_LOOKUP) {
+    // I'm seed/external-seed - forward message to next layer of 'lookups'
+    SendMessageToRandomSeedNode(message);
   } else {
-    for (const auto& txn : txnsShard) {
-      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_SHARD);
-    }
-    for (const auto& txn : txnsDS) {
-      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_DS);
-    }
+    // I'm a lookup (non-seed & non-external) - forward messages to ds shard
   }
 
   return true;

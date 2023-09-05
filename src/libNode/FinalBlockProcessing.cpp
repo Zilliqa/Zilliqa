@@ -118,7 +118,8 @@ class FinalBLockProcessingVariables {
         result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
         result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
-        result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(missedMicroblockConsensus,
+                   {{"counter", "MissedMicroblockConsensus"}});
         result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
         result.Set(shard, {{"counter", "Shard"}});
       });
@@ -1046,7 +1047,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus. Timeout: " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
+        LOG_GENERAL(WARNING,
+                    "Timeout, I didn't finish microblock consensus. Timeout: "
+                        << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
         zil::local::variables.AddTimedOutMicroblock(1);
       }
     }
@@ -1112,7 +1115,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_pendingTxns.erase(txnHash);
     }
   }
-  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock ENTER");
+  LOG_GENERAL(
+      WARNING,
+      "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock ENTER");
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
@@ -1304,17 +1309,36 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     uint32_t numShards = m_mediator.m_ds->GetNumShards();
 
     CommitMBnForwardedTransactionBuffer();
-    if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
+    // Seed/external nodes send mempool transactions upon arrival of final block
+    if (ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
          NUM_FINAL_BLOCK_PER_POW) != 0) {
-      m_mediator.m_lookup->SenderTxnBatchThread(numShards);
+      SendTxnMemPoolToNextLayer();
+      m_mediator.m_lookup->ClearTxnMemPool();
+      // m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(
         true);  // except last block
   }
   return true;
+}
+
+void Node::SendTxnMemPoolToNextLayer() {
+  zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+
+  {
+    lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
+    if (!Messenger::SetForwardTxnBlockFromSeed(
+            msg, MessageOffset::BODY,
+            m_mediator.m_lookup->GetTransactionsFromMemPool())) {
+      LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
+    }
+  }
+  // Sending mempool txns to random node next in the ladder (either lookup or
+  // upper seed for external nodes)
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
 }
 
 bool Node::ProcessStateDeltaFromFinalBlock(
@@ -1407,8 +1431,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
       }
-      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: " << txhash.hex() << ", NONCE: " << tran.GetNonce());
-      
+      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: "
+                               << txhash.hex()
+                               << ", NONCE: " << tran.GetNonce());
+
       if (LOOKUP_NODE_MODE) {
         LookupServer::AddToRecentTransactions(txhash);
         const auto& receipt = twr.GetTransactionReceipt();

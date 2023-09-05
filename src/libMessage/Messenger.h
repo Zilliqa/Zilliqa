@@ -595,13 +595,11 @@ class Messenger {
 
   static bool SetForwardTxnBlockFromSeed(
       zbytes& dst, const unsigned int offset,
-      const std::deque<std::pair<Transaction, uint32_t>>& shardTransactions,
-      const std::deque<std::pair<Transaction, uint32_t>>& dsTransactions);
+      const std::vector<Transaction>& transactions);
 
   static bool GetForwardTxnBlockFromSeed(
       const zbytes& src, const unsigned int offset,
-      std::vector<Transaction>& shardTransactions,
-      std::vector<Transaction>& dsTransactions);
+      std::vector<Transaction>& transactions);
 
   static bool SetLookupGetMicroBlockFromLookup(
       zbytes& dst, const unsigned int offset,

@@ -186,12 +186,6 @@ bool DirectoryService::CheckState(Action action) {
   return true;
 }
 
-uint32_t DirectoryService::GetNumShards() const {
-  lock_guard<mutex> g(m_mutexShards);
-
-  return m_shards.size();
-}
-
 bool DirectoryService::ProcessSetPrimary(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
@@ -1010,10 +1004,12 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
 
-        Blacklist::GetInstance().RemoveFromWhitelist({
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress,
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_listenPortHost,
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.GetNodeIndentifier()}  );
+        Blacklist::GetInstance().RemoveFromWhitelist(
+            {m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress,
+             m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                 .second.m_listenPortHost,
+             m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                 .second.GetNodeIndentifier()});
         LOG_GENERAL(INFO,
                     "Removed "
                         << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
@@ -1027,9 +1023,10 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
             dsGuardNewNetworkInfo;
 
         if (GUARD_MODE) {
-          Blacklist::GetInstance().Whitelist({dsGuardNewNetworkInfo.m_ipAddress,
-                                                      dsGuardNewNetworkInfo.m_listenPortHost,
-                                                dsGuardNewNetworkInfo.GetNodeIndentifier()});
+          Blacklist::GetInstance().Whitelist(
+              {dsGuardNewNetworkInfo.m_ipAddress,
+               dsGuardNewNetworkInfo.m_listenPortHost,
+               dsGuardNewNetworkInfo.GetNodeIndentifier()});
           LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
                                               << " to blacklist exclude list");
         }

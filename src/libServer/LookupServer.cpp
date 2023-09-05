@@ -364,14 +364,12 @@ bool LookupServer::StartCollectorThread() {
   auto collectorThread = [this]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
-    vector<Transaction> txnsShard;
-    vector<Transaction> txnsDS;
+    vector<Transaction> txnsToSend;
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
       this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
-      txnsShard.clear();
-      txnsDS.clear();
+      txnsToSend.clear();
 
       if (m_mediator.m_disableTxns) {
         LOG_GENERAL(INFO, "Txns disabled - skipping forwarding to upper seed");
@@ -385,55 +383,15 @@ bool LookupServer::StartCollectorThread() {
 
       if (USE_REMOTE_TXN_CREATOR &&
           !m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT,
-                                             txnsShard, txnsDS)) {
+                                             txnsToSend)) {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
       }
 
-      if (!txnsShard.empty()) {
-        for (const auto& tx : txnsShard) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
-        }
-        LOG_GENERAL(INFO, "Size of txns to shard: " << txnsShard.size());
+      LOG_GENERAL(INFO, "Size of generated txns to DS: " << txnsToSend.size());
+
+      for (const auto& tx : txnsToSend) {
+        m_mediator.m_lookup->AddTxnToMemPool(tx);
       }
-
-      if (!txnsDS.empty()) {
-        for (const auto& tx : txnsDS) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_DS);
-        }
-        LOG_GENERAL(INFO, "Size of txns to DS: " << txnsDS.size());
-      }
-
-      for (auto const& i :
-           {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
-        {
-          lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
-          if (m_mediator.m_lookup->GetTxnFromShardMap(i).empty()) {
-            continue;
-          }
-        }
-      }
-
-      zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
-
-      {
-        lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
-        if (!Messenger::SetForwardTxnBlockFromSeed(
-                msg, MessageOffset::BODY,
-                m_mediator.m_lookup->GetTxnFromShardMap(
-                    SEND_TYPE::ARCHIVAL_SEND_SHARD),
-                m_mediator.m_lookup->GetTxnFromShardMap(
-                    SEND_TYPE::ARCHIVAL_SEND_DS))) {
-          continue;
-        }
-        for (auto const& i :
-             {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
-          m_mediator.m_lookup->ClearTxnMemPool(i);
-        }
-      }
-
-      m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
     }
   };
   DetachedFunction(1, collectorThread);
@@ -614,7 +572,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
           }
         }
 
-        ret["Info"] = "Non-contract txn, sent to shard";
+        ret["Info"] = "Non-contract txn, sent to Ds";
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
         ret["Info"] = CheckContractTxn(tx, toAccountExist, toAccountIsContract);
