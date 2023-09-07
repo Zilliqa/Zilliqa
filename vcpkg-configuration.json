@@ -4,7 +4,7 @@
       "kind": "filesystem",
       "path": "vcpkg-registry",
       "packages": [
-        "cpp-libp2p",
+        "libp2p",
         "cryptoutils",
         "g3log",
         "g3sinks",

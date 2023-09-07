@@ -2,8 +2,8 @@
   "name": "zilliqa",
   "version-string": "master",
   "dependencies": [
+    "fmt",
     "jsoncpp",
-    "openssl",
     "protobuf",
     "boost-asio",
     "boost-beast",
@@ -36,7 +36,7 @@
     "sqlitemoderncpp",
     "soralog",
     "cryptoutils",
-    "cpp-libp2p",
+    "libp2p",
     {
       "name": "opentelemetry-cpp",
       "default-features": false,
@@ -52,10 +52,6 @@
     {
       "name": "jsoncpp",
       "version-string": "1.8.1-1"
-    },
-    {
-      "name": "openssl",
-      "version-string": "1.1.1n"
     },
     {
       "name": "g3log",
@@ -86,7 +82,7 @@
       "version": "8.3.0#1"
     },
     {
-      "name": "cpp-libp2p",
+      "name": "libp2p",
       "version": "0.1.12"
     },
     {
