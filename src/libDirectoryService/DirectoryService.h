@@ -581,7 +581,7 @@ class DirectoryService : public Executable {
   bool m_dsEpochAfterUpgrade = false;
 
   // GetShards
-  uint32_t GetNumShards() const;
+  uint32_t GetNumShards() const { return 1; }
   /// Force multicast when sending block to shard
   std::atomic<bool> m_forceMulticast{};
 

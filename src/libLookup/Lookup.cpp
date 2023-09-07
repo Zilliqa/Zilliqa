@@ -276,7 +276,6 @@ void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
 void Lookup::SetLookupNodes() {
   std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
 
-  m_startedTxnBatchThread = false;
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -520,7 +519,6 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txnContainer) {
 
 bool Lookup::GenTxnToSend(size_t num_txn,
                           std::vector<Transaction>& txnContainer,
-                          uint32_t numShards,
                           const bool updateRemoteStorageDBForGenTxns) {
   if (GENESIS_WALLETS.size() == 0) {
     LOG_GENERAL(WARNING, "No genesis accounts found");
@@ -4779,7 +4777,6 @@ bool Lookup::CleanVariables() {
 
   m_seedNodes.clear();
   m_currDSExpired = false;
-  m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
   {
     std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
@@ -5222,7 +5219,8 @@ bool Lookup::Execute(const zbytes& message, unsigned int offset,
       return false;
     }
   }
-
+  LOG_GENERAL(WARNING, "BZ Dispatching Lookup msg type: "
+                           << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
@@ -5307,7 +5305,7 @@ bool Lookup::ClearTxnMemPool() {
   return true;
 }
 
-void Lookup::SenderTxnBatchThread(bool newDSEpoch) {
+void Lookup::SenderTxnBatchThread(std::vector<Transaction> transactions) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SenderTxnBatchThread not expected to be called from "
@@ -5315,34 +5313,11 @@ void Lookup::SenderTxnBatchThread(bool newDSEpoch) {
     return;
   }
 
-  if (m_startedTxnBatchThread) {
-    LOG_GENERAL(WARNING,
-                "The last TxnBatchThread hasn't finished, discard this time");
-    return;
-  }
-
-  auto main_func = [this, oldNumShards, newDSEpoch]() mutable -> void {
-    m_startedTxnBatchThread = true;
-    uint32_t numShards = 0;
-    while (true) {
-      if (!m_mediator.GetIsVacuousEpoch()) {
-        numShards = m_mediator.m_ds->GetNumShards();
-        if (newDSEpoch) {
-          m_gentxnAddrLatestNonceSent.clear();
-          SendTxnPacketToNodes(oldNumShards, numShards);
-        } else {
-          SendTxnPacketToDS(oldNumShards, numShards);
-        }
-      }
-      break;
-    }
-    m_startedTxnBatchThread = false;
-  };
-  DetachedFunction(1, main_func);
+  SendTxnsToDSShard(std::move(transactions));
 }
 
-void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
-                                  bool afterSoftConfirmation) {
+void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
+  LOG_GENERAL(WARNING, "BZ SendTxnPacketToShard");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketToShard not expected to be called from"
@@ -5352,77 +5327,37 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
 
   zbytes msg = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
   bool result = false;
-  uint64_t epoch = afterSoftConfirmation ? m_mediator.m_currentEpochNum + 1
-                                         : m_mediator.m_currentEpochNum;
+  uint64_t epoch = m_mediator.m_currentEpochNum;
 
   {
     unique_lock<mutex> g(m_txnMemPoolMutex, defer_lock);
     unique_lock<mutex> g2(m_txnMemPoolGeneratedMutex, defer_lock);
     lock(g, g2);
-    auto transactionNumber = m_txnShardMapGenerated[shardId].size();
+    auto transactionNumber = transactions.size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-    if (GetTxnFromShardMap(shardId).empty() &&
-        m_txnShardMapGenerated[shardId].empty()) {
-      LOG_GENERAL(INFO, "No txns to send to shard " << shardId);
+    if (transactions.empty()) {
+      LOG_GENERAL(INFO, "No txns to send to ds shard");
       return;
     }
+
+    LOG_GENERAL(WARNING, "BZ Creating message with size of txns: "
+                             << transactions.size());
 
     result = Messenger::SetNodeForwardTxnBlock(
         msg, MessageOffset::BODY, epoch,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        shardId, m_mediator.m_selfKey, GetTxnFromShardMap(shardId),
-        m_txnShardMapGenerated[shardId]);
+        m_mediator.m_selfKey, transactions);
   }
 
   if (!result) {
     LOG_EPOCH(WARNING, epoch, "Messenger::SetNodeForwardTxnBlock failed.");
-    LOG_GENERAL(WARNING, "Cannot create packet for " << shardId << " shard");
     return;
   }
 
   vector<Peer> toSend;
-  if (!toDS) {
-    {
-      lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-      uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-
-      if (m_mediator.m_ds->m_shards.at(shardId).empty()) {
-        return;
-      }
-
-      // Lookup sends to NUM_NODES_TO_SEND_LOOKUP including Leader
-
-      PairOfNode shardLeader;
-      uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
-          lastBlockHash, m_mediator.m_ds->m_shards.at(shardId).size(),
-          m_mediator.m_ds->m_shards.at(shardId), shardLeader);
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Shard leader id " << leader_id);
-
-      auto it = m_mediator.m_ds->m_shards.at(shardId).begin();
-
-      // Send to the leader
-      toSend.push_back(shardLeader.second);
-
-      // Send to remaining ones
-      for (; it != m_mediator.m_ds->m_shards.at(shardId).end(); it++) {
-        if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
-            std::get<SHARD_NODE_PUBKEY>(*it) != shardLeader.first) {
-          toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
-        }
-
-        if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
-          break;
-        }
-      }
-    }
-    zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
-
-    ClearTxnMemPool(shardId);
-  } else {
+  {
     // To send DS
     {
       lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
@@ -5450,28 +5385,24 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
         }
       }
     }
-
+    LOG_GENERAL(WARNING, "BZ Broadcasting messages to shard from lookup...");
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
                           << " Sent DS the txns");
-
-    ClearTxnMemPool(shardId);
   }
 }
 
-void Lookup::SendTxnPacketToDS(const uint32_t oldNumShards,
-                               const uint32_t newNumShards) {
+void Lookup::SendTxnsToDSShard(std::vector<Transaction> transactionsToSend) {
   // This will generate txns for all shards include ds shard.
-  SendTxnPacketPrepare(oldNumShards, newNumShards);
+  SendTxnPacketPrepare(transactionsToSend);
 
-  // But will only send txn pkt to ds-shard
-  SendTxnPacketToShard(newNumShards, true);
+  SendTxnPacketToShard(std::move(transactionsToSend));
 }
 
-void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
-                                  const uint32_t newNumShards,
-                                  const bool updateRemoteStorageDBForGenTxns) {
+void Lookup::SendTxnPacketPrepare(
+    std::vector<Transaction>& transactionsToSend) {
+  LOG_GENERAL(WARNING, "BZ SendTxnPacketPrepare");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketPrepare not expected to be called from "
@@ -5484,56 +5415,17 @@ void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
     return;
   }
 
-  const uint32_t numShards = newNumShards;
-
   if (USE_REMOTE_TXN_CREATOR) {
     lock_guard<mutex> g(m_txnMemPoolGeneratedMutex);
-    m_txnShardMapGenerated.clear();
+    m_txnMemPoolGenerated.clear();
 
-    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, m_txnShardMapGenerated,
-                      numShards, updateRemoteStorageDBForGenTxns)) {
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, m_txnMemPoolGenerated,
+                      true)) {
       LOG_GENERAL(WARNING, "GenTxnToSend failed");
     }
-  }
-
-  if (oldNumShards != newNumShards) {
-    auto rectifyFunc = [this, oldNumShards, newNumShards]() mutable -> void {
-      RectifyTxnShardMap(oldNumShards, newNumShards);
-    };
-    DetachedFunction(1, rectifyFunc);
-  }
-
-  this_thread::sleep_for(
-      chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
-}
-
-void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
-                                  const uint32_t newNumShards) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::SendTxnPacketToNodes not expected to be called from "
-                "other than the LookUp node.");
-    return;
-  }
-
-  SendTxnPacketPrepare(oldNumShards, newNumShards);
-
-  for (unsigned int i = 0; i < newNumShards + 1; i++) {
-    SendTxnPacketToShard(i, i == newNumShards);
-  }
-
-  // Fix: To prepare for new set of transaction for second epoch
-  // since txns from first epoch will be hard confirmed only on receving FB.
-  // And we need to avoid sending same txns in second epoch after receivng MB
-  // for first epoch
-  SendTxnPacketPrepare(oldNumShards, newNumShards, false);
-  // Now we have generated txns for all shards and ds-shard.
-  // But we only need them for normal shards to be send later after recv soft
-  // confirmation.
-  {
-    lock_guard<mutex> g(m_txnMemPoolGeneratedMutex);
-    // remove for ds-shard
-    m_txnShardMapGenerated[newNumShards].clear();
+    transactionsToSend.insert(std::end(transactionsToSend),
+                              std::cbegin(m_txnMemPoolGenerated),
+                              std::cend(m_txnMemPoolGenerated));
   }
 }
 
@@ -5608,6 +5500,7 @@ bool Lookup::VerifySenderNode(const Shard& shard,
 bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                [[gnu::unused]] const unsigned char& startByte) {
+  LOG_GENERAL(WARNING, "BZ Received ProcessForwardTxn");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessForwardTxn not expected to be called from "
@@ -5620,13 +5513,25 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
   }
 
   // TODO: this should be reworked once we drop support for Lookup nodes
-  // I'm either upper seed (archival lookup) for external nodes or a Lookup for
+  // I'm either upper seed (archival lookup) for external node or a Lookup for
   // private seed nodes
   if (ARCHIVAL_LOOKUP) {
     // I'm seed/external-seed - forward message to next layer of 'lookups'
+    LOG_GENERAL(WARNING,
+                "BZ: Received txn message at lookup, sending to next lookup in "
+                "the chain");
     SendMessageToRandomSeedNode(message);
   } else {
     // I'm a lookup (non-seed & non-external) - forward messages to ds shard
+    std::vector<Transaction> transactions;
+    if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, transactions)) {
+      LOG_GENERAL(WARNING,
+                  "Unable to deserialize message from by Lookup from Seed");
+      return false;
+    }
+    LOG_GENERAL(WARNING, "BZ Sending from lookup to dsshard txn with size: "
+                             << transactions.size());
+    SenderTxnBatchThread(std::move(transactions));
   }
 
   return true;

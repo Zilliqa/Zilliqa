@@ -357,8 +357,6 @@ bool Node::ProcessVCDSBlocksMessage(
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
-  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
-
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -717,8 +715,8 @@ bool Node::ProcessVCDSBlocksMessage(
 
     m_mediator.m_node->CleanWhitelistReqs();
 
-    if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards, true);
+    if (m_mediator.m_lookup->GetIsServer() && ARCHIVAL_LOOKUP) {
+      SendTxnMemPoolToNextLayer();
     }
   }
 

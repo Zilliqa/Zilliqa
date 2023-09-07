@@ -83,8 +83,6 @@ class Lookup : public Executable {
   VectorOfPeer m_nodesInNetwork;
   std::unordered_set<Peer> l_nodesInNetwork;
 
-  std::atomic<bool> m_startedTxnBatchThread{};
-
   std::atomic<bool> m_startedFetchMissingMBsThread{};
 
   // Store the StateRootHash of latest txBlock before States are repopulated.
@@ -194,7 +192,6 @@ class Lookup : public Executable {
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txnContainer,
-                    uint32_t numShards,
                     const bool updateRemoteStorageDBForGenTxns);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txns);
 
@@ -295,17 +292,11 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread(bool newDSEpoch = false);
+  void SenderTxnBatchThread(std::vector<Transaction> transactions);
 
-  void SendTxnPacketPrepare(const uint32_t oldNumShards,
-                            const uint32_t newNumShards,
-                            const bool updateRemoteStorageDBForGenTxns = true);
-  void SendTxnPacketToNodes(const uint32_t oldNumShards,
-                            const uint32_t newNumShards);
-  void SendTxnPacketToDS(const uint32_t oldNumShards,
-                         const uint32_t newNumShards);
-  void SendTxnPacketToShard(const uint32_t shardId, bool toDS,
-                            bool afterSoftConfirmation = false);
+  void SendTxnPacketPrepare(std::vector<Transaction>& transactionsToSend);
+  void SendTxnsToDSShard(std::vector<Transaction> transactions);
+  void SendTxnPacketToShard(std::vector<Transaction> transactions);
 
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const zbytes& message, unsigned int offset,

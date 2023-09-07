@@ -396,7 +396,7 @@ void Node::InitiatePoW() {
         "Node::InitiatePoW not expected to be called from LookUp node.");
     return;
   }
-
+  LOG_GENERAL(WARNING, "BZ: InitiatePoW");
   SetState(POW_SUBMISSION);
 
   if (m_mediator.m_disablePoW) {
@@ -1306,8 +1306,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     // Now only forwarded txn are left, so only call in lookup
 
-    uint32_t numShards = m_mediator.m_ds->GetNumShards();
-
     CommitMBnForwardedTransactionBuffer();
     // Seed/external nodes send mempool transactions upon arrival of final block
     if (ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
@@ -1316,7 +1314,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
          NUM_FINAL_BLOCK_PER_POW) != 0) {
       SendTxnMemPoolToNextLayer();
       m_mediator.m_lookup->ClearTxnMemPool();
-      // m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(
@@ -1326,6 +1323,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 }
 
 void Node::SendTxnMemPoolToNextLayer() {
+  LOG_GENERAL(WARNING,
+              "BZ Sending from seed to lookup txn with size: "
+                  << m_mediator.m_lookup->GetTransactionsFromMemPool().size());
   zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
   {
@@ -1682,13 +1682,13 @@ bool Node::ProcessMBnForwardTransaction(
     // soft confirmation
     SoftConfirmForwardedTransactions(entry);
     // invoke txn distribution
-    if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
+    /*if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
              NUM_FINAL_BLOCK_PER_POW !=
          0)) {
       m_mediator.m_lookup->SendTxnPacketToShard(
           entry.m_microBlock.GetHeader().GetShardId(), false, true);
-    }
+    }*/
 
     return true;
   }

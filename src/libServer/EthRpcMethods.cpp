@@ -514,20 +514,12 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
   try {
     const Address fromAddr = tx.GetSenderAddr();
 
-    bool toAccountExist;
-    bool toAccountIsContract;
-
     {
       unique_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
 
       const Account *sender =
           AccountStore::GetInstance().GetAccount(fromAddr, true);
-      const Account *toAccount =
-          AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
-
-      toAccountExist = (toAccount != nullptr);
-      toAccountIsContract = toAccountExist && toAccount->isContract();
 
       uint64_t minGasLimit = 0;
       if (Transaction::GetTransactionType(tx) ==

@@ -3479,69 +3479,35 @@ bool Messenger::GetNodeVCBlock(const zbytes& src, const unsigned int offset,
   return io::ProtobufToVCBlock(result.vcblock(), vcBlock);
 }
 
-bool Messenger::SetNodeForwardTxnBlock(
-    zbytes& dst, const unsigned int offset, const uint64_t& epochNumber,
-    const uint64_t& dsBlockNum, const uint32_t& shardId,
-    const PairOfKey& lookupKey,
-    deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
-    deque<std::pair<Transaction, uint32_t>>& txnsGenerated) {
+bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
+                                       const uint64_t& epochNumber,
+                                       const uint64_t& dsBlockNum,
+                                       const PairOfKey& lookupKey,
+                                       std::vector<Transaction>& transactions) {
   NodeForwardTxnBlock result;
 
   result.set_epochnumber(epochNumber);
   result.set_dsblocknum(dsBlockNum);
-  result.set_shardid(shardId);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  unsigned int txnsCurrentCount = 0, txnsGeneratedCount = 0, msg_size = 0;
+  unsigned int txnsCurrentCount = 0, msg_size = 0;
 
-  for (auto txn = txnsCurrent.begin(); txn != txnsCurrent.end();) {
+  for (auto txn = transactions.begin(); txn != transactions.end();) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
-    TransactionToProtobuf(txn->first, *protoTxn);
+    TransactionToProtobuf(*txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
-      if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
-        LOG_GENERAL(WARNING,
-                    "Failed to dispatch txn " << txn->first.GetTranID());
-        txn = txnsCurrent.erase(txn);
-      } else {
-        txn++;
-      }
       continue;
     }
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
     msg_size += protoTxn->ByteSizeLong();
-    txn = txnsCurrent.erase(txn);
-  }
-
-  for (auto txn = txnsGenerated.begin(); txn != txnsGenerated.end();) {
-    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
-      break;
-    }
-
-    auto protoTxn = std::make_unique<ProtoTransaction>();
-    TransactionToProtobuf(txn->first, *protoTxn);
-    unsigned txn_size = protoTxn->ByteSizeLong();
-    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
-        txn_size >= SMALL_TXN_SIZE) {
-      if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
-        LOG_GENERAL(WARNING,
-                    "Failed to dispatch txn " << txn->first.GetTranID());
-        txn = txnsGenerated.erase(txn);
-      } else {
-        txn++;
-      }
-      continue;
-    }
-    *result.add_transactions() = *protoTxn;
-    txnsGeneratedCount++;
-    msg_size += txn_size;
-    txn = txnsGenerated.erase(txn);
+    txn = transactions.erase(txn);
   }
 
   Signature signature;
@@ -3564,9 +3530,8 @@ bool Messenger::SetNodeForwardTxnBlock(
     return false;
   }
 
-  LOG_GENERAL(INFO, "Epoch: " << epochNumber << " shardId: " << shardId
-                              << " Current txns: " << txnsCurrentCount
-                              << " Generated txns: " << txnsGeneratedCount);
+  LOG_GENERAL(
+      INFO, "Epoch: " << epochNumber << " Current txns: " << txnsCurrentCount);
 
   return SerializeToArray(result, dst, offset);
 }
@@ -5393,6 +5358,8 @@ bool Messenger::GetForwardTxnBlockFromSeed(const zbytes& src,
     LOG_GENERAL(WARNING, "ProtobufToTransactionArray failed");
     return false;
   }
+
+  return true;
 }
 
 // UNUSED
