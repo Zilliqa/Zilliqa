@@ -28,13 +28,37 @@ ELB_WAITING_TIME_IN_MINUTES = 5
 TESTNET_READINESS_TIME_IN_MINUTES = 300
 lookup_rpc_port = None
 
+############################# port ranges #######################################
+NORMAL_PORT_RANGE = (25000, 25199)
+DS_PORT_RANGE = (NORMAL_PORT_RANGE[1] + 1, NORMAL_PORT_RANGE[1] + 100)
+LOOKUP_PORT_RANGE = (DS_PORT_RANGE[1] + 1, DS_PORT_RANGE[1] + 10)
+SEEDPUB_PORT_RANGE = (LOOKUP_PORT_RANGE[1] + 1, LOOKUP_PORT_RANGE[1] + 10)
+MULTIPLIER_PORT_RANGE = (SEEDPUB_PORT_RANGE[1] + 1, SEEDPUB_PORT_RANGE[1] + 10)
+
 
 ############################# utility functions ################################
+
+
+class BlockchainNode:
+    def __init__(self, node_type: object, ip_address: object, port: object, public_key: object, private_key: object, index: int) -> object:
+        self.ip_address = ip_address
+        self.port = port
+        self.public_key = public_key
+        self.private_key = private_key
+        self.node_type = node_type
+        self.index = index
+
+    def __str__(self):
+        return f"IP Address: {self.ip_address}\nPort: {self.port}\nPublic Key: {self.public_key}\n"
+
+    def display_private_key(self):
+        # This method is intentionally separated from __str__ to avoid accidentally printing or logging the private key
+        return self.private_key
+
 
 def readline_from_file(filename):
     with open(filename, 'r') as f:
         return [line.strip() for line in f.readlines()]
-
 
 
 def get_my_keypair(args):
@@ -280,90 +304,73 @@ def filter_empty_ip(ip_list):
             result.append(ip)
     return result
 
+# rewrite this nonsense
 
-def create_constants_xml(args):
+
+def create_constants_xml(args,node: BlockchainNode, tasks):
+
     root = xtree.parse(path.join(args.conf_dir, 'configmap', 'constants.xml')).getroot()
-
     lookup_nodes = root.find('lookups')
-    lookup_ips = args.lookup_ips[0: args.l]
-    lookup_public_keys = [k.split(' ')[0] for k in args.lookup_keypairs[0: args.l]]
 
-    multiplier_ips = filter_empty_ip(args.multiplier_ips)[0: len(args.multiplier_fanout)]
-    multiplier_public_keys = [k.split(' ')[0] for k in args.multiplier_keypairs[0: len(args.multiplier_fanout)]]
+    # predefine nodes to prevent undefined errors
 
-    seedpub_ips = args.seedpub_ips[0: sum(args.multiplier_fanout)]
-    seedpub_public_keys = [k.split(' ')[0] for k in args.seedpub_keypairs[0: sum(args.multiplier_fanout)]]
+    l2_nodes = []
+    seed_nodes = []
 
-    upper_seed_ip = []
-    upper_seed_pubkey = []
-    upper_seed_index = []
-
-    l2l_data_provider_ip = []
-    l2l_data_provider_pubkey = []
-    l2l_data_provider_index = []
+    args.type = node.node_type
 
     # Upper seed for lookup = all lookups
     if is_lookup(args):
-        upper_seed_ip = lookup_ips
-        upper_seed_pubkey = lookup_public_keys
-        upper_seed_index = list(range(len(lookup_ips)))
+        seed_nodes = [x for x in tasks if x.node_type == 'lookup']
     # Upper seed for seedprv / seed-configuration.tar.gz = all seedpubs
     elif is_seedprv(args):
-        upper_seed_ip = seedpub_ips[0:sum(args.multiplier_fanout)]
-        upper_seed_pubkey = seedpub_public_keys[0:sum(args.multiplier_fanout)]
-        upper_seed_index = list(range(0, sum(args.multiplier_fanout)))
-        l2l_data_provider_ip = seedpub_ips[0:sum(args.multiplier_fanout)]
-        l2l_data_provider_pubkey = seedpub_public_keys[0:sum(args.multiplier_fanout)]
-        l2l_data_provider_index = list(range(0, sum(args.multiplier_fanout)))
+        seed_nodes = [x for x in tasks if x.node_type == 'seedpub']
+        l2_nodes = [x for x in tasks if x.node_type == 'multiplier']
     # Upper seed for seedpub = last X lookups
     elif is_seedpub(args):
         if args.l >= 4:
-            upper_seed_ip = lookup_ips[2:args.l]
-            upper_seed_pubkey = lookup_public_keys[2:args.l]
-            upper_seed_index = list(range(2, args.l))
+            seed_nodes = [x for x in tasks if x.node_type == 'lookup']
+            seed_nodes = seed_nodes[2:len(seed_nodes)]
         else:
-            upper_seed_ip = [lookup_ips[args.l - 1]]
-            upper_seed_pubkey = [lookup_public_keys[args.l - 1]]
-            upper_seed_index = [args.l - 1]
+            seed_nodes = [x for x in tasks if x.node_type == 'lookup']
+            seed_nodes = seed_nodes[args.l-1]
     # Upper seed for dsguard / normal / configuration.tar.gz = all seedpubs (if available) or all lookups
     else:
         if args.seed_multiplier:
-            upper_seed_ip = seedpub_ips[0:sum(args.multiplier_fanout)]
-            upper_seed_pubkey = seedpub_public_keys[0:sum(args.multiplier_fanout)]
-            upper_seed_index = list(range(0, sum(args.multiplier_fanout)))
+            seed_nodes = [x for x in tasks if x.node_type == 'seedpub']
+            seed_nodes = seed_nodes[0:sum(args.multiplier_fanout)]
         else:
-            upper_seed_ip = lookup_ips
-            upper_seed_pubkey = lookup_public_keys
-            upper_seed_index = list(range(len(lookup_ips)))
+            seed_nodes = [x for x in tasks if x.node_type == 'seedpub']
 
     upper_seed_nodes = root.find('upper_seed')
 
-    for (index, ip, pubkey) in zip(range(len(lookup_ips)), lookup_ips, lookup_public_keys):
-        lookup_peer = xtree.SubElement(lookup_nodes, "peer")
-        xtree.SubElement(lookup_peer, "ip").text = ip[0]
-        xtree.SubElement(lookup_peer, "pubkey").text = pubkey
-        xtree.SubElement(lookup_peer, "port").text = str(ip[1])
+    for node in tasks:
+        if node.node_type == "lookup":
+            lookup_peer = xtree.SubElement(lookup_nodes, "peer")
+            xtree.SubElement(lookup_peer, "ip").text = node.ip_address
+            xtree.SubElement(lookup_peer, "pubkey").text = node.public_key
+            xtree.SubElement(lookup_peer, "port").text = str(node.port)
 
-        if args.lookup_dns_domain is not None:
-            dns = '{testnet}-lookup-{index}.{domain}'.format(testnet=args.testnet, index=index,
-                                                             domain=args.lookup_dns_domain)
-            xtree.SubElement(lookup_peer, "hostname").text = dns
-        else:
-            xtree.SubElement(lookup_peer, "hostname").text = ""
+            if args.lookup_dns_domain is not None:
+                dns = '{testnet}-lookup-{index}.{domain}'.format(testnet=args.testnet, index=node.index,
+                                                                 domain=args.lookup_dns_domain)
+                xtree.SubElement(lookup_peer, "hostname").text = dns
+            else:
+                xtree.SubElement(lookup_peer, "hostname").text = ""
 
     # upper seed takes peers from lookups, the DNS names are the same
-    for (index, ip, pubkey) in zip(upper_seed_index, upper_seed_ip, upper_seed_pubkey):
+    for x in upper_seed_nodes:
         upper_seed_peer = xtree.SubElement(upper_seed_nodes, "peer")
-        xtree.SubElement(upper_seed_peer, "ip").text = ip[0]
-        xtree.SubElement(upper_seed_peer, "pubkey").text = pubkey
-        xtree.SubElement(upper_seed_peer, "port").text = str(ip[1])
+        xtree.SubElement(upper_seed_peer, "ip").text = x.ip_address
+        xtree.SubElement(upper_seed_peer, "pubkey").text = x.public_key
+        xtree.SubElement(upper_seed_peer, "port").text = str(x.port)
 
         if args.lookup_dns_domain is not None:
             if args.seed_multiplier and not (is_seedpub(args) or is_lookup(args)):
-                dns = '{testnet}-seedpub-{index}.{domain}'.format(testnet=args.testnet, index=index,
+                dns = '{testnet}-seedpub-{index}.{domain}'.format(testnet=args.testnet, index=x.index,
                                                                   domain=args.lookup_dns_domain)
             else:
-                dns = '{testnet}-lookup-{index}.{domain}'.format(testnet=args.testnet, index=index,
+                dns = '{testnet}-lookup-{index}.{domain}'.format(testnet=args.testnet, index=x.index,
                                                                  domain=args.lookup_dns_domain)
             xtree.SubElement(upper_seed_peer, "hostname").text = dns
         else:
@@ -371,32 +378,33 @@ def create_constants_xml(args):
 
     l2l_data_providers = root.find('l2l_data_providers')
     # l2l data providers takes peers from lookups, the DNS names are the same
-    for (index, ip, pubkey) in zip(l2l_data_provider_index, l2l_data_provider_ip, l2l_data_provider_pubkey):
+    for x in l2_nodes:
         l2l_data_provider_peer = xtree.SubElement(l2l_data_providers, "peer")
-        xtree.SubElement(l2l_data_provider_peer, "ip").text = ip[0]
-        xtree.SubElement(l2l_data_provider_peer, "pubkey").text = pubkey
-        xtree.SubElement(l2l_data_provider_peer, "port").text = str(ip[1])
+        xtree.SubElement(l2l_data_provider_peer, "ip").text = x.ip_address
+        xtree.SubElement(l2l_data_provider_peer, "pubkey").text = x.public_key
+        xtree.SubElement(l2l_data_provider_peer, "port").text = str(x.port)
 
         dns = ""
         if args.lookup_dns_domain is not None:
             if args.seed_multiplier and is_seedprv(args):
-                dns = '{testnet}-seedpub-{index}.{domain}'.format(testnet=args.testnet, index=index,
+                dns = '{testnet}-seedpub-{index}.{domain}'.format(testnet=args.testnet, index=x.index,
                                                                   domain=args.lookup_dns_domain)
         xtree.SubElement(l2l_data_provider_peer, "hostname").text = dns
 
     multiplier_nodes = root.find('multipliers')
-    for (index, ip, key) in zip(list(range(len(multiplier_ips))), multiplier_ips, multiplier_public_keys):
-        multiplier_peer = xtree.SubElement(multiplier_nodes, "peer")
-        xtree.SubElement(multiplier_peer, "ip").text = ip[0]
-        xtree.SubElement(multiplier_peer, "port").text = str(ip[1])
-        xtree.SubElement(multiplier_peer, "pubkey").text = key
+    for node in tasks:
+        if node.node_type == "multiplier":
+            multiplier_peer = xtree.SubElement(multiplier_nodes, "peer")
+            xtree.SubElement(multiplier_peer, "ip").text = node.ip_address
+            xtree.SubElement(multiplier_peer, "port").text = str(node.port)
+            xtree.SubElement(multiplier_peer, "pubkey").text = node.public_key
 
-        if args.lookup_dns_domain is not None:
-            dns = '{testnet}-multiplier-{index}.{domain}'.format(testnet=args.testnet, index=index,
-                                                                 domain=args.lookup_dns_domain)
-            xtree.SubElement(multiplier_peer, "hostname").text = dns
-        else:
-            xtree.SubElement(multiplier_peer, "hostname").text = ""
+            if args.lookup_dns_domain is not None:
+                dns = '{testnet}-multiplier-{index}.{domain}'.format(testnet=args.testnet, index=node.index,
+                                                                     domain=args.lookup_dns_domain)
+                xtree.SubElement(multiplier_peer, "hostname").text = dns
+            else:
+                xtree.SubElement(multiplier_peer, "hostname").text = ""
 
     if is_lookup(args) or is_seedpub(args) or is_seedprv(args):
         general = root.find('general')
@@ -473,49 +481,43 @@ def create_constants_xml(args):
     tree.write('constants.xml')
 
 
-def create_ds_whitelist_xml(args):
+def create_ds_whitelist_xml(args, tasks):
     # public key + ip + port
-    normal_public_keys = [k.split(' ')[0] for k in args.keypairs[0: args.n]]
-    normal_ips = args.normal_ips[0: args.n]
-
     nodes = xtree.Element("nodes")
-    for (ip, pubkey) in zip(normal_ips, normal_public_keys):
-        peer = xtree.SubElement(nodes, "peer")
-        xtree.SubElement(peer, "pubk").text = pubkey
-        xtree.SubElement(peer, "ip").text = ip[0]
-        xtree.SubElement(peer, "port").text = str(ip[1])
+    for node in tasks:
+        if node.node_type == "normal" or node.node_type == "dsguard" or node.node_type == "seedpub" or node.node_type == "multiplier":
+            peer = xtree.SubElement(nodes, "peer")
+            xtree.SubElement(peer, "pubk").text = node.public_key
+            xtree.SubElement(peer, "ip").text = node.ip_address
+            xtree.SubElement(peer, "port").text = str(node.port)
 
     tree = xtree.ElementTree(nodes)
     tree.write("ds_whitelist.xml")
 
 
-def create_shard_whitelist_xml(args):
+def create_shard_whitelist_xml(args , tasks):
     # public key
     normal_public_keys = [k.split(' ')[0] for k in args.keypairs[0: args.n]]
 
+
     nodes = xtree.Element("address")
-    for pubkey in normal_public_keys:
-        xtree.SubElement(nodes, "pubk").text = pubkey
+    for ns in tasks:
+        if ns.node_type == "normal":
+            xtree.SubElement(nodes, "pubk").text = ns.public_key
 
     tree = xtree.ElementTree(nodes)
     tree.write("shard_whitelist.xml")
 
 
-def create_config_xml(args):
-    if is_new(args):
-        # create a config.xml with 0 ds node information when I am a new node
-        ds_public_keys = []
-        ds_ips = []
-    else:
-        ds_public_keys = [k.split(' ')[0] for k in args.keypairs[0: args.d]]
-        ds_ips = args.normal_ips[0: args.d]
+def create_config_xml(args, tasks):
 
     nodes = xtree.Element("nodes")
-    for (ip, pubkey) in zip(ds_ips, ds_public_keys):
-        peer = xtree.SubElement(nodes, "peer")
-        xtree.SubElement(peer, "pubk").text = pubkey
-        xtree.SubElement(peer, "ip").text = ip[0]
-        xtree.SubElement(peer, "port").text = str(ip[1])
+    for node in tasks:
+        if node.node_type == "dsgaurd":
+            peer = xtree.SubElement(nodes, "peer")
+            xtree.SubElement(peer, "pubk").text = node.public_key
+            xtree.SubElement(peer, "ip").text = node.ip_address
+            xtree.SubElement(peer, "port").text = str(node.port)
 
     tree = xtree.ElementTree(nodes)
     tree.write("config.xml")
@@ -536,11 +538,13 @@ def create_multiplier_start_sh(listen_port, lookupips_url):
             f.write(line + '\n')
 
 
-def create_dsnodes_xml(args):
-    ds_public_keys = [k.split(' ')[0] for k in args.keypairs[0: args.d]]
+def create_dsnodes_xml(args, tasks):
     dsnode = xtree.Element("dsnodes")
-    for pubkey in ds_public_keys:
-        xtree.SubElement(dsnode, "pubk").text = pubkey
+
+    for node in tasks:
+        if node.node_type == "normal" or node.node_type == "dsguard":
+            peer = xtree.SubElement(dsnode, "peer")
+            xtree.SubElement(dsnode, "pubk").text = node.public_key
     tree = xtree.ElementTree(dsnode)
     tree.write("dsnodes.xml")
 
@@ -556,15 +560,16 @@ def gen_bucket_sed_string(args, fileName):
     return f'{SED} "s,^BUCKET_NAME=.*$,BUCKET_NAME= \'{args.bucket}\'," {fileName}'
 
 
-def create_start_sh(args):
+def create_start_sh(args, node: BlockchainNode, tasks: BlockchainNode):
     block0 = '0' * int(args.block_number_size / 4 - 1) + '1'  # 000....001
     ds_diff = "05"  # genesis ds diff
     diff = "03"  # genesis diff
     rand1 = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a"
     rand2 = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf"
+    args.index = node.index
     my_public_key, my_private_key = get_my_keypair(args).strip().split(' ')
-    my_ip, my_port = get_my_ip_and_port(args)
-    my_ns = 'zil-ns-{}'.format(int(my_ip[my_ip.rfind('.') + 1:]))
+
+
 
     # hex string from IPv4 or IPv6 string
     def ip_to_hex(ip):
@@ -632,8 +637,8 @@ def create_start_sh(args):
             binary_name,
             '--privk {}'.format(my_private_key),
             '--pubk {}'.format(my_public_key),
-            '--address {}'.format(my_ip),
-            '--port {}'.format(my_port),
+            '--address {}'.format(node.ip_address),
+            '--port {}'.format(node.port),
             '--synctype {}'.format(opt_sync_type),
             '--nodetype {}'.format(args.type),
             '--nodeindex {}'.format(args.index),
@@ -641,24 +646,28 @@ def create_start_sh(args):
             '--logpath {}'.format(args.log_path) if args.log_path is not None else ''
         ])
 
+
+    ## TODO - fix this shitty bit of code.
+
     if is_normal(args) or is_dsguard(args):
-        primary_ds_ip = args.normal_ips[0]
+        primary_ds_ip = node
+
         cmd_setprimaryds = ' '.join([
             'sendcmd',
-            '--port {}'.format(my_port),
+            '--port {}'.format(node.port),
             '--cmd cmd',
-            '--cmdarg 0100' + ip_to_hex(primary_ds_ip[0]) + '{0:08X}'.format(primary_ds_ip[1])
+            '--cmdarg 0100' + ip_to_hex(node.ip_address) + '{0:08X}'.format(node.port)
         ])
     else:
         cmd_setprimaryds = ''
 
     if is_non_ds(args):
-        ds_public_keys = [k.split(' ')[0] for k in args.keypairs[0: args.d]]
-        ds_ips = args.normal_ips[0: args.d]
+        ds_public_keys = primary_ds_pk = [x.public_key for x in tasks]
+        ds_ips = primary_ds_ip = [x.ip_address for x in tasks]
 
         cmd_startpow = ' '.join([
             'sendcmd',
-            '--port {}'.format(my_port),
+            '--port {}'.format(node.port),
             '--cmd cmd',
             '--cmdarg 0200' + block0 + ds_diff + diff + rand1 + rand2 + ''.join(
                 [
@@ -732,7 +741,7 @@ def create_start_sh(args):
         for line in start_sh:
             f.write(line + '\n')
 
-    return my_ns
+    return node.ip_address
 
 
 def wait_for_aws_elb_ready(name):
@@ -1035,21 +1044,51 @@ def main():
     else:
         origin_server = 'http://' + get_svc_ip('{}-origin'.format(args.testnet))
 
-    first_available_port = args.port
-    lookup_ips_from_origin = get_ip_list_from_origin(origin_server, 'lookup_ips.txt', first_available_port)
-    first_available_port = first_available_port + len(lookup_ips_from_origin)
-    normal_ips_from_origin = get_ip_list_from_origin(origin_server, 'normal_ips.txt', first_available_port)
-    first_available_port = first_available_port + len(normal_ips_from_origin)
+    # Array of all the nodes that we are going to start, along with their ports, public and private keys
+
+    node_store = []
+
+    # Deal with the lookups first
+
+    for x in range(0, args.l):
+        node_store.append(BlockchainNode('lookup',
+                                          "127.0.0.1",
+                                     LOOKUP_PORT_RANGE[0]+x,
+                                     args.lookup_keypairs[x].split()[0],
+                                     args.lookup_keypairs[x].split()[1],x))
+
+    # Deal with the multipliers next
+
+    for x in range(0, args.seed_multiplier):
+        node_store.append(BlockchainNode('multiplier',
+                                         "127.0.0.1",
+                                     MULTIPLIER_PORT_RANGE[0]+x,
+                                     args.multiplier_keypairs[x].split()[0],
+                                     args.multiplier_keypairs[x].split()[1],x))
+    # Deal with the normal nodes
+
+    for x in range(0, args.n-args.ds_guard):
+        node_store.append(BlockchainNode('normal',"127.0.0.1",
+                                     NORMAL_PORT_RANGE[0]+x,
+                                     args.keypairs[x].split()[0],
+                                     args.keypairs[x].split()[1],x))
+
+    for x in range(0, args.ds_guard):
+        node_store.append(BlockchainNode('dsguard',"127.0.0.1",
+                                     DS_PORT_RANGE[0]+x,
+                                     args.keypairs[x+args.n-args.ds_guard].split()[0],
+                                     args.keypairs[x+args.n-args.ds_guard].split()[1],x))
+
+    # do not worry about this yet
+
+    for x in range(0, sum(args.multiplier_fanout)):
+        node_store.append(BlockchainNode("seedpub","127.0.0.1",
+                                 SEEDPUB_PORT_RANGE[0]+x,
+                                 args.seedpub_keypairs[x].split()[0],
+                                 args.seedpub_keypairs[x].split()[1],x))
+
     if args.recover_from_testnet:
-        generate_ip_mapping_file(normal_ips_from_origin, args.keypairs, first_available_port, args.n)
-
-    multiplier_ips_from_origin = get_ip_list_from_origin(origin_server, 'multiplier_ips.txt',
-                                                         first_available_port) if args.seed_multiplier else []
-    first_available_port = first_available_port + len(multiplier_ips_from_origin)
-    seedpub_ips_from_origin = get_ip_list_from_origin(origin_server, 'seedpub_ips.txt',
-                                                      first_available_port) if args.seed_multiplier else []
-
-    first_available_port += 1
+        generate_ip_mapping_file(["", "", ""], args.keypairs, NORMAL_PORT_RANGE[0], args.n)
 
     args.restart = False
 
@@ -1059,83 +1098,65 @@ def main():
         with open("verifier.txt", 'w') as f:
             f.write(args.verifier_keypair)
 
-    def generate_files(pod_name):
-        if is_lookup(args) or is_dsguard(args) or is_normal(args) or is_seedprv(args) or is_multiplier(args):
-            args.normal_ips = normal_ips_from_origin
-            args.lookup_ips = lookup_ips_from_origin
-        elif is_new(args) or is_seedpub(args):
-            args.normal_ips = []
-            args.lookup_ips = lookup_ips_from_origin
+    def generate_files(node: BlockchainNode,nodes: BlockchainNode):
+        create_constants_xml(args, node, nodes)
 
-        #  if args.seed_multiplier and (is_lookup(args) or is_dsguard(args) or is_normal(args) or is_new(args)):
-        args.multiplier_ips = multiplier_ips_from_origin
-        args.seedpub_ips = seedpub_ips_from_origin
-        #  else:
-        #  args.multiplier_ips = []
-        #  if is_seedprv(args):
-        #  args.seedpub_ips = seedpub_ips_from_origin
-        #  else:
-        #  args.seedpub_ips = []
-
-        create_constants_xml(args)
         if is_normal(args) or is_dsguard(args):
-            create_ds_whitelist_xml(args)
-            create_shard_whitelist_xml(args)
-        create_config_xml(args)
-        create_dsnodes_xml(args)
-        return create_start_sh(args)
+            create_ds_whitelist_xml(args, nodes)
+            create_shard_whitelist_xml(args, nodes)
 
-    def generate_nodes(node_type, first_index: int, count: int):
+        create_config_xml(args, nodes)
+        create_dsnodes_xml(args, nodes)
+        return create_start_sh(args, node, nodes)
+
+    def generate_nodes(node: BlockchainNode):
         node_nss = []
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
         zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'zilliqa'))
         scilla_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'scilla'))
 
-        for index in range(first_index, first_index + count):
-            try:
-                pod_name = f'{args.testnet}-{node_type}-{index}'
-                pod_path = os.path.join(args.out_dir, pod_name)
+        try:
+            pod_name = f'{args.testnet}-{node.node_type}-{node.index}'
+            pod_path = os.path.join(args.out_dir, pod_name)
 
+            try:
+                os.mkdir(pod_path)
+            except FileExistsError:
+                pass
+
+            os.chdir(pod_path)
+
+            if (node.node_type != 'multiplier'):
+                node_nss.append(generate_files(node,node_store))
+            else:
+                create_constants_xml(args, node, node_store)
+
+                # this is our local http.server
+                multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
+                create_multiplier_start_sh(node.port, multi_basic_auth_url)
+
+            sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
+            os.system(
+                f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
+            if (node.node_type != 'multiplier'):
                 try:
-                    os.mkdir(pod_path)
+                    os.system(
+                        f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
+                except Exception as e:  # noqa
+                    print(f'Failed to replace constants.xml: {e}')
+
+            for file_name in ['zilliqa', 'zilliqad', 'sendcmd', 'asio_multiplier']:
+                try:
+                    os.remove(file_name)
+                except FileNotFoundError:
+                    pass
+                try:
+                    os.link(os.path.join(args.build_dir, 'bin', file_name), file_name)
                 except FileExistsError:
                     pass
 
-                os.chdir(pod_path)
-
-                args.type = node_type
-                args.index = index
-                args.port += 1
-
-                if (node_type != 'multiplier'):
-                    node_nss.append(generate_files(pod_name))
-                else:
-                    create_constants_xml(args)
-                    create_new_multiplier_file(origin_server, args, seedpub_ips_from_origin)
-                    # this is our local http.server
-                    multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
-                    create_multiplier_start_sh(multiplier_ips_from_origin[0][1], multi_basic_auth_url)
-
-                sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
-                os.system(f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
-                if (node_type != 'multiplier'):
-                    try:
-                        os.system(f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
-                    except Exception as e:  # noqa
-                        print(f'Failed to replace constants.xml: {e}')
-
-                for file_name in ['zilliqa', 'zilliqad', 'sendcmd', 'asio_multiplier']:
-                    try:
-                        os.remove(file_name)
-                    except FileNotFoundError:
-                        pass
-                    try:
-                        os.link(os.path.join(args.build_dir, 'bin', file_name), file_name)
-                    except FileExistsError:
-                        pass
-
-            finally:
-                os.chdir(os.getcwd())
+        finally:
+            os.chdir(os.getcwd())
 
         return node_nss
 
@@ -1147,15 +1168,8 @@ def main():
     cwd = os.getcwd()
 
     nss = []
-    # This is the starting port for the zilliqad process it will get incremented each time.
-    starting_port: int = args.port
-
-    nss = nss + generate_nodes('lookup', 0, args.l)
-    nss = nss + generate_nodes('dsguard', 0, args.ds_guard)
-    nss = nss + generate_nodes('normal', 0, args.d - args.ds_guard)
-    nss = nss + generate_nodes('normal', args.d - args.ds_guard, args.n - args.d)
-    nss = nss + generate_nodes('seedpub', 0, sum(args.multiplier_fanout))
-    nss = nss + generate_nodes('multiplier', 0, 1)
+    for node in node_store:
+        nss.append(generate_nodes(node))
 
     return 0
 
@@ -1170,6 +1184,7 @@ def create_new_multiplier_file(url, args, address_list):
         for addr in address_list:
             f.write(addr[0] + ":" + str(addr[1]) + "\n")
     return True
+
 
 def save_ip_list(filename, ip_list):
     with open(filename, 'w') as f:
