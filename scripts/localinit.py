@@ -342,8 +342,6 @@ def create_constants_xml(args,node: BlockchainNode, tasks):
         else:
             seed_nodes = [x for x in tasks if x.node_type == 'seedpub']
 
-    upper_seed_nodes = root.find('upper_seed')
-
     for node in tasks:
         if node.node_type == "lookup":
             lookup_peer = xtree.SubElement(lookup_nodes, "peer")
@@ -358,8 +356,9 @@ def create_constants_xml(args,node: BlockchainNode, tasks):
             else:
                 xtree.SubElement(lookup_peer, "hostname").text = ""
 
+    upper_seed_nodes = root.find('upper_seed')
     # upper seed takes peers from lookups, the DNS names are the same
-    for x in upper_seed_nodes:
+    for x in seed_nodes:
         upper_seed_peer = xtree.SubElement(upper_seed_nodes, "peer")
         xtree.SubElement(upper_seed_peer, "ip").text = x.ip_address
         xtree.SubElement(upper_seed_peer, "pubkey").text = x.public_key
@@ -714,7 +713,7 @@ def create_start_sh(args, node: BlockchainNode, tasks: BlockchainNode):
         gen_bucket_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_testnet_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
-        'export AWS_ENDPOINT_URL=http://127.0.0.1:4566',
+        'export AWS_ENDPOINT_URL=http://0.0.0.0:4566',
         'export PATH=/run/zilliqa:$PATH',
         defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
         defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
@@ -1109,7 +1108,7 @@ def main():
         create_dsnodes_xml(args, nodes)
         return create_start_sh(args, node, nodes)
 
-    def generate_nodes(node: BlockchainNode):
+    def generate_nodes(node: BlockchainNode, nodes):
         node_nss = []
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
         zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '..', '..', 'zilliqa'))
@@ -1127,17 +1126,18 @@ def main():
             os.chdir(pod_path)
 
             if (node.node_type != 'multiplier'):
-                node_nss.append(generate_files(node,node_store))
+                node_nss.append(generate_files(node, nodes))
             else:
-                create_constants_xml(args, node, node_store)
-
-                # this is our local http.server
+                create_constants_xml(args, node, nodes)
                 multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
                 create_multiplier_start_sh(node.port, multi_basic_auth_url)
+                create_new_multiplier_file(origin_server, args, node_store)
 
             sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
+
             os.system(
                 f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
+
             if (node.node_type != 'multiplier'):
                 try:
                     os.system(
@@ -1169,26 +1169,25 @@ def main():
 
     nss = []
     for node in node_store:
-        nss.append(generate_nodes(node))
+        nss.append(generate_nodes(node, node_store))
 
     return 0
 
-
-def create_new_multiplier_file(url, args, address_list):
+def create_new_multiplier_file(url, args, node_store):
     try:
-        os.remove("multiplier-downstream.txt")
+        os.remove("{}/multiplier-downstream.txt".format(url))
     except FileNotFoundError:
-        print("No multiplier-downstream.txt file found - creating new one")
+        pass
 
-    with open("multiplier-downstream.txt", 'w') as f:
-        for addr in address_list:
-            f.write(addr[0] + ":" + str(addr[1]) + "\n")
+    with open("{}/multiplier-downstream.txt".format(url), 'w') as f:
+        for node in node_store:
+            if node.node_type == 'seedpub':
+                f.write(node.ip_address + ":" + str(node.port) + "\n")
     return True
 
-
-def save_ip_list(filename, ip_list):
-    with open(filename, 'w') as f:
-        f.writelines([line + '\n' for line in ip_list])
+def save_ip_port_list(filename, node_list):
+    with open(filename, 'a') as f:
+        f.writelines([n.ip_address + ':' + str(n.port) + '\n' for n in node_list])
 
 
 if __name__ == "__main__":
