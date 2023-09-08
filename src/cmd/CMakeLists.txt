@@ -28,7 +28,7 @@ add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genkeypair> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(genkeypair PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(genkeypair PUBLIC ${Schnorr_LIBRARY} Utils -s)
+target_link_libraries(genkeypair PUBLIC ${Schnorr_LIBRARY} Utils)
 
 add_executable(gentxn gentxn.cpp)
 add_custom_command(TARGET zilliqa
@@ -70,7 +70,7 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:validateDB> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(validateDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(validateDB PUBLIC Node Mediator Validator -s)
+target_link_libraries(validateDB PUBLIC Node Mediator Validator)
 
 add_executable(genTxnBodiesFromS3 genTxnBodiesFromS3.cpp)
 add_custom_command(TARGET zilliqa
@@ -85,13 +85,6 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:isolatedServer> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(isolatedServer PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(isolatedServer PUBLIC AccountStore AccountData Mediator Persistence Server Validator Boost::program_options)
-
-add_executable(websocketsubscriber websocketsubscriber.cpp)
-add_custom_command(TARGET zilliqa
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:websocketsubscriber> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(websocketsubscriber PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(websocketsubscriber PUBLIC Utils Server AccountStore Boost::program_options)
 
 add_executable(buildTxBlockHashesToNums buildTxBlockHashesToNums.cpp)
 add_custom_command(TARGET zilliqa

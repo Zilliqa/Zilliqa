@@ -29,7 +29,6 @@
 #endif
 
 #include "PythonRunner.h"
-#include <boost/filesystem/operations.hpp>
 #include <boost/python.hpp>
 
 #if defined(__APPLE__) && defined(__clang__)
@@ -78,7 +77,7 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     setenv("PYTHONPATH", ".", 1);
     Py_Initialize();
 
-    const auto currPath = boost::filesystem::current_path();
+    const auto currPath = std::filesystem::current_path();
     const auto fileName = file + ".py";
 
     const int argc = params.size() + 1;
@@ -145,7 +144,7 @@ sys.stderr = catchOutput\n\
 
     // change back to original incase Py script modified it
 
-    boost::filesystem::current_path(currPath);
+    std::filesystem::current_path(currPath);
 
     return extract<bool>(ret);
 
