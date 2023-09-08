@@ -647,7 +647,6 @@ def create_start_sh(args, node: BlockchainNode, tasks: BlockchainNode):
         ])
 
 
-    ## TODO - fix this shitty bit of code.
 
     if is_normal(args) or is_dsguard(args):
         primary_ds_ip = node
@@ -656,7 +655,7 @@ def create_start_sh(args, node: BlockchainNode, tasks: BlockchainNode):
             'sendcmd',
             '--port {}'.format(node.port),
             '--cmd cmd',
-            '--cmdarg 0100' + ip_to_hex(node.ip_address) + '{0:08X}'.format(node.port)
+            '--cmdarg 0100' + ip_to_hex(node.ip_address) + '{0:08x}'.format(node.port)
         ])
     else:
         cmd_setprimaryds = ''
@@ -664,6 +663,7 @@ def create_start_sh(args, node: BlockchainNode, tasks: BlockchainNode):
     if is_non_ds(args):
         ds_public_keys = primary_ds_pk = [x.public_key for x in tasks]
         ds_ips = primary_ds_ip = [x.ip_address for x in tasks]
+        ds_ports = primary_ds_port = [x.port for x in tasks]
 
         cmd_startpow = ' '.join([
             'sendcmd',
@@ -671,8 +671,8 @@ def create_start_sh(args, node: BlockchainNode, tasks: BlockchainNode):
             '--cmd cmd',
             '--cmdarg 0200' + block0 + ds_diff + diff + rand1 + rand2 + ''.join(
                 [
-                    ds[0] + ip_to_hex(ds[1][0]) + '{0:08X}'.format(ds[1][1])
-                    for ds in zip(ds_public_keys, ds_ips)
+                    ds[0] + ip_to_hex(ds[1]) + '{0:08x}'.format(ds[2])
+                    for ds in zip(ds_public_keys, ds_ips, ds_ports)
                 ]
             )
         ])
@@ -1141,7 +1141,7 @@ def main():
             if (node.node_type != 'multiplier'):
                 try:
                     os.system(
-                        f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
+                        f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node.node_type}.{node.index}.sock," constants.xml')
                 except Exception as e:  # noqa
                     print(f'Failed to replace constants.xml: {e}')
 
