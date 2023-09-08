@@ -235,6 +235,9 @@ int main(int argc, char* argv[]) {
   INIT_FILE_LOGGER("asio_multiplier", std::filesystem::current_path());
   LOG_DISPLAY_LEVEL_ABOVE(INFO);
 
+  std::cout << "Starting asio_multiplier sleep 120" << std::endl;
+  std::this_thread::sleep_for(std::chrono::seconds(120));
+
   auto func = [port, &our_peers]() mutable -> void {
     boost::asio::io_context ctx(1);
     boost::asio::signal_set sig(ctx, SIGINT, SIGTERM);

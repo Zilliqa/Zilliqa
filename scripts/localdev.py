@@ -393,7 +393,7 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     helm_remove_repository(config, 'grafana')
 
-def prometheus_up(config, testnet_name, count = 7):
+def prometheus_up(config, testnet_name, count = 8):
     """ Let helm deploy prometheus """
     ips = []
     while True:
