@@ -10,9 +10,9 @@ import subprocess
 from os import path
 
 from natlib.data import Data
-from natlib.lib import clean_non_self_private_keys, readline_from_file, is_multiplier, get_basic_auth_link, \
-    create_multiplier_start_sh, get_svc_ip, is_seedprv, \
-    generate_nodes, str2fanout, str2uints, str2lookup
+from natlib.lib import (readline_from_file, is_multiplier, \
+                        create_multiplier_start_sh, is_seedprv, \
+                        generate_nodes, str2fanout, str2uints, str2lookup)
 
 LOOKUP_TYPES = ('lookup', 'seedpub', 'seedprv')
 
@@ -108,10 +108,6 @@ def main():
     ## Now lets pre allocate the port numbers and public keys to the processes we are going to create
 
     data = Data()
-
-    if args.cleanup_private_keys:
-        clean_non_self_private_keys(args)
-        return 0
 
     # The origin server stores the network information
     if args.origin_server is not None:

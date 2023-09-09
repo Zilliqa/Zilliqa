@@ -1,27 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import argparse
-import base64
 import os
-import re
 import socket
 import struct
 import subprocess
 import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import xml.etree.cElementTree as xtree
-from datetime import datetime, timedelta
 from os import path
-from urllib.parse import urlparse
 
 import netaddr
 
-############################# constants ########################################
-ELB_WAITING_TIME_IN_MINUTES = 5
-TESTNET_READINESS_TIME_IN_MINUTES = 300
 lookup_rpc_port = None
 
 
@@ -96,79 +85,6 @@ def redact_private_key(filename, ignore_index=None):
 
 KEY_FILES = ['keys.txt', 'lookup_keys.txt', 'seedpub_keys.txt', 'new_keys.txt', 'multiplier_keys.txt']
 
-
-def clean_non_self_private_keys(args):
-    """
-    redact all non-self private keys
-    """
-    index = args.index
-    self_file = ''
-
-    if is_normal(args):
-        self_file = 'keys.txt'
-        # recalculate 'index' in the same way in `get_my_keypair()`
-        offset = args.d if args.skip_non_guard_ds else args.ds_guard
-        index = offset + args.index
-
-    if is_dsguard(args):
-        self_file = 'keys.txt'
-
-    if is_lookup(args):
-        self_file = 'lookup_keys.txt'
-
-    if is_seedpub(args):
-        self_file = 'seedpub_keys.txt'
-
-    if is_new(args) and len(args.new_keypairs) > args.index:
-        self_file = 'new_keys.txt'
-
-    if is_multiplier(args):
-        # speical case: multiplier doesn't need its own private key
-        self_file = ''
-
-    print("start cleaning non-self private keys")
-    print("self type: %s, key file: %s, key index: %s" % (args.type, self_file, index))
-    for key_file in KEY_FILES:
-        key_file_path = path.join(args.conf_dir, 'secret', key_file)
-        if not path.isfile(key_file_path):
-            continue
-        if key_file == self_file:
-            print("redacting private keys (without index %s) of key file: %s" % (index, key_file))
-            redact_private_key(key_file_path, index)
-        else:
-            print("redacting all private keys of key file: " + key_file)
-            redact_private_key(key_file_path)
-    print("done")
-
-
-def get_my_aws_ipv4(args):  # works on AWS
-    if args.testing:
-        return '169.254.169.254'
-
-    # https://www.safaribooksonline.com/library/view/regular-expressions-cookbook/9780596802837/ch07s16.html
-    ipv4_re = r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-
-    # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-instance-addressing.html
-    response = urllib.request.urlopen('http://169.254.169.254/latest/meta-data/public-ipv4')
-    ipv4 = response.read().decode()
-
-    match = re.match(ipv4_re, ipv4)
-    if match and match.group(0) == ipv4:
-        return ipv4
-
-    print('Cannnot get valid public address: got {}'.format(ipv4))
-    return ''
-
-
-# A pod may be one of the following type
-# - lookup
-# - dsguard (only exist when guards are used)
-# - normal
-#   * ds or non-ds
-#   * shard_guard
-# - multiplier
-# - new
-# - seedprv
 
 def is_lookup(args):
     return args.type == 'lookup'
@@ -713,175 +629,6 @@ def create_start_sh(args):
     return my_ns
 
 
-def wait_for_aws_elb_ready(name):
-    api_instance = client.CoreV1Api()
-
-    while True:
-        try:
-            ret = api_instance.read_namespaced_service(namespace='default', name=name)
-            delta = datetime.utcnow() - ret.metadata.creation_timestamp.replace(tzinfo=None)
-            delta_seconds = delta.total_seconds()
-            if delta < timedelta(minutes=ELB_WAITING_TIME_IN_MINUTES):
-                print(
-                    "Waiting {:.1f} seconds until the load-balancer of service {} is ready".format(delta_seconds, name))
-                time.sleep(delta_seconds)
-            else:
-                print("Load-balancer is up {:.1f} seconds before".format(delta_seconds))
-            break
-        except ApiException as e:
-            print('Exception when getting service {}: {}'.format(name, e))
-        except Exception as e:
-            print('Exception when getting the creation time of service {}: {}'.format(name, e))
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def is_restarted(deploy_name):
-    api_instance = client.AppsV1Api()
-
-    while True:
-        try:
-            ret = api_instance.read_namespaced_deployment(namespace='default', name=deploy_name, )
-            delta = datetime.utcnow() - ret.metadata.creation_timestamp.replace(tzinfo=None)
-            delta_seconds = delta.total_seconds()
-            print("This pod starts {:.1f} seconds after {}".format(delta_seconds, deploy_name))
-            if delta < timedelta(minutes=TESTNET_READINESS_TIME_IN_MINUTES):
-                print("This run is NOT considered as restart")
-                return False
-            else:
-                print("This run is considered as restart")
-                return True
-        except ApiException as e:
-            print('Exception when getting the creation time of deployment {}: {}'.format(deploy_name, e))
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def wait_for_statefulset_ready(name):
-    api_instance = client.AppsV1Api()
-
-    while True:
-        try:
-            ret = api_instance.read_namespaced_stateful_set(namespace='default', name=name, exact=True)
-        except ApiException as e:
-            print('Exception when getting statefulset {}: {}'.format(name, e))
-        else:
-            print('Checking statefulset {} status: {}/{}'.format(name, ret.status.ready_replicas, ret.spec.replicas))
-            if ret.status.ready_replicas == ret.spec.replicas or ret.spec.replicas == 0:
-                break
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def get_ingress_url(name):
-    api_instance = client.ExtensionsV1beta1Api()
-    https_annote_key = "external-dns.alpha.kubernetes.io/hostname"
-    while True:
-        try:
-            ret = api_instance.read_namespaced_ingress(name=name, namespace='default')
-            annotations = ret.metadata.annotations
-        except ApiException as e:
-            print('Exception when getting ingress {}: {}'.format(name, e))
-        except Exception as e:
-            print('Exception when getting ingress {}: {}'.format(name, e))
-        else:
-            if annotations is not None and https_annote_key in annotations:
-                return 'https://{}'.format(annotations[https_annote_key])
-            print("Could not find annotation '{}' in ingress '{}'".format(https_annote_key, name))
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def get_svc_ip(name):
-    """
-    get k8s service (same namespace) ip from envVars
-    :type name: str
-    """
-    env_name = name.upper().replace('-', '_') + '_SERVICE_HOST'
-    return os.getenv(env_name)
-
-
-def get_pods_locations(testnet, typename):
-    """Return a list of tuple in the format (POD_NAME, NODE_NAME, POD_IP)
-    """
-    api_instance = client.CoreV1Api()
-
-    while True:
-        try:
-            ret = api_instance.list_namespaced_pod(namespace='default',
-                                                   label_selector='testnet={},type={}'.format(testnet, typename))
-        except ApiException as e:
-            print('Exception when fetching {}-{} pods information: {}'.format(testnet, typename, e))
-        else:
-            return [(i.metadata.name, i.spec.node_name, i.status.pod_ip) for i in ret.items]
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def get_basic_auth_secret(secret_name):
-    api_instance = client.CoreV1Api()
-
-    while True:
-        try:
-            ret = api_instance.read_namespaced_secret(name=secret_name, namespace='default')
-            username = base64.b64decode(ret.data['username']).decode()
-            password = base64.b64decode(ret.data['password']).decode()
-        except ApiException as e:
-            print('Exception when fetching secret {}: {}'.format(secret_name, e))
-        else:
-            return (username, password)
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def get_node_ips():
-    api_instance = client.CoreV1Api()
-
-    def get_external_ip(addresses):
-        for a in addresses:
-            if a.type == 'ExternalIP':
-                return a.address
-
-        # assert False, "Should have 'ExternalIP' {}".format(addresses)
-
-    while True:
-        try:
-            ret = api_instance.list_node()
-        except ApiException as e:
-            print('Exception when getting node information: {}'.format(e))
-        else:
-            rt = {}
-            for i in ret.items:
-                ip = get_external_ip(i.status.addresses)
-                if ip:
-                    rt[i.metadata.name] = ip
-            return rt
-        finally:
-            sys.stdout.flush()
-            time.sleep(10)
-
-
-def get_basic_auth_link(url, username, password):
-    o = urlparse(url)
-    auth_url = '{}://{}:{}@{}'.format(o.scheme, username, password, o.netloc + o.path)
-    return auth_url
-
-
-def get_ip_list_from_origin(url, resource_name, start_port):
-    ips = readline_from_file(url + '/' + resource_name)
-    return list(zip(ips, range(start_port, start_port + len(ips))))
-
-
-def get_ip_list_from_origin(url, resource_name, start_port):
-    ips = readline_from_file(url + '/' + resource_name)
-    return list(zip(ips, range(start_port, start_port + len(ips))))
-
 
 def generate_ip_mapping_file(ips, keypairs, port, n):
     normal_public_keys = [k.split(' ')[0] for k in keypairs[0: n]]
@@ -969,8 +716,6 @@ def generate_nodes(args, zil_data, node_type, first_index, count):
         try:
             pod_name = f'{args.testnet}-{node_type}-{index}'
             pod_path = os.path.join(args.out_dir, pod_name)
-
-            print(scripts_dir)
 
             try:
                 os.mkdir(pod_path)
