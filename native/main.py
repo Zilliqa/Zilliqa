@@ -125,11 +125,9 @@ def main():
 
 
     if not data.get_ips_list_from_pseudo_origin(args):
-        print("Generating data from the arguments failed")
+        print("Generating data from the command line arguments failed")
         return 0
 
-    # FIXME: only DS guard needs this flag, we can remove is_normal(args) here
-    #  args.restart = is_restarted('{}-origin'.format(args.testnet)) if is_normal(args) or is_dsguard(args) else False
     args.restart = False
 
     if is_seedprv(args):
@@ -145,12 +143,11 @@ def main():
 
     cwd = os.getcwd()
 
-    nss = []
-    nss = nss + generate_nodes(args, data, 'lookup', 0, args.l)
-    nss = nss + generate_nodes(args, data, 'dsguard', 0, args.ds_guard)
-    nss = nss + generate_nodes(args, data, 'normal', 0, args.d - args.ds_guard)
-    nss = nss + generate_nodes(args, data, 'multiplier', 0, len(args.multiplier_keypairs))
-    nss = nss + generate_nodes(args, data, 'seedpub', 0, sum(args.multiplier_fanout))
+    generate_nodes(args, data, 'lookup', 0, args.l)
+    generate_nodes(args, data, 'dsguard', 0, args.ds_guard)
+    generate_nodes(args, data, 'normal', 0, args.d - args.ds_guard)
+    generate_nodes(args, data, 'multiplier', 0, len(args.multiplier_keypairs))
+    generate_nodes(args, data, 'seedpub', 0, sum(args.multiplier_fanout))
 
     return 0
 

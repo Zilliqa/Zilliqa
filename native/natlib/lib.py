@@ -60,28 +60,6 @@ def get_my_ip_and_port(args):
     return (None, None)
 
 
-def redact_private_key(filename, ignore_index=None):
-    """
-    original keys.txt:
-        abc def
-        hij klm
-        nop qrs
-    start_private_key('keys.txt', ignore_index=1)
-    processed keys.txt:
-        abc *
-        hij klm
-        nop *
-    """
-    out = []
-    with open(filename) as f:
-        for i, pair in enumerate(f):
-            if i == ignore_index:
-                out.append(pair.strip())
-            else:
-                out.append(pair.split()[0] + ' *')
-    with open(filename, 'w') as f:
-        f.write('\n'.join(out))
-
 
 KEY_FILES = ['keys.txt', 'lookup_keys.txt', 'seedpub_keys.txt', 'new_keys.txt', 'multiplier_keys.txt']
 
