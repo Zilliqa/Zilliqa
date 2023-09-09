@@ -707,8 +707,7 @@ def generate_files(args, zil_data, pod_name):
     return create_start_sh(args)
 
 
-def generate_nodes(args, zil_data, node_type, first_index, count):
-    node_nss = []
+def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
     scripts_dir = args.build_dir + "/../scripts"
     zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../..', '..', 'zilliqa'))
     scilla_dir = os.path.abspath(os.path.join(scripts_dir, '../..', '..', 'scilla'))
@@ -728,7 +727,7 @@ def generate_nodes(args, zil_data, node_type, first_index, count):
             args.index = index
 
             if (node_type != 'multiplier'):
-                node_nss.append(generate_files(args, zil_data, pod_name))
+                generate_files(args, zil_data, pod_name)
             else:
                 create_constants_xml(args)
                 multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
@@ -745,6 +744,7 @@ def generate_nodes(args, zil_data, node_type, first_index, count):
                         f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
                 except Exception as e:  # noqa
                     print(f'Failed to replace constants.xml: {e}')
+                    return False
 
             for file_name in ['zilliqa', 'zilliqad', 'sendcmd', 'asio_multiplier']:
                 try:
@@ -758,8 +758,7 @@ def generate_nodes(args, zil_data, node_type, first_index, count):
 
         finally:
             os.chdir(os.getcwd())
-
-    return node_nss
+    return True
 
 
 def create_multiplier_start_sh(listen_port, lookupips_url):
@@ -775,7 +774,6 @@ def create_multiplier_start_sh(listen_port, lookupips_url):
     with open('start.sh', 'w') as f:
         for line in start_sh:
             f.write(line + '\n')
-
 
 def create_new_multiplier_file(zil_data) -> bool:
     try:

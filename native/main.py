@@ -10,8 +10,7 @@ import subprocess
 from os import path
 
 from natlib.data import Data
-from natlib.lib import (readline_from_file, is_multiplier, \
-                        create_multiplier_start_sh, is_seedprv, \
+from natlib.lib import (readline_from_file, is_seedprv, \
                         generate_nodes, str2fanout, str2uints, str2lookup)
 
 LOOKUP_TYPES = ('lookup', 'seedpub', 'seedprv')
@@ -119,17 +118,11 @@ def main():
         data.origin_server = '{}/origin/{}'.format(args.metadata_url, args.testnet)
         # origin_server = args.metadata_url
     else:
-        data.origin_server = 'http://' + get_svc_ip('{}-origin'.format(args.testnet))
-
-    # TODO: move this to a reasonble position. It depends only on origin_server and args.index
-    if is_multiplier(args):
-        multi_basic_auth_url = get_basic_auth_link('{}/multiplier-{}-downstreams.txt'.format(origin_server, args.index),
-                                                   b_username, b_password)
-        create_multiplier_start_sh(':{}'.format(args.port), multi_basic_auth_url)
+        # This will not be used in the native implementation
+        data.origin_server = ""
+        print("We currently cannot start without something in origin server")
         return 0
 
-    # Will block here until origin_server is accessible
-    data.first_lookup_port = args.port
 
     if not data.get_ips_list_from_pseudo_origin(args):
         print("Generating data from the arguments failed")
