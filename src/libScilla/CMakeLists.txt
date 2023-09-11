@@ -11,7 +11,7 @@ target_include_directories(Scilla
 
 target_link_libraries(Scilla
   PUBLIC
-    jsoncpp_lib
+    $<IF:$<TARGET_EXISTS:jsoncpp_lib_static>,jsoncpp_lib_static,jsoncpp_lib>
   PRIVATE
     Persistence
     Utils)

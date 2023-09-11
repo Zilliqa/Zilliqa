@@ -8,7 +8,6 @@
         "g3sinks",
         "schnorr",
         "cryptoutils",
-        "websocketpp",
         "opentelemetry-cpp"
       ]
     }
