@@ -25,6 +25,20 @@ index 1721d8c..d0ee68a 100644
  include(cmake/sanitizers.cmake)
  
  if(CLANG_TIDY)
+diff --git a/include/soralog/logger.hpp b/include/soralog/logger.hpp
+index fb695ff..dfac554 100644
+--- a/include/soralog/logger.hpp
++++ b/include/soralog/logger.hpp
+@@ -41,7 +41,9 @@ namespace soralog {
+     template <typename Format, typename... Args>
+     void push(Level level, const Format &format, const Args &...args) {
+       if (level_ >= level) {
++#if 0
+         sink_->push(name_, level, format, args...);
++#endif
+         if (level_ >= Level::CRITICAL) {
+           sink_->flush();
+         }
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
 index 7d959ba..19595d6 100644
 --- a/src/CMakeLists.txt
@@ -123,3 +137,15 @@ index 7d959ba..19595d6 100644
      logging_system.cpp
      )
  target_link_libraries(logging_system
+diff --git a/src/logging_system.cpp b/src/logging_system.cpp
+index 4db5330..0c760f3 100644
+--- a/src/logging_system.cpp
++++ b/src/logging_system.cpp
+@@ -6,6 +6,7 @@
+ #include <soralog/logging_system.hpp>
+ 
+ #include <cassert>
++#include <functional>
+ #include <iostream>
+ #include <set>
+ 

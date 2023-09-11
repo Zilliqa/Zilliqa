@@ -17,6 +17,7 @@
     "boost-filesystem",
     "boost-outcome",
     "boost-program-options",
+    "boost-signals2",
     "openssl",
     "protobuf",
     "c-ares",
