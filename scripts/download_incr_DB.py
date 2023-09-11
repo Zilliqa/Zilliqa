@@ -57,10 +57,7 @@ DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 
 def getURL():
-	if AWS_ENDPOINT_URL:
-		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
-	else:
-		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+	return "http://"+BUCKET_NAME+".storage.googleapis.com"
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
@@ -157,7 +154,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 	# Try get the entire persistence keys.
 	# S3 limitation to get only max 1000 keys. so work around using marker.
 	while True:
-		response = requests.get(url, params={"prefix":prefix, "max-keys":1000, "marker": MARKER})
+		response = requests.get(url, params={"prefix":prefix, "list-type": 1, "max-keys":1000, "marker": MARKER})
 		tree = ET.fromstring(response.text)
 		print("[" + str(datetime.datetime.now()) + "] Files to be downloaded:")
 		lastkey = ''
