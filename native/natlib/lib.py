@@ -11,6 +11,7 @@ from os import path
 
 import netaddr
 
+lookup_rpc_port = None
 
 ############################# utility functions ################################
 
@@ -291,17 +292,22 @@ def create_constants_xml(args, zil_data):
 
     my_ip, my_port = get_my_ip_and_port(args, zil_data)
 
-    if is_lookup(args) or is_seedpub(args) or is_seedprv(args):
-        general = root.find('general')
-        general.find('LOOKUP_NODE_MODE').text = "true"
+    if my_port is not None:
+        if is_lookup(args):
+            general = root.find('general')
+            general.find('LOOKUP_NODE_MODE').text = "true"
 
-        jsonrpc = root.find('jsonrpc')
-        lookup_rpc_port = int(my_port) + 1
-        jsonrpc.find('LOOKUP_RPC_PORT').text = str(lookup_rpc_port)
+            jsonrpc = root.find('jsonrpc')
+            global lookup_rpc_port
+            if lookup_rpc_port == None:
+                lookup_rpc_port = int(jsonrpc.find('LOOKUP_RPC_PORT').text)
+
+            jsonrpc.find('LOOKUP_RPC_PORT').text = str(lookup_rpc_port)
+            lookup_rpc_port = lookup_rpc_port + 1
 
     jsonrpc = root.find('jsonrpc')
     if my_port is not None:
-        status_rpc_port = int(my_port) + 2
+        status_rpc_port = int(my_port) + 1
         jsonrpc.find('STATUS_RPC_PORT').text = str(status_rpc_port)
     else:
         print("my_port is None")
@@ -588,6 +594,8 @@ def create_start_sh(args, zil_data):
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         'export AWS_ENDPOINT_URL=http://0.0.0.0:4566',
         'export PATH=/run/zilliqa:$PATH',
+        defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
+        defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
         cmd_zilliqa_daemon(args, resume=args.resume),
         '[ "$1" != "--recovery" ] && exit 1',
         '# The followings are recovery sequences'
@@ -671,7 +679,7 @@ def str2lookup(s):
 
 def generate_files(args, zil_data, pod_name):
     if is_lookup(args) or is_dsguard(args) or is_normal(args) or is_seedprv(args):
-        args.normal_ips = zil_data.normal_ips_from_origin
+        args.normal_ips = zil_data.guard_ips_from_origin + zil_data.normal_ips_from_origin
         args.lookup_ips = zil_data.lookup_ips_from_origin
     elif is_new(args) or is_seedpub(args):
         args.normal_ips = []
