@@ -11,8 +11,6 @@ from os import path
 
 import netaddr
 
-lookup_rpc_port = None
-
 
 ############################# utility functions ################################
 
@@ -26,8 +24,7 @@ def get_my_keypair(args):
         return args.keypairs[args.index]
 
     if is_normal(args):
-        offset = args.d if args.skip_non_guard_ds else args.ds_guard
-        return args.keypairs[offset + args.index]
+        return args.keypairs[args.d + args.index]
 
     if is_lookup(args):
         return args.lookup_keypairs[args.index]
@@ -44,18 +41,22 @@ def get_my_keypair(args):
     return subprocess.check_output('genkeypair').decode().strip()
 
 
-def get_my_ip_and_port(args):
+def get_my_ip_and_port(args, zil_data):
+
     if is_dsguard(args):
-        return args.guard_ips[args.index][:2]
+        return zil_data.guard_ips_from_origin[args.index][:2]
 
     if is_normal(args):
-        return args.normal_ips[args.index][:2]
+        return zil_data.normal_ips_from_origin[args.index][:2]
 
     if is_lookup(args):
-        return args.lookup_ips[args.index][:2]
+        return zil_data.lookup_ips_from_origin[args.index][:2]
 
     if is_seedpub(args):
-        return args.seedpub_ips[args.index][:2]
+        return zil_data.seedpub_ips_from_origin[args.index][:2]
+
+    if is_multiplier(args):
+        return zil_data.multiplier_ips_from_origin[args.index][:2]
 
     return (None, None)
 
@@ -169,7 +170,7 @@ def filter_empty_ip(ip_list):
     return result
 
 
-def create_constants_xml(args):
+def create_constants_xml(args, zil_data):
     root = xtree.parse(path.join(args.conf_dir, 'configmap', 'constants.xml')).getroot()
 
     lookup_nodes = root.find('lookups')
@@ -286,17 +287,24 @@ def create_constants_xml(args):
         else:
             xtree.SubElement(multiplier_peer, "hostname").text = ""
 
+    # new code to move the status and lookup port away from the default
+
+    my_ip, my_port = get_my_ip_and_port(args, zil_data)
+
     if is_lookup(args) or is_seedpub(args) or is_seedprv(args):
         general = root.find('general')
         general.find('LOOKUP_NODE_MODE').text = "true"
 
         jsonrpc = root.find('jsonrpc')
-        global lookup_rpc_port
-        if lookup_rpc_port == None:
-            lookup_rpc_port = int(jsonrpc.find('LOOKUP_RPC_PORT').text)
-
+        lookup_rpc_port = int(my_port) + 1
         jsonrpc.find('LOOKUP_RPC_PORT').text = str(lookup_rpc_port)
-        lookup_rpc_port = lookup_rpc_port + 1
+
+    jsonrpc = root.find('jsonrpc')
+    if my_port is not None:
+        status_rpc_port = int(my_port) + 2
+        jsonrpc.find('STATUS_RPC_PORT').text = str(status_rpc_port)
+    else:
+        print("my_port is None")
 
     transactions = root.find('transactions')
     if is_lookup(args) or is_seedpub(args) or is_seedprv(args):
@@ -389,7 +397,7 @@ def create_shard_whitelist_xml(args):
     tree.write("shard_whitelist.xml")
 
 
-def create_config_xml(args):
+def create_config_xml(args, zil_data):
     if is_new(args):
         # create a config.xml with 0 ds node information when I am a new node
         ds_public_keys = []
@@ -429,14 +437,14 @@ def gen_bucket_sed_string(args, fileName):
     return f'{SED} "s,^BUCKET_NAME=.*$,BUCKET_NAME= \'{args.bucket}\'," {fileName}'
 
 
-def create_start_sh(args):
+def create_start_sh(args, zil_data):
     block0 = '0' * int(args.block_number_size / 4 - 1) + '1'  # 000....001
     ds_diff = "05"  # genesis ds diff
     diff = "03"  # genesis diff
     rand1 = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a"
     rand2 = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf"
     my_public_key, my_private_key = get_my_keypair(args).strip().split(' ')
-    my_ip, my_port = get_my_ip_and_port(args)
+    my_ip, my_port = get_my_ip_and_port(args, zil_data)
     my_ns = 'zil-ns-{}'.format(int(my_ip[my_ip.rfind('.') + 1:]))
 
     # hex string from IPv4 or IPv6 string
@@ -517,7 +525,7 @@ def create_start_sh(args):
     if is_normal(args) or is_dsguard(args):
         primary_ds_ip = args.normal_ips[0]
         cmd_setprimaryds = ' '.join([
-            'sendcmd',
+            './sendcmd',
             '--port {}'.format(my_port),
             '--cmd cmd',
             '--cmdarg 0100' + ip_to_hex(primary_ds_ip[0]) + '{0:08X}'.format(primary_ds_ip[1])
@@ -530,7 +538,7 @@ def create_start_sh(args):
         ds_ips = args.normal_ips[0: args.d]
 
         cmd_startpow = ' '.join([
-            'sendcmd',
+            './sendcmd',
             '--port {}'.format(my_port),
             '--cmd cmd',
             '--cmdarg 0200' + block0 + ds_diff + diff + rand1 + rand2 + ''.join(
@@ -580,8 +588,6 @@ def create_start_sh(args):
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         'export AWS_ENDPOINT_URL=http://0.0.0.0:4566',
         'export PATH=/run/zilliqa:$PATH',
-        defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
-        defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
         cmd_zilliqa_daemon(args, resume=args.resume),
         '[ "$1" != "--recovery" ] && exit 1',
         '# The followings are recovery sequences'
@@ -603,6 +609,12 @@ def create_start_sh(args):
     with open('start.sh', 'w') as f:
         for line in start_sh:
             f.write(line + '\n')
+
+    with open('setprimary.sh', 'w') as f:
+        f.write(cmd_setprimaryds + '\n')
+
+    with open('startpow.sh', 'w') as f:
+        f.write(cmd_startpow + '\n')
 
     return my_ns
 
@@ -676,19 +688,19 @@ def generate_files(args, zil_data, pod_name):
     #  else:
     #  args.seedpub_ips = []
 
-    create_constants_xml(args)
+    create_constants_xml(args, zil_data)
     if is_normal(args) or is_dsguard(args):
         create_ds_whitelist_xml(args)
         create_shard_whitelist_xml(args)
-    create_config_xml(args)
+    create_config_xml(args, zil_data)
     create_dsnodes_xml(args)
-    return create_start_sh(args)
+    return create_start_sh(args, zil_data)
 
 
 def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
-    scripts_dir = args.build_dir + "/../scripts"
+    scripts_dir = "/home/stephen/dev/Zilliqa/scripts"
     zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../..', '..', 'zilliqa'))
-    scilla_dir = os.path.abspath(os.path.join(scripts_dir, '../..', '..', 'scilla'))
+    scilla_dir = "/home/stephen/dev/scilla"
     for index in range(first_index, first_index + count):
         try:
             pod_name = f'{args.testnet}-{node_type}-{index}'
@@ -707,7 +719,7 @@ def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
             if (node_type != 'multiplier'):
                 generate_files(args, zil_data, pod_name)
             else:
-                create_constants_xml(args)
+                create_constants_xml(args, zil_data)
                 multi_basic_auth_url = '{}/multiplier-downstream.txt'.format("http://0.0.0.0:8000")
                 create_multiplier_start_sh(zil_data.multiplier_port, multi_basic_auth_url)
                 create_new_multiplier_file(zil_data)

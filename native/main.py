@@ -77,10 +77,12 @@ def main():
     ## ./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
     ## os.path.join(ZILLIQA_DIR, "constants.xml"),
     ## "--image", zilliqa_image,
+
     ## "-n", "6",   no of all nodes
     ## "-d", "5",   no of dsnodes
     ## "-l", "1",   no of lookups
     ## "--guard", "4/0", no of guards
+
     ## "--gentxn", "false",
     ## "--multiplier-fanout", "1",
     ## "--host-network", "false",
