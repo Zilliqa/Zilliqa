@@ -12,7 +12,7 @@ class Data:
         self.lookup_port = 50200
         self.seedpub_port = 50300
         self.multiplier_port = 50400
-        self.my_ip = "127.0.0.1"
+        self.my_ip = "192.168.0.98"
         self.origin_server = ""
 
     def __str__(self):

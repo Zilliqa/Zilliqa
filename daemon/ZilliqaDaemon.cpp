@@ -138,14 +138,14 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
   for (const pid_t& pid : pids) {
     // If sig is 0 (the null signal), error checking is performed but no signal
     // is actually sent
-    if (kill(pid, 0) < 0) {
+    if (false and kill(pid, 0) < 0) {
       if (errno == EPERM) {
         ZilliqaDaemon::LOG(m_log, "Daemon does not have permission Name: " +
                                       name + " Id: " + to_string(pid));
       } else if (errno == ESRCH) {
         ZilliqaDaemon::LOG(
-            m_log, "Process died Name: " + name + " Id: " + to_string(pid));
-        m_died[pid] = true;
+            m_log, "We think Process died Name: " + name + " Id: " + to_string(pid));
+        m_died[pid] = false;
       } else {
         ZilliqaDaemon::LOG(m_log, "Kill failed due to " + to_string(errno) +
                                       " Name: " + name +
@@ -430,13 +430,13 @@ void ZilliqaDaemon::Exit(int exitCode)
 void ZilliqaDaemon::KillProcess(const string& procName) {
   vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(procName);
   for (const auto& pid : pids) {
+#if 0
     ZilliqaDaemon::LOG(
         m_log, "Killing " + procName + " process before launching daemon...");
-#if 0
+
     kill(pid, SIGTERM);
-#else
-#endif
     ZilliqaDaemon::LOG(m_log, procName + " process killed successfully.");
+#endif
   }
 }
 
@@ -536,6 +536,7 @@ int main(int argc, const char* argv[]) {
   bool startNewByDaemon = true;
   while (1) {
     for (const auto& name : programName) {
+      std::cout << "Monitoring " << name << " process..." << std::endl;
       daemon.MonitorProcess(name, startNewByDaemon);
     }
 

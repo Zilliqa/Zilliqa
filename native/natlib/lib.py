@@ -184,6 +184,7 @@ def create_constants_xml(args, zil_data):
     seedpub_ips = args.seedpub_ips[0: sum(args.multiplier_fanout)]
     seedpub_public_keys = [k.split(' ')[0] for k in args.seedpub_keypairs[0: sum(args.multiplier_fanout)]]
 
+
     upper_seed_ip = []
     upper_seed_pubkey = []
     upper_seed_index = []
@@ -293,7 +294,7 @@ def create_constants_xml(args, zil_data):
     my_ip, my_port = get_my_ip_and_port(args, zil_data)
 
     if my_port is not None:
-        if is_lookup(args):
+        if is_lookup(args) or is_seedpub(args) or is_seedprv(args):
             general = root.find('general')
             general.find('LOOKUP_NODE_MODE').text = "true"
 
@@ -302,12 +303,12 @@ def create_constants_xml(args, zil_data):
             if lookup_rpc_port == None:
                 lookup_rpc_port = int(jsonrpc.find('LOOKUP_RPC_PORT').text)
 
-            jsonrpc.find('LOOKUP_RPC_PORT').text = str(lookup_rpc_port)
+            jsonrpc.find('LOOKUP_RPC_PORT').text = str(int(my_port)+1)
             lookup_rpc_port = lookup_rpc_port + 1
 
     jsonrpc = root.find('jsonrpc')
     if my_port is not None:
-        status_rpc_port = int(my_port) + 1
+        status_rpc_port = int(my_port) + 2
         jsonrpc.find('STATUS_RPC_PORT').text = str(status_rpc_port)
     else:
         print("my_port is None")

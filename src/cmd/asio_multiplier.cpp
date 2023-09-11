@@ -40,11 +40,12 @@
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
+#include "libNetwork/P2PMessage.h"
 
 using namespace zil::p2p;
 std::chrono::high_resolution_clock::time_point startTime;
 
-#define SUCCESS 0
+#define PB_SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
 #define ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION -2
 #define ERROR_UNHANDLED_EXCEPTION -3
@@ -162,8 +163,7 @@ void process_message(std::shared_ptr<zil::p2p::Message> message,
                                            (time_span.count() * 1024 * 1024)
                                     << " MBps");
   }
-  zil::p2p::GetInstance().SendMessage(peers.getPeers(), message->msg,
-                                      message->startByte, false);
+  zil::p2p::GetInstance().SendBroadcastMessage(peers.getPeers(), message->msg,false);
 }
 
 namespace po = boost::program_options;
@@ -201,12 +201,12 @@ int main(int argc, char* argv[]) {
     if (vm.count("help")) {
       SWInfo::LogBrandBugReport();
       std::cout << desc << std::endl;
-      return SUCCESS;
+      return PB_SUCCESS;
     }
 
     if (vm.count("version")) {
       std::cout << VERSION_TAG << std::endl;
-      return SUCCESS;
+      return PB_SUCCESS;
     }
 
     po::notify(vm);
@@ -235,8 +235,6 @@ int main(int argc, char* argv[]) {
   INIT_FILE_LOGGER("asio_multiplier", std::filesystem::current_path());
   LOG_DISPLAY_LEVEL_ABOVE(INFO);
 
-  std::cout << "Starting asio_multiplier sleep 120" << std::endl;
-  std::this_thread::sleep_for(std::chrono::seconds(120));
 
   auto func = [port, &our_peers]() mutable -> void {
     boost::asio::io_context ctx(1);
