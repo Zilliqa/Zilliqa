@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
 class Data:
     def __init__(self) -> object:
         self.normal_ips_from_origin = []
@@ -42,8 +46,8 @@ class Data:
                                                         self.guard_port + (5 * arg.ds_guard), 5),
                                                   arg.keypairs[0:arg.ds_guard]))
 
-            keys = arg.keypairs[arg.ds_guard:arg.n]
-            ports = range(self.normal_port, self.normal_port + arg.n - arg.ds_guard, 5)
+            keys = arg.keypairs[arg.d:arg.n]
+            ports = range(self.normal_port, self.normal_port + arg.n - arg.d, 5)
             ips = [str(self.my_ip)] * (arg.n - arg.ds_guard)
             self.normal_ips_from_origin = list(zip(ips, ports, keys))
 
