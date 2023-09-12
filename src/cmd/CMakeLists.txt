@@ -107,10 +107,11 @@ add_custom_command(TARGET zilliqa
 target_include_directories(connectivity PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(connectivity Network)
 
-add_executable(multiplier multiplier.cpp)
+find_package(cpr REQUIRED)
+add_executable(asio_multiplier asio_multiplier.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:multiplier> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(multiplier PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(multiplier Network)
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:asio_multiplier> ${CMAKE_BINARY_DIR}/tests/asio_multiplier)
+target_include_directories(asio_multiplier PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(asio_multiplier Network Boost::program_options cpr::cpr)
 

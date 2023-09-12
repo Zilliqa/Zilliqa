@@ -393,7 +393,7 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     helm_remove_repository(config, 'grafana')
 
-def prometheus_up(config, testnet_name, count = 7):
+def prometheus_up(config, testnet_name, count = 8):
     """ Let helm deploy prometheus """
     ips = []
     while True:
@@ -716,19 +716,19 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
-        os.path.join(ZILLIQA_DIR, "constants.xml"),
-        "--image", zilliqa_image,
-        "-n", "6",
-        "-d", "5",
-        "-l", "1",
-        "--guard", "4/0",
-        "--gentxn", "false",
-        "--multiplier-fanout", "1",
-        "--host-network", "false",
-        "--https", "localdomain",
-        "--seed-multiplier", "true",
-        "--skip-non-guard-ds", "true",
-        "--localstack", "true"]
+           os.path.join(ZILLIQA_DIR, "constants.xml"),
+           "--image", zilliqa_image,
+           "-n", "6",
+           "-d", "5",
+           "-l", "1",
+           "--guard", "4/0",
+           "--gentxn", "false",
+           "--multiplier-fanout", "1",
+           "--host-network", "false",
+           "--https", "localdomain",
+           "--seed-multiplier", "true",
+           "--skip-non-guard-ds", "true",
+           "--localstack", "true"]
     cmd = cmd + ([ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else [])
     cmd = cmd + [ "-f" ]
     if persistence is not None and key_file is not None:
