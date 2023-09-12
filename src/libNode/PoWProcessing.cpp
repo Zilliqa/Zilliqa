@@ -457,6 +457,7 @@ bool Node::ProcessStartPoW(const zbytes& message, unsigned int offset,
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
   // Start mining
+  LOG_GENERAL(WARNING, "BZ Start Processing POW");
   StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
 
   return true;

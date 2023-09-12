@@ -1440,7 +1440,7 @@ bool DirectoryService::ProcessShardingStructure(
 void DirectoryService::SaveDSPerformanceCore(
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
         coinbaseRewardees,
-    std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
+    std::map<PubKey, uint32_t>& dsMemberPerformance, const DequeOfNode& dsComm,
     uint64_t currentEpochNum, unsigned int numOfFinalBlock,
     int finalblockRewardID) {
   LOG_MARKER();
@@ -1511,7 +1511,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     unsigned int numOfProposedDSMembers,
     std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
     unsigned int numOfFinalBlock, double performanceThreshold,
-    unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+    unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
     const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
 
@@ -1538,7 +1538,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
       INFO, "threshold = " << threshold << " (" << performanceThreshold << ")");
   unsigned int numByzantine = 0;
   unsigned int index = 0;
-  for (auto it = dsComm.begin(); it != dsComm.end(); ++it) {
+  for (auto it = dsComm.cbegin(); it != dsComm.cend(); ++it) {
     // Do not evaluate guard nodes.
     if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(it->first)) {
       continue;

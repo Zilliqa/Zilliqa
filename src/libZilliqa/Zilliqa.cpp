@@ -182,7 +182,8 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
           zil::trace::FilterClass::NODE, "Dispatch", message->traceContext);
 #endif
-
+      LOG_GENERAL(WARNING, "BZ Executing message with type: "
+                               << std::string(MsgTypeToStr(msg_type)));
       bool result = msg_handlers[msg_type]->Execute(
           message->msg, MessageOffset::INST, message->from, message->startByte);
 
