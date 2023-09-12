@@ -526,7 +526,8 @@ def create_start_sh(args, zil_data):
             '--nodetype {}'.format(args.type),
             '--nodeindex {}'.format(args.index),
             '--recovery' if opt_recovery == '1' else '',
-            '--logpath {}'.format(args.log_path) if args.log_path is not None else ''
+            '--logpath {}'.format(args.log_path) if args.log_path is not None else '',
+            '--killnone'
         ])
 
     if is_normal(args) or is_dsguard(args):
