@@ -361,7 +361,6 @@ bool Node::ProcessVCDSBlocksMessage(
                       m_mediator.m_ds->GetConsensusMyID();
   LOG_GENERAL(WARNING, "BZ ProcessVCDSBlocksMessage enter, I am leader? : "
                            << (leader ? "true" : "false"));
-  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
 
   lock_guard<mutex> g(m_mutexDSBlock);
 

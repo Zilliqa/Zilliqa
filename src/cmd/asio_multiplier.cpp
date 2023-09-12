@@ -171,7 +171,6 @@ int main(int argc, char* argv[]) {
 
   std::string url;
   std::string logpath(std::filesystem::absolute("./").string());
-  uint128_t ip;
   registeredPeers our_peers{};
   std::set<std::string> addressStore;
   std::vector<std::string> mirrorAddresses;
