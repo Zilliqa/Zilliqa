@@ -34,6 +34,19 @@ const config: HardhatUserConfig = {
   solidity: "0.8.9",
   defaultNetwork: "isolated_server",
   networks: {
+    public_devnet: {
+      url: "https://api.devnet.zilliqa.com",
+      websocketUrl: "ws://api.devnet.zilliqa.com",
+      accounts: [
+        "4CC853DE4F9FE4A9155185C65B56B6A9B024F896B54528B9E9448B6CD9B8F329",
+        ...loadFromSignersFile("public_devnet")
+      ],
+      chainId: 33385,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
     localdev2: {
       url: "http://localdev-l2api.localdomain",
       websocketUrl: "ws://localdev-l2api.localdomain",
@@ -53,10 +66,6 @@ const config: HardhatUserConfig = {
       url: "http://localhost:5555/",
       websocketUrl: "ws://localhost:5555/",
       accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
-        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
-        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
         ...loadFromSignersFile("isolated_server")
       ],
       chainId: 0x8001,

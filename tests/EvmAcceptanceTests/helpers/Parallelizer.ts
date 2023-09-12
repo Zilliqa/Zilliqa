@@ -12,15 +12,9 @@ export type DeployOptions = {
 
 export class Parallelizer {
   constructor() {
-    let privateKey = "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba";
-    if (process.env.PRIMARY_ACCOUNT !== undefined) {
-      privateKey = process.env.PRIMARY_ACCOUNT;
-    }
-
     const private_keys: string[] = hre.network["config"]["accounts"] as string[];
 
-    this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
-    this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey, ...private_keys], 30);
+    this.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), private_keys, 30);
   }
 
   async deployScillaContract(contractName: string, ...args: any[]): Promise<ScillaContract> {
@@ -39,7 +33,6 @@ export class Parallelizer {
     return hre.deployScillaContractWithLib(libraryName, userDefinedLibraries, ...args);
   }
 
-  zilliqaAccountAddress: string;
   zilliqaSetup: Setup;
 }
 

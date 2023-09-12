@@ -117,11 +117,13 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
   hre.deployScillaContract2 = async (name: string, ...args: any[]): Promise<ScillaContract> => {
     const signer = hre.signer_pool.takeZilSigner();
-    return hre.deployScillaContract(name, signer, ...args);
+    hre.setActiveAccount(signer);
+    return hre.deployScillaContract(name, ...args);
   };
 
   hre.deployScillaContractWithSigner = async (name: string, signer: Account, ...args: any[]): Promise<ScillaContract> => {
-    let contract = await hre.deployScillaContract(name, signer, ...args);
+    hre.setActiveAccount(signer);
+    let contract = await hre.deployScillaContract(name, ...args);
     return contract.connect(signer);
   };
 

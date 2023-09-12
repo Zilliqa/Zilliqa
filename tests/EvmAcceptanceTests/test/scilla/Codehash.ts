@@ -15,7 +15,7 @@ describe("Codehash contract #parallel", () => {
     assert.isTrue(contract.address !== undefined);
   });
 
-  it("Call code hash contract - Foo transition #block-1", async () => {
+  it("Call code hash contract - Foo transition #block-2", async () => {
     let tx1 = await contract.foo(contract.address!.toLowerCase());
     const codeHash1 = tx1.receipt.event_logs[0].params[0].value;
     expect(tx1.receipt.success).equal(true);
