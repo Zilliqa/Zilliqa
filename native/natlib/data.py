@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
 class Data:
     def __init__(self) -> object:
         self.normal_ips_from_origin = []
