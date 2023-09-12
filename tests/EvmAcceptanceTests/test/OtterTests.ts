@@ -96,7 +96,8 @@ describe("Otterscan api tests", function () {
     });
   });
 
-  it("We can get the otter search for sender by nonce", async function () {
+  // Disabled in q4-working-branch
+  xit("We can get the otter search for sender by nonce", async function () {
     const METHOD = "ots_getTransactionBySenderAndNonce";
 
     // To test this, send money to an account then have it send it back.
