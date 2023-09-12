@@ -350,6 +350,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
           if (!ec) {
             LOG_GENERAL(DEBUG, "Peer " << self->m_peer << " got unexpected "
                                        << n << " bytes");
+            self->WaitForEOF();
             return;
           }
 

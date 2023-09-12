@@ -17,12 +17,12 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
-#include <random>
 #include <set>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 #include <arpa/inet.h>
 #include <cpr/cpr.h>
@@ -31,12 +31,10 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/program_options.hpp>
-#include <boost/uuid/uuid.hpp>
 #include "libCrypto/Sha2.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/P2P.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
@@ -52,6 +50,7 @@ std::chrono::high_resolution_clock::time_point startTime;
 #define ERROR_IN_CONSTANTS -4
 
 using VectorOfPeer = std::vector<Peer>;
+
 namespace beast = boost::beast;
 namespace http = beast::http;
 
@@ -96,7 +95,6 @@ std::set<std::string> reportDifference(
 bool fetchDownstreams(const std::string downstreamURL,
                       std::vector<std::string>& mirrorAddresses,
                       std::set<std::string>& addressStore) {
-  std::cout << "Requesting [" << downstreamURL << "]" << std::endl;
   cpr::Response r = cpr::Get(cpr::Url{downstreamURL});
 
   if (r.status_code == 200) {
@@ -105,12 +103,11 @@ bool fetchDownstreams(const std::string downstreamURL,
     std::vector<std::string> newAddresses = removeEmptyAddr(split(contents, '\n'));
     std::set<std::string> diffAddresses = reportDifference(newAddresses, oldAddresses, addressStore);
     for (const std::string& address : diffAddresses) {
-      std::cout << "Adding " << address << " to mirrorAddresses" << std::endl;
       mirrorAddresses.push_back(address);
     }
   } else {
-    std::cout << "DownstreamURL " << downstreamURL
-              << " may not be available at this moment" << std::endl;
+    LOG_GENERAL(INFO,"DownstreamURL " << downstreamURL
+              << " may not be available at this moment" );
     return false;
   }
   return true;
@@ -179,14 +176,13 @@ int main(int argc, char* argv[]) {
   std::set<std::string> addressStore;
   std::vector<std::string> mirrorAddresses;
   int port;
+  std::atomic<bool> execution_continues{true };
+  std::mutex lock_addressStore;
 
   po::options_description desc("Options");
   desc.add_options()("help,h", "Print help messages")(
       "listen,l", po::value<int>(&port)->required()->default_value(30300),
       "Specifies port to bind to")(
-      "logpath,g", po::value<std::string>(&logpath),
-      "customized log path, could be relative path (e.g., \"./logs/\"), or "
-      "absolute path (e.g., \"/usr/local/test/logs/\")")(
       "url,s", po::value<std::string>(&url)->required(),
       "url of list of nodes to poll for connections")(
       "version,v", "Displays the Zilliqa Multiplier version information");
@@ -200,12 +196,11 @@ int main(int argc, char* argv[]) {
      */
     if (vm.count("help")) {
       SWInfo::LogBrandBugReport();
-      std::cout << desc << std::endl;
       return PB_SUCCESS;
     }
 
     if (vm.count("version")) {
-      std::cout << VERSION_TAG << std::endl;
+      SWInfo::LogBrandBugReport();
       return PB_SUCCESS;
     }
 
@@ -213,22 +208,22 @@ int main(int argc, char* argv[]) {
 
     if ((port < 0) || (port > 65535)) {
       SWInfo::LogBrandBugReport();
-      std::cerr << "Invalid or missing port number" << std::endl;
+      LOG_GENERAL( INFO, "ERROR: Invalid port" );
       return ERROR_IN_COMMAND_LINE;
     }
     if (url.empty()) {
       SWInfo::LogBrandBugReport();
-      std::cerr << "Invalid or missing url" << std::endl;
+      LOG_GENERAL( INFO, "ERROR: url empty" );
       return ERROR_IN_COMMAND_LINE;
     }
   } catch (boost::program_options::required_option& e) {
     SWInfo::LogBrandBugReport();
-    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-    std::cout << desc;
+    LOG_GENERAL( INFO, "ERROR: " << e.what() );
+    LOG_GENERAL( INFO, "ERROR: " << desc );
     return ERROR_IN_COMMAND_LINE;
   } catch (boost::program_options::error& e) {
     SWInfo::LogBrandBugReport();
-    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+    LOG_GENERAL( INFO, "ERROR: " << e.what() );
     return ERROR_IN_COMMAND_LINE;
   }
 
@@ -236,40 +231,45 @@ int main(int argc, char* argv[]) {
   LOG_DISPLAY_LEVEL_ABOVE(INFO);
 
 
-  auto func = [port, &our_peers]() mutable -> void {
+  auto func = [&execution_continues, &our_peers,&port,&lock_addressStore]() mutable -> void {
     boost::asio::io_context ctx(1);
     boost::asio::signal_set sig(ctx, SIGINT, SIGTERM);
-    sig.async_wait([&](const boost::system::error_code&, int) { ctx.stop(); });
-
-    auto dispatcher = [&our_peers](std::shared_ptr<zil::p2p::Message> message) {
+    sig.async_wait([&](const boost::system::error_code&, int) {
+      ctx.stop();
+      execution_continues.store(false);
+    });
+    auto dispatcher = [&our_peers,&lock_addressStore](std::shared_ptr<zil::p2p::Message> message) {
+      lock_addressStore.lock();
       process_message(std::move(message), our_peers);
+      lock_addressStore.unlock();
     };
-
-    std::cout << "Starting server on port " << port << std::endl;
-
     zil::p2p::GetInstance().StartServer(ctx, port, 0, std::move(dispatcher));
     ctx.run();
   };
 
   DetachedFunction(1, func);
 
-  while (1) {
+  while (execution_continues.load()) {
     if (fetchDownstreams(url, mirrorAddresses, addressStore)) {
       for (const std::string& address : mirrorAddresses) {
         std::vector<std::string> address_pair;
         address_pair = split(address, ':');
         if (address_pair.size() != 2) {
-          std::cout << "Invalid address: " << address << std::endl;
+          LOG_GENERAL(INFO, "Invalid address: " << address );
           continue;
         }
 
         if (addressStore.find(address) == addressStore.end()) {
-          std::cout << "Adding " << address << " to addressStore" << std::endl;
           addressStore.insert(address);
-          std::cout << "Adding " << address << " to our_peers" << std::endl;
           struct in_addr ip_addr {};
           inet_pton(AF_INET, address_pair[0].c_str(), &ip_addr);
-          our_peers.addPeer({ip_addr.s_addr, static_cast<u_int32_t >(std::stoi(address_pair[1]))});
+          {
+            LOG_GENERAL( INFO, "Updating downstream Addresses: " );
+            lock_addressStore.lock();
+            our_peers.addPeer({ip_addr.s_addr, static_cast<u_int32_t>(std::stoi(
+                                                   address_pair[1]))});
+            lock_addressStore.unlock();
+          }
         }
       }
     }
