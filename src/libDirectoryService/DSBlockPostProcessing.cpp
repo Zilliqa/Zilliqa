@@ -333,8 +333,6 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second,
                                    *m_mediator.m_DSCommittee,
                                    m_mediator.m_dsBlockChain.GetLastBlock());
-  LOG_EXTRA("m_DSCommittee updated " << old_size << "->"
-                                     << m_mediator.m_DSCommittee->size());
 }
 
 void DirectoryService::StartNextTxEpoch() {
