@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG SCILLA_VERSION=v0.13.4
+ARG SCILLA_VERSION=v0.13.5
 ARG SCILLA_IMAGE=zilliqa/scilla:${SCILLA_VERSION}
 
 # Common dependencies of the builder and runner stages.
