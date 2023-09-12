@@ -396,7 +396,8 @@ void Node::InitiatePoW() {
         "Node::InitiatePoW not expected to be called from LookUp node.");
     return;
   }
-  LOG_GENERAL(WARNING, "BZ: InitiatePoW");
+  LOG_GENERAL(WARNING, "BZ InitiatePoW enter");
+  LOG_GENERAL(WARNING, "BZ Setting state to POW_SUBMISSION");
   SetState(POW_SUBMISSION);
 
   if (m_mediator.m_disablePoW) {
@@ -413,6 +414,7 @@ void Node::InitiatePoW() {
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     auto txBlockRand = m_mediator.m_txBlockRand;
+    LOG_GENERAL(WARNING, "BZ Will start PoW in detached function enter");
     StartPoW(
         epochNumber,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
@@ -1043,7 +1045,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
              (m_state == MICROBLOCK_CONSENSUS ||
               m_state == MICROBLOCK_CONSENSUS_PREP)) {
       std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-      // TODO: cv fix
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
@@ -1292,6 +1293,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     ClearUnconfirmedTxn();
     if (isVacuousEpoch) {
+      LOG_GENERAL(WARNING, "BZ It's vacuous epoch, will start PoW soon");
       InitiatePoW();
     } else {
       auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };

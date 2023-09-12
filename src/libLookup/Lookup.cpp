@@ -4080,6 +4080,7 @@ bool Lookup::InitMining() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
+  LOG_GENERAL(WARNING, "BZ Init mining, will start PoW soon");
   m_mediator.m_node->StartPoW(
       curDsBlockNum + 1,
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),

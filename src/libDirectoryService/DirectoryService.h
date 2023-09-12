@@ -713,14 +713,14 @@ class DirectoryService : public Executable {
   static void SaveDSPerformanceCore(
       std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
           coinbaseRewardees,
-      std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
-      uint64_t currentEpochNum, unsigned int numOfFinalBlock,
-      int finalblockRewardID);
+      std::map<PubKey, uint32_t>& dsMemberPerformance,
+      const DequeOfNode& dsComm, uint64_t currentEpochNum,
+      unsigned int numOfFinalBlock, int finalblockRewardID);
   static unsigned int DetermineByzantineNodesCore(
       unsigned int numOfProposedDSMembers,
       std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
       unsigned int numOfFinalBlock, double performanceThreshold,
-      unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+      unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
       const std::map<PubKey, uint32_t>& dsMemberPerformance);
 
  private:
