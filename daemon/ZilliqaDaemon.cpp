@@ -68,7 +68,8 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
       m_recovery(0),
       m_nodeIndex(0),
       m_syncType(0),
-      m_cseed(false) {
+      m_cseed(false),
+      m_noKill(false) {
   if (ReadInputs(argc, argv) != SUCCESS) {
     ZilliqaDaemon::LOG(m_log, "Failed to read inputs.");
     exit(EXIT_FAILURE);
@@ -138,14 +139,14 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
   for (const pid_t& pid : pids) {
     // If sig is 0 (the null signal), error checking is performed but no signal
     // is actually sent
-    if (false and kill(pid, 0) < 0) {
+    if (!m_noKill and kill(pid, 0) < 0) {
       if (errno == EPERM) {
         ZilliqaDaemon::LOG(m_log, "Daemon does not have permission Name: " +
                                       name + " Id: " + to_string(pid));
       } else if (errno == ESRCH) {
-        ZilliqaDaemon::LOG(
-            m_log, "We think Process died Name: " + name + " Id: " + to_string(pid));
-        m_died[pid] = false;
+        ZilliqaDaemon::LOG(m_log, "We think Process died Name: " + name +
+                                      " Id: " + to_string(pid));
+        m_died[pid] = !m_noKill;
       } else {
         ZilliqaDaemon::LOG(m_log, "Kill failed due to " + to_string(errno) +
                                       " Name: " + name +
@@ -398,12 +399,12 @@ void ZilliqaDaemon::StartScripts() {
   string cmdToRun = "ps axf | grep " + script +
                     " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
 
-#if 0
-  ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-  ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-#else
-  ZilliqaDaemon::LOG(m_log, "Not running command: \"" + cmdToRun + "\"");
-#endif
+  if (!m_noKill) {
+    ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+    ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+  } else {
+    ZilliqaDaemon::LOG(m_log, "Not running command: \"" + cmdToRun + "\"");
+  }
 
   cmdToRun = "python3 " + m_curPath + script +
              (0 == m_nodeIndex ? "" : " -f 10") + " &";
@@ -413,13 +414,11 @@ void ZilliqaDaemon::StartScripts() {
   Exit(0);
 }
 
-void ZilliqaDaemon::Exit(int exitCode)
-{
+void ZilliqaDaemon::Exit(int exitCode) {
   // Since the updater uses the Logger and the daemon keeps fork-ing
   // we can't realy on exit() because it will hang when the logger
   // tries to shutdown (since the child won't have the same running threads).
-  if (m_updater)
-  {
+  if (m_updater) {
     m_log.flush();
     _exit(exitCode);
   }
@@ -430,13 +429,13 @@ void ZilliqaDaemon::Exit(int exitCode)
 void ZilliqaDaemon::KillProcess(const string& procName) {
   vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(procName);
   for (const auto& pid : pids) {
-#if 0
-    ZilliqaDaemon::LOG(
-        m_log, "Killing " + procName + " process before launching daemon...");
+    if (!m_noKill) {
+      ZilliqaDaemon::LOG(
+          m_log, "Killing " + procName + " process before launching daemon...");
 
-    kill(pid, SIGTERM);
-    ZilliqaDaemon::LOG(m_log, procName + " process killed successfully.");
-#endif
+      kill(pid, SIGTERM);
+      ZilliqaDaemon::LOG(m_log, procName + " process killed successfully.");
+    }
   }
 }
 
@@ -461,7 +460,8 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
       "logpath,g", po::value<string>(&m_logPath),
       "customized log path, could be relative path (e.g., \"./logs/\"), or "
       "absolute path (e.g., \"/usr/local/test/logs/\")")(
-      "cseed,c", "Runs as cummunity seed node if set");
+      "cseed,c", "Runs as cummunity seed node if set")(
+      "killnone,k", "does not kill processes");
 
   po::variables_map vm;
 
@@ -481,6 +481,11 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
     if (vm.count("cseed")) {
       ZilliqaDaemon::LOG(m_log, "Running Daemon for community seed node.");
       m_cseed = true;
+    }
+    if (vm.count("killnone")) {
+      ZilliqaDaemon::LOG(
+          m_log, "does not kill things - useful for experimental native.");
+      m_noKill = true;
     }
   } catch (boost::program_options::required_option& e) {
     ZilliqaDaemon::LOG(m_log, "ERROR: " + string(e.what()));

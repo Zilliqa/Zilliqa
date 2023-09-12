@@ -43,6 +43,7 @@ class ZilliqaDaemon final {
   int m_port, m_recovery, m_nodeIndex;
   unsigned int m_syncType;
   bool m_cseed;
+  bool m_noKill;
   std::unique_ptr<ZilliqaUpdater> m_updater;
 
   static std::string CurrentTimeStamp();
