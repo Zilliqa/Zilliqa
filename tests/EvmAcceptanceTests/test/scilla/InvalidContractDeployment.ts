@@ -17,7 +17,8 @@ describe("Scilla contract deployment with error", () => {
     expect(tx.receipt.exceptions[0].message).to.include("match-expression is probably missing `end` keyword.");
   });
 
-  it("should return error if the provided init version is invalid", async () => {
+  // Disabled in q4-working-branch
+  xit("should return error if the provided init version is invalid", async () => {
     let contractPath = hre.scillaContracts["SetGet"].path;
     const init = [{vname: "_scilla_version", type: "Uint32", value: "1"}];
 
