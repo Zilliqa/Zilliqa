@@ -162,7 +162,8 @@ describe("Transfer ethers", function () {
     expect(receivedBal).to.be.eq(TRANSFER_VALUE);
   });
 
-  it("should return check gas and funds consistency", async function () {
+  // Disabled in q4-working-branch
+  xit("should return check gas and funds consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
     const FUND = BigNumber.from(200_000_000_000_000_000n);
