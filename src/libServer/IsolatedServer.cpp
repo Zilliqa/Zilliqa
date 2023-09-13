@@ -306,9 +306,7 @@ void IsolatedServer::BindAllEvmMethods() {
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_BOOLEAN, NULL),
+                           jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthBlockByNumberI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(

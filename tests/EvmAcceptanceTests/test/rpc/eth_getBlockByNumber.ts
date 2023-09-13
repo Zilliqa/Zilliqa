@@ -1,11 +1,11 @@
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import {assert} from "chai";
+import { assert } from "chai";
 import hre from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getBlockByNumber";
 
-describe("Calling " + METHOD, function () {
+describe("Calling " + METHOD, function() {
   function TestResponse(response: any) {
     // validate all returned fields
 
@@ -69,7 +69,7 @@ describe("Calling " + METHOD, function () {
     assert.isArray(response.result.uncles, "Is not an array");
   }
 
-  it("should return an error when called with no parameters", async function () {
+  it("should return an error when called with no parameters", async function() {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 
@@ -85,7 +85,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return an error when called with only first parameter", async function () {
+  it("should return an error when called with only first parameter", async function() {
     await sendJsonRpcRequest(METHOD, 1, ["latest"], (result, status) => {
       logDebug(result);
       assert.equal(status, 200, "has status code");
@@ -100,7 +100,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should get full transactions objects by 'unknown tag' tag", async function () {
+  it("should get full transactions objects by 'unknown tag' tag", async function() {
     await sendJsonRpcRequest(METHOD, 2, ["unknown tag", true], (result, status) => {
       logDebug(result);
 
@@ -109,7 +109,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should get full transactions objects by 'latest' tag", async function () {
+  it("should get full transactions objects by 'latest' tag", async function() {
     await sendJsonRpcRequest(METHOD, 2, ["latest", true], (result, status) => {
       logDebug(result);
 
@@ -119,7 +119,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should get only the hashes of the transactions by 'latest' tag", async function () {
+  it("should get only the hashes of the transactions by 'latest' tag", async function() {
     await sendJsonRpcRequest(METHOD, 2, ["latest", false], (result, status) => {
       logDebug(result);
 
@@ -129,15 +129,67 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  describe("When executing 'earliest' tag", function () {
+  it("should get full transactions objects by its block number", async function() {
+    let blockNumber = 0x1;
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, true], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  it("should get only the hashes of transactions objects by its block number", async function() {
+    let blockNumber = 0x1;
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, false], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  it("should get full transactions objects by its block number, even if number is specified as a string", async function() {
+    let blockNumber = "0x1";
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, true], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  it("should get only the hashes of transactions objects by its block number, even if number is specified as a string", async function() {
+    let blockNumber = "0x1";
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, false], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  describe("When executing 'earliest' tag", function() {
     let blockNumber = 0x0;
-    before(async function () {
+    before(async function() {
       if (hre.getNetworkName() == "isolated_server") {
         this.skip(); // FIXME: isolated server does not returns block '0' back, but a null object. see ZIL-4877
       }
     });
 
-    it("should get full transactions objects by 'earliest' tag", async function () {
+    it("should get full transactions objects by 'earliest' tag", async function() {
       await sendJsonRpcRequest(METHOD, 2, ["earliest", true], (result, status) => {
         logDebug(result);
 
@@ -148,7 +200,7 @@ describe("Calling " + METHOD, function () {
       });
     });
 
-    it("should get only the hashes of the transactions objects by 'earliest' tag", async function () {
+    it("should get only the hashes of the transactions objects by 'earliest' tag", async function() {
       await sendJsonRpcRequest(METHOD, 2, ["earliest", false], (result, status) => {
         logDebug(result);
 
@@ -160,50 +212,14 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should get full transactions objects by its block number '0'", async function () {
-    let blockNumber = 0x0;
-    before(async function () {
-      if (hre.isZilliqaNetworkSelected()) {
-        blockNumber = 0x1;
-      }
-
-      await sendJsonRpcRequest(METHOD, 2, [blockNumber, true], (result, status) => {
-        logDebug(result);
-
-        assert.equal(status, 200, "has status code");
-        // validate all returned fields
-        TestResponse(result);
-        assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
-      });
-    });
-  });
-
-  it("should get only the hashes of transactions objects by its block number '0'", async function () {
-    let blockNumber = 0x0;
-    before(async function () {
-      if (hre.isZilliqaNetworkSelected()) {
-        blockNumber = 0x1;
-      }
-
-      await sendJsonRpcRequest(METHOD, 2, [blockNumber, false], (result, status) => {
-        logDebug(result);
-
-        assert.equal(status, 200, "has status code");
-        // validate all returned fields
-        TestResponse(result);
-        assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
-      });
-    });
-  });
-
-  describe("When on Zilliqa network", function () {
-    before(function () {
+  describe("When on Zilliqa network", function() {
+    before(function() {
       if (!hre.isZilliqaNetworkSelected()) {
         this.skip();
       }
     });
 
-    it("should get full transactions objects by 'pending' tag", async function () {
+    it("should get full transactions objects by 'pending' tag", async function() {
       await sendJsonRpcRequest(METHOD, 2, ["pending", true], (result, status) => {
         logDebug(result);
 

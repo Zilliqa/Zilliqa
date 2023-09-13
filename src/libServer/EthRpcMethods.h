@@ -17,6 +17,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 #define ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 
+#include "Server.h"
+#include <jsonrpccpp/common/exception.h>
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
@@ -84,6 +86,12 @@ class EthRpcMethods {
                                            Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
+
+    // Because we bypassed the library to validate parameters, we should do it manually.
+    if (request[0].empty() || !request[1].isBool()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response =
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
