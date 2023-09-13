@@ -297,10 +297,9 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetNetVersionI);
 
+    //Parameters are not listed to bypass library's parameter validation.
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, "param02",
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthBalanceI);
 
@@ -395,8 +394,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_STRING, NULL),
+                           NULL),
         &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(

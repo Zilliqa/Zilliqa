@@ -140,10 +140,10 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                          jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthBlockNumberI);
 
+  //Parameters are not listed to bypass library's parameter validation.
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthBalanceI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -179,8 +179,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, "param02",
-                         jsonrpc::JSON_STRING, NULL),
+                         NULL),
       &EthRpcMethods::GetEthTransactionByBlockNumberAndIndexI);
 
   m_lookupServer->bindAndAddExternalMethod(
