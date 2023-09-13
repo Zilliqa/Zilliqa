@@ -427,6 +427,12 @@ class EthRpcMethods {
   inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library to validate parameters, we should do it manually.
+    if (request[0].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response =
         this->GetEthBlockTransactionCountByNumber(request[0u].asString());
   }

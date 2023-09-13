@@ -148,8 +148,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
+                         jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthBlockByNumberI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -167,7 +166,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
+                         NULL),
       &EthRpcMethods::GetEthBlockTransactionCountByNumberI);
 
   m_lookupServer->bindAndAddExternalMethod(

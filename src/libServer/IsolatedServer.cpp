@@ -382,7 +382,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
+                           NULL),
         &LookupServer::GetEthBlockTransactionCountByNumberI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
