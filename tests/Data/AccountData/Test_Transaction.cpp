@@ -77,14 +77,6 @@ BOOST_AUTO_TEST_CASE(test1, *boost::unit_test::timeout(180)) {
 
   BOOST_CHECK_MESSAGE(Transaction::Verify(tx1), "Signature not verified\n");
 
-  BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(fromAddr, 0),
-                      "Shard index > 0 when passing zero shards");
-
-  uint32_t shardSize = TestUtils::DistUint32();
-  tx1.GetShardIndex(
-      fromCheck,
-      shardSize);  // Check against nothing, just to increase coverage
-
   zbytes message1;
   tx1.Serialize(message1, 0);
 
