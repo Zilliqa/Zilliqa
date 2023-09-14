@@ -1,12 +1,12 @@
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import { assert } from "chai";
-import { ethers } from "hardhat";
+import {assert} from "chai";
+import {ethers} from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getBalance";
 
-describe(`Calling ${METHOD} #parallel`, function() {
-  it("should return the latest balance from the specified account #parallel", async function() {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the latest balance from the specified account #parallel", async function () {
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(METHOD, 1, [signer.address, "latest"], (result, status) => {
       logDebug("Result:", result);
@@ -26,7 +26,7 @@ describe(`Calling ${METHOD} #parallel`, function() {
     });
   });
 
-  it("should return the earliest balance as specified in the ethereum protocol @block-1", async function() {
+  it("should return the earliest balance as specified in the ethereum protocol @block-1", async function () {
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(METHOD, 1, [signer.address, "earliest"], (result, status) => {
       logDebug("Result:", result);
@@ -46,7 +46,7 @@ describe(`Calling ${METHOD} #parallel`, function() {
     });
   });
 
-  it("should return the pending balance as specified in the ethereum protocol @block-1", async function() {
+  it("should return the pending balance as specified in the ethereum protocol @block-1", async function () {
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(METHOD, 1, [signer.address, "pending"], (result, status) => {
       logDebug("Result:", result);
@@ -66,7 +66,7 @@ describe(`Calling ${METHOD} #parallel`, function() {
     });
   });
 
-  it("should return an error requesting the balance due to invalid tag @block-1", async function() {
+  it("should return an error requesting the balance due to invalid tag @block-1", async function () {
     let expectedErrorMessage = "Unable To Process, invalid tag";
     let errorCode = -1;
     const [signer] = await ethers.getSigners();
@@ -84,8 +84,8 @@ describe(`Calling ${METHOD} #parallel`, function() {
     );
   });
 
-  it("should return an error requesting the balance due to insufficient parameters @block-1", async function() {
-    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised"
+  it("should return an error requesting the balance due to insufficient parameters @block-1", async function () {
+    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised";
     let errorCode = -32602;
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(
@@ -102,8 +102,8 @@ describe(`Calling ${METHOD} #parallel`, function() {
     );
   });
 
-  it("should return an error requesting the balance if no parameters is specified @block-1", async function() {
-    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised"
+  it("should return an error requesting the balance if no parameters is specified @block-1", async function () {
+    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised";
     let errorCode = -32602;
     await sendJsonRpcRequest(
       METHOD,

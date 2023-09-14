@@ -1,5 +1,5 @@
 import clc from "cli-color";
-import { performance } from "perf_hooks";
+import {performance} from "perf_hooks";
 
 export class Chronometer {
   constructor() {

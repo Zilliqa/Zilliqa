@@ -174,9 +174,9 @@ describe("ERC20 Is ZRC2", function () {
 
     const queriedLogs = await erc20_contract.queryFilter(filter);
     expect(
-        queriedLogs.every((e) => {
-          return e["data"].startsWith("0x");
-        })
+      queriedLogs.every((e) => {
+        return e["data"].startsWith("0x");
+      })
     ).to.be.equal(true);
   });
 

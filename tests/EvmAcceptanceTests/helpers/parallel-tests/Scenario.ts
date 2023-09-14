@@ -13,7 +13,7 @@ export enum Block {
 export type TestInfo = {
   txn: Txn;
   msg: string;
-  describes: string[];   // Because `describe` blocks can be nested, this test can belong to a nested describe, this is a list of all of its describes
+  describes: string[]; // Because `describe` blocks can be nested, this test can belong to a nested describe, this is a list of all of its describes
   run_in: Block;
   disabled?: true;
 };

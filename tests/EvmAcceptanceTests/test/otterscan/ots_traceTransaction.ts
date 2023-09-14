@@ -1,7 +1,7 @@
 import {assert, expect} from "chai";
 import hre, {ethers} from "hardhat";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import { Contract } from "ethers";
+import {Contract} from "ethers";
 
 const METHOD = "ots_traceTransaction";
 describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
@@ -20,7 +20,8 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
       [contractOne, contractTwo, contractThree] = await Promise.all([
         await hre.deployContract("ContractOne"),
         await hre.deployContract("ContractTwo"),
-        await hre.deployContract("ContractThree")]);
+        await hre.deployContract("ContractThree")
+      ]);
     } else {
       contractOne = await hre.deployContract("ContractOne");
       contractTwo = await hre.deployContract("ContractTwo");
