@@ -1,9 +1,8 @@
 import ora from "ora";
-import { Chronometer, displayStageFinished } from "./Display";
+import {Chronometer, displayStageFinished} from "./Display";
 import clc from "cli-color";
 
-
-export const runStage = async(name: string, stage: Function, done: Function, ...params: any[]) => {
+export const runStage = async (name: string, stage: Function, done: Function, ...params: any[]) => {
   const spinner = ora();
   spinner.start(clc.bold(name));
   const chronometer = new Chronometer();
@@ -13,9 +12,9 @@ export const runStage = async(name: string, stage: Function, done: Function, ...
   const {finished_message, success} = done(params, output);
   if (success) {
     spinner.succeed();
-  }else {
+  } else {
     spinner.fail();
   }
   displayStageFinished(finished_message, chronometer);
   return output;
-}
+};

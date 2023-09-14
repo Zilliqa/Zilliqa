@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_syncing";
 
-describe("Calling " + METHOD, function () {
-  it("should return the syncing state", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the syncing state @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

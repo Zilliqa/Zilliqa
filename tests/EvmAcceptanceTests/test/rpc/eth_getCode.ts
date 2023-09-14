@@ -1,13 +1,12 @@
 import {assert} from "chai";
 import hre from "hardhat";
-import {parallelizer} from "../../helpers";
 import logDebug from "../../helpers/DebugHelper";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 
 const METHOD = "eth_getCode";
 
-describe("Calling " + METHOD, function () {
-  it("should return an error when no parameter is passed", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return an error when no parameter is passed @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result, status);
       assert.equal(status, 200, "has status code");
@@ -16,8 +15,8 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return code of contract", async function () {
-    const contract = await parallelizer.deployContract("SimpleContract");
+  it("should return code of contract @block-1", async function () {
+    const contract = await hre.deployContract("SimpleContract");
     const expected = hre.artifacts.readArtifactSync("SimpleContract").deployedBytecode;
 
     await sendJsonRpcRequest(METHOD, 1, [contract.address, "latest"], (result, status) => {

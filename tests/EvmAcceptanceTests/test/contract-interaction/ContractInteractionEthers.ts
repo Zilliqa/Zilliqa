@@ -1,6 +1,5 @@
 import {expect} from "chai";
-import {parallelizer} from "../../helpers";
-import {ethers} from "hardhat";
+import hre, {ethers} from "hardhat";
 
 const ENUM = 1;
 const ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
@@ -9,7 +8,7 @@ const STRING = "ZILLIQA";
 
 describe("Contract Interaction with Ethers.js", function () {
   before(async function () {
-    this.contract = await parallelizer.deployContract("WithSettersAndGetters");
+    this.contract = await hre.deployContract("WithSettersAndGetters");
   });
 
   describe("When public setter function is called [@transactional]", function () {

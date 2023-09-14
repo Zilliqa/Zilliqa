@@ -1,13 +1,12 @@
 import {expect} from "chai";
-import {parallelizer} from "../../helpers";
-import {web3} from "hardhat";
+import hre, {web3} from "hardhat";
 import {Contract} from "web3-eth-contract";
 
 describe("Contract Deployment", function () {
   describe("Contract with zero parameter constructor", function () {
     let contract: Contract;
     before(async function () {
-      contract = await parallelizer.deployContractWeb3("ZeroParamConstructor");
+      contract = await hre.deployContractWeb3("ZeroParamConstructor", {});
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -25,7 +24,7 @@ describe("Contract Deployment", function () {
       const INITIAL_NUMBER = 100;
 
       before(async function () {
-        contract = await parallelizer.deployContractWeb3("WithUintConstructor", {}, INITIAL_NUMBER);
+        contract = await hre.deployContractWeb3("WithUintConstructor", {}, INITIAL_NUMBER);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -40,7 +39,7 @@ describe("Contract Deployment", function () {
       let contract: Contract;
       let INITIAL_NAME = "Zilliqa";
       before(async function () {
-        contract = await parallelizer.deployContractWeb3("WithStringConstructor", {}, INITIAL_NAME);
+        contract = await hre.deployContractWeb3("WithStringConstructor", {}, INITIAL_NAME);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -55,7 +54,7 @@ describe("Contract Deployment", function () {
       let contract: Contract;
       let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
       before(async function () {
-        contract = await parallelizer.deployContractWeb3("WithAddressConstructor", {}, ADDRESS);
+        contract = await hre.deployContractWeb3("WithAddressConstructor", {}, ADDRESS);
       });
       it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
@@ -69,7 +68,7 @@ describe("Contract Deployment", function () {
       let contract: Contract;
       let ENUM = "1";
       before(async function () {
-        contract = await parallelizer.deployContractWeb3("WithEnumConstructor", {}, ENUM);
+        contract = await hre.deployContractWeb3("WithEnumConstructor", {}, ENUM);
       });
       it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
@@ -86,7 +85,7 @@ describe("Contract Deployment", function () {
     let NUMBER = 100;
 
     before(async function () {
-      contract = await parallelizer.deployContractWeb3("MultiParamConstructor", {}, NAME, NUMBER);
+      contract = await hre.deployContractWeb3("MultiParamConstructor", {}, NAME, NUMBER);
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -107,7 +106,7 @@ describe("Contract Deployment", function () {
     let INITIAL_BALANCE = web3.utils.toBN(web3.utils.toWei("1", "gwei"));
 
     before(async function () {
-      contract = await parallelizer.deployContractWeb3("WithPayableConstructor", {value: INITIAL_BALANCE});
+      contract = await hre.deployContractWeb3("WithPayableConstructor", {value: INITIAL_BALANCE});
     });
 
     it("Should be deployed successfully [@transactional]", async function () {

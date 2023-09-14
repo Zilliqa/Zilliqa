@@ -1,6 +1,6 @@
 import hre, {web3} from "hardhat";
 import clc from "cli-color";
-import {bytes, toBech32Address, toChecksumAddress, units, Zilliqa} from "@zilliqa-js/zilliqa";
+import {bytes, toChecksumAddress, Zilliqa} from "@zilliqa-js/zilliqa";
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 const {BN, Long} = require("@zilliqa-js/util");
 
@@ -26,7 +26,8 @@ async function main() {
     );
   });
 
-  for (const element of hre.network["config"]["accounts"]) {
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+  for (const element of private_keys) {
     console.log("");
     console.log("Starting transfer...");
 
@@ -76,14 +77,18 @@ async function main() {
     );
 
     // process confirm
-    console.log(`The transaction id is:`, tx.id);
-    const confirmedTxn = await tx.confirm(tx.id);
+    if (tx.id) {
+      console.log(`The transaction id is:`, tx.id);
+      const confirmedTxn = await tx.confirm(tx.id);
 
-    console.log(`The transaction status is:`);
-    console.log(confirmedTxn.receipt);
+      console.log(`The transaction status is:`);
+      console.log(confirmedTxn.getReceipt());
 
-    let finalBal = await web3.eth.getBalance(ethAddr.address);
-    console.log(`My new account balance is: ${finalBal}`);
+      let finalBal = await web3.eth.getBalance(ethAddr.address);
+      console.log(`My new account balance is: ${finalBal}`);
+    } else {
+      console.log("Failed");
+    }
   }
 
   balances = await Promise.all(accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"])));

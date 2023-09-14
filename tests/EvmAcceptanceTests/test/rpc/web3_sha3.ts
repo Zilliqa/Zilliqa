@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "web3_sha3";
 
-describe("Calling " + METHOD, function () {
-  it("should return a sha3 of the provided hex string", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return a sha3 of the provided hex string @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, ["0x68656c6c6f20776f726c64"], (result, status) => {
       logDebug(result);
 

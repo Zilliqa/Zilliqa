@@ -5,8 +5,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "net_version";
 
-describe("Calling " + METHOD, function () {
-  it("should return the current network version", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the current network version @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

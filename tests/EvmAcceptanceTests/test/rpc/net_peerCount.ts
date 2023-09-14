@@ -4,8 +4,8 @@ import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "net_peerCount";
 
-describe("Calling " + METHOD, function () {
-  it("should return the number of peers connected to the network", async function () {
+describe(`Calling ${METHOD} #parallel`, function () {
+  it("should return the number of peers connected to the network @block-1", async function () {
     await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       logDebug(result);
 

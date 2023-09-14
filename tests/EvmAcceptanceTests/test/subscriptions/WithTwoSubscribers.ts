@@ -6,17 +6,16 @@ chai.use(deepEqualInAnyOrder);
 import {expect} from "chai";
 import {Contract} from "ethers";
 import hre, {ethers} from "hardhat";
-import {parallelizer} from "../../helpers";
 import {Event, waitForEvents} from "./shared";
 import {WebSocketProvider} from "@ethersproject/providers";
 
-describe.skip("Subscriptions functionality", function () {
+describe("Subscriptions functionality", function () {
   let contract: Contract;
   let eventsContract: Contract;
   let senderAddress: string;
   let provider: WebSocketProvider;
   before(async function () {
-    contract = await parallelizer.deployContract("Subscriptions");
+    contract = await hre.deployContract("Subscriptions");
     senderAddress = await contract.signer.getAddress();
   });
 
@@ -31,7 +30,7 @@ describe.skip("Subscriptions functionality", function () {
 
   describe("When two subscribers listen to events", function () {
     it("Should receive an event coming only from contract it is subscribed to", async function () {
-      const secondContract = await parallelizer.deployContract("Subscriptions");
+      const secondContract = await hre.deployContract("Subscriptions");
       const secondProvider = new ethers.providers.WebSocketProvider(hre.getWebsocketUrl());
       const secondEventsContract = new ethers.Contract(
         secondContract.address,
