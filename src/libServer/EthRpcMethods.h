@@ -17,6 +17,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 #define ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 
+#include "Server.h"
+#include <jsonrpccpp/common/exception.h>
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
@@ -84,6 +86,12 @@ class EthRpcMethods {
                                            Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
+
+    // Because we bypassed the library to validate parameters, we should do it manually.
+    if (request[0].empty() || !request[1].isBool()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response =
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
@@ -133,7 +141,12 @@ class EthRpcMethods {
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+    if (request[0u].empty() || request[1u].empty()) {
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     try {
+
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
       const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
@@ -184,6 +197,12 @@ class EthRpcMethods {
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library parameters validation, let's do it manually.
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
@@ -385,6 +404,12 @@ class EthRpcMethods {
 
   virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library parameters validation, let's do it manually.
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
@@ -419,6 +444,12 @@ class EthRpcMethods {
   inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library to validate parameters, we should do it manually.
+    if (request[0].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response =
         this->GetEthBlockTransactionCountByNumber(request[0u].asString());
   }
@@ -449,6 +480,11 @@ class EthRpcMethods {
   inline virtual void GetEthTransactionByBlockNumberAndIndexI(
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response = this->GetEthTransactionByBlockNumberAndIndex(
         request[0u].asString(), request[1u].asString());
   }

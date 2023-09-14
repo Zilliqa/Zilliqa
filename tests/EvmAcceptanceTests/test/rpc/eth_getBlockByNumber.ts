@@ -129,6 +129,58 @@ describe("Calling " + METHOD, function () {
     });
   });
 
+  it("should get full transactions objects by its block number", async function () {
+    let blockNumber = 0x1;
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, true], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  it("should get only the hashes of transactions objects by its block number", async function () {
+    let blockNumber = 0x1;
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, false], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  it("should get full transactions objects by its block number, even if number is specified as a string", async function () {
+    let blockNumber = "0x1";
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, true], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
+  it("should get only the hashes of transactions objects by its block number, even if number is specified as a string", async function () {
+    let blockNumber = "0x1";
+
+    await sendJsonRpcRequest(METHOD, 2, [blockNumber, false], (result, status) => {
+      logDebug(result);
+
+      assert.equal(status, 200, "has status code");
+      // validate all returned fields
+      TestResponse(result);
+      assert.equal(result.result.number, blockNumber, `Block number is not ${blockNumber}`);
+    });
+  });
+
   describe("When executing 'earliest' tag", function () {
     let blockNumber = 0x0;
     before(async function () {
@@ -150,42 +202,6 @@ describe("Calling " + METHOD, function () {
 
     it("should get only the hashes of the transactions objects by 'earliest' tag", async function () {
       await sendJsonRpcRequest(METHOD, 2, ["earliest", false], (result, status) => {
-        logDebug(result);
-
-        assert.equal(status, 200, "has status code");
-        // validate all returned fields
-        TestResponse(result);
-        assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
-      });
-    });
-  });
-
-  it("should get full transactions objects by its block number '0'", async function () {
-    let blockNumber = 0x0;
-    before(async function () {
-      if (hre.isZilliqaNetworkSelected()) {
-        blockNumber = 0x1;
-      }
-
-      await sendJsonRpcRequest(METHOD, 2, [blockNumber, true], (result, status) => {
-        logDebug(result);
-
-        assert.equal(status, 200, "has status code");
-        // validate all returned fields
-        TestResponse(result);
-        assert.equal(+result.result.number, blockNumber, `Block number is not ${blockNumber}`);
-      });
-    });
-  });
-
-  it("should get only the hashes of transactions objects by its block number '0'", async function () {
-    let blockNumber = 0x0;
-    before(async function () {
-      if (hre.isZilliqaNetworkSelected()) {
-        blockNumber = 0x1;
-      }
-
-      await sendJsonRpcRequest(METHOD, 2, [blockNumber, false], (result, status) => {
         logDebug(result);
 
         assert.equal(status, 200, "has status code");

@@ -1,6 +1,6 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {expect} from "chai";
-import { Contract } from "ethers";
+import {Contract} from "ethers";
 import hre, {ethers} from "hardhat";
 
 describe("Openzeppelin ownable contract functionality #parallel", function () {
@@ -25,7 +25,7 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
     const notOwner = hre.allocateSigner();
 
     await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
-  
+
     hre.releaseSigner(notOwner);
   });
 

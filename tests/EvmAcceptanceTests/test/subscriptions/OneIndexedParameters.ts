@@ -51,9 +51,9 @@ describe("Subscriptions functionality", function () {
       const queriedLogs = await eventsContract.queryFilter(filter);
       expect(queriedLogs).to.have.length(2);
       expect(
-          queriedLogs.every((e) => {
-            return !e["removed"];
-          })
+        queriedLogs.every((e) => {
+          return !e["removed"];
+        })
       ).to.be.equal(true);
     });
 
