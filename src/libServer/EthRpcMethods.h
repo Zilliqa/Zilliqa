@@ -141,7 +141,12 @@ class EthRpcMethods {
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+    if (request[0u].empty() || request[1u].empty()) {
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     try {
+
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
       const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
@@ -192,6 +197,12 @@ class EthRpcMethods {
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library parameters validation, let's do it manually.
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
@@ -393,6 +404,12 @@ class EthRpcMethods {
 
   virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library parameters validation, let's do it manually.
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
