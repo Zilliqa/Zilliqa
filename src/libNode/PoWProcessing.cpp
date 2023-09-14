@@ -105,178 +105,80 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Current dsblock is " << block_num);
 
-  m_stillMiningPrimary = true;
-
   lock_guard<mutex> g(m_mutexGasPrice);
 
-  EthashMiningResult winning_result;
-
-  uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, m_mediator.m_selfPeer,
                                        m_mediator.m_selfKey.second, lookupId,
                                        m_proposedGasPrice);
 
-  auto startTime = std::chrono::high_resolution_clock::now();
-  int powTimeWindow = POW_WINDOW_IN_SECONDS;
+  EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
+      block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
+      FULL_DATASET_MINE, std::time(0), POW_WINDOW_IN_SECONDS);
 
-  // Only in guard mode that shard guard can submit different PoW
-  if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
-                        m_mediator.m_selfKey.second)) {
-    winning_result = POW::GetInstance().PoWMine(
-        block_num, shardGuardDiff, m_mediator.m_selfKey, headerHash,
-        FULL_DATASET_MINE, std::time(0), powTimeWindow);
-  } else {
-    winning_result = POW::GetInstance().PoWMine(
-        block_num, difficulty, m_mediator.m_selfKey, headerHash,
-        FULL_DATASET_MINE, std::time(0), powTimeWindow);
-  }
-
-  if (winning_result.success) {
-    string rand1Str, rand2Str;
-    if (!DataConversion::charArrToHexStr(rand1, rand1Str)) {
-      LOG_GENERAL(WARNING, "rand1 is not a valid hex");
-    }
-
-    if (!DataConversion::charArrToHexStr(rand2, rand2Str)) {
-      LOG_GENERAL(WARNING, "rand2 is not a valid hex");
-    }
-
-    LOG_GENERAL(INFO, "nonce   = " << hex << winning_result.winning_nonce);
-    LOG_GENERAL(INFO, "result  = " << hex << winning_result.result);
-    LOG_GENERAL(INFO, "mixhash = " << hex << winning_result.mix_hash);
-    LOG_GENERAL(INFO, "rand1   = " << rand1Str);
-    LOG_GENERAL(INFO, "rand2   = " << rand2Str);
-
-    m_stillMiningPrimary = false;
-
-    // Possible scenarios
-    // 1. Found solution that meets ds difficulty and difficulty
-    // - Submit solution
-    // 2. Found solution that meets only difficulty
-    // - Submit solution and continue to do PoW till DS difficulty met or
-    //   ds block received. (stopmining())
-    auto checkerThread = [this]() mutable -> void {
-      unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
-      const unsigned int fixedDSNodesPoWTime =
-          NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-          POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
-      const unsigned int fixedDSBlockDistributionDelayTime =
-          DELAY_FIRSTXNEPOCH_IN_MS / 1000;
-      const unsigned int extraWaitTime = DSBLOCK_EXTRA_WAIT_TIME;
-      // TODO: cv fix
-      if (cv_waitDSBlock.wait_for(
-              lk, chrono::seconds(fixedDSNodesPoWTime +
-                                  fixedDSBlockDistributionDelayTime +
-                                  extraWaitTime)) == cv_status::timeout) {
-        lock_guard<mutex> g(m_mutexDSBlock);
-
-        POW::GetInstance().StopMining();
-
-        if (m_mediator.m_currentEpochNum ==
-            m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetEpochNum()) {
-          LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
-          return;
-        }
-
-        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                  "Time out while waiting for DS Block");
-        // notify wait in InitMining
-        m_mediator.m_lookup->cv_waitJoined.notify_all();
-
-        if (GetLatestDSBlock()) {
-          LOG_GENERAL(INFO, "DS block created, means I lost PoW");
-          if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-            // exciplitly declare in the same thread
-            m_mediator.m_lookup->m_startedPoW = false;
-          }
-          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
-          StartSynchronization();
-        } else {
-          LOG_GENERAL(WARNING, "DS block not recvd, will initiate rejoin");
-          RejoinAsNormal();
-        }
-      }
-    };
-
-    // In guard mode, an additional scenario
-    // 1. Shard guard submit pow with diff shardGuardDiff
-    if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
-                          m_mediator.m_selfKey.second)) {
-      if (!SendPoWResultToDSComm(block_num, shardGuardDiff,
-                                 winning_result.winning_nonce,
-                                 winning_result.result, winning_result.mix_hash,
-                                 lookupId, m_proposedGasPrice)) {
-        return false;
-      } else {
-        DetachedFunction(1, checkerThread);
-      }
-    } else if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-                   winning_result.result, ds_difficulty)) {
+  if (ds_pow_winning_result.success) {
       LOG_GENERAL(INFO,
-                  "Found PoW solution that met requirement for both ds "
-                  "commitee and shard.");
+              "DS diff soln = " << ds_pow_winning_result.result);
 
-      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
-                                 winning_result.winning_nonce,
-                                 winning_result.result, winning_result.mix_hash,
-                                 lookupId, m_proposedGasPrice)) {
-        return false;
-      } else {
-        DetachedFunction(1, checkerThread);
-      }
-    } else {
-      // If solution does not meet targeted ds difficulty, send the initial
-      // solution to ds commitee and continue to do PoW
-      if (!SendPoWResultToDSComm(block_num, difficulty,
-                                 winning_result.winning_nonce,
-                                 winning_result.result, winning_result.mix_hash,
-                                 lookupId, m_proposedGasPrice)) {
-        return false;
-      }
+      LOG_GENERAL(INFO, "nonce   = " << hex << ds_pow_winning_result.winning_nonce);
+      LOG_GENERAL(INFO, "result  = " << hex << ds_pow_winning_result.result);
+      LOG_GENERAL(INFO, "mixhash = " << hex << ds_pow_winning_result.mix_hash);
+      auto checkerThread = [this]() mutable -> void {
+          unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
+          const unsigned int fixedDSNodesPoWTime =
+              NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+              POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
+          const unsigned int fixedDSBlockDistributionDelayTime =
+              DELAY_FIRSTXNEPOCH_IN_MS / 1000;
+          const unsigned int extraWaitTime = DSBLOCK_EXTRA_WAIT_TIME;
+          // TODO: cv fix
+          if (cv_waitDSBlock.wait_for(
+                      lk, chrono::seconds(fixedDSNodesPoWTime +
+                          fixedDSBlockDistributionDelayTime +
+                          extraWaitTime)) == cv_status::timeout) {
+              lock_guard<mutex> g(m_mutexDSBlock);
 
-      DetachedFunction(1, checkerThread);
+              POW::GetInstance().StopMining();
 
-      if (SKIP_POW_REATTEMPT_FOR_DS_DIFF) {
-        LOG_GENERAL(INFO, "Skipping PoW reattempt for DS difficulty");
-      } else {
-        LOG_GENERAL(INFO, "Mining again for DS diff");
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        auto shardPoWTime = std::chrono::duration_cast<std::chrono::seconds>(
-                                currentTime - startTime)
-                                .count();
-        powTimeWindow -= shardPoWTime;
+              if (m_mediator.m_currentEpochNum ==
+                      m_mediator.m_dsBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetEpochNum()) {
+                  LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
+                  return;
+              }
 
-        if (powTimeWindow > 1) {
-          EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
-              block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
-              FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
+              LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                      "Time out while waiting for DS Block");
+              // notify wait in InitMining
+              m_mediator.m_lookup->cv_waitJoined.notify_all();
 
-          if (ds_pow_winning_result.success) {
-            LOG_GENERAL(INFO,
-                        "DS diff soln = " << ds_pow_winning_result.result);
-
-            // Submission of PoW for ds commitee
-            if (!SendPoWResultToDSComm(block_num, ds_difficulty,
-                                       ds_pow_winning_result.winning_nonce,
-                                       ds_pow_winning_result.result,
-                                       ds_pow_winning_result.mix_hash, lookupId,
-                                       m_proposedGasPrice)) {
-              return false;
-            }
-          } else {
-            LOG_GENERAL(INFO, "Failed to find soln for DS diff");
+              if (GetLatestDSBlock()) {
+                  LOG_GENERAL(INFO, "DS block created, means I lost PoW");
+                  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+                      // exciplitly declare in the same thread
+                      m_mediator.m_lookup->m_startedPoW = false;
+                  }
+                  m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+                  StartSynchronization();
+              } else {
+                  LOG_GENERAL(WARNING, "DS block not recvd, will initiate rejoin");
+                  RejoinAsNormal();
+              }
           }
-        } else {
-          LOG_GENERAL(
-              INFO, "Time window for DS diff is too short, skip DS diff mine");
-        }
+      };
+      // Submission of PoW for ds commitee
+      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
+                  ds_pow_winning_result.winning_nonce,
+                  ds_pow_winning_result.result,
+                  ds_pow_winning_result.mix_hash, lookupId,
+                  m_proposedGasPrice)) {
+          return false;
+      } else{
+          DetachedFunction(1, checkerThread);
       }
-    }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
-    LOG_GENERAL(INFO, "Failed to do PoW, will try to rejoin in next DS block!");
+    LOG_GENERAL(INFO, "Failed to do PoW, setting to sync mode, try do pow in new DS epoch ");
     m_mediator.m_lookup->m_startedPoW = false;
     m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
     StartSynchronization();
@@ -555,6 +457,7 @@ bool Node::ProcessStartPoW(const zbytes& message, unsigned int offset,
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
   // Start mining
+  LOG_GENERAL(WARNING, "BZ Start Processing POW");
   StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
 
   return true;

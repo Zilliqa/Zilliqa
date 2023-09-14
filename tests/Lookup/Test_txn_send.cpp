@@ -45,7 +45,7 @@ void test_transaction(const map<uint32_t, vector<Transaction>>& mp,
                       const unsigned newShardNum, Lookup& lk) {
   for (const auto& shard : mp) {
     for (const auto& tx : shard.second) {
-      lk.AddToTxnShardMap(tx, shard.first);
+      lk.AddTxnToMemPool(tx, shard.first);
     }
   }
   lk.RectifyTxnShardMap(oldNumShard, newShardNum);
@@ -69,7 +69,7 @@ void test_transaction(const map<uint32_t, vector<Transaction>>& mp,
                                           << k << " and actual index " << index
                                           << " does not match");
     }
-    lk.DeleteTxnShardMap(k);
+    lk.ClearTxnMemPool(k);
   }
 }
 

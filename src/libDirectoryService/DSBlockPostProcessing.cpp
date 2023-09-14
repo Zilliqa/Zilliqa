@@ -253,11 +253,11 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   // 2. My node was removed by the DS Committee due to lack of sufficient
   // performance.
   bool isDropout = true;
-  for (auto it = m_mediator.m_DSCommittee->begin();
-       it != m_mediator.m_DSCommittee->end(); ++it) {
+  for (auto it = m_mediator.m_DSCommittee->cbegin();
+       it != m_mediator.m_DSCommittee->cend(); ++it) {
     // Look for my public key.
     if (m_mediator.m_selfKey.second == it->first) {
-      m_consensusMyID = std::distance(m_mediator.m_DSCommittee->begin(), it);
+      m_consensusMyID = std::distance(m_mediator.m_DSCommittee->cbegin(), it);
       isDropout = false;
       break;
     }
@@ -325,12 +325,14 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   LOG_MARKER();
   std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
-  auto old_size = m_mediator.m_DSCommittee->size();
+  const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
+                      m_mediator.m_ds->GetConsensusMyID();
+  LOG_GENERAL(WARNING, "BZ UpdateDSCommitteeComposition enter, I am leader? : "
+                           << (leader ? "true" : "false"));
+
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second,
                                    *m_mediator.m_DSCommittee,
                                    m_mediator.m_dsBlockChain.GetLastBlock());
-  LOG_EXTRA("m_DSCommittee updated " << old_size << "->"
-                                     << m_mediator.m_DSCommittee->size());
 }
 
 void DirectoryService::StartNextTxEpoch() {

@@ -18,8 +18,6 @@
     "snappy",
     "mongo-c-driver",
     "mongo-cxx-driver",
-    "websocketpp",
-    "gtest",
     "miniupnpc",
     {
       "name": "leveldb",
@@ -43,7 +41,8 @@
         "otlp"
       ]
     },
-    "secp256k1"
+    "secp256k1",
+    "cpr"
   ],
   "builtin-baseline": "9d47b24eacbd1cd94f139457ef6cd35e5d92cc84",
   "overrides": [
@@ -70,10 +69,6 @@
     {
       "name": "cryptoutils",
       "version": "8.3.0#1"
-    },
-    {
-      "name": "websocketpp",
-      "version": "0.8.2#3"
     },
     {
       "name": "opentelemetry-cpp",

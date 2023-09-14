@@ -336,12 +336,11 @@ class Messenger {
       const std::unordered_map<TxnHash, TxnStatus>& hashCodeMap,
       const uint32_t shardId, const PairOfKey& key);
 
-  static bool SetNodeForwardTxnBlock(
-      zbytes& dst, const unsigned int offset, const uint64_t& epochNumber,
-      const uint64_t& dsBlockNum, const uint32_t& shardId,
-      const PairOfKey& lookupKey,
-      std::deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
-      std::deque<std::pair<Transaction, uint32_t>>& txnsGenerated);
+  static bool SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
+                                     const uint64_t& epochNumber,
+                                     const uint64_t& dsBlockNum,
+                                     const PairOfKey& lookupKey,
+                                     std::vector<Transaction>& transactions);
   static bool SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
                                      const uint64_t& epochNumber,
                                      const uint64_t& dsBlockNum,
@@ -595,13 +594,11 @@ class Messenger {
 
   static bool SetForwardTxnBlockFromSeed(
       zbytes& dst, const unsigned int offset,
-      const std::deque<std::pair<Transaction, uint32_t>>& shardTransactions,
-      const std::deque<std::pair<Transaction, uint32_t>>& dsTransactions);
+      const std::vector<Transaction>& transactions);
 
   static bool GetForwardTxnBlockFromSeed(
       const zbytes& src, const unsigned int offset,
-      std::vector<Transaction>& shardTransactions,
-      std::vector<Transaction>& dsTransactions);
+      std::vector<Transaction>& transactions);
 
   static bool SetLookupGetMicroBlockFromLookup(
       zbytes& dst, const unsigned int offset,

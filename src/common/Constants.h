@@ -212,7 +212,6 @@ extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
 extern const unsigned int DS_ANNOUNCEMENT_DELAY_IN_MS;
 extern const unsigned int SHARD_ANNOUNCEMENT_DELAY_IN_MS;
-extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;

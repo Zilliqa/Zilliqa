@@ -809,6 +809,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
   m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
+  LOG_GENERAL(WARNING, "BZ: Prepare -> POW_SUBMISSION");
   SetState(POW_SUBMISSION);
   POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
@@ -1482,10 +1483,9 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
     uint16_t lastBlockHash, uint32_t sizeOfShard,
     const DequeOfNode &shardMembers) {
   LOG_MARKER();
-  LOG_GENERAL(INFO,"STEVE lastBlockHash: " << lastBlockHash
-                                      << ", sizeOfShard: " << sizeOfShard
-                                      << ", shardMembers.size(): "
-                                      << shardMembers.size());
+  LOG_GENERAL(INFO, "STEVE lastBlockHash: "
+                        << lastBlockHash << ", sizeOfShard: " << sizeOfShard
+                        << ", shardMembers.size(): " << shardMembers.size());
   if (GUARD_MODE) {
     uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
 
@@ -1729,6 +1729,8 @@ bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] const unsigned char &startByte) {
   LOG_MARKER();
 
+  LOG_GENERAL(WARNING, "BZ ProcessTxnPacketFromLookup");
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessTxnPacketFromLookup not expected to "
@@ -1871,6 +1873,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
                                           const vector<Transaction> &txns) {
   LOG_MARKER();
 
+  LOG_GENERAL(WARNING, "BZ ProcessTxnPacketFromLookupCore");
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessTxnPacketFromLookupCore not expected to "
@@ -1920,8 +1924,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   }
 
   if (shardId != m_myshardId) {
-    LOG_GENERAL(WARNING, "Wrong Shard (" << shardId << "), m_myshardId ("
-                                         << m_myshardId << ")");
+    LOG_GENERAL(WARNING, "BZ Wrong Shard (" << shardId << "), m_myshardId ("
+                                            << m_myshardId << ")");
     return false;
   }
 
@@ -2373,6 +2377,7 @@ void Node::SetMyshardId(uint32_t shardId) {
         "Node::SetMyshardId not expected to be called from LookUp node.");
     return;
   }
+  LOG_GENERAL(WARNING, "BZ MyShardId is: " << shardId);
   m_myshardId = shardId;
 }
 
@@ -2531,7 +2536,8 @@ bool Node::ProcessRemoveNodeFromBlacklist(
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
     // Blacklist - strict one - since too many whitelist request in current ds
     // epoch.
-    Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
+    Blacklist::GetInstance().Add({from.GetIpAddress(), from.GetListenPortHost(),
+                                  from.GetNodeIndentifier()});
     return false;
   }
 
@@ -2567,7 +2573,8 @@ bool Node::ProcessRemoveNodeFromBlacklist(
     return false;
   }
 
-  Blacklist::GetInstance().Remove({ipAddress,from.GetListenPortHost(),from.GetNodeIndentifier()});
+  Blacklist::GetInstance().Remove(
+      {ipAddress, from.GetListenPortHost(), from.GetNodeIndentifier()});
   return true;
 }
 
@@ -2821,7 +2828,7 @@ bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
       return false;
     }
     zil::p2p::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
-                                       response);
+                                        response);
     m_versionChecked = true;
   }
 
@@ -2963,9 +2970,9 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
                     });
 
         if (it != m_mediator.m_DSCommittee->end()) {
-          Blacklist::GetInstance().RemoveFromWhitelist({it->second.m_ipAddress,
-                                                        it->second.m_listenPortHost,
-                                                        it->second.GetNodeIndentifier()}  );
+          Blacklist::GetInstance().RemoveFromWhitelist(
+              {it->second.m_ipAddress, it->second.m_listenPortHost,
+               it->second.GetNodeIndentifier()});
           LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
                                        << " from blacklist exclude list");
         }
@@ -2986,9 +2993,10 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
                             << " new network info is "
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
       if (GUARD_MODE) {
-        Blacklist::GetInstance().Whitelist({dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress,
-                                             dsguardupdate.m_dsGuardNewNetworkInfo.m_listenPortHost,
-                                             dsguardupdate.m_dsGuardNewNetworkInfo.GetNodeIndentifier()});
+        Blacklist::GetInstance().Whitelist(
+            {dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress,
+             dsguardupdate.m_dsGuardNewNetworkInfo.m_listenPortHost,
+             dsguardupdate.m_dsGuardNewNetworkInfo.GetNodeIndentifier()});
         LOG_GENERAL(INFO,
                     "Added ds guard "
                         << dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress
@@ -3184,6 +3192,8 @@ bool Node::Execute(const zbytes &message, unsigned int offset, const Peer &from,
     return false;
   }
 
+  LOG_GENERAL(WARNING, "BZ Dispatching Node msg type: "
+                           << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);

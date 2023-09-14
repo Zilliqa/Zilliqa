@@ -357,6 +357,10 @@ bool Node::ProcessVCDSBlocksMessage(
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
+  const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
+                      m_mediator.m_ds->GetConsensusMyID();
+  LOG_GENERAL(WARNING, "BZ ProcessVCDSBlocksMessage enter, I am leader? : "
+                           << (leader ? "true" : "false"));
   unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
 
   lock_guard<mutex> g(m_mutexDSBlock);
@@ -717,8 +721,8 @@ bool Node::ProcessVCDSBlocksMessage(
 
     m_mediator.m_node->CleanWhitelistReqs();
 
-    if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards, true);
+    if (m_mediator.m_lookup->GetIsServer() && ARCHIVAL_LOOKUP) {
+      SendTxnMemPoolToNextLayer();
     }
   }
 

@@ -186,12 +186,6 @@ bool DirectoryService::CheckState(Action action) {
   return true;
 }
 
-uint32_t DirectoryService::GetNumShards() const {
-  lock_guard<mutex> g(m_mutexShards);
-
-  return m_shards.size();
-}
-
 bool DirectoryService::ProcessSetPrimary(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
@@ -206,6 +200,7 @@ bool DirectoryService::ProcessSetPrimary(
   // Note: This function should only be invoked during bootstrap sequence
   // Message = [Primary node IP] [Primary node port]
   LOG_MARKER();
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 1");
 
   if (m_mediator.m_currentEpochNum > 1) {
     // TODO: Get the IP address of who send this message, and deduct its
@@ -271,7 +266,7 @@ bool DirectoryService::ProcessSetPrimary(
     // Load the DS committee, with my own peer set to dummy
     m_mediator.m_lookup->SetDSCommitteInfo(true);
   }
-
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 2");
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
     VectorOfNode peers;
@@ -321,7 +316,7 @@ bool DirectoryService::ProcessSetPrimary(
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
-
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 3");
   SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
@@ -350,11 +345,12 @@ bool DirectoryService::ProcessSetPrimary(
                          << "][" << std::setw(6) << std::left << m_consensusMyID
                          << "] DSBK");
   }
-
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 4");
   if ((m_consensusMyID < POW_PACKET_SENDERS) ||
       (primary == m_mediator.m_selfPeer)) {
     m_powSubmissionWindowExpired = false;
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+    LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 11");
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POW_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions...");
@@ -366,7 +362,7 @@ bool DirectoryService::ProcessSetPrimary(
       this->SendPoWPacketSubmissionToOtherDSComm();
     };
     DetachedFunction(1, func);
-
+    LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 22");
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions packet from "
@@ -1010,10 +1006,12 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
 
-        Blacklist::GetInstance().RemoveFromWhitelist({
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress,
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_listenPortHost,
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.GetNodeIndentifier()}  );
+        Blacklist::GetInstance().RemoveFromWhitelist(
+            {m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress,
+             m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                 .second.m_listenPortHost,
+             m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                 .second.GetNodeIndentifier()});
         LOG_GENERAL(INFO,
                     "Removed "
                         << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
@@ -1027,9 +1025,10 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
             dsGuardNewNetworkInfo;
 
         if (GUARD_MODE) {
-          Blacklist::GetInstance().Whitelist({dsGuardNewNetworkInfo.m_ipAddress,
-                                                      dsGuardNewNetworkInfo.m_listenPortHost,
-                                                dsGuardNewNetworkInfo.GetNodeIndentifier()});
+          Blacklist::GetInstance().Whitelist(
+              {dsGuardNewNetworkInfo.m_ipAddress,
+               dsGuardNewNetworkInfo.m_listenPortHost,
+               dsGuardNewNetworkInfo.GetNodeIndentifier()});
           LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
                                               << " to blacklist exclude list");
         }
@@ -1207,7 +1206,8 @@ bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "Ignore DS message");
     return false;
   }
-
+  LOG_GENERAL(WARNING,
+              "BZ Dispatching DS msg type: " << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);

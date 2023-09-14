@@ -30,10 +30,9 @@ target_link_libraries(Utils
         Constants
         MessageSWInfo
         jsonrpc
-        jsoncpp_lib
+        $<IF:$<TARGET_EXISTS:jsoncpp_lib_static>,jsoncpp_lib_static,jsoncpp_lib>
         protobuf::libprotobuf
         PRIVATE
         Metrics
         ${CryptoUtils_LIBRARY}
-        ${g3sinks_LOGROTATE_LIBRARY}
-        websocketpp::websocketpp)
+        ${g3sinks_LOGROTATE_LIBRARY})

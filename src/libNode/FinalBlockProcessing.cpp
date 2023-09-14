@@ -118,7 +118,8 @@ class FinalBLockProcessingVariables {
         result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
         result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
-        result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(missedMicroblockConsensus,
+                   {{"counter", "MissedMicroblockConsensus"}});
         result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
         result.Set(shard, {{"counter", "Shard"}});
       });
@@ -395,7 +396,8 @@ void Node::InitiatePoW() {
         "Node::InitiatePoW not expected to be called from LookUp node.");
     return;
   }
-
+  LOG_GENERAL(WARNING, "BZ InitiatePoW enter");
+  LOG_GENERAL(WARNING, "BZ Setting state to POW_SUBMISSION");
   SetState(POW_SUBMISSION);
 
   if (m_mediator.m_disablePoW) {
@@ -412,6 +414,7 @@ void Node::InitiatePoW() {
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     auto txBlockRand = m_mediator.m_txBlockRand;
+    LOG_GENERAL(WARNING, "BZ Will start PoW in detached function enter");
     StartPoW(
         epochNumber,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
@@ -1042,11 +1045,12 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
              (m_state == MICROBLOCK_CONSENSUS ||
               m_state == MICROBLOCK_CONSENSUS_PREP)) {
       std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-      // TODO: cv fix
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus. Timeout: " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
+        LOG_GENERAL(WARNING,
+                    "Timeout, I didn't finish microblock consensus. Timeout: "
+                        << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
         zil::local::variables.AddTimedOutMicroblock(1);
       }
     }
@@ -1112,7 +1116,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_pendingTxns.erase(txnHash);
     }
   }
-  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock ENTER");
+  LOG_GENERAL(
+      WARNING,
+      "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock ENTER");
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
@@ -1287,6 +1293,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     ClearUnconfirmedTxn();
     if (isVacuousEpoch) {
+      LOG_GENERAL(WARNING, "BZ It's vacuous epoch, will start PoW soon");
       InitiatePoW();
     } else {
       auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };
@@ -1301,20 +1308,39 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     // Now only forwarded txn are left, so only call in lookup
 
-    uint32_t numShards = m_mediator.m_ds->GetNumShards();
-
     CommitMBnForwardedTransactionBuffer();
-    if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
+    // Seed/external nodes send mempool transactions upon arrival of final block
+    if (ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
          NUM_FINAL_BLOCK_PER_POW) != 0) {
-      m_mediator.m_lookup->SenderTxnBatchThread(numShards);
+      SendTxnMemPoolToNextLayer();
+      m_mediator.m_lookup->ClearTxnMemPool();
     }
 
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(
         true);  // except last block
   }
   return true;
+}
+
+void Node::SendTxnMemPoolToNextLayer() {
+  LOG_GENERAL(WARNING,
+              "BZ Sending from seed to lookup txn with size: "
+                  << m_mediator.m_lookup->GetTransactionsFromMemPool().size());
+  zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+
+  {
+    lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
+    if (!Messenger::SetForwardTxnBlockFromSeed(
+            msg, MessageOffset::BODY,
+            m_mediator.m_lookup->GetTransactionsFromMemPool())) {
+      LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
+    }
+  }
+  // Sending mempool txns to random node next in the ladder (either lookup or
+  // upper seed for external nodes)
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
 }
 
 bool Node::ProcessStateDeltaFromFinalBlock(
@@ -1407,8 +1433,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
       }
-      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: " << txhash.hex() << ", NONCE: " << tran.GetNonce());
-      
+      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: "
+                               << txhash.hex()
+                               << ", NONCE: " << tran.GetNonce());
+
       if (LOOKUP_NODE_MODE) {
         LookupServer::AddToRecentTransactions(txhash);
         const auto& receipt = twr.GetTransactionReceipt();
@@ -1656,13 +1684,13 @@ bool Node::ProcessMBnForwardTransaction(
     // soft confirmation
     SoftConfirmForwardedTransactions(entry);
     // invoke txn distribution
-    if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
+    /*if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
              NUM_FINAL_BLOCK_PER_POW !=
          0)) {
       m_mediator.m_lookup->SendTxnPacketToShard(
           entry.m_microBlock.GetHeader().GetShardId(), false, true);
-    }
+    }*/
 
     return true;
   }

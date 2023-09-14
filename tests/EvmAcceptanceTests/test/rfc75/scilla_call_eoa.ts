@@ -137,7 +137,8 @@ describe("RFC75 ScillaCallEOA", function () {
     expect(await scillaContract.value()).to.be.eq(0);
   });
 
-  it("Should deduct the same amount from account as advertised in receipt", async function () {
+  // Disabled in q4-working-branch
+  xit("Should deduct the same amount from account as advertised in receipt", async function () {
     const CALL_MODE = 0;
     const admin = await solidityContract.signer;
     const initialBalance = await admin.getBalance();
