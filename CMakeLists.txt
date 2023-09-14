@@ -35,7 +35,6 @@ find_package(bsoncxx CONFIG REQUIRED)
 find_package(leveldb CONFIG REQUIRED)
 find_package(g3log REQUIRED)
 find_package(g3sinks REQUIRED)
-#TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 find_package(protobuf CONFIG REQUIRED)
 
