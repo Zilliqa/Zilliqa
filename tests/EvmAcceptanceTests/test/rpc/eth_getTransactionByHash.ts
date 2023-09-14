@@ -1,6 +1,6 @@
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import {assert} from "chai";
-import hre, {ethers} from "hardhat";
+import { assert } from "chai";
+import hre, { ethers } from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getTransactionByHash";

@@ -41,7 +41,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -89,7 +89,7 @@ class LookupVariables {
 static LookupVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 namespace {
 
@@ -214,9 +214,8 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
     GetTxBlockFromSeedNodes(txBlockNum, 0);
     std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
     if (!cv_setRejoinRecovery.wait_for(
-            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL), [this]() {
-              return m_rejoinRecoverySignal.load();
-            })) {
+            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL),
+            [this]() { return m_rejoinRecoverySignal.load(); })) {
       if (m_rejoinInProgress) {
         break;
       }
@@ -277,7 +276,6 @@ void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
 void Lookup::SetLookupNodes() {
   std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
 
-  m_startedTxnBatchThread = false;
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -475,9 +473,7 @@ VectorOfNode Lookup::GetSeedNodes() const {
   }
 }
 
-bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
-                          vector<Transaction>& DSTxn) {
-  vector<Transaction> txns;
+bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txnContainer) {
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
   for (auto& addrStr : GENESIS_WALLETS) {
@@ -486,8 +482,6 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
       continue;
     }
     Address addr{tempAddrBytes};
-
-    txns.clear();
 
     uint64_t nonce;
 
@@ -506,35 +500,26 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
     }
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
-                                     num_txn, txns)) {
+                                     num_txn, txnContainer)) {
       LOG_GENERAL(WARNING, "Failed to get txns from file");
       continue;
     }
 
-    copy(txns.begin(), txns.end(), back_inserter(shardTxn));
-
     LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
                           << nonce + num_txn << " of Addr " << addr.hex());
-    txns.clear();
-
     if (!GetTxnFromFile::GetFromFile(addr,
                                      static_cast<uint32_t>(nonce) + num_txn + 1,
-                                     NUM_TXN_TO_DS, txns)) {
+                                     NUM_TXN_TO_DS, txnContainer)) {
       LOG_GENERAL(WARNING, "Failed to get txns for DS");
       continue;
     }
-
-    copy(txns.begin(), txns.end(), back_inserter(DSTxn));
   }
-  return !(shardTxn.empty() || DSTxn.empty());
+  return !(txnContainer.empty());
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn,
-                          map<uint32_t, deque<pair<Transaction, uint32_t>>>& mp,
-                          uint32_t numShards,
+                          std::vector<Transaction>& txnContainer,
                           const bool updateRemoteStorageDBForGenTxns) {
-  vector<Transaction> txns;
-
   if (GENESIS_WALLETS.size() == 0) {
     LOG_GENERAL(WARNING, "No genesis accounts found");
     return false;
@@ -575,43 +560,30 @@ bool Lookup::GenTxnToSend(size_t num_txn,
         nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
       }
 
-      txns.clear();
       if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
-                                       num_txn, txns)) {
+                                       num_txn, txnContainer)) {
         LOG_GENERAL(WARNING, "Failed to get txns from file");
         continue;
       }
 
-      hasTransactions = hasTransactions || (txns.size() > 0);
+      hasTransactions = hasTransactions || (txnContainer.size() > 0);
 
       if (j == 1) {  // shard txn dispatching
-        auto txnShard = Transaction::GetShardIndex(addr, numShards);
         if (REMOTESTORAGE_DB_ENABLE && updateRemoteStorageDBForGenTxns) {
-          for (const auto& txn : txns) {
-            mp[txnShard].emplace_back(make_pair(txn, 0));
+          for (const auto& txn : txnContainer) {
             RemoteStorageDB::GetInstance().InsertTxn(
                 txn, TxnStatus::DISPATCHED, m_mediator.m_currentEpochNum);
-          }
-        } else {
-          for (const auto& txn : txns) {
-            mp[txnShard].emplace_back(make_pair(txn, 0));
           }
         }
 
-        LOG_GENERAL(INFO, "[Batching] Last Nonce sent to shard-"
-                              << txnShard << " " << nonce + num_txn
-                              << " of Addr " << addr.hex());
+        LOG_GENERAL(INFO, "[Batching] Last Nonce sent nonce: "
+                              << nonce + num_txn << " of Addr " << addr.hex());
         m_gentxnAddrLatestNonceSent[addr] = nonce + num_txn;
       } else {  // ds txn dispatching
         if (REMOTESTORAGE_DB_ENABLE && updateRemoteStorageDBForGenTxns) {
-          for (const auto& txn : txns) {
-            mp[numShards].emplace_back(make_pair(txn, 0));
+          for (const auto& txn : txnContainer) {
             RemoteStorageDB::GetInstance().InsertTxn(
                 txn, TxnStatus::DISPATCHED, m_mediator.m_currentEpochNum);
-          }
-        } else {
-          for (const auto& txn : txns) {
-            mp[numShards].emplace_back(make_pair(txn, 0));
           }
         }
 
@@ -681,8 +653,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
       Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
-
+          {resolved_ip, node.second.GetListenPortHost(), ""});
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
@@ -691,7 +662,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
   }
 
   // Sending with current d-trace info (if there is an active span)
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message, true);
+  zil::p2p::GetInstance().SendBroadcastMessage(allLookupNodes, message, true);
 }
 
 void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
@@ -710,7 +681,7 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
       Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+          {resolved_ip, node.second.GetListenPortHost(), ""});
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
@@ -719,7 +690,7 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(allLookupNodes, message);
+  zil::p2p::GetInstance().SendMessage(allLookupNodes, message);
 }
 
 void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
@@ -751,10 +722,10 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
   Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this lookup ip from blacklisting
+      {resolved_ip, tmp[index].second.GetListenPortHost(), ""});
   Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
-  P2PComm::GetInstance().SendMessage(tmpPeer, message);
+  zil::p2p::GetInstance().SendMessage(tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
@@ -766,14 +737,14 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
       Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+          {resolved_ip, node.second.GetListenPortHost(), ""});
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer);
       seedNodePeer.emplace_back(tmpPeer);
     }
   }
-  P2PComm::GetInstance().SendMessage(seedNodePeer, message);
+  zil::p2p::GetInstance().SendMessage(seedNodePeer, message);
 }
 
 zbytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
@@ -935,8 +906,8 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
     SendMessageToRandomL2lDataProvider(getmessage);
     unique_lock<mutex> lock(m_mutexVCFinalBlockProcessed);
     if (!cv_vcFinalBlockProcessed.wait_for(
-                                           lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
-                                           [this]() { return m_vcFinalBlockProcessed; }) &&
+            lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL),
+            [this]() { return m_vcFinalBlockProcessed; }) &&
         !m_exitPullThread) {
       LOG_GENERAL(WARNING,
                   "GetVCFinalBlockFromL2lDataProvider Timeout... may be "
@@ -1103,10 +1074,10 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
 
       if (replaceMyPeerWithDefault && (key == m_mediator.m_selfKey.second)) {
         m_mediator.m_DSCommittee->emplace_back(make_pair(key, Peer()));
-        LOG_GENERAL(INFO, "Added self " << Peer());
+        LOG_GENERAL(INFO, "### Added self " << Peer());
       } else {
         m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
-        LOG_GENERAL(INFO, "Added peer " << peer);
+        LOG_GENERAL(INFO, "### Added peer " << peer);
       }
     }
   }
@@ -1232,8 +1203,9 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   uint32_t portNo = 0;
   bool initialDS;
 
-  if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
+                              {from.m_ipAddress, from.GetListenPortHost(),
+                               from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1277,8 +1249,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, dsInfoMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, dsInfoMessage, startByte);
 
   return true;
 }
@@ -1299,15 +1270,16 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   auto resolved_ip = TryGettingResolvedIP(m_l2lDataProviders[index].second);
 
   Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this l2lookup ip from blacklisting
+      {resolved_ip, m_l2lDataProviders[index].second.GetListenPortHost(), ""});
   Peer tmpPeer(resolved_ip,
                m_l2lDataProviders[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
   unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
-  }
-  P2PComm::GetInstance().SendMessage(tmpPeer, tmpPeer, message, startByte);
+  //  TODO Disabled in updated protocol
+  // if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
+  //    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
+  //}
+  zil::p2p::GetInstance().SendMessage(tmpPeer, message, startByte);
 }
 
 void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
@@ -1321,10 +1293,13 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
+      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,
+                                           node.second.GetListenPortHost(),
+                                           node.second.GetNodeIndentifier()}) &&
           (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
-            Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
+            Peer(seedNodeIpToSend, node.second.GetListenPortHost(),
+                 node.second.GetNodeIndentifier()));
       }
     }
   }
@@ -1337,7 +1312,7 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   }
 
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
-  P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
+  zil::p2p::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -1347,10 +1322,6 @@ bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
     lock_guard<mutex> g(m_mutexExtSeedWhitelisted);
     isWhiteListed =
         (m_extSeedWhitelisted.end() != m_extSeedWhitelisted.find(pubKey));
-  }
-  // Close connection if key is not whitelisted for p2pseed
-  if (!isWhiteListed) {
-    P2PComm::GetInstance().RemoveBevAndCloseP2PConnServer(from, startByte);
   }
   return isWhiteListed;
 }
@@ -1424,8 +1395,7 @@ bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcDSBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcDSBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
-      P2PComm::GetInstance().SendMessage(requestorPeer, from, it->second,
-                                         startByte);
+      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
       return true;
     }
   }
@@ -1504,8 +1474,7 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcFinalBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcFinalBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
-      P2PComm::GetInstance().SendMessage(requestorPeer, from, it->second,
-                                         startByte);
+      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
       return true;
     }
   }
@@ -1567,8 +1536,8 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
         auto it2 = it->second.find(shardId);
         if (it2 != it->second.end()) {
           LOG_GENERAL(INFO, "Sending MbnForrwardTxn msg to " << requestorPeer);
-          P2PComm::GetInstance().SendMessage(requestorPeer, from, it2->second,
-                                             startByte);
+          zil::p2p::GetInstance().SendMessage(requestorPeer, it2->second,
+                                              startByte);
           return true;
         }
       } else {
@@ -1622,7 +1591,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
                           << consensusLeaderID << " (" << dsLeader.second
                           << ')');
 
-    P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
+    zil::p2p::GetInstance().SendMessage(dsLeader.second, retMsg);
   }
 
   // Wait for the reply from the DS leader
@@ -1819,8 +1788,9 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
   uint32_t portNo = 0;
   bool includeMinerInfo = false;
 
-  if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
+                              {from.m_ipAddress, from.m_listenPortHost,
+                               from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1857,8 +1827,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -1897,8 +1866,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
         return false;
       }
 
-      P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
-                                         startByte);
+      zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -1994,8 +1962,9 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
 
-  if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
+                              {from.m_ipAddress, from.m_listenPortHost,
+                               from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2029,8 +1998,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
     return false;
   }
   Peer requestingNode(from.m_ipAddress, portNo);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, txBlockMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, txBlockMessage,
+                                      startByte);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Sent Txblks " << lowBlockNum << " - " << highBlockNum);
   return true;
@@ -2114,8 +2083,9 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint64_t blockNum = 0;
   uint32_t portNo = 0;
 
-  if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
+                              {from.m_ipAddress, from.m_listenPortHost,
+                               from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2157,8 +2127,8 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltaMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltaMessage,
+                                      startByte);
   return true;
 }
 
@@ -2178,8 +2148,9 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
 
-  if (!ARCHIVAL_LOOKUP &&
-      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
+                              {from.m_ipAddress, from.m_listenPortHost,
+                               from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2226,8 +2197,8 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltasMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltasMessage,
+                                      startByte);
   return true;
 }
 
@@ -2257,7 +2228,7 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, msg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, msg, startByte);
 
   return true;
 }
@@ -2300,6 +2271,8 @@ bool Lookup::ProcessSetShardFromSeed(
   }
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
+  LOG_EXTRA("Shards updated " << m_mediator.m_ds->m_shards.size() << "->"
+                              << shards.size());
   m_mediator.m_ds->m_shards = std::move(shards);
 
   {
@@ -2363,7 +2336,9 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed(
+          {from.m_ipAddress, from.m_listenPortHost,
+           from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2433,7 +2408,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
   return true;
 }
 
@@ -2513,7 +2488,7 @@ bool Lookup::ProcessGetMicroBlockFromL2l(const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
   return true;
 }
 
@@ -2708,7 +2683,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
   return true;
 }
 
@@ -3094,8 +3069,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
       {
-          std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
-          m_rejoinRecoverySignal = true;
+        std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+        m_rejoinRecoverySignal = true;
       }
       cv_setRejoinRecovery.notify_all();
       return false;
@@ -3296,8 +3271,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         ComposeAndSendGetCosigsRewardsFromSeed(txblk_num);
         std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
         if (!cv_setCosigRewardsFromSeed.wait_for(
-                cv_lk,
-                std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
+                cv_lk, std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS),
                 [this]() { return m_setCosigRewardsFromSeedSignal; })) {
           LOG_GENERAL(WARNING,
                       "[Retry: " << retry
@@ -3559,10 +3533,6 @@ void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
   }
 }
 
-deque<pair<Transaction, uint32_t>>& Lookup::GetTxnFromShardMap(uint32_t index) {
-  return m_txnShardMap[index];
-}
-
 bool Lookup::ProcessSetStateDeltaFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
@@ -3729,7 +3699,8 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed(
+          {ipAddr, from.GetListenPortHost(), from.GetNodeIndentifier()})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -3760,7 +3731,8 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(), from.GetListenPortHost(),
+                                  from.GetNodeIndentifier()});
     return false;
   }
 
@@ -3805,8 +3777,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
   return true;
 }
 
@@ -3848,7 +3819,8 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
                     << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
                     << " missing txns. Looks suspicious so will "
                        "ignore the message and blacklist sender");
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add(
+        {from.GetIpAddress(), from.m_listenPortHost, ""});
     return false;
   }
 
@@ -3893,8 +3865,7 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
   return true;
 }
 
@@ -4109,6 +4080,7 @@ bool Lookup::InitMining() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
+  LOG_GENERAL(WARNING, "BZ Init mining, will start PoW soon");
   m_mediator.m_node->StartPoW(
       curDsBlockNum + 1,
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
@@ -4290,8 +4262,8 @@ bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
     }
   }
 
-  P2PComm::GetInstance().SendMessage(requestingNode, from,
-                                     offlineLookupsMessage, startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, offlineLookupsMessage,
+                                      startByte);
   return true;
 }
 
@@ -4806,7 +4778,6 @@ bool Lookup::CleanVariables() {
 
   m_seedNodes.clear();
   m_currDSExpired = false;
-  m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
   {
     std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
@@ -4950,7 +4921,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
+  zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -4993,7 +4964,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
         return false;
       }
 
-      P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
+      zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -5249,7 +5220,8 @@ bool Lookup::Execute(const zbytes& message, unsigned int offset,
       return false;
     }
   }
-
+  LOG_GENERAL(WARNING, "BZ Dispatching Lookup msg type: "
+                           << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
@@ -5271,40 +5243,37 @@ bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 void Lookup::RemoveSeedNodesFromBlackList() {
   lock_guard<mutex> lock(m_mutexSeedNodes);
 
-  for (const auto& node : m_seedNodes) {
+  for (auto& node : m_seedNodes) {
     auto seedNodeIp = TryGettingResolvedIP(node.second);
-    Blacklist::GetInstance().Remove(seedNodeIp);
+
+    Blacklist::GetInstance().Remove({seedNodeIp,
+                                     node.second.GetListenPortHost(),
+                                     node.second.GetNodeIndentifier()});
   }
 }
 
-bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
-                              TxnShardMap& txnShardMap,
-                              mutex& txnShardMapMutex) {
-  lock_guard<mutex> g(txnShardMapMutex);
-  uint32_t size = 0;
+bool Lookup::AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
+                             mutex& txnMemPoolMutex) {
+  lock_guard<mutex> g(txnMemPoolMutex);
 
-  for (const auto& x : txnShardMap) {
-    size += x.second.size();
-  }
-
-  if (size >= TXN_STORAGE_LIMIT) {
+  if (std::size(txnMemPool) >= TXN_STORAGE_LIMIT) {
     LOG_GENERAL(INFO, "Number of txns exceeded limit");
     return false;
   }
 
   // case where txn already exist
-  if (find_if(txnShardMap[shardId].begin(), txnShardMap[shardId].end(),
-              [tx](const pair<Transaction, uint32_t>& txn_and_count) {
-                return tx.GetTranID() == txn_and_count.first.GetTranID();
-              }) != txnShardMap[shardId].end()) {
+  if (find_if(m_txnMemPool.cbegin(), m_txnMemPool.cend(),
+              [tx](const Transaction& txn) {
+                return tx.GetTranID() == txn.GetTranID();
+              }) != m_txnMemPool.end()) {
     LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
     return false;
   }
 
-  txnShardMap[shardId].emplace_back(make_pair(tx, 0));
-  LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " to shard "
-                                 << shardId << " of fromAddr "
-                                 << tx.GetSenderAddr());
+  txnMemPool.push_back(tx);
+  LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " fromAddr "
+                                 << tx.GetSenderAddr()
+                                 << ", nonce: " << tx.GetNonce());
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
     RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
                                              m_mediator.m_currentEpochNum);
@@ -5313,32 +5282,31 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
   return true;
 }
 
-bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
+bool Lookup::AddTxnToMemPool(const Transaction& tx) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Lookup::AddToTxnShardMap not expected to be called from "
+                "Lookup::AddTxnToMemPool not expected to be called from "
                 "other than the LookUp node.");
     return true;
   }
 
-  return AddToTxnShardMap(tx, shardId, m_txnShardMap, m_txnShardMapMutex);
+  return AddTxnToMemPool(tx, m_txnMemPool, m_txnMemPoolMutex);
 }
 
-bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
+bool Lookup::ClearTxnMemPool() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Lookup::DeleteTxnShardMap not expected to be called from "
+                "Lookup::ClearTxnMemPool not expected to be called from "
                 "other than the LookUp node.");
     return true;
   }
-
-  m_txnShardMap[shardId].clear();
+  lock_guard<mutex> g(m_txnMemPoolMutex);
+  m_txnMemPool.clear();
 
   return true;
 }
 
-void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards,
-                                  bool newDSEpoch) {
+void Lookup::SenderTxnBatchThread(std::vector<Transaction> transactions) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SenderTxnBatchThread not expected to be called from "
@@ -5346,82 +5314,11 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards,
     return;
   }
 
-  if (m_startedTxnBatchThread) {
-    LOG_GENERAL(WARNING,
-                "The last TxnBatchThread hasn't finished, discard this time");
-    return;
-  }
-
-  auto main_func = [this, oldNumShards, newDSEpoch]() mutable -> void {
-    m_startedTxnBatchThread = true;
-    uint32_t numShards = 0;
-    while (true) {
-      if (!m_mediator.GetIsVacuousEpoch()) {
-        numShards = m_mediator.m_ds->GetNumShards();
-        if (newDSEpoch) {
-          m_gentxnAddrLatestNonceSent.clear();
-          SendTxnPacketToNodes(oldNumShards, numShards);
-        } else {
-          SendTxnPacketToDS(oldNumShards, numShards);
-        }
-      }
-      break;
-    }
-    m_startedTxnBatchThread = false;
-  };
-  DetachedFunction(1, main_func);
+  SendTxnsToDSShard(std::move(transactions));
 }
 
-void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
-                                const uint32_t newNumShards) {
-  auto t_start = std::chrono::high_resolution_clock::now();
-
-  map<uint, deque<pair<Transaction, uint32_t>>> tempTxnShardMap;
-
-  lock_guard<mutex> g(m_txnShardMapMutex);
-
-  LOG_GENERAL(INFO, "Shard dropped or gained, shuffling txn shard map");
-  LOG_GENERAL(INFO, "New Shard Size: " << newNumShards
-                                       << "  Old Shard Size: " << oldNumShards);
-  for (const auto& shard : m_txnShardMap) {
-    if (shard.first == oldNumShards) {
-      // ds txns
-      continue;
-    }
-    for (const auto& tx_and_count : shard.second) {
-      unsigned int fromShard = tx_and_count.first.GetShardIndex(newNumShards);
-
-      if (Transaction::GetTransactionType(tx_and_count.first) ==
-          Transaction::CONTRACT_CALL) {
-        // if shard do not match directly send to ds
-        unsigned int toShard = Transaction::GetShardIndex(
-            tx_and_count.first.GetToAddr(), newNumShards);
-        if (toShard != fromShard) {
-          // later would be placed in the new ds shard
-          m_txnShardMap[oldNumShards].emplace_back(tx_and_count);
-          continue;
-        }
-      }
-
-      tempTxnShardMap[fromShard].emplace_back(tx_and_count);
-    }
-  }
-  tempTxnShardMap[newNumShards] = std::move(m_txnShardMap[oldNumShards]);
-
-  m_txnShardMap.clear();
-
-  m_txnShardMap = std::move(tempTxnShardMap);
-
-  auto t_end = std::chrono::high_resolution_clock::now();
-
-  double elaspedTimeMs =
-      std::chrono::duration<double, std::milli>(t_end - t_start).count();
-
-  LOG_GENERAL(INFO, "Elapsed time for exchange " << elaspedTimeMs);
-}
-
-void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
-                                  bool afterSoftConfirmation) {
+void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
+  LOG_GENERAL(WARNING, "BZ SendTxnPacketToShard");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketToShard not expected to be called from"
@@ -5431,77 +5328,37 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
 
   zbytes msg = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
   bool result = false;
-  uint64_t epoch = afterSoftConfirmation ? m_mediator.m_currentEpochNum + 1
-                                         : m_mediator.m_currentEpochNum;
+  uint64_t epoch = m_mediator.m_currentEpochNum;
 
   {
-    unique_lock<mutex> g(m_txnShardMapMutex, defer_lock);
-    unique_lock<mutex> g2(m_txnShardMapGeneratedMutex, defer_lock);
+    unique_lock<mutex> g(m_txnMemPoolMutex, defer_lock);
+    unique_lock<mutex> g2(m_txnMemPoolGeneratedMutex, defer_lock);
     lock(g, g2);
-    auto transactionNumber = m_txnShardMapGenerated[shardId].size();
+    auto transactionNumber = transactions.size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-    if (GetTxnFromShardMap(shardId).empty() &&
-        m_txnShardMapGenerated[shardId].empty()) {
-      LOG_GENERAL(INFO, "No txns to send to shard " << shardId);
+    if (transactions.empty()) {
+      LOG_GENERAL(INFO, "No txns to send to ds shard");
       return;
     }
+
+    LOG_GENERAL(WARNING, "BZ Creating message with size of txns: "
+                             << transactions.size());
 
     result = Messenger::SetNodeForwardTxnBlock(
         msg, MessageOffset::BODY, epoch,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        shardId, m_mediator.m_selfKey, GetTxnFromShardMap(shardId),
-        m_txnShardMapGenerated[shardId]);
+        m_mediator.m_selfKey, transactions);
   }
 
   if (!result) {
     LOG_EPOCH(WARNING, epoch, "Messenger::SetNodeForwardTxnBlock failed.");
-    LOG_GENERAL(WARNING, "Cannot create packet for " << shardId << " shard");
     return;
   }
 
   vector<Peer> toSend;
-  if (!toDS) {
-    {
-      lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-      uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-
-      if (m_mediator.m_ds->m_shards.at(shardId).empty()) {
-        return;
-      }
-
-      // Lookup sends to NUM_NODES_TO_SEND_LOOKUP including Leader
-
-      PairOfNode shardLeader;
-      uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
-          lastBlockHash, m_mediator.m_ds->m_shards.at(shardId).size(),
-          m_mediator.m_ds->m_shards.at(shardId), shardLeader);
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Shard leader id " << leader_id);
-
-      auto it = m_mediator.m_ds->m_shards.at(shardId).begin();
-
-      // Send to the leader
-      toSend.push_back(shardLeader.second);
-
-      // Send to remaining ones
-      for (; it != m_mediator.m_ds->m_shards.at(shardId).end(); it++) {
-        if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
-            std::get<SHARD_NODE_PUBKEY>(*it) != shardLeader.first) {
-          toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
-        }
-
-        if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
-          break;
-        }
-      }
-    }
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-
-    DeleteTxnShardMap(shardId);
-  } else {
+  {
     // To send DS
     {
       lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
@@ -5529,28 +5386,24 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
         }
       }
     }
-
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+    LOG_GENERAL(WARNING, "BZ Broadcasting messages to shard from lookup...");
+    zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
                           << " Sent DS the txns");
-
-    DeleteTxnShardMap(shardId);
   }
 }
 
-void Lookup::SendTxnPacketToDS(const uint32_t oldNumShards,
-                               const uint32_t newNumShards) {
+void Lookup::SendTxnsToDSShard(std::vector<Transaction> transactionsToSend) {
   // This will generate txns for all shards include ds shard.
-  SendTxnPacketPrepare(oldNumShards, newNumShards);
+  SendTxnPacketPrepare(transactionsToSend);
 
-  // But will only send txn pkt to ds-shard
-  SendTxnPacketToShard(newNumShards, true);
+  SendTxnPacketToShard(std::move(transactionsToSend));
 }
 
-void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
-                                  const uint32_t newNumShards,
-                                  const bool updateRemoteStorageDBForGenTxns) {
+void Lookup::SendTxnPacketPrepare(
+    std::vector<Transaction>& transactionsToSend) {
+  LOG_GENERAL(WARNING, "BZ SendTxnPacketPrepare");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketPrepare not expected to be called from "
@@ -5563,56 +5416,17 @@ void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
     return;
   }
 
-  const uint32_t numShards = newNumShards;
-
   if (USE_REMOTE_TXN_CREATOR) {
-    lock_guard<mutex> g(m_txnShardMapGeneratedMutex);
-    m_txnShardMapGenerated.clear();
+    lock_guard<mutex> g(m_txnMemPoolGeneratedMutex);
+    m_txnMemPoolGenerated.clear();
 
-    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, m_txnShardMapGenerated,
-                      numShards, updateRemoteStorageDBForGenTxns)) {
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, m_txnMemPoolGenerated,
+                      true)) {
       LOG_GENERAL(WARNING, "GenTxnToSend failed");
     }
-  }
-
-  if (oldNumShards != newNumShards) {
-    auto rectifyFunc = [this, oldNumShards, newNumShards]() mutable -> void {
-      RectifyTxnShardMap(oldNumShards, newNumShards);
-    };
-    DetachedFunction(1, rectifyFunc);
-  }
-
-  this_thread::sleep_for(
-      chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
-}
-
-void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
-                                  const uint32_t newNumShards) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::SendTxnPacketToNodes not expected to be called from "
-                "other than the LookUp node.");
-    return;
-  }
-
-  SendTxnPacketPrepare(oldNumShards, newNumShards);
-
-  for (unsigned int i = 0; i < newNumShards + 1; i++) {
-    SendTxnPacketToShard(i, i == newNumShards);
-  }
-
-  // Fix: To prepare for new set of transaction for second epoch
-  // since txns from first epoch will be hard confirmed only on receving FB.
-  // And we need to avoid sending same txns in second epoch after receivng MB
-  // for first epoch
-  SendTxnPacketPrepare(oldNumShards, newNumShards, false);
-  // Now we have generated txns for all shards and ds-shard.
-  // But we only need them for normal shards to be send later after recv soft
-  // confirmation.
-  {
-    lock_guard<mutex> g(m_txnShardMapGeneratedMutex);
-    // remove for ds-shard
-    m_txnShardMapGenerated[newNumShards].clear();
+    transactionsToSend.insert(std::end(transactionsToSend),
+                              std::cbegin(m_txnMemPoolGenerated),
+                              std::cend(m_txnMemPoolGenerated));
   }
 }
 
@@ -5687,6 +5501,7 @@ bool Lookup::VerifySenderNode(const Shard& shard,
 bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                [[gnu::unused]] const unsigned char& startByte) {
+  LOG_GENERAL(WARNING, "BZ Received ProcessForwardTxn");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessForwardTxn not expected to be called from "
@@ -5698,58 +5513,26 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  vector<Transaction> txnsShard;
-  vector<Transaction> txnsDS;
-
-  if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, txnsShard,
-                                             txnsDS)) {
-    LOG_GENERAL(WARNING, "Failed to Messenger::GetForwardTxnBlockFromSeed");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Recvd from " << from);
-
-  if (!ARCHIVAL_LOOKUP) {
-    uint32_t shard_size = m_mediator.m_ds->GetNumShards();
-
-    if (!(m_sendSCCallsToDS || m_sendAllToDS)) {
-      for (const auto& txn : txnsShard) {
-        unsigned int shard = txn.GetShardIndex(shard_size);
-        AddToTxnShardMap(txn, shard);
-      }
-    } else if (m_sendAllToDS) {
-      for (const auto& txn : txnsShard) {
-        AddToTxnShardMap(txn, shard_size);
-      }
-    } else {
-      LOG_GENERAL(INFO, "Sending all contract calls to DS committee");
-      for (const auto& txn : txnsShard) {
-        const Transaction::ContractType txnType =
-            Transaction::GetTransactionType(txn);
-        if (txnType == Transaction::ContractType::CONTRACT_CALL) {
-          AddToTxnShardMap(txn, shard_size);
-        } else {
-          unsigned int shard = txn.GetShardIndex(shard_size);
-          AddToTxnShardMap(txn, shard);
-        }
-      }
-    }
-
-    LOG_GENERAL(INFO, "Size of DS txns " << txnsDS.size());
-
-    for (const auto& txn : txnsDS) {
-      AddToTxnShardMap(txn, shard_size);
-    }
-    if (REMOTESTORAGE_DB_ENABLE) {
-      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
-    }
+  // TODO: this should be reworked once we drop support for Lookup nodes
+  // I'm either upper seed (archival lookup) for external node or a Lookup for
+  // private seed nodes
+  if (ARCHIVAL_LOOKUP) {
+    // I'm seed/external-seed - forward message to next layer of 'lookups'
+    LOG_GENERAL(WARNING,
+                "BZ: Received txn message at lookup, sending to next lookup in "
+                "the chain");
+    SendMessageToRandomSeedNode(message);
   } else {
-    for (const auto& txn : txnsShard) {
-      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+    // I'm a lookup (non-seed & non-external) - forward messages to ds shard
+    std::vector<Transaction> transactions;
+    if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, transactions)) {
+      LOG_GENERAL(WARNING,
+                  "Unable to deserialize message from by Lookup from Seed");
+      return false;
     }
-    for (const auto& txn : txnsDS) {
-      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_DS);
-    }
+    LOG_GENERAL(WARNING, "BZ Sending from lookup to dsshard txn with size: "
+                             << transactions.size());
+    SenderTxnBatchThread(std::move(transactions));
   }
 
   return true;
@@ -5812,8 +5595,8 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  P2PComm::GetInstance().SendMessage(requestingNode, from, dsTxBlocksMessage,
-                                     startByte);
+  zil::p2p::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage,
+                                      startByte);
   return true;
 }
 
@@ -5874,7 +5657,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
 
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
+  zil::p2p::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
   return true;
 }
 

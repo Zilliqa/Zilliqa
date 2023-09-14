@@ -1,6 +1,6 @@
 # Using localdev
 
-The instructions obtained by running
+The instructions obtained by running 
 
 ```sh
 scripts/localdev.py

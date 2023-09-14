@@ -41,7 +41,7 @@ describe("Chained Contract Calls Functionality #parallel", function () {
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
-      let tracer = {tracer: "callTracer"};
+      let tracer = { tracer: "callTracer" };
 
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
@@ -77,7 +77,7 @@ describe("Chained Contract Calls Functionality #parallel", function () {
         );
       });
 
-      let secondTracer = {tracer: "raw"};
+      let secondTracer = { tracer: "raw" };
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
         assert.equal(status, 200, "has status code");

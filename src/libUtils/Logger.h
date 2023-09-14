@@ -162,8 +162,9 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
 #define LOG_GENERAL(level, msg) \
   { TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
 
-#define LOG_MARKER() \
-  Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
+
+#define LOG_MARKER()
+
 
 #define LOG_MARKER_CONTITIONAL(conditional) \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__, conditional};
@@ -197,5 +198,13 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
   LOG_GENERAL(WARNING, checktype << " check failed"); \
   LOG_GENERAL(WARNING, " Received = " << received);   \
   LOG_GENERAL(WARNING, " Expected = " << expected);
+
+#define LOG_EXTRA_ENABLED 1
+
+#if LOG_EXTRA_ENABLED
+#define LOG_EXTRA(msg) LOG_GENERAL(INFO, "### " << msg)
+#else
+#define LOG_EXTRA(...)
+#endif
 
 #endif  // ZILLIQA_SRC_LIBUTILS_LOGGER_H_

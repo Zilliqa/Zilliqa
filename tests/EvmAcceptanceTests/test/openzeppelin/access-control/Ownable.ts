@@ -25,7 +25,6 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
     const notOwner = hre.allocateSigner();
 
     await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
-
     hre.releaseSigner(notOwner);
   });
 

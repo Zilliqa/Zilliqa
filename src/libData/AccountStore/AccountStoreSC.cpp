@@ -16,7 +16,6 @@
  */
 #include <chrono>
 
-
 #include <unordered_map>
 #include <vector>
 
@@ -250,8 +249,7 @@ bool AccountStoreSC::UpdateAccounts(
         .blockTimestamp = extras.block_timestamp,
         .blockDifficulty = extras.block_difficulty,
         .contractType = Transaction::GetTransactionType(transaction),
-        .txnHash = transaction.GetTranID()
-    };
+        .txnHash = transaction.GetTranID()};
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
@@ -263,7 +261,6 @@ bool AccountStoreSC::UpdateAccounts(
       cpsRunResult.isSuccess = true;
     }
     error_code = cpsRunResult.txnStatus;
-
 
     return cpsRunResult.isSuccess;
   }
@@ -1541,18 +1538,6 @@ bool AccountStoreSC::ParseCallContractJsonOutput(const Json::Value &_json,
         gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
       }
 
-      // check whether the recipient contract is in the same shard with the
-      // current contract
-      if (!m_curIsDS &&
-          (Transaction::GetShardIndex(curContractAddr, m_curNumShards) !=
-           Transaction::GetShardIndex(recipient, m_curNumShards))) {
-        LOG_GENERAL(WARNING,
-                    "another contract doesn't belong to the same shard with "
-                    "current contract");
-        receipt.AddError(CHAIN_CALL_DIFF_SHARD);
-        return false;
-      }
-
       if (m_curEdges > MAX_CONTRACT_EDGES) {
         LOG_GENERAL(
             WARNING,
@@ -1691,6 +1676,9 @@ bool AccountStoreSC::TransferBalanceAtomic(const Address &from,
                                            const Address &to,
                                            const uint128_t &delta) {
   // LOG_MARKER();
+  LOG_GENERAL(WARNING,
+              "AccountStoreSC::TransferBalanceAtomicTransferBalanceAtomic from "
+                  << from << ", to: " << to << ", value: " << delta);
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 

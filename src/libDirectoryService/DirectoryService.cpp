@@ -28,7 +28,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -58,7 +58,8 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS,
+                                          "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
@@ -72,7 +73,7 @@ class DSVariables {
 static DSVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -185,12 +186,6 @@ bool DirectoryService::CheckState(Action action) {
   return true;
 }
 
-uint32_t DirectoryService::GetNumShards() const {
-  lock_guard<mutex> g(m_mutexShards);
-
-  return m_shards.size();
-}
-
 bool DirectoryService::ProcessSetPrimary(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
@@ -205,6 +200,7 @@ bool DirectoryService::ProcessSetPrimary(
   // Note: This function should only be invoked during bootstrap sequence
   // Message = [Primary node IP] [Primary node port]
   LOG_MARKER();
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 1");
 
   if (m_mediator.m_currentEpochNum > 1) {
     // TODO: Get the IP address of who send this message, and deduct its
@@ -270,14 +266,14 @@ bool DirectoryService::ProcessSetPrimary(
     // Load the DS committee, with my own peer set to dummy
     m_mediator.m_lookup->SetDSCommitteInfo(true);
   }
-
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 2");
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
     VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // Now I need to find my index in the sorted list (this will be my ID for the
@@ -320,7 +316,7 @@ bool DirectoryService::ProcessSetPrimary(
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
-
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 3");
   SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
@@ -349,11 +345,12 @@ bool DirectoryService::ProcessSetPrimary(
                          << "][" << std::setw(6) << std::left << m_consensusMyID
                          << "] DSBK");
   }
-
+  LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 4");
   if ((m_consensusMyID < POW_PACKET_SENDERS) ||
       (primary == m_mediator.m_selfPeer)) {
     m_powSubmissionWindowExpired = false;
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+    LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 11");
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POW_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions...");
@@ -365,7 +362,7 @@ bool DirectoryService::ProcessSetPrimary(
       this->SendPoWPacketSubmissionToOtherDSComm();
     };
     DetachedFunction(1, func);
-
+    LOG_GENERAL(WARNING, "BZ: ProcessSetPrimary 22");
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions packet from "
@@ -423,7 +420,6 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
-
   zil::local::variables.SetDSState(int(state));
 
   if (LOOKUP_NODE_MODE) {
@@ -470,6 +466,7 @@ bool DirectoryService::CleanVariables() {
 
   LOG_MARKER();
 
+  LOG_EXTRA("Shards cleared");
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
   m_allPoWConns.clear();
@@ -626,7 +623,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
   }
 
@@ -702,7 +699,8 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   if (fetchShardingStruct) {
     // Ask for the sharding structure from lookup
     {
-      std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+      std::unique_lock<std::mutex> cv_lk(
+          m_mediator.m_lookup->m_mutexShardStruct);
       m_mediator.m_lookup->m_shardStructSignal = false;
     }
     m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
@@ -936,7 +934,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
+  zil::p2p::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
 
   m_awaitingToSubmitNetworkInfoUpdate = false;
 
@@ -1009,7 +1007,11 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
         foundDSGuardNode = true;
 
         Blacklist::GetInstance().RemoveFromWhitelist(
-            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress);
+            {m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress,
+             m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                 .second.m_listenPortHost,
+             m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                 .second.GetNodeIndentifier()});
         LOG_GENERAL(INFO,
                     "Removed "
                         << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
@@ -1023,7 +1025,10 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
             dsGuardNewNetworkInfo;
 
         if (GUARD_MODE) {
-          Blacklist::GetInstance().Whitelist(dsGuardNewNetworkInfo.m_ipAddress);
+          Blacklist::GetInstance().Whitelist(
+              {dsGuardNewNetworkInfo.m_ipAddress,
+               dsGuardNewNetworkInfo.m_listenPortHost,
+               dsGuardNewNetworkInfo.GetNodeIndentifier()});
           LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
                                               << " to blacklist exclude list");
         }
@@ -1037,7 +1042,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     // Lookup to store the info
@@ -1157,7 +1162,7 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  P2PComm::GetInstance().SendMessage(requestingNode, txnPoolMessage);
+  zil::p2p::GetInstance().SendMessage(requestingNode, txnPoolMessage);
   return true;
 }
 
@@ -1201,7 +1206,8 @@ bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "Ignore DS message");
     return false;
   }
-
+  LOG_GENERAL(WARNING,
+              "BZ Dispatching DS msg type: " << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);

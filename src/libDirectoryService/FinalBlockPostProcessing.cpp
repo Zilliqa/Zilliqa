@@ -54,8 +54,9 @@ class FinalBlockPostProcessingVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "finalblockpostproc.gauge",
-                                          "Final block post processing state", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "finalblockpostproc.gauge",
+          "Final block post processing state", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(mbInFinal, {{"counter", "MbInFinal"}});
@@ -331,6 +332,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
   if (isVacuousEpoch) {
+    LOG_GENERAL(WARNING,
+                "BZ FinalBlockConsensusDone, vacuous epoch, setting state to "
+                "POW_SUBMISSION");
     SetState(POW_SUBMISSION);
   } else {
     SetState(MICROBLOCK_SUBMISSION);

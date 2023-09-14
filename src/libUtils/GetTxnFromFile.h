@@ -98,7 +98,6 @@ class GetTxnFromFile {
 
     const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
     std::fstream file;
-    txns.clear();
 
     if (totalNum > num_txn) {
       LOG_GENERAL(WARNING, "A single file is holding too many txns ("

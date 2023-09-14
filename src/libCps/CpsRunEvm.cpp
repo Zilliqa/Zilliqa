@@ -64,12 +64,16 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
+      LOG_GENERAL(WARNING, "CpsRunEvm::Run Create type");
       mAccountStore.AddAccountAtomic(contractAddress);
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
       mCpsContext.gasTracker.DecreaseByEth(baseFee);
 
+      LOG_GENERAL(WARNING, "About to make transfer from : " << ProtoToAddress(mProtoArgs.origin()) << ", to: " << ProtoToAddress(mProtoArgs.address())
+                                                                              << ", value: "
+                                                            << Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())).toWei());
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -83,13 +87,16 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
+      LOG_GENERAL(WARNING, "CpsRunEvm::Run Call type");
       INC_STATUS(GetCPSMetric(), "transaction", "call");
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
       mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
-
+      LOG_GENERAL(WARNING, "About to make transfer from : " << ProtoToAddress(mProtoArgs.origin()) << ", to: " << ProtoToAddress(mProtoArgs.address())
+                                                            << ", value: "
+                                                            << Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())).toWei());
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -118,6 +125,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     span.SetError("Evm-ds Invoke Error");
     INC_STATUS(GetCPSMetric(), "error", "timeout");
+    LOG_GENERAL(WARNING, "Invoke EVM failed!");
     return {};
   }
   const evm::EvmResult& evmResult = invokeResult.value();
@@ -129,8 +137,10 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
+    LOG_GENERAL(WARNING, "EVM: Handle trap result");
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
+    LOG_GENERAL(WARNING, "EVM: Handle apply result");
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
@@ -139,6 +149,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
     span.SetError("Unknown trap type");
+    LOG_GENERAL(WARNING, "EVM: Unknown return type, unsuccessful");
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }

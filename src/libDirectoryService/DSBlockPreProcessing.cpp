@@ -29,7 +29,6 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -118,6 +117,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   LOG_MARKER();
 
+  LOG_EXTRA("Shards cleared " << m_shards.size());
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
 
@@ -136,6 +136,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_TOLERANCE_LO,
                                            SHARD_SIZE_TOLERANCE_HI,
                                            numNodesForSharding, shardCounts);
+  LOG_EXTRA("Shards size generated " << shardCounts.size());
 
   // Abort if zero shards generated
   if (shardCounts.empty()) {
@@ -303,12 +304,12 @@ void DirectoryService::InjectPoWForDSNode(
 
     // Remove this node from blacklist if it exists
     Peer& p = rit->second;
-    Blacklist::GetInstance().Remove(p.GetIpAddress());
+    Blacklist::GetInstance().Remove({p.GetIpAddress(),p.GetListenPortHost(),p.GetNodeIndentifier()});
 
     ++counter;
   }
 
-  LOG_GENERAL(INFO, "Num PoWs after injection = " << sortedPoWSolns.size());
+  LOG_GENERAL(INFO, "### Num PoWs after injection = " << sortedPoWSolns.size());
 }
 
 bool DirectoryService::VerifyPoWWinner(
@@ -1439,7 +1440,7 @@ bool DirectoryService::ProcessShardingStructure(
 void DirectoryService::SaveDSPerformanceCore(
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
         coinbaseRewardees,
-    std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
+    std::map<PubKey, uint32_t>& dsMemberPerformance, const DequeOfNode& dsComm,
     uint64_t currentEpochNum, unsigned int numOfFinalBlock,
     int finalblockRewardID) {
   LOG_MARKER();
@@ -1510,7 +1511,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     unsigned int numOfProposedDSMembers,
     std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
     unsigned int numOfFinalBlock, double performanceThreshold,
-    unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+    unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
     const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
 
@@ -1537,7 +1538,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
       INFO, "threshold = " << threshold << " (" << performanceThreshold << ")");
   unsigned int numByzantine = 0;
   unsigned int index = 0;
-  for (auto it = dsComm.begin(); it != dsComm.end(); ++it) {
+  for (auto it = dsComm.cbegin(); it != dsComm.cend(); ++it) {
     // Do not evaluate guard nodes.
     if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(it->first)) {
       continue;

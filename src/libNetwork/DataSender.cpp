@@ -18,7 +18,8 @@
 #include "DataSender.h"
 
 #include "libNetwork/Blacklist.h"
-#include "libNetwork/P2PComm.h"
+// XXX #include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
@@ -36,7 +37,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
 
   vector<Peer> allLookupNodes;
 
-  for (const auto& node : lookups) {
+  for (auto& node : lookups) {
     string url = node.second.GetHostname();
     auto resolved_ip = node.second.GetIpAddress();  // existing one
     if (!url.empty()) {
@@ -49,15 +50,15 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
       }
     }
 
-    Blacklist::GetInstance().Whitelist(
-        resolved_ip);  // exclude this lookup ip from blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost());
+    Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()});  // exclude this lookup ip from blacklisting
+    Peer tmp(resolved_ip, node.second.GetListenPortHost(),node.second.GetNodeIndentifier());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);
   }
 
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  // XXX P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  zil::p2p::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
 void SendDataToShardNodesDefault(
@@ -74,9 +75,10 @@ void SendDataToShardNodesDefault(
 
   for (const auto& receivers : sharded_receivers) {
     if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
-      P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
+      // XXX P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
+      zil::p2p::GetInstance().SendRumorToForeignPeers(receivers, message);
     } else {
-      P2PComm::GetInstance().SendBroadcastMessage(receivers, message);
+      zil::p2p::GetInstance().SendBroadcastMessage(receivers, message);
     }
   }
 }

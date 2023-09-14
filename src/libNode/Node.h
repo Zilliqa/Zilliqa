@@ -419,6 +419,8 @@ class Node : public Executable {
   void UpdateGovProposalRemainingVoteInfo();
   bool CheckIfGovProposalActive();
 
+  void SendTxnMemPoolToNextLayer();
+
  public:
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
@@ -590,7 +592,7 @@ class Node : public Executable {
   bool DownloadPersistenceFromS3();
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType, bool &allowRecoverAllSync,
+  bool StartRetrieveHistory(const SyncType syncType, bool& allowRecoverAllSync,
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(const bool fromValidateDBBinary = false);

@@ -19,9 +19,9 @@
 #include <chrono>
 #include <iostream>
 #include <vector>
-
+#include <boost/asio/signal_set.hpp>
 #include "libMetrics/Tracing.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/DetachedFunction.h"
 
 using namespace std;
@@ -274,8 +274,18 @@ int main(int argc, const char* argv[]) {
   }
 
   auto func = []() mutable -> void {
-    P2PComm::GetInstance().StartMessagePump(process_message);
-    P2PComm::GetInstance().EnableListener(33133, false);
+    boost::asio::io_context ctx(1);
+    boost::asio::signal_set sig(ctx, SIGINT, SIGTERM);
+    sig.async_wait([&](const boost::system::error_code&, int) { ctx.stop(); });
+
+    auto dispatcher = [](std::shared_ptr<zil::p2p::Message> message) {
+      process_message(std::move(message));
+    };
+
+    zil::p2p::GetInstance().StartServer(ctx, 33133, 0,
+                                        std::move(dispatcher));
+
+    ctx.run();
   };
 
   DetachedFunction(1, func);
@@ -287,21 +297,21 @@ int main(int argc, const char* argv[]) {
   Peer peer = {ip_addr.s_addr, 33133};
   zbytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
-  P2PComm::GetInstance().SendMessage(peer, message1,
-                                     zil::p2p::START_BYTE_NORMAL, false);
+  zil::p2p::GetInstance().SendMessage(peer, message1,
+                                      zil::p2p::START_BYTE_NORMAL, false);
 
   vector<Peer> peers = {peer, peer, peer};
   zbytes message2 = {'W', 'o', 'r', 'l', 'd', '\0'};  // Send World 3x
 
-  P2PComm::GetInstance().SendMessage(peers, message2,
-                                     zil::p2p::START_BYTE_NORMAL, false);
+  zil::p2p::GetInstance().SendMessage(peers, message2,
+                                      zil::p2p::START_BYTE_NORMAL, false);
 
   zbytes longMsg(1024 * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
-  P2PComm::GetInstance().SendMessage(peer, longMsg, zil::p2p::START_BYTE_NORMAL,
-                                     false);
+  zil::p2p::GetInstance().SendMessage(peer, longMsg,
+                                      zil::p2p::START_BYTE_NORMAL, false);
 
   if (argc > 1 && std::string("--long") == argv[1]) {
     TestRemoveBroadcast();
