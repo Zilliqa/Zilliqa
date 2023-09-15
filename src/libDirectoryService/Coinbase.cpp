@@ -52,28 +52,17 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
     }
   }
 
-  if (shard.size() != b1.size()) {
-    LOG_GENERAL(WARNING, "B1 and shard members pub keys size do not match "
-                             << b1.size() << "  " << shard.size());
-    return false;
-  }
-  if (shard.size() != b2.size()) {
-    LOG_GENERAL(WARNING, "B2 and shard members pub keys size do not match "
-                             << b2.size() << "  " << shard.size());
-    return false;
-  }
-
   unsigned int i = 0;
 
   for (const auto& kv : shard) {
     const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(kv);
-    if (b1.at(i)) {
+    if (i < b1.size() && b1.at(i)) {
       m_coinbaseRewardees[epochNum][shard_id].push_back(pubKey);
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
       }
     }
-    if (b2.at(i)) {
+    if (i < b2.size() && b2.at(i)) {
       m_coinbaseRewardees[epochNum][shard_id].push_back(pubKey);
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
@@ -129,7 +118,7 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
     lock(m_mutexCoinbaseRewardees, m_mutexMapNodeReputation);
     lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);
     lock_guard<mutex> g2(m_mutexMapNodeReputation, adopt_lock);
-    return SaveCoinbaseCore(b1, b2, m_shards.at(shard_id), shard_id, epochNum);
+    return SaveCoinbaseCore(b1, b2, m_shards, shard_id, epochNum);
   }
 }
 
@@ -212,10 +201,7 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Total base reward: " << base_reward);
 
   uint128_t base_reward_each = 0;
-  uint128_t node_count = m_mediator.m_DSCommittee->size();
-  for (const auto& shard : m_shards) {
-    node_count += shard.size();
-  }
+  uint128_t node_count = m_mediator.m_DSCommittee->size() + m_shards.size();
   LOG_GENERAL(INFO, "Total num of node: " << node_count);
   if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
     LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
@@ -302,26 +288,24 @@ void DirectoryService::InitCoinbase() {
 
   // Shard nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to shard nodes...");
-  for (const auto& shard : m_shards) {
-    for (const auto& node : shard) {
-      const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
-      if (GUARD_MODE) {
-        auto& isGuard = pubKeyAndIsGuard[pk];
-        if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
-          isGuard = true;
-          continue;
-        }
-        isGuard = false;
+  for (const auto& node : m_shards) {
+    const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
+    if (GUARD_MODE) {
+      auto& isGuard = pubKeyAndIsGuard[pk];
+      if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+        isGuard = true;
+        continue;
       }
-      Address addr = Account::GetAddressFromPublicKey(pk);
-      nonGuard.emplace_back(addr);
-
-      if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
-                                                          base_reward_each)) {
-        LOG_GENERAL(WARNING, "Could not reward base reward  " << addr);
-      }
-      // No need to log as shard node won't call InitCoinbase
+      isGuard = false;
     }
+    Address addr = Account::GetAddressFromPublicKey(pk);
+    nonGuard.emplace_back(addr);
+
+    if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
+                                                        base_reward_each)) {
+      LOG_GENERAL(WARNING, "Could not reward base reward  " << addr);
+    }
+    // No need to log as shard node won't call InitCoinbase
   }
 
   // Reward based on cosigs

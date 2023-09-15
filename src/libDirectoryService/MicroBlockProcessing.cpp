@@ -36,8 +36,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
-                                                   uint32_t shardId) {
+bool DirectoryService::VerifyMicroBlockCoSignature(
+    const MicroBlock& microBlock) {
   LOG_MARKER();
 
   const vector<bool>& B2 = microBlock.GetB2();
@@ -45,42 +45,19 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
   unsigned int index = 0;
   unsigned int count = 0;
 
-  if (shardId == m_shards.size()) {
-    if (m_mediator.m_DSCommittee->size() != B2.size()) {
-      LOG_GENERAL(WARNING, "Mismatch: Shard(DS) size = "
-                               << m_mediator.m_DSCommittee->size()
-                               << ", co-sig bitmap size = " << B2.size());
-      return false;
-    }
-
-    for (const auto& ds : *m_mediator.m_DSCommittee) {
-      if (B2.at(index)) {
-        keys.emplace_back(ds.first);
-        count++;
-      }
-      index++;
-    }
-  } else if (shardId < m_shards.size()) {
-    const auto& shard = m_shards.at(shardId);
-
-    if (shard.size() != B2.size()) {
-      LOG_GENERAL(WARNING, "Mismatch: Shard size = "
-                               << shard.size()
-                               << ", co-sig bitmap size = " << B2.size());
-      return false;
-    }
-
-    // Generate the aggregated key
-    for (const auto& kv : shard) {
-      if (B2.at(index)) {
-        keys.emplace_back(std::get<SHARD_NODE_PUBKEY>(kv));
-        count++;
-      }
-      index++;
-    }
-  } else {
-    LOG_GENERAL(WARNING, "Invalid shardId " << shardId);
+  if (m_mediator.m_DSCommittee->size() != B2.size()) {
+    LOG_GENERAL(WARNING, "Mismatch: Shard(DS) size = "
+                             << m_mediator.m_DSCommittee->size()
+                             << ", co-sig bitmap size = " << B2.size());
     return false;
+  }
+
+  for (const auto& ds : *m_mediator.m_DSCommittee) {
+    if (B2.at(index)) {
+      keys.emplace_back(ds.first);
+      count++;
+    }
+    index++;
   }
 
   if (count != ConsensusCommon::NumForConsensus(B2.size())) {
@@ -253,23 +230,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "shard_id " << shardId);
 
-  const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
-
-  // Check public key - shard ID mapping
-  const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
-  if (minerEntry == m_publicKeyToshardIdMap.end()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Cannot find the miner key: " << pubKey);
-    return false;
-  }
-  if (minerEntry->second != shardId) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Microblock shard ID mismatch");
-    return false;
-  }
-
   CommitteeHash committeeHash;
-  if (!Messenger::GetShardHash(m_shards.at(shardId), committeeHash)) {
+  if (!Messenger::GetShardHash(m_shards, committeeHash)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardHash failed.");
     return false;
@@ -284,7 +246,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   // Verify the co-signature
-  if (!VerifyMicroBlockCoSignature(microBlock, shardId)) {
+  if (!VerifyMicroBlockCoSignature(microBlock)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Microblock co-sig verification failed");
     return false;
@@ -565,38 +527,23 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       const PubKey& pubKey = microBlocks.at(i).GetHeader().GetMinerPubKey();
 
       // Check public key - shard ID mapping
-      if (shardId == m_shards.size()) {
-        // DS shard
-        bool found = false;
-        for (const auto& ds : *m_mediator.m_DSCommittee) {
-          if (ds.first == pubKey) {
-            found = true;
-            break;
-          }
+      // DS shard
+      bool found = false;
+      for (const auto& ds : *m_mediator.m_DSCommittee) {
+        if (ds.first == pubKey) {
+          found = true;
+          break;
         }
-        if (!found) {
-          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                    "Cannot find the miner key in DS committee: " << pubKey);
-          continue;
-        }
-      } else {
-        // normal shard
-        const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
-        if (minerEntry == m_publicKeyToshardIdMap.end()) {
-          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                    "Cannot find the miner key in normal shard: " << pubKey);
-          continue;
-        }
-        if (minerEntry->second != shardId) {
-          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                    "Microblock shard ID mismatch");
-          continue;
-        }
+      }
+      if (!found) {
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                  "Cannot find the miner key in DS committee: " << pubKey);
+        continue;
       }
 
       // Verify the co-signature
       if (shardId != m_mediator.m_node->m_myshardId) {
-        if (!VerifyMicroBlockCoSignature(microBlocks[i], shardId)) {
+        if (!VerifyMicroBlockCoSignature(microBlocks[i])) {
           LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Microblock co-sig verification failed");
           continue;

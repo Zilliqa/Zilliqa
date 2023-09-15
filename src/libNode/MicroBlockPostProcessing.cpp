@@ -79,8 +79,10 @@ class MicroBlockPostProcessingVariables {
       temp->SetCallback([this](auto&& result) {
         result.Set(consensusErrorCode, {{"counter", "ConsensusErrorCode"}});
         result.Set(errorsMissingTx, {{"counter", "ErrorsMissingTx"}});
-        result.Set(microblockConsensusMessages, {{"counter", "MicroblockConsensusMessages"}});
-        result.Set(microblockConsensusFailedBadly, {{"counter", "MicroblockConsensusFailedBadly"}});
+        result.Set(microblockConsensusMessages,
+                   {{"counter", "MicroblockConsensusMessages"}});
+        result.Set(microblockConsensusFailedBadly,
+                   {{"counter", "MicroblockConsensusFailedBadly"}});
       });
     }
   }
@@ -152,8 +154,9 @@ bool Node::ProcessMicroBlockConsensus(
     AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                    from, senderPubKey);
 
-    LOG_GENERAL(WARNING, m_mediator.m_currentEpochNum <<
-              "Process micro block arrived early, saved to buffer");
+    LOG_GENERAL(WARNING,
+                m_mediator.m_currentEpochNum
+                    << "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
       LOG_GENERAL(WARNING, "Consensus ID in message ("
@@ -308,15 +311,13 @@ bool Node::ProcessMicroBlockConsensusCore(
     }
 
     // shard
-    DequeOfShard ds_shards;
-    Shard ds_shard;
+    DequeOfShardMembers ds_shard;
     {
       lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
       for (const auto& entry : *m_mediator.m_DSCommittee) {
         ds_shard.emplace_back(entry.first, entry.second, 0);
       }
     }
-    ds_shards.emplace_back(ds_shard);
 
     auto composeMicroBlockMessageForSender =
         [this](zbytes& microblock_message) -> bool {
@@ -330,7 +331,7 @@ bool Node::ProcessMicroBlockConsensusCore(
 
     auto sendMbnFowardTxnToShardNodes =
         []([[gnu::unused]] const zbytes& message,
-           [[gnu::unused]] const DequeOfShard& shards,
+           [[gnu::unused]] const DequeOfShardMembers& shards,
            [[gnu::unused]] const unsigned int& my_shards_lo,
            [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
@@ -346,7 +347,7 @@ bool Node::ProcessMicroBlockConsensusCore(
       lock_guard<mutex> g(m_mutexShardMember);
       // To DS -> ProcessMicroBlock
       DataSender::GetInstance().SendDataToOthers(
-          *m_microblock, *m_myShardMembers, ds_shards, t_blocks,
+          *m_microblock, *m_myShardMembers, ds_shard, t_blocks,
           m_mediator.m_lookup->GetLookupNodes(),
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
           m_consensusMyID, composeMicroBlockMessageForSender, false, nullptr);
@@ -392,7 +393,8 @@ bool Node::ProcessMicroBlockConsensusCore(
                   << " error message: "
                   << (m_consensusObject->GetConsensusErrorMsg()));
 
-    zil::local::variables.SetConsensusErrorCode(m_consensusObject->GetConsensusErrorCode());
+    zil::local::variables.SetConsensusErrorCode(
+        m_consensusObject->GetConsensusErrorCode());
 
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::MISSING_TXN) {

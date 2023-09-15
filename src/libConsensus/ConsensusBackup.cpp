@@ -569,21 +569,27 @@ bool ConsensusBackup::ProcessMessage(const zbytes& message, unsigned int offset,
 
   switch (message.at(offset)) {
     case ConsensusMessageType::ANNOUNCE:
+      LOG_GENERAL(INFO, "BZ Processing ANNOUNCE message at backup");
       result = ProcessMessageAnnounce(message, offset + 1);
       break;
     case ConsensusMessageType::CONSENSUSFAILURE:
+      LOG_GENERAL(INFO, "BZ Processing CONSENSUSFAILURE message at backup");
       result = ProcessMessageConsensusFailure(message, offset + 1);
       break;
     case ConsensusMessageType::CHALLENGE:
+      LOG_GENERAL(INFO, "BZ Processing CHALLENGE message at backup");
       result = ProcessMessageChallenge(message, offset + 1);
       break;
     case ConsensusMessageType::COLLECTIVESIG:
+      LOG_GENERAL(INFO, "BZ Processing COLLECTIVESIG message at backup");
       result = ProcessMessageCollectiveSig(message, offset + 1);
       break;
     case ConsensusMessageType::FINALCHALLENGE:
+      LOG_GENERAL(INFO, "BZ Processing FINALCHALLENGE message at backup");
       result = ProcessMessageFinalChallenge(message, offset + 1);
       break;
     case ConsensusMessageType::FINALCOLLECTIVESIG:
+      LOG_GENERAL(INFO, "BZ Processing FINALCOLLECTIVESIG message at backup");
       result = ProcessMessageFinalCollectiveSig(message, offset + 1);
       break;
     default:

@@ -42,7 +42,7 @@ typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
 
 struct DiagnosticDataNodes {
-  DequeOfShard shards;
+  DequeOfShardMembers shards;
   DequeOfNode dsCommittee;
 };
 
@@ -212,11 +212,17 @@ class BlockStorage : boost::noncopyable {
   bool GetOtterTrace(const dev::h256& key, std::string& trace);
 
   /// Retrieves the mappings of address touched to TX.
-  bool PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum);
-  std::vector<std::string> GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore);
+  bool PutOtterTxAddressMapping(const dev::h256& txId,
+                                const std::set<std::string>& addresses,
+                                const uint64_t& blocknum);
+  std::vector<std::string> GetOtterTxAddressMapping(std::string address,
+                                                    unsigned long blockNumber,
+                                                    unsigned long pageSize,
+                                                    bool before, bool& wasMore);
 
   /// Retrieves the mappings of address touched to TX.
-  bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address);
+  bool PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce,
+                                  std::string address);
   std::string GetOtterAddressNonceLookup(std::string address, uint64_t nonce);
 
   /// Deletes the requested Tx block
@@ -278,10 +284,11 @@ class BlockStorage : boost::noncopyable {
                       uint16_t& consensusLeaderID);
 
   /// Save shard structure
-  bool PutShardStructure(const DequeOfShard& shards, const uint32_t myshardId);
+  bool PutShardStructure(const DequeOfShardMembers& shards,
+                         const uint32_t myshardId);
 
   /// Retrieve shard structure
-  bool GetShardStructure(DequeOfShard& shards);
+  bool GetShardStructure(DequeOfShardMembers& shards);
 
   /// Save state delta
   bool PutStateDelta(const uint64_t& finalBlockNum, const zbytes& stateDelta);
@@ -291,7 +298,7 @@ class BlockStorage : boost::noncopyable {
 
   /// Save data for diagnostic / monitoring purposes (nodes in network)
   bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
-                              const DequeOfShard& shards,
+                              const DequeOfShardMembers& shards,
                               const DequeOfNode& dsCommittee);
 
   /// Save data for diagnostic / monitoring purposes (coinbase rewards)
@@ -299,7 +306,8 @@ class BlockStorage : boost::noncopyable {
                                  const DiagnosticDataCoinbase& entry);
 
   /// Retrieve diagnostic data for specific block number (nodes in network)
-  bool GetDiagnosticDataNodes(const uint64_t& dsBlockNum, DequeOfShard& shards,
+  bool GetDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                              DequeOfShardMembers& shards,
                               DequeOfNode& dsCommittee);
 
   /// Retrieve diagnostic data for specific block number (coinbase rewards)

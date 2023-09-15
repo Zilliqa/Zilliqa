@@ -28,7 +28,7 @@
 
 using namespace std;
 
-void PrintShard(const DequeOfShard& shards) {
+void PrintShard(const DequeOfShardMembers& shards) {
   for (const auto& shard : shards) {
     LOG_GENERAL(INFO, "Shard:")
     for (const auto& node : shard) {
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(testDiagnosticDataNodes) {
       BlockStorage::DBTYPE::DIAGNOSTIC_NODES);
 
   vector<uint64_t> histDSBlockNum;
-  vector<DequeOfShard> histShards;
+  vector<DequeOfShardMembers> histShards;
   vector<DequeOfNode> histDSCommittee;
 
   const unsigned int NUM_ENTRIES = 15;
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(testDiagnosticDataNodes) {
 
   // Look-up by block number
   for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
-    DequeOfShard shardsDeserialized;
+    DequeOfShardMembers shardsDeserialized;
     DequeOfNode dsCommitteeDeserialized;
 
     BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodes(
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(testDiagnosticDataNodes) {
   // Test deletion of entries
   for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
     // First, check the entry is still there
-    DequeOfShard shardsDeserialized;
+    DequeOfShardMembers shardsDeserialized;
     DequeOfNode dsCommitteeDeserialized;
 
     BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodes(

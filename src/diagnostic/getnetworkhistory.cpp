@@ -35,25 +35,22 @@ std::string getCsvHeader(uint64_t start, uint64_t stop) {
 }
 
 void processShards(
-    const DequeOfShard& shards,
+    const DequeOfShardMembers& shards,
     std::map<std::string, std::map<uint64_t, std::string>>& results,
     uint64_t dsEpochNo) {
-  uint64_t shardIndex = 0;
+  uint64_t peerIndex = 0;
 
-  for (auto shardItr = shards.begin(); shardItr != shards.end();
-       ++shardItr, ++shardIndex) {
-    for (size_t peerIndex = 0; peerIndex < shardItr->size(); ++peerIndex) {
-      // get the peer and convert to ip.
-      const Peer& peer = std::get<1>((*shardItr)[peerIndex]);
-      std::string ip = peer.GetPrintableIPAddress();
+  for (const auto& node : shards) {
+    // get the peer and convert to ip.
+    const Peer& peer = std::get<1>(node);
+    std::string ip = peer.GetPrintableIPAddress();
 
-      if (results.find(ip) == results.end()) {
-        results[ip] = std::map<uint64_t, std::string>();
-      }
-
-      results[ip][dsEpochNo] = "Shard " + std::to_string(shardIndex) +
-                               " Index " + std::to_string(peerIndex);
+    if (results.find(ip) == results.end()) {
+      results[ip] = std::map<uint64_t, std::string>();
     }
+    peerIndex++;
+    results[ip][dsEpochNo] =
+        "Shard " + std::to_string(1) + " Index " + std::to_string(peerIndex);
   }
 }
 

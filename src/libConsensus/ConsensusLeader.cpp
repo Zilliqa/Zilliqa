@@ -1007,7 +1007,13 @@ ConsensusLeader::ConsensusLeader(
   m_state = INITIAL;
   zil::local::variables.SetConsensusState(int(m_state));
   // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
+  LOG_GENERAL(
+      WARNING,
+      "BZ Determining number of consensus responses for committee size: "
+          << committee.size());
   m_numForConsensus = ConsensusCommon::NumForConsensus(committee.size());
+  LOG_GENERAL(WARNING,
+              "BZ Number of consensus responses : " << m_numForConsensus);
   m_numForConsensusFailure = committee.size() - m_numForConsensus;
 
   m_nodeCommitFailureHandlerFunc = std::move(nodeCommitFailureHandlerFunc);
@@ -1156,18 +1162,23 @@ bool ConsensusLeader::ProcessMessage(const zbytes& message, unsigned int offset,
 
   switch (message.at(offset)) {
     case ConsensusMessageType::COMMIT:
+      LOG_GENERAL(INFO, "BZ Processing COMMIT message at leader");
       result = ProcessMessageCommit(message, offset + 1, from);
       break;
     case ConsensusMessageType::COMMITFAILURE:
+      LOG_GENERAL(INFO, "BZ Processing COMMITFAILURE message at leader");
       result = ProcessMessageCommitFailure(message, offset + 1, from);
       break;
     case ConsensusMessageType::RESPONSE:
+      LOG_GENERAL(INFO, "BZ Processing RESPONSE message at leader");
       result = ProcessMessageResponse(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALCOMMIT:
+      LOG_GENERAL(INFO, "BZ Processing FINALCOMMIT message at leader");
       result = ProcessMessageFinalCommit(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALRESPONSE:
+      LOG_GENERAL(INFO, "BZ Processing FINALRESPONSE message at leader");
       result = ProcessMessageFinalResponse(message, offset + 1, from);
       break;
     default:

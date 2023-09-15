@@ -44,6 +44,8 @@ class Retriever;
 typedef std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
     UnavailableMicroBlockList;
 
+constexpr uint8_t DEFAULT_SHARD_ID = 1;
+
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable {
   enum Action {
@@ -474,7 +476,7 @@ class Node : public Executable {
   UnavailableMicroBlockList m_unavailableMicroBlocks;
 
   /// Sharding variables
-  std::atomic<uint32_t> m_myshardId{};
+  const uint32_t m_myshardId = DEFAULT_SHARD_ID;
   std::atomic<bool> m_isPrimary{};
   std::shared_ptr<ConsensusCommon> m_consensusObject;
 
@@ -675,9 +677,6 @@ class Node : public Executable {
                              const uint32_t& lookupId,
                              const uint128_t& gasPrice);
 
-  /// Used by oldest DS node to configure shard ID as a new shard node
-  void SetMyshardId(uint32_t shardId);
-
   /// Used by oldest DS node to finish setup as a new shard node
   /// And also used by shard node rejoining back
   void StartFirstTxEpoch(bool fbWaitState = false);
@@ -738,7 +737,7 @@ class Node : public Executable {
                                                const DequeOfNode& shardMembers);
   uint32_t CalculateShardLeaderFromShard(uint16_t lastBlockHash,
                                          uint32_t sizeOfShard,
-                                         const Shard& shardMembers,
+                                         const DequeOfShardMembers& members,
                                          PairOfNode& shardLeader);
 
   static bool GetDSLeader(const BlockLink& lastBlockLink,

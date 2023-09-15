@@ -1608,11 +1608,7 @@ Json::Value LookupServer::GetShardingStructure() {
 
     auto shards = m_mediator.m_lookup->GetShardPeers();
 
-    unsigned int num_shards = shards.size();
-
-    for (unsigned int i = 0; i < num_shards; i++) {
-      _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
-    }
+    _json["NumPeers"].append(static_cast<unsigned int>(shards.size()));
 
     return _json;
 
@@ -1950,22 +1946,16 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
-  const auto shards = m_mediator.m_lookup->GetShardPeers();
-  const auto& num_shards = shards.size();
-  if (num_shards <= shardID) {
+  const auto shardMembers = m_mediator.m_lookup->GetShardPeers();
+  if (shardID > 1) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
   }
   Json::Value _json;
   try {
-    const auto& shard = shards.at(shardID);
-    if (shard.empty()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
-    }
-
     auto random_vec =
-        GenUniqueIndices(shard.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
+        GenUniqueIndices(shardMembers.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
     for (auto const& x : random_vec) {
-      const auto& node = shard.at(x);
+      const auto& node = shardMembers.at(x);
       _json.append(JSONConversion::convertNode(node));
     }
     return _json;

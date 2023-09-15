@@ -468,7 +468,6 @@ bool DirectoryService::CleanVariables() {
 
   LOG_EXTRA("Shards cleared");
   m_shards.clear();
-  m_publicKeyToshardIdMap.clear();
   m_allPoWConns.clear();
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
@@ -714,8 +713,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
       m_mediator.m_node->LoadShardingStructure(true);
       lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
       m_mediator.m_ds->ProcessShardingStructure(
-          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-          m_mediator.m_ds->m_mapNodeReputation);
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_mapNodeReputation);
     }
   }
   // Not vacaous
@@ -846,16 +844,12 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
   }
 }
 
-void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
-  for (const auto& shard : m_shards) {
-    Shard t_shard;
-    for (const auto& node : shard) {
-      if (Guard::GetInstance().IsNodeInShardGuardList(
-              std::get<SHARD_NODE_PUBKEY>(node))) {
-        t_shard.emplace_back(node);
-      }
+void DirectoryService::ReloadGuardedShards(DequeOfShardMembers& shard) {
+  for (const auto& node : m_shards) {
+    if (Guard::GetInstance().IsNodeInShardGuardList(
+            std::get<SHARD_NODE_PUBKEY>(node))) {
+      shard.emplace_back(node);
     }
-    shards.emplace_back(t_shard);
   }
 }
 
@@ -863,13 +857,11 @@ bool DirectoryService::UpdateShardNodeNetworkInfo(
     const Peer& shardNodeNetworkInfo, const PubKey& pubKey) {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexShards);
-  for (auto& shard : m_shards) {
-    for (auto& node : shard) {
-      if (std::get<SHARD_NODE_PUBKEY>(node) == pubKey) {
-        std::get<SHARD_NODE_PEER>(node) = shardNodeNetworkInfo;
-        LOG_GENERAL(INFO, "updated network info successfully!");
-        return true;
-      }
+  for (auto& node : m_shards) {
+    if (std::get<SHARD_NODE_PUBKEY>(node) == pubKey) {
+      std::get<SHARD_NODE_PEER>(node) = shardNodeNetworkInfo;
+      LOG_GENERAL(INFO, "updated network info successfully!");
+      return true;
     }
   }
   return false;
@@ -1356,8 +1348,8 @@ void DirectoryService::GetEntireNetworkPeerInfo(VectorOfNode& peers,
   }
 
   // Get the pubkeys for all other shard members aswell
-  for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
-    pubKeys.emplace_back(i.first);
+  for (const auto& i : m_mediator.m_ds->m_shards) {
+    pubKeys.emplace_back(std::get<SHARD_NODE_PUBKEY>(i));
   }
 
   // Get the pubKeys for lookup nodes
@@ -1381,14 +1373,11 @@ bool DirectoryService::CheckIfDSNode(const PubKey& submitterPubKey) {
 bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
   lock_guard<mutex> g(m_mutexShards);
 
-  for (const auto& shard : m_shards) {
-    for (const auto& node : shard) {
-      if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
-        return true;
-      }
+  for (const auto& node : m_shards) {
+    if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
+      return true;
     }
   }
-
   return false;
 }
 

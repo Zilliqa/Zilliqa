@@ -231,9 +231,13 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
     return true;
   }
 
+  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlockWhenDSPrimary, shard size: "
+                           << std::size(m_shards));
+
   // No other shards exists, then allow additional time for txns distribution.
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
+      m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
+      !m_mediator.GetIsVacuousEpoch()) {
     std::this_thread::sleep_for(
         chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
   }
@@ -245,6 +249,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating final block");
 
+  LOG_GENERAL(WARNING, "BZ Creating now prepreMicroblock");
   if (!m_mediator.m_node->ComposePrePrepMicroBlock(m_microBlockGasLimit)) {
     LOG_GENERAL(WARNING, "DS ComposePrePrepMicroBlock Failed");
     m_mediator.m_node->m_prePrepMicroblock = nullptr;
@@ -263,8 +268,18 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 
   // Remove the preprep microblock from microblocks list now
   if (m_mediator.m_node->m_prePrepMicroblock) {
+    LOG_GENERAL(WARNING, "BZ Removing prepreMicroblock from microblock lists");
     m_microBlocks[m_mediator.m_currentEpochNum].erase(
         *(m_mediator.m_node->m_prePrepMicroblock));
+  }
+
+  LOG_GENERAL(WARNING,
+              "BZ microblocsk[m_currentEpoch] size is: "
+                  << m_microBlocks[m_mediator.m_currentEpochNum].size());
+  const auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
+  for (auto& microBlock : microBlocks) {
+    LOG_GENERAL(WARNING,
+                "BZ microblock hash: " << microBlock.GetBlockHash().hex());
   }
 
   m_mediator.m_node->m_prePrepRunning = false;
@@ -353,6 +368,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   cl->StartConsensus(preprepFBAnnouncementGeneratorFunc,
                      newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
 
+  LOG_GENERAL(WARNING, "BZ Running Final block consensus from leader");
   SetState(FINALBLOCK_CONSENSUS);
 
   if (m_mediator.ToProcessTransaction()) {
@@ -486,7 +502,7 @@ bool DirectoryService::CheckMicroBlocks(zbytes& errorMsg, bool fromShards,
   }
 
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "BZ CheckMicroBlocks, shard_size: " << m_shards.size());
   {
     lock_guard<mutex> g(m_mutexMicroBlocks);
 
@@ -495,16 +511,23 @@ bool DirectoryService::CheckMicroBlocks(zbytes& errorMsg, bool fromShards,
     // If its slow on benchmarking, may be first populate an unordered_set and
     // then std::find
     for (const auto& info : m_finalBlock->GetMicroBlockInfos()) {
-      if (info.m_shardId == m_shards.size()) {
+      if (info.m_shardId == m_mediator.m_node->GetShardId()) {
         continue;
       }
-
       BlockHash hash = info.m_microBlockHash;
       LOG_GENERAL(INFO, "MicroBlock hash = " << hash);
       bool found = false;
+      LOG_GENERAL(WARNING,
+                  "BZ microblocsk[m_currentEpoch] size is: "
+                      << m_microBlocks[m_mediator.m_currentEpochNum].size());
       auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
       for (auto& microBlock : microBlocks) {
+        LOG_GENERAL(WARNING, "BZ Checking microblock hash: "
+                                 << microBlock.GetBlockHash().hex());
         if (microBlock.GetBlockHash() == hash) {
+          LOG_GENERAL(WARNING,
+                      "BZ Found announced microblock and in the blocks in my "
+                      "current epoch");
           found = true;
           break;
         }
@@ -679,19 +702,19 @@ bool DirectoryService::OnNodeFinalConsensusError(const zbytes& errorMsg,
 
   switch (type) {
     case FINALCONSENSUSERRORTYPE::CHECKMICROBLOCK: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)CHECKMICROBLOCK);
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSMBMISSINGTXN: {
-      LOG_GENERAL(INFO, "ErrorType: " << DSMBMISSINGTXN);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)DSMBMISSINGTXN);
       return m_mediator.m_node->OnNodeMissingTxns(errorMsg, offset, from);
     }
     case FINALCONSENSUSERRORTYPE::CHECKFINALBLOCK: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKFINALBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)CHECKFINALBLOCK);
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSFBMISSINGMB: {
-      LOG_GENERAL(INFO, "ErrorType: " << DSFBMISSINGMB);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)DSFBMISSINGMB);
       return OnNodeMissingMicroBlocks(errorMsg, offset, from);
     }
     default:
@@ -1111,6 +1134,10 @@ bool DirectoryService::PrePrepFinalBlockValidator(
 
   LOG_MARKER();
 
+  LOG_GENERAL(WARNING,
+              "BZ DirectoryService::PrePrepFinalBlockValidator I'll do some "
+              "basic checks");
+
   m_finalBlock.reset(new TxBlock);
 
   m_mediator.m_node->m_microblock.reset(new MicroBlock());
@@ -1124,8 +1151,13 @@ bool DirectoryService::PrePrepFinalBlockValidator(
     m_mediator.m_node->m_microblock = nullptr;
     return false;
   }
+  LOG_GENERAL(WARNING,
+              "BZ DirectoryService::PrePrepFinalBlockValidator "
+              "m_mediator.m_node->m_microblock is: "
+                  << m_mediator.m_node->m_microblock->GetBlockHash().hex());
 
-  if (!CheckMicroBlocks(errorMsg, false,
+  // the below function is shouldn't be called here anymore in desharded conf
+  /* if (!CheckMicroBlocks(errorMsg, false,
                         true)) {  // Firstly check whether the leader
                                   // has any mb that I don't have
     m_mediator.m_node->m_microblock = nullptr;
@@ -1140,7 +1172,7 @@ bool DirectoryService::PrePrepFinalBlockValidator(
     }
 
     return false;
-  }
+  } */
 
   errorMsg.clear();
   // check if the DS microblock is valid
@@ -1184,6 +1216,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return true;
   }
 
+  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlockWhenDSBackup, shard size: "
+                           << std::size(m_shards));
+
 #ifdef VC_TEST_VC_PRECHECK_2
   uint64_t dsCurBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -1202,7 +1237,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 
   // No other shards exists, then allow additional time for txns distribution.
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
+      m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
+      !m_mediator.GetIsVacuousEpoch()) {
+    LOG_GENERAL(WARNING, "BZ Giving " << EXTRA_TX_DISTRIBUTE_TIME_IN_MS
+                                      << " for txns to come to shard");
     std::this_thread::sleep_for(
         chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
   }
@@ -1250,6 +1288,13 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   };
 
   m_mediator.m_node->m_prePrepRunning = true;
+
+  LOG_GENERAL(WARNING, "BZ Running Final block consensus from backup");
+  LOG_GENERAL(WARNING,
+              "BZ My microblocks list has size: " << m_microBlocks.size());
+  LOG_GENERAL(WARNING, "BZ My DSScommittee has size: "
+                           << m_mediator.m_DSCommittee->size()
+                           << ", and shard size: " << m_shards.size());
 
   m_consensusObject.reset(new ConsensusBackup(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
@@ -1338,6 +1383,9 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     return;
   }
 
+  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlock, shard size: "
+                           << std::size(m_shards));
+
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
@@ -1375,6 +1423,10 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // function, but rather wait for view change.
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
+      LOG_GENERAL(WARNING,
+                  "BZ Giving "
+                      << DS_ANNOUNCEMENT_DELAY_IN_MS
+                      << " before doing starting Final block consensus");
       this_thread::sleep_for(chrono::milliseconds(DS_ANNOUNCEMENT_DELAY_IN_MS));
       ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
       if (!ConsensusObjCreation) {

@@ -50,8 +50,12 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
       }
     }
 
-    Blacklist::GetInstance().Whitelist({resolved_ip,node.second.GetListenPortHost(),node.second.GetNodeIndentifier()});  // exclude this lookup ip from blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost(),node.second.GetNodeIndentifier());
+    Blacklist::GetInstance().Whitelist(
+        {resolved_ip, node.second.GetListenPortHost(),
+         node.second.GetNodeIndentifier()});  // exclude this lookup ip from
+                                              // blacklisting
+    Peer tmp(resolved_ip, node.second.GetListenPortHost(),
+             node.second.GetNodeIndentifier());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);
@@ -100,7 +104,7 @@ DataSender& DataSender::GetInstance() {
 void DataSender::DetermineShardToSendDataTo(unsigned int& my_cluster_num,
                                             unsigned int& my_shards_lo,
                                             unsigned int& my_shards_hi,
-                                            const DequeOfShard& shards,
+                                            const DequeOfShardMembers& shards,
                                             const DequeOfNode& tmpCommittee,
                                             const uint16_t& indexB2) {
   // Multicast block to my assigned shard's nodes - send BLOCK message
@@ -147,93 +151,37 @@ void DataSender::DetermineShardToSendDataTo(unsigned int& my_cluster_num,
 }
 
 void DataSender::DetermineNodesToSendDataTo(
-    const DequeOfShard& shards,
-    const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-    const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
-    const unsigned int& my_shards_hi, bool forceMulticast,
-    std::deque<VectorOfPeer>& sharded_receivers) {
-  auto p = shards.begin();
-  advance(p, my_shards_lo);
+    const DequeOfShardMembers& shardMembers, const uint16_t& consensusMyId,
+    bool forceMulticast, std::deque<VectorOfPeer>& sharded_receivers) {
+  VectorOfPeer shardReceivers;
 
-  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
-    VectorOfPeer shardReceivers;
-    if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
-      auto blockRecver = blockswcosigRecver.find(i);
-      if (blockRecver != blockswcosigRecver.end()) {
-        // cosigs found, select nodes with cosig
-        VectorOfPeer nodes_cosigned;
-        VectorOfPeer nodes_not_cosigned;
-        for (unsigned int i = 0; i < p->size(); i++) {
-          const auto& kv = p->at(i);
-          if (blockRecver->second.GetB2().at(i)) {
-            nodes_cosigned.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-          } else {
-            nodes_not_cosigned.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-          }
-        }
-
-        unsigned int node_to_send_from_cosigned = 0;
-        unsigned int node_to_send_from_not_cosigned = 0;
-
-        if (nodes_cosigned.size() > NUM_GOSSIP_RECEIVERS) {
-          // pick from index based on consensusMyId
-          node_to_send_from_cosigned =
-              consensusMyId % (nodes_cosigned.size() - NUM_GOSSIP_RECEIVERS);
-        } else {
-          // if nodes_cosigned is not enough to meet NUM_GOSSIP_RECEIVERS, try
-          // to get node from not_cosigned
-          if (nodes_not_cosigned.size() >
-              NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()) {
-            node_to_send_from_cosigned =
-                consensusMyId % (nodes_not_cosigned.size() -
-                                 NUM_GOSSIP_RECEIVERS + nodes_cosigned.size());
-          }
-
-          for (unsigned int i = node_to_send_from_not_cosigned;
-               i < min(nodes_not_cosigned.size(),
-                       node_to_send_from_not_cosigned + NUM_GOSSIP_RECEIVERS -
-                           nodes_cosigned.size());
-               i++) {
-            shardReceivers.emplace_back(nodes_not_cosigned.at(i));
-          }
-        }
-
-        for (unsigned int i = node_to_send_from_cosigned;
-             i < min(node_to_send_from_cosigned + NUM_GOSSIP_RECEIVERS,
-                     (unsigned int)nodes_cosigned.size());
-             i++) {
-          shardReceivers.emplace_back(nodes_cosigned.at(i));
-        }
-      } else {
-        // No cosig found, use default order
-        // pick node from index based on consensusMyId
-        unsigned int node_to_send_from = 0;
-        if (p->size() > NUM_GOSSIP_RECEIVERS) {
-          node_to_send_from =
-              consensusMyId % (p->size() - NUM_GOSSIP_RECEIVERS);
-        }
-
-        for (unsigned int i = node_to_send_from;
-             i < min(node_to_send_from + NUM_GOSSIP_RECEIVERS,
-                     (unsigned int)p->size());
-             i++) {
-          const auto& kv = p->at(i);
-          shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        }
-      }
-    } else {
-      for (const auto& kv : *p) {
-        shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-      }
+  if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
+    // No cosig found, use default order
+    // pick node from index based on consensusMyId
+    unsigned int node_to_send_from = 0;
+    if (shardMembers.size() > NUM_GOSSIP_RECEIVERS) {
+      node_to_send_from =
+          consensusMyId % (shardMembers.size() - NUM_GOSSIP_RECEIVERS);
     }
-    sharded_receivers.emplace_back(shardReceivers);
-    p++;
+
+    for (unsigned int i = node_to_send_from;
+         i < min(node_to_send_from + NUM_GOSSIP_RECEIVERS,
+                 (unsigned int)shardMembers.size());
+         i++) {
+      const auto& kv = shardMembers.at(i);
+      shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+    }
+  } else {
+    for (const auto& kv : shardMembers) {
+      shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+    }
   }
+  sharded_receivers.emplace_back(shardReceivers);
 }
 
 bool DataSender::SendDataToOthers(
     const BlockBase& blockwcosigSender, const DequeOfNode& sendercommittee,
-    const DequeOfShard& shards,
+    const DequeOfShardMembers& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
     const VectorOfNode& lookups, const BlockHash& hashForRandom,
     const uint16_t& consensusMyId,
@@ -316,8 +264,7 @@ bool DataSender::SendDataToOthers(
           sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
         } else {
           std::deque<VectorOfPeer> sharded_receivers;
-          DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId,
-                                     my_shards_lo, my_shards_hi, forceMulticast,
+          DetermineNodesToSendDataTo(shards, consensusMyId, forceMulticast,
                                      sharded_receivers);
           SendDataToShardNodesDefault(message, sharded_receivers,
                                       forceMulticast);

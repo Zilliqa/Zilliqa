@@ -545,12 +545,11 @@ void DirectoryService::ClearReputationOfNodeWithoutPoW() {
 }
 
 void DirectoryService::RemoveReputationOfNodeFailToJoin(
-    const DequeOfShard& shards, std::map<PubKey, uint16_t>& mapNodeReputation) {
+    const DequeOfShardMembers& shardMembers,
+    std::map<PubKey, uint16_t>& mapNodeReputation) {
   std::set<PubKey> allShardNodePubKey;
-  for (const auto& shard : shards) {
-    for (const auto& shardNode : shard) {
-      allShardNodePubKey.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
-    }
+  for (const auto& shardNode : shardMembers) {
+    allShardNodePubKey.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
   }
 
   for (auto iter = mapNodeReputation.begin();

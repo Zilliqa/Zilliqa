@@ -261,7 +261,7 @@ class Lookup : public Executable {
   bool SetDSCommitteInfo(bool replaceMyPeerWithDefault = false);
 
   DequeOfNode GetDSComm();
-  DequeOfShard GetShardPeers();
+  DequeOfShardMembers GetShardPeers();
   VectorOfPeer GetNodePeers();
 
   // Start synchronization with other lookup nodes as a lookup node
@@ -441,7 +441,7 @@ class Lookup : public Executable {
   static bool VerifySenderNode(const DequeOfNode& deqNodes,
                                const uint128_t& ipToVerify);
 
-  static bool VerifySenderNode(const Shard& shard,
+  static bool VerifySenderNode(const DequeOfShardMembers& shard,
                                const PubKey& pubKeyToVerify);
 
   /// Check and fetch unavailable microblocks

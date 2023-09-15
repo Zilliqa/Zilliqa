@@ -199,17 +199,9 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
     return true;
   }
 
-  m_numShards = m_mediator.m_ds->m_shards.size();
+  m_numShards = 1;
 
-  // Check the shard ID against the deserialized structure
-  if (m_myshardId >= m_mediator.m_ds->m_shards.size()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Shard ID " << m_myshardId << " >= num shards "
-                          << m_mediator.m_ds->m_shards.size());
-    return false;
-  }
-
-  const auto& my_shard = m_mediator.m_ds->m_shards.at(m_myshardId);
+  const auto& my_shard = m_mediator.m_ds->m_shards;
 
   // All nodes; first entry is leader
   unsigned int index = 0;
@@ -235,6 +227,13 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
                             << m_myShardMembers->back().second);
 
       index++;
+    }
+
+    LOG_GENERAL(WARNING,
+                "BZ: LoadShardingStructure Setting myShardMembers to: ");
+    for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
+      LOG_GENERAL(WARNING, "BZ: LoadShardingStructure IP: "
+                               << kv.second.GetPrintableIPAddress());
     }
   }
 
@@ -361,8 +360,6 @@ bool Node::ProcessVCDSBlocksMessage(
                       m_mediator.m_ds->GetConsensusMyID();
   LOG_GENERAL(WARNING, "BZ ProcessVCDSBlocksMessage enter, I am leader? : "
                            << (leader ? "true" : "false"));
-  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
-
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -379,7 +376,7 @@ bool Node::ProcessVCDSBlocksMessage(
   uint32_t shardId;
   Peer newleaderIP;
 
-  DequeOfShard t_shards;
+  DequeOfShardMembers t_shards;
   uint32_t shardingStructureVersion = 0;
 
   if (!Messenger::GetNodeVCDSBlocksMessage(
@@ -530,19 +527,17 @@ bool Node::ProcessVCDSBlocksMessage(
   MinerInfoDSComm minerInfoDSComm;
   MinerInfoShards minerInfoShards;
   if (LOOKUP_NODE_MODE) {
-    for (const auto& shard : m_mediator.m_ds->m_shards) {
-      minerInfoShards.m_shards.push_back(MinerInfoShards::MinerInfoShard());
-      minerInfoShards.m_shards.back().m_shardSize = shard.size();
-      for (const auto& node : shard) {
-        const PubKey& pubKey = std::get<SHARD_NODE_PUBKEY>(node);
-        if (!Guard::GetInstance().IsNodeInShardGuardList(pubKey)) {
-          minerInfoShards.m_shards.back().m_shardNodes.emplace_back(pubKey);
-        }
+    minerInfoShards.m_shards.push_back(MinerInfoShards::MinerInfoShard());
+    minerInfoShards.m_shards.back().m_shardSize =
+        m_mediator.m_ds->m_shards.size();
+    for (const auto& node : m_mediator.m_ds->m_shards) {
+      const PubKey& pubKey = std::get<SHARD_NODE_PUBKEY>(node);
+      if (!Guard::GetInstance().IsNodeInShardGuardList(pubKey)) {
+        minerInfoShards.m_shards.back().m_shardNodes.emplace_back(pubKey);
       }
     }
   }
 
-  m_myshardId = shardId;
   if (!BlockStorage::GetBlockStorage().PutShardStructure(
           m_mediator.m_ds->m_shards, m_myshardId)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
@@ -650,7 +645,6 @@ bool Node::ProcessVCDSBlocksMessage(
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
         if (!m_mediator.m_ds->ProcessShardingStructure(
                 m_mediator.m_ds->m_shards,
-                m_mediator.m_ds->m_publicKeyToshardIdMap,
                 m_mediator.m_ds->m_mapNodeReputation)) {
           return false;
         }
@@ -722,6 +716,7 @@ bool Node::ProcessVCDSBlocksMessage(
     m_mediator.m_node->CleanWhitelistReqs();
 
     if (m_mediator.m_lookup->GetIsServer() && ARCHIVAL_LOOKUP) {
+      LOG_GENERAL(WARNING, "BZ Sending txns to next layer");
       SendTxnMemPoolToNextLayer();
     }
   }

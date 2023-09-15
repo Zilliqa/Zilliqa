@@ -1128,18 +1128,16 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   if (!ipMapping.empty()) {
-    for (auto &shard : m_mediator.m_ds->m_shards) {
-      for (auto &node : shard) {
-        string pubKey;
-        if (!DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node),
-                                                  pubKey)) {
-          LOG_GENERAL(WARNING, "Error converting pubkey to string");
-          continue;
-        }
+    for (auto &node : m_mediator.m_ds->m_shards) {
+      string pubKey;
+      if (!DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node),
+                                                pubKey)) {
+        LOG_GENERAL(WARNING, "Error converting pubkey to string");
+        continue;
+      }
 
-        if (ipMapping.find(pubKey) != ipMapping.end()) {
-          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
-        }
+      if (ipMapping.find(pubKey) != ipMapping.end()) {
+        get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
       }
     }
   }
@@ -1147,35 +1145,13 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   bool bInShardStructure = false;
   bool bIpChanged = false;
 
-  if (bDS) {
-    m_myshardId = m_mediator.m_ds->m_shards.size();
-  } else {
-    for (unsigned int i = 0;
-         i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
-      for (const auto &shardNode : m_mediator.m_ds->m_shards.at(i)) {
-        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
-          SetMyshardId(i);
-          LOG_GENERAL(
-              INFO, "This node belongs to sharding structure #" << m_myshardId);
-          bInShardStructure = true;
-          if (get<SHARD_NODE_PEER>(shardNode).m_ipAddress !=
-              m_mediator.m_selfPeer.m_ipAddress) {
-            bIpChanged = true;
-          }
-          break;
-        }
-      }
-    }
-  }
-
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_lookup->ProcessEntireShardingStructure();
   } else {
     LoadShardingStructure(true);
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
     m_mediator.m_ds->ProcessShardingStructure(
-        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-        m_mediator.m_ds->m_mapNodeReputation);
+        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_mapNodeReputation);
   }
   bool rejoinCondition =
       REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
@@ -1509,12 +1485,11 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
   }
 }
 
-uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
-                                             uint32_t sizeOfShard,
-                                             const Shard &shardMembers,
-                                             PairOfNode &shardLeader) {
+uint32_t Node::CalculateShardLeaderFromShard(
+    uint16_t lastBlockHash, uint32_t sizeOfShard,
+    const DequeOfShardMembers &shardMembers, PairOfNode &shardLeader) {
   LOG_MARKER();
-  uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
+  uint32_t consensusLeaderIndex = lastBlockHash % shardMembers.size();
   if (GUARD_MODE) {
     unsigned int iterationCount = 0;
     while (!Guard::GetInstance().IsNodeInShardGuardList(
@@ -1528,7 +1503,7 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-      consensusLeaderIndex = lastBlockHash % sizeOfShard;
+      consensusLeaderIndex = lastBlockHash % shardMembers.size();
       iterationCount++;
     }
     shardLeader = make_pair(
@@ -1769,7 +1744,9 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
-  LOG_GENERAL(INFO, "Received from " << from);
+  LOG_GENERAL(INFO, "Received txns: " << transactions.size() << ", from "
+                                      << from << ", my shardId is: "
+                                      << m_mediator.m_node->m_myshardId);
 
   {
     // The check here is in case the lookup send the packet
@@ -1816,20 +1793,36 @@ bool Node::ProcessTxnPacketFromLookup(
   bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
                     from.GetPrintableIPAddress() != "127.0.0.1";
 
-  bool properState =
-      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
+  // BZ -- remove this:
 
+  const bool properReq1 =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
-       m_mediator.m_ds->m_state ==
-           DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
+       m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION);
 
+  const bool properReq2 =
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
+       m_txn_distribute_window_open &&
+       m_mediator.m_ds->m_state == DirectoryService::FINALBLOCK_CONSENSUS_PREP);
+
+  const bool properReq3 =
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        m_txn_distribute_window_open &&
        (m_state == MICROBLOCK_CONSENSUS_PREP ||
         m_state == MICROBLOCK_CONSENSUS || m_state == WAITING_FINALBLOCK));
 
+  LOG_GENERAL(WARNING, "BZ First: m_mode: " << std::hex
+                                            << (int)m_mediator.m_ds->m_mode
+                                            << ", m_state: " << std::hex
+                                            << (int)m_mediator.m_ds->m_state);
+  LOG_GENERAL(WARNING, "BZ Second: m_txn_distribute_window_open: "
+                           << m_txn_distribute_window_open);
+  LOG_GENERAL(WARNING, "BZ Third: m_state: " << std::hex
+                                             << (int)m_mediator.m_ds->m_state);
+  LOG_GENERAL(WARNING, "BZ States for proper are << " << properReq1 << ", "
+                                                      << properReq2 << ", "
+                                                      << properReq2);
+  const bool properState = properReq1 || properReq2 || properReq3;
   if (!properState) {
     if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
@@ -1960,11 +1953,15 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     vector<Peer> toSend;
     {
       lock_guard<mutex> g(m_mutexShardMember);
-      for (auto &it : *m_myShardMembers) {
+      for (const auto &it : *m_myShardMembers) {
         toSend.push_back(it.second);
       }
     }
-    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
+    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members: ");
+    for (const auto &member : toSend) {
+      LOG_GENERAL(WARNING,
+                  "BZ: Sending to : " << member.GetPrintableIPAddress());
+    }
 
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, message);
   }
@@ -2181,6 +2178,11 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
     }
     if (!(ignorePktForPrevEpoch &&
           (epochNumber < m_mediator.m_currentEpochNum))) {
+      LOG_GENERAL(WARNING,
+                  "BZ CommitTxnPacketBuffer will do for transactions: ");
+      for (const auto &tran : transactions) {
+        LOG_GENERAL(WARNING, "BZ: Tran hash: " << tran.GetTranID().hex());
+      }
       ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                      lookupPubKey, transactions);
     }
@@ -2314,7 +2316,6 @@ bool Node::CleanVariables() {
   }
   m_isPrimary = false;
   m_stillMiningPrimary = false;
-  m_myshardId = 0;
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   m_lastMicroBlockCoSig = {0, CoSignatures()};
   CleanCreatedTransaction();
@@ -2368,17 +2369,6 @@ void Node::CleanWhitelistReqs() {
 void Node::CleanUnavailableMicroBlocks() {
   std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
   m_unavailableMicroBlocks.clear();
-}
-
-void Node::SetMyshardId(uint32_t shardId) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Node::SetMyshardId not expected to be called from LookUp node.");
-    return;
-  }
-  LOG_GENERAL(WARNING, "BZ MyShardId is: " << shardId);
-  m_myshardId = shardId;
 }
 
 void Node::CleanMBConsensusAndTxnBuffers() {
@@ -2679,7 +2669,7 @@ bool Node::UpdateShardNodeIdentity() {
   {
     // Multicast to all my shard peers
     lock_guard<mutex> g(m_mutexShardMember);
-    for (auto &it : *m_myShardMembers) {
+    for (const auto &it : *m_myShardMembers) {
       peerInfo.push_back(it.second);
     }
   }
@@ -3131,20 +3121,14 @@ void Node::SendBlockToOtherShardNodes(const zbytes &message,
 
 bool Node::RecalculateMyShardId(bool &ipChanged) {
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-  uint32_t shardId = -1;
-  m_myshardId = -1;
   ipChanged = false;
-  for (const auto &shard : m_mediator.m_ds->m_shards) {
-    shardId++;
-    for (const auto &node : shard) {
-      if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
-        m_myshardId = shardId;
-        if (get<SHARD_NODE_PEER>(node).m_ipAddress !=
-            m_mediator.m_selfPeer.m_ipAddress) {
-          ipChanged = true;
-        }
-        return true;
+  for (const auto &node : m_mediator.m_ds->m_shards) {
+    if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
+      if (get<SHARD_NODE_PEER>(node).m_ipAddress !=
+          m_mediator.m_selfPeer.m_ipAddress) {
+        ipChanged = true;
       }
+      return true;
     }
   }
   return false;

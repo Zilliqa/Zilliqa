@@ -113,8 +113,7 @@ class DirectoryService : public Executable {
   std::mutex m_mutexConsensus;
 
   // Temporary buffers for sharding committee members and transaction sharing
-  DequeOfShard m_tempShards;
-  std::map<PubKey, uint32_t> m_tempPublicKeyToshardIdMap;
+  DequeOfShardMembers m_tempShards;
   std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
   // PoW common variables
@@ -278,7 +277,7 @@ class DirectoryService : public Executable {
   void ResetPoWSubmissionCounter();
   void ClearReputationOfNodeWithoutPoW();
   static void RemoveReputationOfNodeFailToJoin(
-      const DequeOfShard& shards,
+      const DequeOfShardMembers& shards,
       std::map<PubKey, uint16_t>& mapNodeReputation);
   std::set<PubKey> FindTopPriorityNodes(uint8_t& lowestPriority);
 
@@ -294,7 +293,7 @@ class DirectoryService : public Executable {
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
-  void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
+  void ComputeMembersInShard(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers,
                           const std::vector<PubKey>& removeDSNodePubkeys);
@@ -309,12 +308,12 @@ class DirectoryService : public Executable {
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyRemovedByzantineNodes();
-  bool VerifyPoWOrdering(const DequeOfShard& shards,
+  bool VerifyPoWOrdering(const DequeOfShardMembers& shards,
                          const MapOfPubKeyPoW& allPoWsFromLeader,
                          const MapOfPubKeyPoW& priorityNodePoWs);
   bool VerifyPoWFromLeader(const Peer& peer, const PubKey& pubKey,
                            const PoWSolution& powSoln);
-  bool VerifyNodePriority(const DequeOfShard& shards,
+  bool VerifyNodePriority(const DequeOfShardMembers& shards,
                           MapOfPubKeyPoW& priorityNodePoWs);
 
   // DS Reputation
@@ -333,9 +332,7 @@ class DirectoryService : public Executable {
   bool ComposeDSBlockMessageForSender(zbytes& dsblock_message);
   void SendDSBlockToLookupNodesAndNewDSMembers(const zbytes& dsblock_message);
   void SendDSBlockToShardNodes(const zbytes& dsblock_message,
-                               const DequeOfShard& shards,
-                               const unsigned int& my_shards_lo,
-                               const unsigned int& my_shards_hi);
+                               const DequeOfShardMembers& shards);
   void UpdateMyDSModeAndConsensusId();
   void UpdateDSCommitteeComposition();
 
@@ -461,7 +458,7 @@ class DirectoryService : public Executable {
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
   void CalculateCurrentDSMBGasLimit();
 
-  void ReloadGuardedShards(DequeOfShard& shards);
+  void ReloadGuardedShards(DequeOfShardMembers& shards);
 
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
@@ -509,8 +506,7 @@ class DirectoryService : public Executable {
 
   // Sharding committee members
   std::mutex mutable m_mutexShards;
-  DequeOfShard m_shards;
-  std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
+  DequeOfShardMembers m_shards;
 
   // Proof of Reputation(PoR) variables.
   std::mutex mutable m_mutexMapNodeReputation;
@@ -649,10 +645,8 @@ class DirectoryService : public Executable {
                const unsigned char& startByte);
 
   /// Used by PoW winner to configure sharding variables as the next DS leader
-  bool ProcessShardingStructure(
-      const DequeOfShard& shards,
-      std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
-      std::map<PubKey, uint16_t>& mapNodeReputation);
+  bool ProcessShardingStructure(const DequeOfShardMembers& members,
+                                std::map<PubKey, uint16_t>& mapNodeReputation);
 
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
@@ -706,8 +700,7 @@ class DirectoryService : public Executable {
 
   std::string GetStateString() const;
 
-  bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
-                                   uint32_t shardId);
+  bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock);
 
   // DS Reputation functions with no state access.
   static void SaveDSPerformanceCore(

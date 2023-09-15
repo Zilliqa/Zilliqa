@@ -175,7 +175,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Final block consensus DONE");
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Final block consensus DONE, shard size: " << std::size(m_shards));
 
   // Clear microblock(s)
   // m_microBlocks.clear();
@@ -292,7 +293,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
   }
 
-  DequeOfShard t_shards;
+  DequeOfShardMembers t_shards;
   if (m_forceMulticast && GUARD_MODE) {
     ReloadGuardedShards(t_shards);
   }
@@ -352,7 +353,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "[No PoW needed] Waiting for Microblock.");
 
-      if (m_mediator.m_node->m_myshardId == 0 || m_dsEpochAfterUpgrade) {
+      if (m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID ||
+          m_dsEpochAfterUpgrade) {
         LOG_GENERAL(INFO,
                     "[No PoW needed] No other shards. So no other microblocks "
                     "expected to be received");
@@ -681,7 +683,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mediator.m_node->m_mutexCVMicroBlockMissingTxn);
-      // TODO: cv fix      
+      // TODO: cv fix
       if (m_mediator.m_node->cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
