@@ -1336,7 +1336,8 @@ def cli(ctx):
     You need the local-dev-minikube branch of testnet if it hasn't yet
     been merged.
 
-    You will need to have built scilla.
+    Your scilla repo must be checked out to release-v0.13.5 or a branch off
+    it.
 
     localdev.py runs in stages:
      setup           - Sets up k8s (through minikube, and colima on OS X)
