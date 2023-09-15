@@ -78,7 +78,7 @@ build_type="RelWithDebInfo"
 ./scripts/license_checker.sh
 ./scripts/ci_xml_checker.sh constants.xml
 ./scripts/ci_xml_checker.sh constants_local.xml
-f [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
+if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
 
 # Find the git tag if we can and include it so we can report it in our GetVersion call
 commit_id=`git rev-parse HEAD | cut -c -8`

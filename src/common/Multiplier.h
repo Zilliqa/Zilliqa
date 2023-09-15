@@ -1,7 +1,0 @@
-//
-// Created by stephen on 8/15/23.
-//
-#ifndef ZILLIQA_SRC_COMMON_MULTIPLIER_H_
-#define ZILLIQA_SRC_COMMON_MULTIPLIER_H_
-
-#endif  // ZILLIQA_SRC_COMMON_MULTIPLIER_H_
