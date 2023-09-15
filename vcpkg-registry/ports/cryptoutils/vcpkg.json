@@ -1,7 +1,7 @@
 {
   "name": "cryptoutils",
-  "version": "9.3",
-  "port-version": 0,
+  "version": "8.3.0",
+  "port-version": 1,
   "description": "CryptoUtils",
   "homepage": "https://github.com/Zilliqa/cryptoutils",
   "dependencies": [
@@ -12,8 +12,7 @@
     {
       "name": "vcpkg-cmake-config",
       "host": true
-    },
-    "openssl"
+    }
   ]
 }
 
