@@ -1,6 +1,6 @@
 {
   "name": "schnorr",
-  "version": "9.3",
+  "version": "8.2.0",
   "port-version": 0,
   "description": "Schnorr",
   "homepage": "https://github.com/Zilliqa/schnorr",
@@ -12,10 +12,6 @@
     {
       "name": "vcpkg-cmake-config",
       "host": true
-    },
-    "boost-algorithm",
-    "boost-functional",
-    "boost-test",
-    "openssl"
+    }
   ]
 }
