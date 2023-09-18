@@ -725,8 +725,10 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   uint32_t consensusID = 0;
   TxBlock txBlock;
   zbytes stateDelta;
-  LOG_GENERAL(WARNING, "BZ Node::ProcessFinalBlock ENTER, shard size: "
-                           << m_mediator.m_ds->m_shards.size());
+  LOG_GENERAL(WARNING,
+              "BZ Node::ProcessFinalBlock ENTER, committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
   if (LOOKUP_NODE_MODE) {
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       // Buffer the Final Block
@@ -1400,8 +1402,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "BZ Node::CommitForwardedTransactions shard size: "
-                           << m_mediator.m_ds->m_shards.size());
+  LOG_GENERAL(WARNING,
+              "BZ Node::CommitForwardedTransactions, committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
   if (!entry.m_transactions.empty()) {
     uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();

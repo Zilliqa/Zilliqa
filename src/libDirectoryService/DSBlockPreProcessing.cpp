@@ -167,6 +167,10 @@ void DirectoryService::ComputeMembersInShard(
     const PubKey& key = kv.second;
     m_shards.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
   }
+  LOG_GENERAL(
+      INFO,
+      "BZ: DirectoryService::ComputeMembersInShard finished, shard shize is: "
+          << m_shards.size());
 }
 
 void DirectoryService::InjectPoWForDSNode(
@@ -845,8 +849,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating DS block.");
 
-  LOG_GENERAL(WARNING, "BZ RunConsensusOnDSBlockWhenDSPrimary, shard size: "
-                           << std::size(m_shards));
+  LOG_GENERAL(WARNING, "BZ RunConsensusOnDSBlockWhenDSPrimary, committee size: "
+                           << m_mediator.m_DSCommittee->size()
+                           << ", shard size: " << std::size(m_shards));
 
   lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
   lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
@@ -1086,8 +1091,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   };
   LOG_GENERAL(WARNING,
               "BZ RunConsensusOnDSBlockWhenDSPrimary, before announcement "
-              "starts, shard size: "
-                  << std::size(m_shards));
+              "starts, committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_shards));
   cl->StartConsensus(announcementGeneratorFunc, nullptr, BROADCAST_GOSSIP_MODE);
   return true;
 }
@@ -1264,8 +1270,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
     return true;
   }
 
-  LOG_GENERAL(WARNING, "BZ RunConsensusOnDSBlockWhenDSBackup, shard size: "
-                           << std::size(m_shards));
+  LOG_GENERAL(WARNING, "BZ RunConsensusOnDSBlockWhenDSBackup, committee size: "
+                           << m_mediator.m_DSCommittee->size()
+                           << ", shard size: " << std::size(m_shards));
 
 #ifdef VC_TEST_VC_PRECHECK_1
   uint64_t dsCurBlockNum =

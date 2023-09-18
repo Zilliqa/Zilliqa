@@ -231,8 +231,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
     return true;
   }
 
-  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlockWhenDSPrimary, shard size: "
-                           << std::size(m_shards));
+  LOG_GENERAL(WARNING,
+              "BZ RunConsensusOnFinalBlockWhenDSPrimary, committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_shards));
 
   // No other shards exists, then allow additional time for txns distribution.
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
@@ -1216,8 +1218,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return true;
   }
 
-  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlockWhenDSBackup, shard size: "
-                           << std::size(m_shards));
+  LOG_GENERAL(WARNING,
+              "BZ RunConsensusOnFinalBlockWhenDSBackup, committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_shards));
 
 #ifdef VC_TEST_VC_PRECHECK_2
   uint64_t dsCurBlockNum =
@@ -1383,8 +1387,9 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     return;
   }
 
-  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlock, shard size: "
-                           << std::size(m_shards));
+  LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlock, committee size: "
+                           << m_mediator.m_DSCommittee->size()
+                           << ", shard size: " << std::size(m_shards));
 
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);

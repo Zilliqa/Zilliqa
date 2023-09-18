@@ -678,6 +678,9 @@ void AnnouncementShardingStructureToProtobuf(
       protoShardingStructure.add_shards();
   LOG_GENERAL(WARNING, "BZ Shard to Proto, has this many shards: "
                            << protoShardingStructure.shards_size());
+  LOG_GENERAL(WARNING, "BZ Shard to Proto, has this members in shard: "
+                           << shardMembers.size());
+
   for (const auto& node : shardMembers) {
     ProtoShardingStructureWithPoWSolns::Member* proto_member =
         proto_shard->add_members();

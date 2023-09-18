@@ -176,7 +176,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Final block consensus DONE, shard size: " << std::size(m_shards));
+            "Final block consensus DONE, committee size: "
+                << m_mediator.m_DSCommittee->size()
+                << ", shard size: " << std::size(m_shards));
 
   // Clear microblock(s)
   // m_microBlocks.clear();
