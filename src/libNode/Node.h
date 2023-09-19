@@ -51,7 +51,6 @@ class Node : public Executable {
   enum Action {
     STARTPOW = 0x00,
     PROCESS_DSBLOCK,
-    PROCESS_MICROBLOCKCONSENSUS,
     PROCESS_FINALBLOCK,
     PROCESS_TXNBODY,
     NUM_ACTIONS

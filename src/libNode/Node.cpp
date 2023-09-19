@@ -1520,7 +1520,7 @@ uint32_t Node::CalculateShardLeaderFromShard(
 
 bool Node::CheckState(Action action) {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      action != PROCESS_MICROBLOCKCONSENSUS) {
+      action != PROCESS_FINALBLOCK) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "I am a DS node. Why am I getting this message? Action: "
                   << GetActionString(action));
@@ -1531,7 +1531,6 @@ bool Node::CheckState(Action action) {
       {POW_SUBMISSION, STARTPOW},
       {POW_SUBMISSION, PROCESS_DSBLOCK},
       {WAITING_DSBLOCK, PROCESS_DSBLOCK},
-      {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
       {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
   bool found = false;
@@ -3214,11 +3213,8 @@ string Node::GetStateString() const {
 }
 
 map<Node::Action, string> Node::ActionStrings = {
-    MAKE_LITERAL_PAIR(STARTPOW),
-    MAKE_LITERAL_PAIR(PROCESS_DSBLOCK),
-    MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
-    MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
-    MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
+    MAKE_LITERAL_PAIR(STARTPOW), MAKE_LITERAL_PAIR(PROCESS_DSBLOCK),
+    MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK), MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
     MAKE_LITERAL_PAIR(NUM_ACTIONS)};
 
 std::string Node::GetActionString(Action action) const {

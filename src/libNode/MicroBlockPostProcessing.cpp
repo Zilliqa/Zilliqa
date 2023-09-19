@@ -242,11 +242,13 @@ bool Node::ProcessMicroBlockConsensusCore(
 
   zil::local::variables.AddMicroblockConsensusMessages(1);
 
-  if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
+  /* BZ REMOVE THAT in desharded
+   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Not in MICROBLOCK_CONSENSUS state");
     return false;
   }
+   */
 
   // Consensus message must be processed in order. The following will block till
   // it is the right order.
@@ -281,11 +283,13 @@ bool Node::ProcessMicroBlockConsensusCore(
 
   lock_guard<mutex> g(m_mutexConsensus);
 
+  /* BZ Remove that in desharded
   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Not in MICROBLOCK_CONSENSUS state");
     return false;
   }
+   */
 
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
