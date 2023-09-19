@@ -1433,8 +1433,6 @@ bool Node::RunConsensusOnMicroBlock() {
     }
   }
 
-  CommitMicroBlockConsensusBuffer();
-
   return true;
 }
 

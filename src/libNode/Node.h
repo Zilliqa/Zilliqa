@@ -237,8 +237,6 @@ class Node : public Executable {
   void ScheduleMicroBlockConsensus();
   void BeginNextConsensusRound();
 
-  void CommitMicroBlockConsensusBuffer();
-
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
       const uint64_t& blocknum);
 
@@ -267,10 +265,6 @@ class Node : public Executable {
   bool ProcessMicroBlockConsensus(
       const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessMicroBlockConsensusCore(
-      const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte =
-          zil::p2p::START_BYTE_NORMAL);
   bool ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
                            const Peer& from, const unsigned char& startByte);
   bool ProcessVCFinalBlockCore(const zbytes& message, unsigned int offset,
@@ -630,10 +624,6 @@ class Node : public Executable {
 
   void UpdateBalanceForPreGeneratedAccounts();
 
-  void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
-                                      const zbytes& message,
-                                      unsigned int offset, const Peer& peer,
-                                      const PubKey& senderPubKey);
   void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
