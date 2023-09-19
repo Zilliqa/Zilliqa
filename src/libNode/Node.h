@@ -350,8 +350,6 @@ class Node : public Executable {
   // Transaction functions
   bool OnCommitFailure(const std::map<unsigned int, zbytes>&);
 
-  bool RunConsensusOnMicroBlockWhenShardLeader();
-  bool RunConsensusOnMicroBlockWhenShardBackup();
   bool PrePrepMicroBlockValidator(const zbytes& message, unsigned int offset,
                                   zbytes& errorMsg, const uint32_t consensusID,
                                   const uint64_t blockNumber,
