@@ -485,12 +485,6 @@ class DirectoryService : public Executable {
   /// Sharing assignment for state delta
   VectorOfPeer m_sharingAssignment;
 
-  std::mutex m_MutexScheduleDSMicroBlockConsensus;
-  std::condition_variable cv_scheduleDSMicroBlockConsensus;
-
-  std::mutex m_MutexScheduleFinalBlockConsensus;
-  std::condition_variable cv_scheduleFinalBlockConsensus;
-
   /// The current role of this Zilliqa instance within the directory service
   /// committee.
   std::atomic<Mode> m_mode{};
@@ -518,9 +512,6 @@ class DirectoryService : public Executable {
   /// Serialized account store temp to revert to if ds microblock consensus
   /// failed
   zbytes m_stateDeltaFromShards;
-
-  /// Whether ds started microblock consensus
-  std::atomic<bool> m_stopRecvNewMBSubmission{};
 
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;

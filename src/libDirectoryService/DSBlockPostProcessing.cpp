@@ -320,7 +320,7 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
   const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
-                      m_mediator.m_ds->GetConsensusMyID();
+                      m_mediator.m_ds->m_consensusLeaderID;
   LOG_GENERAL(WARNING, "BZ UpdateDSCommitteeComposition enter, I am leader? : "
                            << (leader ? "true" : "false"));
 
@@ -431,8 +431,6 @@ void DirectoryService::StartNextTxEpoch() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] BEGIN");
 
-  m_stopRecvNewMBSubmission = false;
-
   if (BROADCAST_GOSSIP_MODE) {
     VectorOfNode peers;
     std::vector<PubKey> pubKeys;
@@ -446,42 +444,7 @@ void DirectoryService::StartNextTxEpoch() {
     LOG_GENERAL(
         INFO,
         "No other shards. So no other microblocks expected to be received");
-    m_stopRecvNewMBSubmission = true;
-
     RunConsensusOnFinalBlock();
-  } else {
-    auto func = [this]() mutable -> void {
-      // Check for state change. If it get stuck at microblock submission for
-      // too long, move on to finalblock without the microblock
-      std::unique_lock<std::mutex> cv_lk(m_MutexScheduleDSMicroBlockConsensus);
-      // Check timestamp with extra time added for first txepoch for tx
-      // distribution in shard
-      auto extra_time =
-          (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
-              ? 0
-              : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
-      // TODO: cv fix
-      if (cv_scheduleDSMicroBlockConsensus.wait_for(
-              cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING,
-                    "Timeout: Didn't receive all Microblock. Proceeds "
-                    "without it");
-
-        LOG_STATE("[MIBLKSWAIT]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetBlockNum() +
-                         1
-                  << "] TIMEOUT: Didn't receive all Microblock.");
-
-        m_stopRecvNewMBSubmission = true;
-        RunConsensusOnFinalBlock();
-      }
-    };
-    DetachedFunction(1, func);
   }
 }
 
@@ -588,8 +551,6 @@ void DirectoryService::StartFirstTxEpoch() {
                1
         << "] BEGIN");
 
-    m_stopRecvNewMBSubmission = false;
-
     if (BROADCAST_GOSSIP_MODE) {
       VectorOfNode peers;
       std::vector<PubKey> pubKeys;
@@ -603,43 +564,8 @@ void DirectoryService::StartFirstTxEpoch() {
         LOG_GENERAL(
             INFO,
             "No other shards. So no other microblocks expected to be received");
-        m_stopRecvNewMBSubmission = true;
 
         RunConsensusOnFinalBlock();
-      };
-      DetachedFunction(1, func);
-    } else {
-      auto func = [this]() mutable -> void {
-        // Check for state change. If it get stuck at microblock submission for
-        // too long, move on to finalblock without the microblock
-        std::unique_lock<std::mutex> cv_lk(
-            m_MutexScheduleDSMicroBlockConsensus);
-        // Check timestamp with extra time added for first txepoch for tx
-        // distribution in shard
-        auto extra_time =
-            (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
-                ? 0
-                : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
-        // TODO: cv fix
-        if (cv_scheduleDSMicroBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING,
-                      "Timeout: Didn't receive all Microblock. Proceeds "
-                      "without it");
-
-          LOG_STATE("[MIBLKSWAIT]["
-                    << setw(15) << left
-                    << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                    << m_mediator.m_txBlockChain.GetLastBlock()
-                               .GetHeader()
-                               .GetBlockNum() +
-                           1
-                    << "] TIMEOUT: Didn't receive all Microblock.");
-
-          m_stopRecvNewMBSubmission = true;
-          RunConsensusOnFinalBlock();
-        }
       };
       DetachedFunction(1, func);
     }

@@ -479,8 +479,6 @@ bool DirectoryService::CleanVariables() {
     m_mediator.m_DSCommittee->clear();
   }
 
-  m_stopRecvNewMBSubmission = false;
-
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
