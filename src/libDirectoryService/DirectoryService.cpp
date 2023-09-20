@@ -750,8 +750,6 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
 
   m_mediator.m_node->CleanCreatedTransaction();
 
-  m_mediator.m_node->CleanMicroblockConsensusBuffer();
-
   cv_POWSubmission.notify_all();
 
   POW::GetInstance().EthashConfigureClient(

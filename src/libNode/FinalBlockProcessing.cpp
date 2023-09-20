@@ -1191,9 +1191,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
     }
 
-    // Remove because shard nodes will be shuffled in next epoch.
-    CleanMicroblockConsensusBuffer();
-
     if (!StoreFinalBlock(txBlock)) {
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;

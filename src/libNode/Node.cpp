@@ -2318,7 +2318,6 @@ bool Node::CleanVariables() {
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   m_lastMicroBlockCoSig = {0, CoSignatures()};
   CleanCreatedTransaction();
-  CleanMicroblockConsensusBuffer();
   zil::p2p::GetInstance().InitializeRumorManager({}, {});
   this->ResetRejoinFlags();
 
@@ -2381,7 +2380,6 @@ void Node::CleanMBConsensusAndTxnBuffers() {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
     t_processedTransactions.clear();
   }
-  CleanMicroblockConsensusBuffer();
 }
 
 void Node::CleanCreatedTransaction() {

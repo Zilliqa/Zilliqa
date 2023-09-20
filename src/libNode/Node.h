@@ -177,9 +177,6 @@ class Node : public Executable {
   std::condition_variable cv_TxnProcFinished;
   bool m_txnProcessingFinished = false;
 
-  std::mutex m_mutexMicroBlockConsensusBuffer;
-  std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
-
   // soft confirmed transactions
   std::mutex m_mutexSoftConfirmedTxns;
   std::unordered_map<TxnHash, TransactionWithReceipt> m_softConfirmedTxns;
@@ -620,8 +617,6 @@ class Node : public Executable {
   void PopulateAccounts();
 
   void UpdateBalanceForPreGeneratedAccounts();
-
-  void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
 

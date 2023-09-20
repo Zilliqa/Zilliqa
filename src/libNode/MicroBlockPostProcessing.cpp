@@ -129,8 +129,3 @@ bool Node::ProcessMicroBlockConsensus(
               "called from desharded config.");
   return false;
 }
-
-void Node::CleanMicroblockConsensusBuffer() {
-  lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
-  m_microBlockConsensusBuffer.clear();
-}
