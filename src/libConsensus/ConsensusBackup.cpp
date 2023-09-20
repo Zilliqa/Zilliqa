@@ -112,6 +112,10 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
   // Initial checks
   // ==============
 
+  LOG_GENERAL(WARNING,
+              "BZ ConsensusBackup::ProcessMessageAnnounce I'm in state: "
+                  << GetStateString());
+
   if (!CheckState(PROCESS_ANNOUNCE)) {
     return false;
   }
@@ -360,6 +364,9 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 bool ConsensusBackup::ProcessMessageChallenge(const zbytes& challenge,
                                               unsigned int offset) {
   LOG_MARKER();
+  LOG_GENERAL(WARNING,
+              "BZ ConsensusBackup::ProcessMessageChallenge I'm in state: "
+                  << GetStateString());
   return ProcessMessageChallengeCore(challenge, offset, PROCESS_CHALLENGE,
                                      RESPONSE, RESPONSE_DONE, "Challenge");
 }
@@ -554,6 +561,9 @@ ConsensusBackup::ConsensusBackup(
   span.SetAttribute("consensus.node_id", static_cast<uint64_t>(m_myID));
   span.SetAttribute("consensus.block_number", m_blockNumber);
   TracedIds::GetInstance().SetConsensusSpanIds(span.GetIds());
+
+  LOG_GENERAL(WARNING, "BZ ConsensusBackup::ConsensusBackup I'm in state: "
+                           << GetStateString());
 }
 
 ConsensusBackup::~ConsensusBackup() {}
@@ -566,6 +576,9 @@ bool ConsensusBackup::ProcessMessage(const zbytes& message, unsigned int offset,
   // [consensus message]
 
   bool result = false;
+
+  LOG_GENERAL(WARNING,
+              "BZ ConsensusBackup::Audit I'm in state: " << GetStateString());
 
   switch (message.at(offset)) {
     case ConsensusMessageType::ANNOUNCE:

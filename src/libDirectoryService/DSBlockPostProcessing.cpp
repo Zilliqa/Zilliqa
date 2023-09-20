@@ -482,8 +482,6 @@ void DirectoryService::StartNextTxEpoch() {
       }
     };
     DetachedFunction(1, func);
-
-    CommitMBSubmissionMsgBuffer();
   }
 }
 

@@ -347,15 +347,6 @@ class DirectoryService : public Executable {
   bool RunConsensusOnFinalBlockWhenDSBackup();
   bool ComposeFinalBlock();
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
-  void CommitMBSubmissionMsgBuffer();
-  bool ProcessMicroblockSubmissionFromShard(
-      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<zbytes>& stateDelta);
-  bool ProcessMicroblockSubmissionFromShardCore(const MicroBlock& microBlocks,
-                                                const zbytes& stateDelta);
-  bool ProcessMissingMicroblockSubmission(
-      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<zbytes>& stateDeltas);
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
                                   uint128_t& allRewards, uint32_t& numTxs);

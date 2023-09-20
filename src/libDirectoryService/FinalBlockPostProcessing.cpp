@@ -385,12 +385,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         };
         DetachedFunction(1, func1);
 
-        auto func2 = [this]() mutable -> void {
-          std::this_thread::sleep_for(chrono::milliseconds(10));
-          CommitMBSubmissionMsgBuffer();
-        };
-        DetachedFunction(1, func2);
-
         std::unique_lock<std::mutex> cv_lk(
             m_MutexScheduleDSMicroBlockConsensus);
         // Check timestamp with extra time added for first txepoch for tx
@@ -441,6 +435,9 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   uint32_t consensus_id = 0;
   zbytes reserialized_message;
   PubKey senderPubKey;
+
+  LOG_GENERAL(WARNING, "BZ ProcessFinalBlockConsensus enter, my state is: "
+                           << GetStateString());
 
   if (!m_consensusObject->PreProcessMessage(
           message, offset, consensus_id, senderPubKey, reserialized_message)) {

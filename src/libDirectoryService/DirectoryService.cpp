@@ -746,6 +746,8 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
   m_mediator.m_consensusID = 0;
   m_mediator.m_node->SetConsensusLeaderID(0);
 
+  LOG_GENERAL(WARNING, "BZ Starting StartNewDSEpochConsensus consensus");
+
   CleanFinalBlockConsensusBuffer();
 
   m_mediator.m_node->CleanCreatedTransaction();
