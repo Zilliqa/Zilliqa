@@ -19,8 +19,8 @@ jobs:
     name: build
     runs-on: docker
     env:
-      GCP_REGISTRY_DOMAIN: ${{ secrets.GCP_REGISTRY_DOMAIN }}
-      GCP_PRIVATE_REGISTRY: ${{ secrets.GCP_PRIVATE_REGISTRY }}
+      GCP_REGISTRY_DOMAIN: asia-docker.pkg.dev
+      GCP_PRIVATE_REGISTRY: asia-docker.pkg.dev/${{ secrets.GCP_STG_REGISTRY_PROJECT_ID }}/zilliqa-private
     steps:
     - name: Clean environment
       # Prune the Docker resources created over 10 days before the current execution (change the value for a more/less aggressive cleanup).
@@ -40,11 +40,11 @@ jobs:
         role-to-assume: ${{ secrets.ECR_DEPLOYER_ROLE }}
         oidc-role: ${{ secrets.OIDC_ROLE }}
         aws-region: ${{ secrets.AWS_REGION_ZILLIQA }}
-    - name: Login to the registry
+    - name: Login to the AWS registry
       uses: docker/login-action@v2
       with:
         registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
-    - name: "Authenticate to Google Cloud"
+    - name: "Configure GCP Credentials"
       id: google-auth
       uses: "google-github-actions/auth@v1"
       with:
@@ -65,8 +65,9 @@ jobs:
     - name: Build Docker images
       run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }} -t ${{ env.GCP_PRIVATE_REGISTRY }}/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
-    - name: Push Docker images
-      run: |
-        docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
-        docker push ${{ env.GCP_PRIVATE_REGISTRY }}/zilliqa:${{ steps.set-tag.outputs.tag }}
+    - name: Push Docker images to AWS
+      run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
+      shell: bash
+    - name: Push Docker images to GCP
+      run: docker push ${{ env.GCP_PRIVATE_REGISTRY }}/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash
