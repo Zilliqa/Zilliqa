@@ -1127,44 +1127,6 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
   return true;
 }
 
-bool Node::RunConsensusOnMicroBlock() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::RunConsensusOnMicroBlock not expected to be called "
-                "from LookUp node");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  SetState(MICROBLOCK_CONSENSUS_PREP);
-  cv_txnPacket.notify_all();
-
-  if (m_mediator.GetIsVacuousEpoch()) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Vacuous epoch: Skipping submit transactions");
-    CleanCreatedTransaction();
-  }
-
-  if (m_isPrimary) {
-    /*if (!RunConsensusOnMicroBlockWhenShardLeader()) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Error at RunConsensusOnMicroBlockWhenShardLeader");
-      // throw exception();
-      return false;
-    }*/
-  } else {
-    /*if (!RunConsensusOnMicroBlockWhenShardBackup()) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Error at RunConsensusOnMicroBlockWhenShardBackup");
-      // throw exception();
-      return false;
-    }*/
-  }
-
-  return true;
-}
-
 bool Node::CheckMicroBlockVersion() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

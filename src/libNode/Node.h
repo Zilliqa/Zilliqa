@@ -234,7 +234,6 @@ class Node : public Executable {
   // void StoreMicroBlocks();
   bool StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();
-  void ScheduleMicroBlockConsensus();
   void BeginNextConsensusRound();
 
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
@@ -667,9 +666,6 @@ class Node : public Executable {
   /// Used by oldest DS node to finish setup as a new shard node
   /// And also used by shard node rejoining back
   void StartFirstTxEpoch(bool fbWaitState = false);
-
-  /// Used for start consensus on microblock
-  bool RunConsensusOnMicroBlock();
 
   /// Used for commit buffered txn packet
   void CommitTxnPacketBuffer(bool ignorePktForPrevEpoch = false);

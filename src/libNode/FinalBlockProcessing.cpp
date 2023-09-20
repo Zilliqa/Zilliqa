@@ -473,19 +473,6 @@ void Node::UpdateStateForNextConsensusRound() {
   zil::local::variables.SetShard(m_myshardId);
 }
 
-void Node::ScheduleMicroBlockConsensus() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ScheduleMicroBlockConsensus not expected to be "
-                "called from LookUp node.");
-    return;
-  }
-
-  auto main_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
-
-  DetachedFunction(1, main_func);
-}
-
 void Node::BeginNextConsensusRound() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -501,8 +488,6 @@ void Node::BeginNextConsensusRound() {
   }
 
   UpdateStateForNextConsensusRound();
-
-  ScheduleMicroBlockConsensus();
 
   // CommitTxnPacketBuffer();
 }

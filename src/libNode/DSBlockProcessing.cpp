@@ -340,9 +340,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
   if (fbWaitState) {
     SetState(WAITING_FINALBLOCK);
     CleanMicroblockConsensusBuffer();
-  } else {
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
-    DetachedFunction(1, main_func3);
   }
 }
 
