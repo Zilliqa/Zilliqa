@@ -54,8 +54,8 @@ const config: HardhatUserConfig = {
       miningState: false
     },
     isolated_server: {
-      url: "http://localhost:5555/",
-      websocketUrl: "ws://localhost:5555/",
+      url: "http://127.0.0.1:5555/",
+      websocketUrl: "ws://127.0.0.1:5555/",
       accounts: [
         "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
