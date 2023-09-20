@@ -252,9 +252,6 @@ class Node : public Executable {
   bool ProcessStartPoW(const zbytes& message, unsigned int offset,
                        const Peer& from,
                        [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessSharding(const zbytes& message, unsigned int offset,
-                       const Peer& from,
-                       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessSubmitTransaction(const zbytes& message, unsigned int offset,
                                 const Peer& from,
                                 [[gnu::unused]] const unsigned char& startByte);
@@ -315,8 +312,6 @@ class Node : public Executable {
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte);
 
-  // bool ProcessCreateAccounts(const bytes & message,
-  // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const zbytes& message, unsigned int cur_offset,
                                 const Peer& from,
                                 [[gnu::unused]] const unsigned char& startByte);
@@ -414,8 +409,8 @@ class Node : public Executable {
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
     WAITING_DSBLOCK,
-    MICROBLOCK_CONSENSUS_PREP,
-    MICROBLOCK_CONSENSUS,
+    // MICROBLOCK_CONSENSUS_PREP,
+    // MICROBLOCK_CONSENSUS,
     WAITING_FINALBLOCK,
     SYNC
   };
@@ -447,10 +442,6 @@ class Node : public Executable {
 
   std::mutex m_mutexCVMicroBlockMissingTxn;
   std::condition_variable cv_MicroBlockMissingTxn;
-
-  // std::condition_variable m_cvNewRoundStarted;
-  // std::mutex m_mutexNewRoundStarted;
-  // bool m_newRoundStarted = false;
 
   std::mutex m_mutexIsEveryMicroBlockAvailable;
 
@@ -586,13 +577,6 @@ class Node : public Executable {
   bool SendPendingTxnToLookup();
 
   bool ValidateDB();
-
-  // Erase m_committedTransactions for given epoch number
-  // void EraseCommittedTransactions(uint64_t epochNum)
-  // {
-  //     std::lock_guard<std::mutex> g(m_mutexCommittedTransactions);
-  //     m_committedTransactions.erase(epochNum);
-  // }
 
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);

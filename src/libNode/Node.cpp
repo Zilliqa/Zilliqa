@@ -1676,20 +1676,11 @@ bool Node::ProcessSubmitTransaction(
   cur_offset += MessageOffset::INST;
 
   if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN) {
-    if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-      if (m_state != MICROBLOCK_CONSENSUS) {
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "As a shard node not in a microblock consensus state: don't "
-                  "want missing txns")
-        return false;
-      }
-    } else {
-      if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "As a ds node not in a finalblock consensus state: don't "
-                  "want missing txns");
-        return false;
-      }
+    if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "As a ds node not in a finalblock consensus state: don't "
+                "want missing txns");
+      return false;
     }
 
     ProcessSubmitMissingTxn(message, cur_offset, from);
@@ -1806,9 +1797,7 @@ bool Node::ProcessTxnPacketFromLookup(
 
   const bool properReq3 =
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-       m_txn_distribute_window_open &&
-       (m_state == MICROBLOCK_CONSENSUS_PREP ||
-        m_state == MICROBLOCK_CONSENSUS || m_state == WAITING_FINALBLOCK));
+       m_txn_distribute_window_open && (m_state == WAITING_FINALBLOCK));
 
   LOG_GENERAL(WARNING, "BZ First: m_mode: " << std::hex
                                             << (int)m_mediator.m_ds->m_mode
@@ -2017,11 +2006,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 #endif  // DM_TEST_DM_MORETXN_HALF
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      m_state != MICROBLOCK_CONSENSUS_PREP) {
+      m_state != WAITING_FINALBLOCK) {
     unique_lock<mutex> lk(m_mutexCVTxnPacket);
     m_txnPacketThreadOnHold++;
-    cv_txnPacket.wait(lk,
-                      [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
+    cv_txnPacket.wait(lk, [this] { return m_state == WAITING_FINALBLOCK; });
   }
 
   // Process the txns
@@ -3195,12 +3183,8 @@ bool Node::Execute(const zbytes &message, unsigned int offset, const Peer &from,
   { s, #s }
 
 map<Node::NodeState, string> Node::NodeStateStrings = {
-    MAKE_LITERAL_PAIR(POW_SUBMISSION),
-    MAKE_LITERAL_PAIR(WAITING_DSBLOCK),
-    MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
-    MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
-    MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
-    MAKE_LITERAL_PAIR(SYNC)};
+    MAKE_LITERAL_PAIR(POW_SUBMISSION), MAKE_LITERAL_PAIR(WAITING_DSBLOCK),
+    MAKE_LITERAL_PAIR(WAITING_FINALBLOCK), MAKE_LITERAL_PAIR(SYNC)};
 
 string Node::GetStateString() const {
   if (NodeStateStrings.find(m_state) == NodeStateStrings.end()) {

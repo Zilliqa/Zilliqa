@@ -633,6 +633,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 }
 
 void Node::PrepareGoodStateForFinalBlock() {
+  /*
   if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I may have missed the micrblock consensus. However, if I "
@@ -640,6 +641,7 @@ void Node::PrepareGoodStateForFinalBlock() {
     // TODO: Optimize state transition.
     SetState(WAITING_FINALBLOCK);
   }
+   */
 }
 
 bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
@@ -1024,21 +1026,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     // After rejoin or recovery or dsepoch-after-upgrade
     if (m_lastMicroBlockCoSig.first == 0) {
       m_txn_distribute_window_open = true;
-    }
-    // I don't want to wait if I failed last mb consensus already and already in
-    // WAITING_FINALBLOCK state
-    else if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum &&
-             (m_state == MICROBLOCK_CONSENSUS ||
-              m_state == MICROBLOCK_CONSENSUS_PREP)) {
-      std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-      if (cv_FBWaitMB.wait_for(
-              cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING,
-                    "Timeout, I didn't finish microblock consensus. Timeout: "
-                        << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
-        zil::local::variables.AddTimedOutMicroblock(1);
-      }
     }
 
     PrepareGoodStateForFinalBlock();

@@ -350,10 +350,6 @@ class DirectoryService : public Executable {
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
                                   uint128_t& allRewards, uint32_t& numTxs);
-  bool ProcessStateDelta(const zbytes& stateDelta,
-                         const StateHash& microBlockStateDeltaHash,
-                         const BlockHash& microBlockHash);
-  void SkipDSMicroBlock();
   void PrepareRunConsensusOnFinalBlockNormal();
 
   // FinalBlockValidator functions
@@ -378,9 +374,6 @@ class DirectoryService : public Executable {
                         const uint64_t blockNumber, const zbytes& blockHash,
                         const uint16_t leaderID, const PubKey& leaderKey,
                         zbytes& messageToCosign);
-
-  // Sharding consensus validator function
-  bool ShardingValidator(const zbytes& sharding_structure, zbytes& errorMsg);
 
   // PrePrep Final block consensus validator function
   bool PrePrepFinalBlockValidator(const zbytes& message, unsigned int offset,
@@ -412,6 +405,7 @@ class DirectoryService : public Executable {
 
   // void StoreMicroBlocksToDisk();
 
+  /*
   // Used to reconsile view of m_AllPowConn is different.
   void LastDSBlockRequest();
 
@@ -419,6 +413,7 @@ class DirectoryService : public Executable {
                                  const Peer& from);
   bool ProcessLastDSBlockResponse(const zbytes& message, unsigned int offset,
                                   const Peer& from);
+                                  */
 
   // View change
   bool NodeVCPrecheck();

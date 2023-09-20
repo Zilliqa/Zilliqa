@@ -16,15 +16,12 @@
  */
 
 #include <algorithm>
-#include <chrono>
 #include <thread>
 
 #include "DirectoryService.h"
-#include "common/Constants.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
-#include "libMessage/Messenger.h"
 #include "libNode/Node.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -84,79 +81,6 @@ bool DirectoryService::VerifyMicroBlockCoSignature(
     }
     return false;
   }
-
-  return true;
-}
-
-bool DirectoryService::ProcessStateDelta(
-    const zbytes& stateDelta, const StateHash& microBlockStateDeltaHash,
-    const BlockHash& microBlockHash) {
-  LOG_MARKER();
-
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::ProcessStateDelta not expected to be "
-                "called from LookUp node.");
-    return true;
-  }
-
-  string statedeltaStr;
-  if (!DataConversion::charArrToHexStr(microBlockStateDeltaHash.asArray(),
-                                       statedeltaStr)) {
-    LOG_GENERAL(WARNING, "Invalid state delta hash");
-    return false;
-  }
-  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : " << statedeltaStr);
-
-  if (microBlockStateDeltaHash == StateHash()) {
-    LOG_GENERAL(INFO,
-                "State Delta hash received from microblock is null, "
-                "skip processing state delta");
-    return true;
-  }
-
-  if (stateDelta.empty()) {
-    LOG_GENERAL(INFO, "State Delta is empty");
-    if (microBlockStateDeltaHash != StateHash()) {
-      LOG_GENERAL(WARNING, "State Delta and StateDeltaHash inconsistent");
-      return false;
-    }
-    return true;
-  } else {
-    LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());
-  }
-
-  SHA256Calculator sha2;
-  sha2.Update(stateDelta);
-  StateHash stateDeltaHash(sha2.Finalize());
-
-  LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
-
-  if (stateDeltaHash != microBlockStateDeltaHash) {
-    LOG_GENERAL(WARNING,
-                "State delta hash calculated does not match microblock");
-    return false;
-  }
-
-  if (microBlockStateDeltaHash == StateHash()) {
-    LOG_GENERAL(INFO, "State Delta from microblock is empty");
-    return false;
-  }
-
-  if (!AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0)) {
-    LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
-    return false;
-  }
-
-  if (!AccountStore::GetInstance().SerializeDelta()) {
-    LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
-    return false;
-  }
-
-  AccountStore::GetInstance().GetSerializedDelta(m_stateDeltaFromShards);
-
-  m_microBlockStateDeltas[m_mediator.m_currentEpochNum].emplace(microBlockHash,
-                                                                stateDelta);
 
   return true;
 }
