@@ -180,10 +180,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                 << m_mediator.m_DSCommittee->size()
                 << ", shard size: " << std::size(m_shards));
 
-  // Clear microblock(s)
-  // m_microBlocks.clear();
-
-  // m_mediator.HeartBeatPulse();
+  LOG_GENERAL(
+      WARNING,
+      "BZ DirectoryService::ProcessFinalBlockConsensusWhenDone() enter");
 
   if (m_mode == PRIMARY_DS) {
     LOG_STATE(
@@ -339,8 +338,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                 "BZ FinalBlockConsensusDone, vacuous epoch, setting state to "
                 "POW_SUBMISSION");
     SetState(POW_SUBMISSION);
-  } else {
-    SetState(MICROBLOCK_SUBMISSION);
   }
 
   auto func = [this, isVacuousEpoch]() mutable -> void {
@@ -384,6 +381,9 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     return true;
   }
 
+  LOG_GENERAL(WARNING,
+              "BZ DirectoryService::ProcessFinalBlockConsensus() enter");
+
   uint32_t consensus_id = 0;
   zbytes reserialized_message;
   PubKey senderPubKey;
@@ -414,8 +414,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     // Only buffer the Final block consensus message if in the immediate states
     // before consensus, or when doing view change
-    if (!((m_state == MICROBLOCK_SUBMISSION) ||
-          (m_state == FINALBLOCK_CONSENSUS_PREP) ||
+    if (!((m_state == FINALBLOCK_CONSENSUS_PREP) ||
           (m_state == VIEWCHANGE_CONSENSUS))) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Ignoring final block consensus message");

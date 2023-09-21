@@ -495,11 +495,6 @@ void DirectoryService::AddDSPoWs(const PubKey& Pubk,
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
 
-MapOfPubKeyPoW DirectoryService::GetAllDSPoWs() {
-  lock_guard<mutex> g(m_mutexAllDSPOWs);
-  return m_allDSPoWs;
-}
-
 void DirectoryService::ClearDSPoWSolns() {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   m_allDSPoWs.clear();
@@ -514,11 +509,6 @@ std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(
     LOG_GENERAL(WARNING, "No such element in m_allDSPoWs");
     return array<unsigned char, 32>();
   }
-}
-
-bool DirectoryService::IsNodeSubmittedDSPoWSoln(const PubKey& Pubk) {
-  lock_guard<mutex> g(m_mutexAllDSPOWs);
-  return m_allDSPoWs.find(Pubk) != m_allDSPoWs.end();
 }
 
 uint32_t DirectoryService::GetNumberOfDSPoWSolns() {

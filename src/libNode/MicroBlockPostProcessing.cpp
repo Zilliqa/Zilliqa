@@ -93,34 +93,6 @@ static MicroBlockPostProcessingVariables variables{};
 }  // namespace local
 }  // namespace zil
 
-bool Node::ComposeMicroBlockMessageForSender(zbytes& microblock_message) const {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ComposeMicroBlockMessageForSender not expected to be "
-                "called from LookUp node.");
-    return false;
-  }
-
-  microblock_message.clear();
-
-  microblock_message = {MessageType::DIRECTORY,
-                        DSInstructionType::MICROBLOCKSUBMISSION};
-  zbytes stateDelta;
-  AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-
-  if (!Messenger::SetDSMicroBlockSubmission(
-          microblock_message, MessageOffset::BODY,
-          DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
-          m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta},
-          m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetDSMicroBlockSubmission failed.");
-    return false;
-  }
-
-  return true;
-}
-
 bool Node::ProcessMicroBlockConsensus(
     const zbytes& /* message */, unsigned int /* offset */,
     const Peer& /* from */, [[gnu::unused]] const unsigned char& startByte) {

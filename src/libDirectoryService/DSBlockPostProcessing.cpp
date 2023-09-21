@@ -337,6 +337,8 @@ void DirectoryService::StartNextTxEpoch() {
     return;
   }
 
+  LOG_GENERAL(WARNING, "BZ DirectoryService::StartNextTxEpoch() enter");
+
   LOG_MARKER();
 
   {
@@ -416,9 +418,6 @@ void DirectoryService::StartNextTxEpoch() {
     m_coinbaseRewardees.clear();
   }
 
-  // Start sharding work
-  SetState(MICROBLOCK_SUBMISSION);
-
   auto func1 = [this]() mutable -> void {
     m_mediator.m_node->CommitTxnPacketBuffer(true);
   };
@@ -457,6 +456,8 @@ void DirectoryService::StartFirstTxEpoch() {
   }
 
   LOG_MARKER();
+
+  LOG_GENERAL(WARNING, "BZ DirectoryService::StartFirstTxEpoch() enter");
 
   {
     lock_guard<mutex> g(m_mutexAllPOW);
@@ -535,9 +536,6 @@ void DirectoryService::StartFirstTxEpoch() {
 
     m_stateDeltaFromShards.clear();
 
-    // Start sharding work
-    SetState(MICROBLOCK_SUBMISSION);
-
     auto func1 = [this]() mutable -> void {
       m_mediator.m_node->CommitTxnPacketBuffer();
     };
@@ -564,7 +562,7 @@ void DirectoryService::StartFirstTxEpoch() {
         LOG_GENERAL(
             INFO,
             "No other shards. So no other microblocks expected to be received");
-
+        SetState(FINALBLOCK_CONSENSUS_PREP);
         RunConsensusOnFinalBlock();
       };
       DetachedFunction(1, func);

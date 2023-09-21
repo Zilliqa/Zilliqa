@@ -363,6 +363,8 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
     return;
   }
 
+  LOG_GENERAL(WARNING, "BZ DirectoryService::ProcessNextConsensus() enter");
+
   this_thread::sleep_for(chrono::seconds(POST_VIEWCHANGE_BUFFER));
 
   switch (viewChangeState) {

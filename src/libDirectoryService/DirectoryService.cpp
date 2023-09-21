@@ -162,7 +162,6 @@ bool DirectoryService::CheckState(Action action) {
       {POW_SUBMISSION, PROCESS_POWSUBMISSION},
       {POW_SUBMISSION, VERIFYPOW},
       {DSBLOCK_CONSENSUS, PROCESS_DSBLOCKCONSENSUS},
-      {MICROBLOCK_SUBMISSION, PROCESS_MICROBLOCKSUBMISSION},
       {FINALBLOCK_CONSENSUS, PROCESS_FINALBLOCKCONSENSUS},
       {VIEWCHANGE_CONSENSUS, PROCESS_VIEWCHANGECONSENSUS}};
 
@@ -1222,7 +1221,6 @@ map<DirectoryService::DirState, string> DirectoryService::DirStateStrings = {
     MAKE_LITERAL_PAIR(POW_SUBMISSION),
     MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS_PREP),
     MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS),
-    MAKE_LITERAL_PAIR(MICROBLOCK_SUBMISSION),
     MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS_PREP),
     MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
     MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS_PREP),
@@ -1365,17 +1363,6 @@ bool DirectoryService::CheckIfDSNode(const PubKey& submitterPubKey) {
     }
   }
 
-  return false;
-}
-
-bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
-  lock_guard<mutex> g(m_mutexShards);
-
-  for (const auto& node : m_shards) {
-    if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
-      return true;
-    }
-  }
   return false;
 }
 

@@ -281,12 +281,6 @@ class DirectoryService : public Executable {
       std::map<PubKey, uint16_t>& mapNodeReputation);
   std::set<PubKey> FindTopPriorityNodes(uint8_t& lowestPriority);
 
-  void SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
-                                                unsigned int& my_shards_lo,
-                                                unsigned int& my_shards_hi);
-  void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
-                                               unsigned int my_shards_hi);
-
   unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
                                         std::map<PubKey, Peer>& powDSWinners,
                                         MapOfPubKeyPoW& dsWinnerPoWs,
@@ -403,18 +397,6 @@ class DirectoryService : public Executable {
   bool OnNodeMissingMicroBlocks(const zbytes& errorMsg,
                                 const unsigned int offset, const Peer& from);
 
-  // void StoreMicroBlocksToDisk();
-
-  /*
-  // Used to reconsile view of m_AllPowConn is different.
-  void LastDSBlockRequest();
-
-  bool ProcessLastDSBlockRequest(const zbytes& message, unsigned int offset,
-                                 const Peer& from);
-  bool ProcessLastDSBlockResponse(const zbytes& message, unsigned int offset,
-                                  const Peer& from);
-                                  */
-
   // View change
   bool NodeVCPrecheck();
   void SetLastKnownGoodState();
@@ -453,7 +435,6 @@ class DirectoryService : public Executable {
     POW_SUBMISSION = 0x00,
     DSBLOCK_CONSENSUS_PREP,
     DSBLOCK_CONSENSUS,
-    MICROBLOCK_SUBMISSION,
     FINALBLOCK_CONSENSUS_PREP,
     FINALBLOCK_CONSENSUS,
     VIEWCHANGE_CONSENSUS_PREP,
@@ -589,10 +570,6 @@ class DirectoryService : public Executable {
   /// Start synchronization with lookup as a DS node
   void StartSynchronization(bool clean = true);
 
-  /// Launches separate thread to execute sharding consensus after wait_window
-  /// seconds.
-  void ScheduleShardingConsensus(const unsigned int wait_window);
-
   /// Rejoin the network as a DS node in case of failure happens in protocol
   void RejoinAsDS(bool modeCheck = true, bool fromUpperSeed = false);
 
@@ -665,9 +642,6 @@ class DirectoryService : public Executable {
   // Update shard node's network info
   bool UpdateShardNodeNetworkInfo(const Peer& shardNodeNetworkInfo,
                                   const PubKey& pubKey);
-
-  bool CheckIfShardNode(const PubKey& submitterPubKey);
-
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
@@ -701,10 +675,8 @@ class DirectoryService : public Executable {
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
 
   void AddDSPoWs(const PubKey& Pubk, const PoWSolution& DSPOWSoln);
-  MapOfPubKeyPoW GetAllDSPoWs();
   void ClearDSPoWSolns();
   std::array<unsigned char, 32> GetDSPoWSoln(const PubKey& Pubk);
-  bool IsNodeSubmittedDSPoWSoln(const PubKey& Pubk);
   uint32_t GetNumberOfDSPoWSolns();
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary();

@@ -1506,23 +1506,6 @@ bool Node::CheckMicroBlockValidity(zbytes& errorMsg,
   // persistent storage lib)
 }
 
-bool Node::PrePrepMicroBlockValidator(
-    const zbytes& message, unsigned int offset, zbytes& errorMsg,
-    const uint32_t consensusID, const uint64_t blockNumber,
-    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    zbytes& messageToCosign) {
-  LOG_MARKER();
-  if (!MicroBlockValidator(message, offset, errorMsg, consensusID, blockNumber,
-                           blockHash, leaderID, leaderKey, messageToCosign)) {
-    LOG_GENERAL(WARNING, "PrePhase - Microblock validitation failed")
-    m_microblock = nullptr;
-    return false;
-  }
-  m_microblock = nullptr;
-
-  return true;
-}
-
 bool Node::MicroBlockValidator(const zbytes& message, unsigned int offset,
                                zbytes& errorMsg, const uint32_t consensusID,
                                const uint64_t blockNumber,

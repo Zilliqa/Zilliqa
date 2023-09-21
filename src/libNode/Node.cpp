@@ -1342,6 +1342,8 @@ void Node::WakeupAtTxEpoch() {
     return;
   }
 
+  LOG_GENERAL(WARNING, "BZ Node::WakeupAtTxEpoch() enter");
+
   lock_guard<mutex> g(m_mutexShardMember);
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     m_myShardMembers = m_mediator.m_DSCommittee;
@@ -1361,8 +1363,6 @@ void Node::WakeupAtTxEpoch() {
 
       zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
-    m_mediator.m_ds->SetState(
-        DirectoryService::DirState::MICROBLOCK_SUBMISSION);
     auto func = [this]() mutable -> void {
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     };
@@ -1482,39 +1482,6 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
     return consensusLeaderIndex;
   } else {
     return lastBlockHash % sizeOfShard;
-  }
-}
-
-uint32_t Node::CalculateShardLeaderFromShard(
-    uint16_t lastBlockHash, uint32_t sizeOfShard,
-    const DequeOfShardMembers &shardMembers, PairOfNode &shardLeader) {
-  LOG_MARKER();
-  uint32_t consensusLeaderIndex = lastBlockHash % shardMembers.size();
-  if (GUARD_MODE) {
-    unsigned int iterationCount = 0;
-    while (!Guard::GetInstance().IsNodeInShardGuardList(
-               std::get<SHARD_NODE_PUBKEY>(
-                   shardMembers.at(consensusLeaderIndex))) &&
-           (iterationCount < SHARD_LEADER_SELECT_TOL)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "consensusLeaderIndex " << consensusLeaderIndex
-                                        << " is not a shard guard.");
-      SHA256Calculator sha2;
-      sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
-          lastBlockHash));
-      lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-      consensusLeaderIndex = lastBlockHash % shardMembers.size();
-      iterationCount++;
-    }
-    shardLeader = make_pair(
-        std::get<SHARD_NODE_PUBKEY>(shardMembers.at(consensusLeaderIndex)),
-        std::get<SHARD_NODE_PEER>(shardMembers.at(consensusLeaderIndex)));
-    return consensusLeaderIndex;
-  } else {
-    shardLeader = make_pair(
-        std::get<SHARD_NODE_PUBKEY>(shardMembers.at(consensusLeaderIndex)),
-        std::get<SHARD_NODE_PEER>(shardMembers.at(consensusLeaderIndex)));
-    return consensusLeaderIndex;
   }
 }
 
@@ -1786,8 +1753,7 @@ bool Node::ProcessTxnPacketFromLookup(
   // BZ -- remove this:
 
   const bool properReq1 =
-      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION);
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE);
 
   const bool properReq2 =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&

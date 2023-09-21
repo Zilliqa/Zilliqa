@@ -240,6 +240,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
       !m_mediator.GetIsVacuousEpoch()) {
+    LOG_GENERAL(WARNING, "BZ RunConsensusOnFinalBlockWhenDSPrimary giving: "
+                             << EXTRA_TX_DISTRIBUTE_TIME_IN_MS
+                             << " before really starting");
     std::this_thread::sleep_for(
         chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
   }
@@ -367,11 +370,11 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
         messageToCosign);
   };
 
-  cl->StartConsensus(preprepFBAnnouncementGeneratorFunc,
-                     newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
-
   LOG_GENERAL(WARNING, "BZ Running Final block consensus from leader");
   SetState(FINALBLOCK_CONSENSUS);
+
+  cl->StartConsensus(preprepFBAnnouncementGeneratorFunc,
+                     newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
 
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
@@ -1394,12 +1397,13 @@ void DirectoryService::RunConsensusOnFinalBlock() {
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    if (!(m_state == VIEWCHANGE_CONSENSUS || m_state == MICROBLOCK_SUBMISSION ||
-          m_state == FINALBLOCK_CONSENSUS_PREP)) {
+    if (m_state != VIEWCHANGE_CONSENSUS &&
+        m_state != FINALBLOCK_CONSENSUS_PREP &&
+        m_state != FINALBLOCK_CONSENSUS) {
       LOG_GENERAL(WARNING,
                   "DirectoryService::RunConsensusOnFinalBlock "
                   "is not allowed in current state "
-                      << m_state);
+                      << std::hex << static_cast<int>(m_state));
       return;
     }
 

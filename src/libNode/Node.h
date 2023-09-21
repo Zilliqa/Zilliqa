@@ -341,14 +341,6 @@ class Node : public Executable {
   // Transaction functions
   bool OnCommitFailure(const std::map<unsigned int, zbytes>&);
 
-  bool PrePrepMicroBlockValidator(const zbytes& message, unsigned int offset,
-                                  zbytes& errorMsg, const uint32_t consensusID,
-                                  const uint64_t blockNumber,
-                                  const zbytes& blockHash,
-                                  const uint16_t leaderID,
-                                  const PubKey& leaderKey,
-                                  zbytes& messageToCosign);
-  bool ComposeMicroBlockMessageForSender(zbytes& microblock_message) const;
   bool MicroBlockValidator(const zbytes& message, unsigned int offset,
                            zbytes& errorMsg, const uint32_t consensusID,
                            const uint64_t blockNumber, const zbytes& blockHash,
@@ -409,8 +401,6 @@ class Node : public Executable {
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
     WAITING_DSBLOCK,
-    // MICROBLOCK_CONSENSUS_PREP,
-    // MICROBLOCK_CONSENSUS,
     WAITING_FINALBLOCK,
     SYNC
   };
@@ -693,11 +683,6 @@ class Node : public Executable {
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
                                                const DequeOfNode& shardMembers);
-  uint32_t CalculateShardLeaderFromShard(uint16_t lastBlockHash,
-                                         uint32_t sizeOfShard,
-                                         const DequeOfShardMembers& members,
-                                         PairOfNode& shardLeader);
-
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
                           const DequeOfNode& dsCommittee, PairOfNode& dsLeader);
