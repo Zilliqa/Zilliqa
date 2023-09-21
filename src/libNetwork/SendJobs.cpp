@@ -325,7 +325,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
     if (!ec) {
       m_connected = true;
-      WaitForEOF();
       SendMessage();
     } else {
       m_connected = false;
@@ -333,38 +332,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
   }
 
-  void WaitForEOF() {
-    if (m_closed) {
-      return;
-    }
-
-    m_socket.set_option(boost::asio::socket_base::keep_alive(true));
-
-    m_socket.async_read_some(
-        GetDummyBuffer(),
-        [self = shared_from_this()](const ErrorCode& ec, size_t n) {
-          if (ec == OPERATION_ABORTED) {
-            return;
-          }
-
-          if (!ec) {
-            LOG_GENERAL(DEBUG, "Peer " << self->m_peer << " got unexpected "
-                                       << n << " bytes");
-            self->WaitForEOF();
-            return;
-          }
-
-          if (ec != END_OF_FILE) {
-            LOG_GENERAL(DEBUG, "Peer " << self->m_peer << " closed with error: "
-                                       << ec.message());
-          } else {
-            LOG_GENERAL(DEBUG, "EOF, peer=" << self->m_peer);
-          }
-
-          self->m_connected = false;
-          self->ScheduleReconnectOrGiveUp();
-        });
-  }
 
   bool FindNotExpiredMessage() {
     auto clock = Clock();
