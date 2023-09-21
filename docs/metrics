@@ -6,7 +6,7 @@ Metrics are enabled in the cpp code by including the file
 
 The library support for metrics is provided in libUtils so you must link with this libs if you use metrics in your library module.
 
-Metrics.h contains a number of useful Macros that simplfy the definition of metrics.
+Metrics.h contains a number of useful Macros that simplify the definition of metrics.
 
 INCREMENT_METHOD_CALLS_COUNTER(COUNTER, FILTER_CLASS)
 INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE)
@@ -46,19 +46,19 @@ This file contains the filter definition which again is a macro.
 
 One may simply add a new definition into this macro and that's it all complexity taken care of.
 
-This same pattern is used in the trace Filters and is implemented as a 64bit mask where each bit represents one of the classes defined here, this makes filtering extremely fast as its a simple test of the bit been set to enable or disable that class of filter at runtime.
+This same pattern is used in the trace Filters and is implemented as a 64bit mask where each bit represents one of the classes defined here, this makes filtering extremely fast as it's a simple test of the bit been set to enable or disable that class of filter at runtime.
 
 
 That set of instructions covers simple incrementing counters.
 
-You can also have non incrementing metrics,  set the metric to any numeric value you please such as height or queue length. These metrics are implemented via a call back which is when the metric is captured.
+You can also have non incrementing metrics, set the metric to any numeric value you please such as height or queue length. These metrics are implemented via a call back which is when the metric is captured.
 
 
-These are slightly more complex in that you define the metric as an observable counter in you class or namespace.
+These are slightly more complex in that you define the metric as an observable counter in your class or namespace.
 
 The observable.
 
-In this example it was define in ScillaIPCServer.h
+In this example it was defined in ScillaIPCServer.h
 
 zil::metrics::Observable m_bcInfoCount{
     Metrics::GetInstance().CreateInt64Gauge(
@@ -79,5 +79,5 @@ Periodically the open-telemetry services will invoke this method and move the va
 
 All the rest of the naming for the metric by the time it arrives at prometheus is handled by the implementation.
 
-the metric will contains host/pod class type units and any further qualifying attributes and values these will be documented very soon
+the metric will contain host/pod class type units and any further qualifying attributes and values these will be documented very soon
 once the software is delivered.
