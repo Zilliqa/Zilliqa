@@ -1161,24 +1161,6 @@ bool DirectoryService::PrePrepFinalBlockValidator(
               "m_mediator.m_node->m_microblock is: "
                   << m_mediator.m_node->m_microblock->GetBlockHash().hex());
 
-  // the below function is shouldn't be called here anymore in desharded conf
-  /* if (!CheckMicroBlocks(errorMsg, false,
-                        true)) {  // Firstly check whether the leader
-                                  // has any mb that I don't have
-    m_mediator.m_node->m_microblock = nullptr;
-    AccountStore::GetInstance().InitTemp();
-    AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
-    AccountStore::GetInstance().SerializeDelta();
-
-    LOG_GENERAL(WARNING, "Proposed Preprep finalblock is not valid");
-    if (m_consensusObject->GetConsensusErrorCode() ==
-        ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS) {
-      errorMsg.insert(errorMsg.begin(), DSFBMISSINGMB);
-    }
-
-    return false;
-  } */
-
   errorMsg.clear();
   // check if the DS microblock is valid
   if (m_mediator.m_node->m_microblock != nullptr) {
