@@ -1,5 +1,4 @@
 import {expect} from "chai";
-import {parallelizer} from "../../helpers";
 import hre, {web3} from "hardhat";
 import {Contract} from "web3-eth-contract";
 import BN from "bn.js";
@@ -13,7 +12,7 @@ describe("Contract destruction with web3.js", function () {
   describe("When a user method call", function () {
     let contract: Contract;
     before(async function () {
-      contract = await parallelizer.deployContractWeb3("ParentContract", {value: amountPaid});
+      contract = await hre.deployContractWeb3("ParentContract", {value: amountPaid});
     });
 
     it("should be destructed and coins in the contract should be transferred to the address specified in the method [@transactional]", async function () {
@@ -32,7 +31,7 @@ describe("Contract destruction with web3.js", function () {
   describe("When a method call happens through another contract", function () {
     let contract: Contract;
     before(async function () {
-      contract = await parallelizer.deployContractWeb3("ParentContract", {value: amountPaid});
+      contract = await hre.deployContractWeb3("ParentContract", {value: amountPaid});
     });
 
     it("Should be destructed and coins in the contract should be transferred to the address specified in the method [@transactional]", async function () {

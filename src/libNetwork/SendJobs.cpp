@@ -401,13 +401,13 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-#if LOG_EXTRA_ENABLED
+
     if (msg.size >= 2) {
       auto* p = (const unsigned char*)msg.data.get();
       LOG_EXTRA(FormatMessageName(p[0], p[1])
                 << " of size " << msg.size << " to " << m_peer);
     }
-#endif
+
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -440,13 +440,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     m_queue.pop_front();
-
-    if (m_isMultiplier) {
-      m_connected = false;
-      Reconnect();
-    } else {
-      SendMessage();
-    }
+    SendMessage();
   }
 
   void ScheduleReconnectOrGiveUp() {
@@ -577,9 +571,7 @@ class SendJobsImpl : public SendJobs,
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
-      // TODO - Confirm
       bool is_multiplier = m_multipliers.contains(peer);
-      //bool is_multiplier = false;
       ctx = std::make_shared<PeerSendQueue>(
           m_asioCtx, m_doneCallback, std::move(peer), is_multiplier, false);
     }

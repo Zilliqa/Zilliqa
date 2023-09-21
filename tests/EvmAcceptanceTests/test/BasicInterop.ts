@@ -18,11 +18,11 @@ describe("BasicInterop", function () {
   let scillaContractAddress: string;
 
   before(async function () {
-    solidityContract = await parallelizer.deployContract("BasicInterop");
-
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
+
+    solidityContract = await hre.deployContract("BasicInterop");
 
     scillaContract = await parallelizer.deployScillaContract(
       "BasicInterop",

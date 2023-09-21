@@ -1,18 +1,20 @@
 import {expect} from "chai";
-import {parallelizer} from "../helpers";
+import hre from "hardhat";
+import {Contract} from "ethers";
 
 // TODO: Change the description to something more meaningful.
-describe("Blockchain Instructions contract", function () {
+describe("Blockchain Instructions contract #parallel", function () {
+  let contract: Contract;
   before(async function () {
-    this.contract = await parallelizer.deployContract("BlockchainInstructions");
+    contract = await hre.deployContract("BlockchainInstructions");
   });
 
-  it("Should be deployed successfully", async function () {
-    expect(this.contract.address).to.be.properAddress;
+  it("Should be deployed successfully @block-1", async function () {
+    expect(contract.address).to.be.properAddress;
   });
 
-  it("Should return the owner address when getOrigin function is called", async function () {
-    const owner = this.contract.signer;
-    expect(await this.contract.getOrigin()).to.be.eq(owner.address);
+  it("Should return the owner address when getOrigin function is called @block-1", async function () {
+    const owner = contract.signer;
+    expect(await contract.getOrigin()).to.be.eq(await owner.getAddress());
   });
 });

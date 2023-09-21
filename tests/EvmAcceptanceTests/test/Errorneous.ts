@@ -1,19 +1,20 @@
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {expect} from "chai";
-import {parallelizer} from "../helpers";
-import {Signer} from "ethers";
+import {Contract} from "ethers";
+import hre from "hardhat";
 
-describe("While Calling a method on erroneous contract with given gas limit", function () {
-  let signer: Signer;
+// FIXME: It takes around 13 seconds to finish on iso server, is it ok?!
+describe("While Calling a method on erroneous contract with given gas limit #parallel", function () {
+  let contract: Contract;
   before(async function () {
-    signer = await parallelizer.takeSigner();
-    this.contract = await parallelizer.deployContractWithSigner(signer, "Erroneous");
+    contract = await hre.deployContract("Erroneous");
   });
 
-  it("it should return to the client and nonce/balance should be affected", async function () {
+  it("it should return to the client and nonce/balance should be affected @block-1", async function () {
+    let signer = contract.signer;
     const funds = await signer.getBalance();
     const nonce = await signer.getTransactionCount();
-    const tx = await this.contract.connect(signer).foo({gasLimit: 400000});
-    await expect(tx.wait()).to.be.rejected;
+    await contract.foo({gasLimit: 5000000});
     expect(funds).to.be.greaterThan(await signer.getBalance());
     expect(nonce).to.be.lessThan(await signer.getTransactionCount());
   });

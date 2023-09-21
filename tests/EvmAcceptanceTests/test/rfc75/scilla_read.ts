@@ -18,7 +18,7 @@ describe("RFC75 ScillaRead", function () {
   let scillaContractAddress: string;
 
   before(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaRead");
+    solidityContract = await hre.deployContract("ScillaRead");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();

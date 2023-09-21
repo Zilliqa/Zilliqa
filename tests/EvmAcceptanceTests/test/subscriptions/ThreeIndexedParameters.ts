@@ -4,17 +4,16 @@ import chai from "chai";
 chai.use(deepEqualInAnyOrder);
 
 import {expect} from "chai";
-import {Contract, BigNumber} from "ethers";
+import {Contract} from "ethers";
 import hre, {ethers} from "hardhat";
-import {parallelizer} from "../../helpers";
 import {Event, waitForEvents} from "./shared";
 
-describe.skip("Subscriptions functionality", function () {
+describe("Subscriptions functionality", function () {
   let contract: Contract;
   let eventsContract: Contract;
   let senderAddress: string;
   before(async function () {
-    contract = await parallelizer.deployContract("Subscriptions");
+    contract = await hre.deployContract("Subscriptions");
     senderAddress = await contract.signer.getAddress();
   });
 

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG SCILLA_VERSION=v0.13.3
+ARG SCILLA_VERSION=v0.13.4
 ARG SCILLA_IMAGE=zilliqa/scilla:${SCILLA_VERSION}
 
 # Common dependencies of the builder and runner stages.
@@ -246,6 +246,14 @@ RUN python3 -m pip install --upgrade pip setuptools wheel \
   && python3 -m pip install --no-cache-dir -r requirements3.txt \
   && rm requirements3.txt
 
+RUN apt update -y \
+  && apt install -y apt-transport-https ca-certificates gnupg curl \
+  && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
+  && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
+  && apt update -y && apt install -y google-cloud-cli && pip3 uninstall crcmod && pip3 install --no-cache-dir -U crcmod
+
+RUN python3 -m pip install leveldb
+COPY scripts/ /zilliqa/scripts
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
 ENTRYPOINT ["/bin/bash"]

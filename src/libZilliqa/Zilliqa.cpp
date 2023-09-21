@@ -516,6 +516,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
       }
 
       if (ENABLE_WEBSOCKET) {
+        LOG_GENERAL(WARNING, "Trying to start a websocket =" << options.port);
         m_mediator.m_websocketServer->Start();
       }
 
@@ -527,6 +528,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
           m_lookupServer->StartCollectorThread();
         }
         if (m_lookup.GetSyncType() == SyncType::NO_SYNC) {
+          LOG_GENERAL(INFO, "Trying to start a lookup listener" );
           if (m_lookupServer->StartListening()) {
             LOG_GENERAL(INFO, "API Server started successfully");
 

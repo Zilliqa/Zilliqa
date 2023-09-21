@@ -1,35 +1,66 @@
-import {ethers} from "ethers";
+import {BigNumber, ethers} from "ethers";
 import {task} from "hardhat/config";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import fs from "fs";
+import {join} from "path";
+import clc from "cli-color";
+import ora from "ora";
 
-task("initSigners", "A task to init signers")
+task("init-signers", "A task to init signers")
   .addParam("from", "Sender's private key")
   .addParam("count", "Number of signers to be generated")
   .addParam("balance", "Balance of each newly generated signers")
+  .addFlag("append", "Append new signers to the end of the .signer-<network> file")
   .setAction(async (taskArgs, hre) => {
-    const {from, count, balance} = taskArgs;
-    const accounts: string[] = [];
-    for (let i = 0; i < Number(count); ++i) {
-      const account = ethers.Wallet.createRandom();
-      await fundEth(hre, from, account.address, balance);
-      accounts.push(account.privateKey);
-    }
+    const {from, count, balance, append} = taskArgs;
 
-    fs.writeFileSync(".signers", accounts.join("\n"));
+    const spinner = ora();
+    spinner.start(`Creating ${count} accounts...`);
+
+    const accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
+  
+    spinner.succeed();
+
+    const file_name = `${hre.network.name}.json`;
+
+    try {
+      await writeToFile(accounts.map(account => account.privateKey), append, file_name);
+      console.log();
+      console.log(
+        clc.bold(`.signers/${file_name}`),
+        clc.blackBright(`${append ? "updated" : "created"} successfully.`)
+      );
+    } catch (error) {
+      console.log(clc.red(error));
+    }
   });
 
-const fundEth = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: string, amount: string) => {
-  const provider = new ethers.providers.JsonRpcProvider(hre.getNetworkUrl());
-  const wallet = new ethers.Wallet(privateKey, provider);
+const writeToFile = async (signers: string[], append: boolean, file_name: string) => {
+  await fs.promises.mkdir(".signers", {recursive: true});
+  const current_signers: string[] = append
+    ? JSON.parse(await fs.promises.readFile(join(".signers", file_name), "utf8"))
+    : [];
+
+  current_signers.push(...signers);
+  await fs.promises.writeFile(join(".signers", file_name), JSON.stringify(current_signers));
+};
+
+const createAccountsEth = async (hre: HardhatRuntimeEnvironment, privateKey: string, amount: BigNumber, count: number) => {
+  const wallet = new ethers.Wallet(privateKey, hre.ethers.provider);
+
   if ((await wallet.getBalance()).isZero()) {
     throw new Error("Sender doesn't have enough fund in its eth address.");
   }
 
-  const response = await wallet.sendTransaction({
-    to: to.toString(),
-    value: ethers.utils.parseEther(amount)
+  const accounts = Array.from({length: count}, (v, k) =>
+    ethers.Wallet.createRandom().connect(hre.ethers.provider)
+  );
+
+  const addresses = accounts.map((signer) => signer.address);
+
+  await hre.deployContractWithSigner("BatchTransferCtor", wallet, addresses, amount, {
+    value: amount.mul(count)
   });
 
-  return response.wait(); // Wait for transaction receipt
+  return accounts;
 };

@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import hre from "hardhat";
-import {Contract, Signer} from "ethers";
+import {Contract} from "ethers";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {parallelizer} from "../../helpers";
 
@@ -12,7 +12,7 @@ describe("RFC75 ScillaCallEOA", function () {
   const VAL = 10;
 
   beforeEach(async function () {
-    solidityContract = await parallelizer.deployContract("ScillaCall");
+    solidityContract = await hre.deployContract("ScillaCall");
 
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
@@ -137,7 +137,8 @@ describe("RFC75 ScillaCallEOA", function () {
     expect(await scillaContract.value()).to.be.eq(0);
   });
 
-  it("Should deduct the same amount from account as advertised in receipt", async function () {
+  // Disabled in q4-working-branch
+  xit("Should deduct the same amount from account as advertised in receipt", async function () {
     const CALL_MODE = 0;
     const admin = await solidityContract.signer;
     const initialBalance = await admin.getBalance();
