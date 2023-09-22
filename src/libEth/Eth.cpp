@@ -285,7 +285,7 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
     boost::algorithm::hex(std::cbegin(ethhash.bytes), std::cend(ethhash.bytes),
                           std::back_inserter(topic0));
     converted["topics"].append(topic0);
-    converted["data"] = ConvertScillaEventToEthAbi(
+    converted["data"] = "0x" + ConvertScillaEventToEthAbi(
         JSONUtils::GetInstance().convertJsontoStr(event));
     convertedEvents.append(converted);
   }

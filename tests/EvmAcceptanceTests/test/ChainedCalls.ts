@@ -1,7 +1,7 @@
-import { assert, expect } from "chai";
-import { Contract } from "ethers";
+import {assert, expect} from "chai";
+import {Contract} from "ethers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
-import hre, { ethers } from "hardhat";
+import hre, {ethers} from "hardhat";
 
 describe("Chained Contract Calls Functionality #parallel", function () {
   let contractOne: Contract;
@@ -13,7 +13,8 @@ describe("Chained Contract Calls Functionality #parallel", function () {
       [contractOne, contractTwo, contractThree] = await Promise.all([
         await hre.deployContract("ContractOne"),
         await hre.deployContract("ContractTwo"),
-        await hre.deployContract("ContractThree")]);
+        await hre.deployContract("ContractThree")
+      ]);
     } else {
       contractOne = await hre.deployContract("ContractOne");
       contractTwo = await hre.deployContract("ContractTwo");

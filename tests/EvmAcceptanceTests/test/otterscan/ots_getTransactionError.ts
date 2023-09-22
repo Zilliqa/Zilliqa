@@ -1,7 +1,7 @@
 import {assert, expect} from "chai";
 import hre, {ethers} from "hardhat";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import { Contract } from "ethers";
+import {Contract} from "ethers";
 
 const METHOD = "ots_getTransactionError";
 describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
@@ -37,5 +37,4 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
       assert.equal(jsonObject, MESSAGE_ENCODED);
     });
   });
-
 });

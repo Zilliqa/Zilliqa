@@ -1,9 +1,9 @@
 import {expect} from "chai";
 import hre, {ethers} from "hardhat";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
-import { Contract } from "ethers";
+import {Contract} from "ethers";
 
-describe("Contract Deployment using Ethers.js", function () {
+describe("Contract Deployment using Ethers.js #parallel", function () {
   describe("Contract with zero parameter constructor", function () {
     let signer: SignerWithAddress;
     let nonceBeforeDeploy: number;

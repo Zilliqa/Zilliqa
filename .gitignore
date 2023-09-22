@@ -96,6 +96,7 @@ compile_commands.json
 .vscode
 .history
 cmake-build-*
+.cache
 
 # Files from running isolated server
 persistence/

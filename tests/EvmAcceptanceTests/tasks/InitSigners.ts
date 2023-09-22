@@ -18,13 +18,16 @@ task("init-signers", "A task to init signers")
     spinner.start(`Creating ${count} accounts...`);
 
     const accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
-  
     spinner.succeed();
 
     const file_name = `${hre.network.name}.json`;
 
     try {
-      await writeToFile(accounts.map(account => account.privateKey), append, file_name);
+      await writeToFile(
+        accounts.map((account) => account.privateKey),
+        append,
+        file_name
+      );
       console.log();
       console.log(
         clc.bold(`.signers/${file_name}`),
@@ -45,16 +48,19 @@ const writeToFile = async (signers: string[], append: boolean, file_name: string
   await fs.promises.writeFile(join(".signers", file_name), JSON.stringify(current_signers));
 };
 
-const createAccountsEth = async (hre: HardhatRuntimeEnvironment, privateKey: string, amount: BigNumber, count: number) => {
+const createAccountsEth = async (
+  hre: HardhatRuntimeEnvironment,
+  privateKey: string,
+  amount: BigNumber,
+  count: number
+) => {
   const wallet = new ethers.Wallet(privateKey, hre.ethers.provider);
 
   if ((await wallet.getBalance()).isZero()) {
     throw new Error("Sender doesn't have enough fund in its eth address.");
   }
 
-  const accounts = Array.from({length: count}, (v, k) =>
-    ethers.Wallet.createRandom().connect(hre.ethers.provider)
-  );
+  const accounts = Array.from({length: count}, (v, k) => ethers.Wallet.createRandom().connect(hre.ethers.provider));
 
   const addresses = accounts.map((signer) => signer.address);
 

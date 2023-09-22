@@ -19,7 +19,9 @@ describe("ForwardZil contract functionality #parallel", function () {
     expect(await ethers.provider.getBalance(contract.address)).to.be.eq(0);
   });
 
-  it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called @block-1`, async function () {
+  it(`Should move ${ethers.utils.formatEther(
+    FUND
+  )} ethers to the contract if deposit is called @block-1`, async function () {
     await contract.deposit({value: FUND});
     expect(await ethers.provider.getBalance(contract.address)).to.be.eq(FUND);
   });

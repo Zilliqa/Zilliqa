@@ -14,7 +14,6 @@ task("parallel-test", "Runs test in parallel")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile");
     const signersCount = hre.signer_pool.count();
-  
     const {grep, testFiles}: {grep: string | undefined; testFiles: string[]} = taskArgs;
 
     // Running Typescript
@@ -44,7 +43,7 @@ task("parallel-test", "Runs test in parallel")
     // Display results
     await hre.run("parallel-test:output-results", {failures});
 
-    console.log(`🪪  ${clc.bold.white(signersCount - hre.signer_pool.count())} signers used.`)
+    console.log(`🪪  ${clc.bold.white(signersCount - hre.signer_pool.count())} signers used.`);
   });
 
 subtask("parallel-test:run-tsc", "Runs tsc to make sure everything's synced").setAction(async () => {
@@ -110,7 +109,6 @@ subtask("parallel-test:parse-files", "Parses files to extract parallel tests")
                 displayIgnored(`\`${scenario.scenario_name}\` doesn't have any tests. Did you add @block-n to tests?`);
                 return;
               }
-              
               beforeFns.push(...scenario.beforeHooks.map((hook) => hook()));
               scenarios.push(scenario);
             });
@@ -171,7 +169,7 @@ subtask("parallel-test:run", "Runs the tests").setAction(async (taskArgs) => {
 
 subtask("parallel-test:output-results", "Outputs test results").setAction(async (taskArgs) => {
   const {failures}: {failures: FailureResult[]} = taskArgs;
-  const space = (n: number) => ' '.repeat(n);
+  const space = (n: number) => " ".repeat(n);
 
   if (failures.length > 0) {
     console.log(clc.bold.bgRed(`Failures (${failures.length})`));
@@ -181,11 +179,19 @@ subtask("parallel-test:output-results", "Outputs test results").setAction(async 
       failure.describes.forEach((describe, describeIndex) => {
         currentIndent += describeIndex;
         console.log(`${space(currentIndent)}${describe}`);
-      })
+      });
       console.log(`${space(currentIndent + 1)}${clc.white.bold(failure.test_case)}`);
-      console.log(`${space(currentIndent + 2)}${clc.red.bold("Actual: ")} ${clc.red((failure.result as any).reason.actual)}`);
-      console.log(`${space(currentIndent + 2)}${clc.green.bold("Expected: ")} ${clc.red((failure.result as any).reason.expected)}`);
-      console.log(`${space(currentIndent + 2)}${clc.yellow.bold("Operator: ")} ${clc.red((failure.result as any).reason.operator)}`);
+      console.log(
+        `${space(currentIndent + 2)}${clc.red.bold("Actual: ")} ${clc.red((failure.result as any).reason.actual)}`
+      );
+      console.log(
+        `${space(currentIndent + 2)}${clc.green.bold("Expected: ")} ${clc.red((failure.result as any).reason.expected)}`
+      );
+      console.log(
+        `${space(currentIndent + 2)}${clc.yellow.bold("Operator: ")} ${clc.red(
+          (failure.result as any).reason.operator
+        )}`
+      );
       console.log();
     });
   }

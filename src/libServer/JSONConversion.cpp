@@ -152,17 +152,17 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
  txblock.Serialize(serializedTxBlock, 0);
  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
- retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
- retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
- retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
- retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
- retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
- // Required by ethers
- retJson["extraData"] = "0x";
- retJson["nonce"] = "0x0000000000000000";
- retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
- retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
- Eth::LogBloom logBloom{};
+  retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
+  retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+  retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
+  retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
+  // Required by ethers
+  retJson["extraData"] = "0x";
+  retJson["nonce"] = "0x0000000000000000";
+  retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  Eth::LogBloom logBloom{};
 
  auto transactionsJson = Json::Value{Json::arrayValue};
  for (size_t i = 0; i < transactions.size(); ++i) {
