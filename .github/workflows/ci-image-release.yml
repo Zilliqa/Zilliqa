@@ -21,6 +21,9 @@ jobs:
       id-token: write
       contents: write
     runs-on: docker
+    env:
+      GCP_REGISTRY_DOMAIN: asia-docker.pkg.dev
+      GCP_PRIVATE_REGISTRY: asia-docker.pkg.dev/${{ secrets.GCP_PRD_REGISTRY_PROJECT_ID }}/zilliqa-private
     steps:
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'
       uses: actions/checkout@v3
@@ -33,18 +36,32 @@ jobs:
         role-to-assume: ${{ secrets.ECR_DEPLOYER_ROLE }}
         oidc-role: ${{ secrets.OIDC_ROLE }}
         aws-region: ${{ secrets.AWS_REGION_ZILLIQA }}
-    - name: Login to the registry
+    - name: Login to the AWS registry
       uses: docker/login-action@v2
       with:
         registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
+    - name: "Configure GCP Credentials"
+      id: google-auth
+      uses: "google-github-actions/auth@v1"
+      with:
+        token_format: "access_token"
+        workload_identity_provider: "${{ secrets.GCP_PRD_GITHUB_WIF }}"
+        service_account: "${{ secrets.GCP_PRD_GITHUB_SA_DOCKER_REGISTRY }}"
+        create_credentials_file: true
+    - name: Login to the GCP registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.GCP_REGISTRY_DOMAIN }}
+        username: "oauth2accesstoken"
+        password: "${{ steps.google-auth.outputs.access_token }}"
     - name: Image tag
       id: set-tag
       run: echo "tag=v$(tail -n +2 VERSION | head -n1).$(tail -n +4 VERSION | head -n1).$(tail -n +6 VERSION | head -n1)" >> $GITHUB_OUTPUT
       shell: bash
     - name: Build Docker images
-      run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}  -t zilliqa/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
+      run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}  -t zilliqa/zilliqa:${{ steps.set-tag.outputs.tag }} -t ${{ env.GCP_PRIVATE_REGISTRY }}/zilliqa:${{ steps.set-tag.outputs.tag }} -f docker/Dockerfile .
       shell: bash
-    - name: Push Docker images
+    - name: Push Docker images to AWS
       run: docker push ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash
     - name: Login to the DockerHub
@@ -52,6 +69,9 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
-    - name: Push Docker images
+    - name: Push Docker images to Dockerhub
       run: docker push zilliqa/zilliqa:${{ steps.set-tag.outputs.tag }}
+      shell: bash
+    - name: Push Docker images to GCP
+      run: docker push ${{ env.GCP_PRIVATE_REGISTRY }}/zilliqa:${{ steps.set-tag.outputs.tag }}
       shell: bash
