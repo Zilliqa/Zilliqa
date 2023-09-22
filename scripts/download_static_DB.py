@@ -44,8 +44,13 @@ DOWNLOAD_STARTED_LIST = []
 CREATED_FOLDER_LIST = []
 AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
 
+def isGCP():
+	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
+
 def getURL():
-	if AWS_ENDPOINT_URL:
+	if isGCP():
+		return "http://"+BUCKET_NAME+".storage.googleapis.com"
+	elif AWS_ENDPOINT_URL:
 		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
 	else:
 		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
@@ -169,25 +174,22 @@ def GetAllObjectsFromS3(url, folderName=""):
 	# Try get the entire persistence keys.
 	# S3 limitation to get only max 1000 keys. so work around using marker.
 	while True:
-		response = requests.get(url, params={"prefix":prefix, "max-keys":1000, "marker": MARKER})
+		response = requests.get(url, params={"prefix":prefix, "list-type": 1, "max-keys":1000, "marker": MARKER})
 		tree = ET.fromstring(response.text)
-		startInd = 5
-		if(tree[startInd:] == []):
-			print("Empty response")
-			return False
 		print("[" + str(datetime.datetime.now()) + "] Files to be downloaded:")
 		lastkey = ''
-		for key in tree[startInd:]:
-			key_url = key[0].text
+		for key in tree.findall("{*}Contents"):
+			# skip compressed blockchain-data file i.e. testnet-name.tar.gz
+			key_url = key.find("{*}Key").text
 			if key_url.endswith("/"):
 				continue
 			list_of_keyurls.append(url+"/"+key_url)
 			print(key_url)
 			lastkey = key_url
-		istruncated=tree[4].text
-		if istruncated == 'true':
+		is_truncated = tree.find('{*}IsTruncated').text
+		if is_truncated == 'true':
 			MARKER=lastkey
-			print(istruncated)
+			print(is_truncated)
 		else:
 			break
 

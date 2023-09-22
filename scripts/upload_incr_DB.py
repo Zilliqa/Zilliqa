@@ -54,8 +54,13 @@ std_handler = logging.StreamHandler()
 std_handler.setFormatter(FORMATTER)
 rootLogger.addHandler(std_handler)
 
+def isGCP():
+	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
+
 def awsS3Url():
-	if AWS_ENDPOINT_URL:
+	if isGCP():
+		return "http://"+BUCKET_NAME+".storage.googleapis.com"
+	elif AWS_ENDPOINT_URL:
 		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
 	else:
 		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
