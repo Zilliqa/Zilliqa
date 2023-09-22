@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(test_GetDSCommitteeHash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_GetShardHash) {
-  Shard shard;
+  DequeOfShardMembers shard;
   CommitteeHash dst;
 
   for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
   for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
     shards.emplace_back();
     for (unsigned int j = 0, countj = TestUtils::Dist1to99(); j < countj; j++) {
-      shards.back().emplace_back(TestUtils::GenerateRandomPubKey(),
+      shards.emplace_back(TestUtils::GenerateRandomPubKey(),
                                  TestUtils::GenerateRandomPeer(),
                                  TestUtils::DistUint16());
     }

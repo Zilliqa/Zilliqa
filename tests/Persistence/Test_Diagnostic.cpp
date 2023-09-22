@@ -28,13 +28,10 @@
 
 using namespace std;
 
-void PrintShard(const DequeOfShardMembers& shards) {
-  for (const auto& shard : shards) {
-    LOG_GENERAL(INFO, "Shard:")
-    for (const auto& node : shard) {
-      LOG_GENERAL(INFO, "  Node: " << get<SHARD_NODE_PEER>(node) << " "
-                                   << get<SHARD_NODE_PUBKEY>(node));
-    }
+void PrintShard(const DequeOfShardMembers& shardMembers) {
+  for (const auto& node : shardMembers) {
+    LOG_GENERAL(INFO, "  Node: " << get<SHARD_NODE_PEER>(node) << " "
+                                 << get<SHARD_NODE_PUBKEY>(node));
   }
 }
 

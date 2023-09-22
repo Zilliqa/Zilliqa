@@ -96,12 +96,11 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   for (uint i = 0; i < num_test_epoch; i++) {
     uint j = 0;
-    for (const auto& shard : dummy_shards) {
-      b1 = GenerateRandomBooleanVector(shard.size());
+    const auto& shard = dummy_shards;
+    b1 = GenerateRandomBooleanVector(shard.size());
 
-      b2 = GenerateRandomBooleanVector(shard.size());
-      dummyDS.SaveCoinbaseCore(b1, b2, shard, j++, i + 1);
-    }
+    b2 = GenerateRandomBooleanVector(shard.size());
+    dummyDS.SaveCoinbaseCore(b1, b2, shard, j++, i + 1);
 
     b1 = GenerateRandomBooleanVector(dummy_ds_comm.size());
     b2 = GenerateRandomBooleanVector(dummy_ds_comm.size());
@@ -131,9 +130,7 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   };
 
   calcReward(dummy_ds_comm);
-  for (const auto& shard : dummy_shards) {
-    calcReward(shard);
-  }
+  calcReward( dummy_shards);
 
   auto normalReward = totalReward;
 
