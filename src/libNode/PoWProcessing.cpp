@@ -116,78 +116,77 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       FULL_DATASET_MINE, std::time(0), POW_WINDOW_IN_SECONDS);
 
   if (ds_pow_winning_result.success) {
-      LOG_GENERAL(INFO,
-              "DS diff soln = " << ds_pow_winning_result.result);
+    LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
 
-      LOG_GENERAL(INFO, "nonce   = " << hex << ds_pow_winning_result.winning_nonce);
-      LOG_GENERAL(INFO, "result  = " << hex << ds_pow_winning_result.result);
-      LOG_GENERAL(INFO, "mixhash = " << hex << ds_pow_winning_result.mix_hash);
-      auto checkerThread = [this]() mutable -> void {
-          unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
-          const unsigned int fixedDSNodesPoWTime =
-              NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-              POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
-          const unsigned int fixedDSBlockDistributionDelayTime =
-              DELAY_FIRSTXNEPOCH_IN_MS / 1000;
-          const unsigned int extraWaitTime = DSBLOCK_EXTRA_WAIT_TIME;
-          // TODO: cv fix
-          if (cv_waitDSBlock.wait_for(
-                      lk, chrono::seconds(fixedDSNodesPoWTime +
-                          fixedDSBlockDistributionDelayTime +
-                          extraWaitTime)) == cv_status::timeout) {
-              lock_guard<mutex> g(m_mutexDSBlock);
+    LOG_GENERAL(INFO,
+                "nonce   = " << hex << ds_pow_winning_result.winning_nonce);
+    LOG_GENERAL(INFO, "result  = " << hex << ds_pow_winning_result.result);
+    LOG_GENERAL(INFO, "mixhash = " << hex << ds_pow_winning_result.mix_hash);
+    auto checkerThread = [this]() mutable -> void {
+      unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
+      const unsigned int fixedDSNodesPoWTime =
+          NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+          POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
+      const unsigned int fixedDSBlockDistributionDelayTime =
+          DELAY_FIRSTXNEPOCH_IN_MS / 1000;
+      const unsigned int extraWaitTime = DSBLOCK_EXTRA_WAIT_TIME;
+      // TODO: cv fix
+      if (cv_waitDSBlock.wait_for(
+              lk, chrono::seconds(fixedDSNodesPoWTime +
+                                  fixedDSBlockDistributionDelayTime +
+                                  extraWaitTime)) == cv_status::timeout) {
+        lock_guard<mutex> g(m_mutexDSBlock);
 
-              POW::GetInstance().StopMining();
+        POW::GetInstance().StopMining();
 
-              if (m_mediator.m_currentEpochNum ==
-                      m_mediator.m_dsBlockChain.GetLastBlock()
-                      .GetHeader()
-                      .GetEpochNum()) {
-                  LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
-                  return;
-              }
+        if (m_mediator.m_currentEpochNum ==
+            m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetEpochNum()) {
+          LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
+          return;
+        }
 
-              LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                      "Time out while waiting for DS Block");
-              // notify wait in InitMining
-              m_mediator.m_lookup->cv_waitJoined.notify_all();
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                  "Time out while waiting for DS Block");
+        // notify wait in InitMining
+        m_mediator.m_lookup->cv_waitJoined.notify_all();
 
-              if (GetLatestDSBlock()) {
-                  LOG_GENERAL(INFO, "DS block created, means I lost PoW");
-                  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-                      // exciplitly declare in the same thread
-                      m_mediator.m_lookup->m_startedPoW = false;
-                  }
-                  m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
-                  StartSynchronization();
-              } else {
-                  LOG_GENERAL(WARNING, "DS block not recvd, will initiate rejoin");
-                  RejoinAsNormal();
-              }
+        if (GetLatestDSBlock()) {
+          LOG_GENERAL(INFO, "DS block created, means I lost PoW");
+          if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+            // exciplitly declare in the same thread
+            m_mediator.m_lookup->m_startedPoW = false;
           }
-      };
-      // Submission of PoW for ds commitee
-      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
-                  ds_pow_winning_result.winning_nonce,
-                  ds_pow_winning_result.result,
-                  ds_pow_winning_result.mix_hash, lookupId,
-                  m_proposedGasPrice)) {
-          return false;
-      } else{
-          DetachedFunction(1, checkerThread);
+          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+          StartSynchronization();
+        } else {
+          LOG_GENERAL(WARNING, "DS block not recvd, will initiate rejoin");
+          RejoinAsNormal();
+        }
       }
+    };
+    // Submission of PoW for ds commitee
+    if (!SendPoWResultToDSComm(
+            block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
+            ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
+            lookupId, m_proposedGasPrice)) {
+      return false;
+    } else {
+      DetachedFunction(1, checkerThread);
+    }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
-    LOG_GENERAL(INFO, "Failed to do PoW, setting to sync mode, try do pow in new DS epoch ");
+    LOG_GENERAL(
+        INFO,
+        "Failed to do PoW, setting to sync mode, try do pow in new DS epoch ");
     m_mediator.m_lookup->m_startedPoW = false;
     m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
     StartSynchronization();
     return false;
   }
 
-  if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
-    SetState(WAITING_DSBLOCK);
-  }
+  SetState(WAITING_DSBLOCK);
 
   return true;
 }

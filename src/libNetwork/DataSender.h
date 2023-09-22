@@ -29,9 +29,9 @@
 typedef std::function<bool(zbytes& message)> ComposeMessageForSenderFunc;
 typedef std::function<void(const VectorOfNode& lookups, const zbytes& message)>
     SendDataToLookupFunc;
-typedef std::function<void(const zbytes& message, const DequeOfShard& shards,
-                           const unsigned int& my_shards_lo,
-                           const unsigned int& my_shards_hi)>
+typedef std::function<void(
+    const zbytes& message, const DequeOfShardMembers& shards,
+    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi)>
     SendDataToShardFunc;
 
 extern SendDataToLookupFunc SendDataToLookupFuncDefault;
@@ -52,20 +52,18 @@ class DataSender : Singleton<DataSender> {
   void DetermineShardToSendDataTo(unsigned int& my_cluster_num,
                                   unsigned int& my_shards_lo,
                                   unsigned int& my_shards_hi,
-                                  const DequeOfShard& shards,
+                                  const DequeOfShardMembers& shards,
                                   const DequeOfNode& tmpCommittee,
                                   const uint16_t& indexB2);
 
-  void DetermineNodesToSendDataTo(
-      const DequeOfShard& shards,
-      const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-      const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
-      const unsigned int& my_shards_hi, bool forceMulticast,
-      std::deque<VectorOfPeer>& sharded_receivers);
+  void DetermineNodesToSendDataTo(const DequeOfShardMembers& shardMembers,
+                                  const uint16_t& consensusMyId,
+                                  bool forceMulticast,
+                                  std::deque<VectorOfPeer>& sharded_receivers);
 
   bool SendDataToOthers(
       const BlockBase& blockwcosig, const DequeOfNode& sendercommittee,
-      const DequeOfShard& shards,
+      const DequeOfShardMembers& shards,
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
       const VectorOfNode& lookups, const BlockHash& hashForRandom,
       const uint16_t& consensusMyId, const ComposeMessageForSenderFunc&,

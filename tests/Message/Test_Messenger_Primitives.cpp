@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(test_GetShardHash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
-  DequeOfShard shards;
+  DequeOfShardMembers shards;
   ShardingHash dst;
 
   for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
