@@ -162,7 +162,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["nonce"] = "0x0000000000000000";
   retJson["receiptsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
   retJson["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
- Eth::LogBloom logBloom{};
+  Eth::LogBloom logBloom{};
 
  auto transactionsJson = Json::Value{Json::arrayValue};
  for (size_t i = 0; i < transactions.size(); ++i) {

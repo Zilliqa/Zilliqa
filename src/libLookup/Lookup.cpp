@@ -1099,12 +1099,12 @@ DequeOfNode Lookup::GetDSComm() {
   return *m_mediator.m_DSCommittee;
 }
 
-DequeOfShard Lookup::GetShardPeers() {
+DequeOfShardMembers Lookup::GetShardPeers() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::GetShardPeers not expected to be called from "
                 "other than the LookUp node.");
-    return DequeOfShard();
+    return DequeOfShardMembers();
   }
 
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
@@ -1141,26 +1141,13 @@ bool Lookup::ProcessEntireShardingStructure() {
   unordered_set<Peer> t_nodesInNetwork;
   unsigned int totalNodeCount = 0;
 
-  for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++) {
-    unsigned int index = 0;
+  totalNodeCount += m_mediator.m_ds->m_shards.size();
 
-    totalNodeCount += m_mediator.m_ds->m_shards.at(i).size();
-    LOG_STATE("[SHARD " << to_string(i) << "] Num nodes = "
-                        << m_mediator.m_ds->m_shards.at(i).size());
+  for (const auto& shardNode : m_mediator.m_ds->m_shards) {
+    const Peer& peer = std::get<SHARD_NODE_PEER>(shardNode);
 
-    for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
-      const PubKey& key = std::get<SHARD_NODE_PUBKEY>(shardNode);
-      const Peer& peer = std::get<SHARD_NODE_PEER>(shardNode);
-
-      m_nodesInNetwork.emplace_back(peer);
-      t_nodesInNetwork.emplace(peer);
-
-      LOG_GENERAL(INFO, "[SHARD " << to_string(i) << "] "
-                                  << "[PEER " << to_string(index) << "] "
-                                  << string(key) << " " << string(peer));
-
-      index++;
-    }
+    m_nodesInNetwork.emplace_back(peer);
+    t_nodesInNetwork.emplace(peer);
   }
 
   LOG_STATE("[SHARDS] Total num nodes = " << totalNodeCount);
@@ -1680,7 +1667,7 @@ bool Lookup::ComposeAndStoreVCDSBlockMessage(const uint64_t& blockNum) {
 
   // Hack to make sure sharding structure is received if this node had just
   // rejoined.
-  DequeOfShard shardingStruct;
+  DequeOfShardMembers shardingStruct;
   {
     std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
     if (m_mediator.m_ds->m_shards.empty()) {
@@ -2238,11 +2225,12 @@ bool Lookup::ProcessSetShardFromSeed(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-  DequeOfShard shards;
+  DequeOfShardMembers shardMembers;
   PubKey senderPubKey;
   uint32_t shardingStructureVersion = 0;
-  if (!Messenger::GetLookupSetShardsFromSeed(
-          message, offset, senderPubKey, shardingStructureVersion, shards)) {
+  if (!Messenger::GetLookupSetShardsFromSeed(message, offset, senderPubKey,
+                                             shardingStructureVersion,
+                                             shardMembers)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupSetShardsFromSeed failed.");
     return false;
@@ -2264,16 +2252,13 @@ bool Lookup::ProcessSetShardFromSeed(
 
   LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
 
-  uint32_t i = 0;
-  for (const auto& shard : shards) {
-    LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
-    i++;
-  }
+  LOG_GENERAL(INFO, "Size of shard: " << shardMembers.size());
+
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
   LOG_EXTRA("Shards updated " << m_mediator.m_ds->m_shards.size() << "->"
-                              << shards.size());
-  m_mediator.m_ds->m_shards = std::move(shards);
+                              << shardMembers.size());
+  m_mediator.m_ds->m_shards = std::move(shardMembers);
 
   {
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
@@ -2647,10 +2632,6 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
   std::vector<MicroBlock> microblocks;
   for (const auto& mbInfo : microblockInfos) {
-    if (mbInfo.m_shardId ==
-        m_mediator.m_ds->GetNumShards()) {  // ignore ds microblock
-      continue;
-    }
     MicroBlockSharedPtr mbptr;
     retryCount = MAX_FETCH_BLOCK_RETRIES;
     while (retryCount > 0) {
@@ -5337,6 +5318,7 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
     auto transactionNumber = transactions.size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
+    LOG_GENERAL(INFO, "BZ shardId: " << m_mediator.m_node->GetShardId());
 
     if (transactions.empty()) {
       LOG_GENERAL(INFO, "No txns to send to ds shard");
@@ -5349,7 +5331,7 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
     result = Messenger::SetNodeForwardTxnBlock(
         msg, MessageOffset::BODY, epoch,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        m_mediator.m_selfKey, transactions);
+        m_mediator.m_node->GetShardId(), m_mediator.m_selfKey, transactions);
   }
 
   if (!result) {
@@ -5386,7 +5368,9 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
         }
       }
     }
-    LOG_GENERAL(WARNING, "BZ Broadcasting messages to shard from lookup...");
+    LOG_GENERAL(WARNING, "BZ Broadcasting messages to shard from lookup, size: "
+                             << toSend.size() << ", but max is: "
+                             << m_mediator.m_DSCommittee->size());
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
@@ -5488,14 +5472,14 @@ bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
   return deqNodes.cend() != iter;
 }
 
-bool Lookup::VerifySenderNode(const Shard& shard,
+bool Lookup::VerifySenderNode(const DequeOfShardMembers& shardMembers,
                               const PubKey& pubKeyToVerify) {
   auto iter = std::find_if(
-      shard.cbegin(), shard.cend(),
+      shardMembers.cbegin(), shardMembers.cend(),
       [&pubKeyToVerify](const tuple<PubKey, Peer, uint16_t>& node) {
         return get<SHARD_NODE_PUBKEY>(node) == pubKeyToVerify;
       });
-  return shard.cend() != iter;
+  return shardMembers.cend() != iter;
 }
 
 bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,

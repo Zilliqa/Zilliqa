@@ -14,7 +14,6 @@ task("parallel-test", "Runs test in parallel")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile");
     const signersCount = hre.signer_pool.count();
-
     const {grep, testFiles}: {grep: string | undefined; testFiles: string[]} = taskArgs;
 
     // Running Typescript
@@ -110,7 +109,6 @@ subtask("parallel-test:parse-files", "Parses files to extract parallel tests")
                 displayIgnored(`\`${scenario.scenario_name}\` doesn't have any tests. Did you add @block-n to tests?`);
                 return;
               }
-
               beforeFns.push(...scenario.beforeHooks.map((hook) => hook()));
               scenarios.push(scenario);
             });

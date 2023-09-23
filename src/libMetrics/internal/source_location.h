@@ -21,6 +21,8 @@
 // fake the class to get things to compile for apple,
 // will be implemented in clang 16, apple still on clang 14
 
+#if !defined(__clang__) || (__clang_major__ < 15)
+
 namespace std {
 struct source_location {
   // source location construction
@@ -36,5 +38,11 @@ struct source_location {
   constexpr const char* function_name() const noexcept { return __FUNCTION__; };
 };
 }  // namespace std
+
+#else
+
+#include <source_location>
+
+#endif
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_

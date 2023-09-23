@@ -162,7 +162,6 @@ bool DirectoryService::CheckState(Action action) {
       {POW_SUBMISSION, PROCESS_POWSUBMISSION},
       {POW_SUBMISSION, VERIFYPOW},
       {DSBLOCK_CONSENSUS, PROCESS_DSBLOCKCONSENSUS},
-      {MICROBLOCK_SUBMISSION, PROCESS_MICROBLOCKSUBMISSION},
       {FINALBLOCK_CONSENSUS, PROCESS_FINALBLOCKCONSENSUS},
       {VIEWCHANGE_CONSENSUS, PROCESS_VIEWCHANGECONSENSUS}};
 
@@ -468,7 +467,6 @@ bool DirectoryService::CleanVariables() {
 
   LOG_EXTRA("Shards cleared");
   m_shards.clear();
-  m_publicKeyToshardIdMap.clear();
   m_allPoWConns.clear();
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
@@ -479,8 +477,6 @@ bool DirectoryService::CleanVariables() {
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
   }
-
-  m_stopRecvNewMBSubmission = false;
 
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
@@ -714,8 +710,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
       m_mediator.m_node->LoadShardingStructure(true);
       lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
       m_mediator.m_ds->ProcessShardingStructure(
-          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-          m_mediator.m_ds->m_mapNodeReputation);
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_mapNodeReputation);
     }
   }
   // Not vacaous
@@ -748,11 +743,11 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
   m_mediator.m_consensusID = 0;
   m_mediator.m_node->SetConsensusLeaderID(0);
 
+  LOG_GENERAL(WARNING, "BZ Starting StartNewDSEpochConsensus consensus");
+
   CleanFinalBlockConsensusBuffer();
 
   m_mediator.m_node->CleanCreatedTransaction();
-
-  m_mediator.m_node->CleanMicroblockConsensusBuffer();
 
   cv_POWSubmission.notify_all();
 
@@ -846,16 +841,12 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
   }
 }
 
-void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
-  for (const auto& shard : m_shards) {
-    Shard t_shard;
-    for (const auto& node : shard) {
-      if (Guard::GetInstance().IsNodeInShardGuardList(
-              std::get<SHARD_NODE_PUBKEY>(node))) {
-        t_shard.emplace_back(node);
-      }
+void DirectoryService::ReloadGuardedShards(DequeOfShardMembers& shard) {
+  for (const auto& node : m_shards) {
+    if (Guard::GetInstance().IsNodeInShardGuardList(
+            std::get<SHARD_NODE_PUBKEY>(node))) {
+      shard.emplace_back(node);
     }
-    shards.emplace_back(t_shard);
   }
 }
 
@@ -863,13 +854,11 @@ bool DirectoryService::UpdateShardNodeNetworkInfo(
     const Peer& shardNodeNetworkInfo, const PubKey& pubKey) {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexShards);
-  for (auto& shard : m_shards) {
-    for (auto& node : shard) {
-      if (std::get<SHARD_NODE_PUBKEY>(node) == pubKey) {
-        std::get<SHARD_NODE_PEER>(node) = shardNodeNetworkInfo;
-        LOG_GENERAL(INFO, "updated network info successfully!");
-        return true;
-      }
+  for (auto& node : m_shards) {
+    if (std::get<SHARD_NODE_PUBKEY>(node) == pubKey) {
+      std::get<SHARD_NODE_PEER>(node) = shardNodeNetworkInfo;
+      LOG_GENERAL(INFO, "updated network info successfully!");
+      return true;
     }
   }
   return false;
@@ -1232,7 +1221,6 @@ map<DirectoryService::DirState, string> DirectoryService::DirStateStrings = {
     MAKE_LITERAL_PAIR(POW_SUBMISSION),
     MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS_PREP),
     MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS),
-    MAKE_LITERAL_PAIR(MICROBLOCK_SUBMISSION),
     MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS_PREP),
     MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
     MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS_PREP),
@@ -1356,8 +1344,8 @@ void DirectoryService::GetEntireNetworkPeerInfo(VectorOfNode& peers,
   }
 
   // Get the pubkeys for all other shard members aswell
-  for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
-    pubKeys.emplace_back(i.first);
+  for (const auto& i : m_mediator.m_ds->m_shards) {
+    pubKeys.emplace_back(std::get<SHARD_NODE_PUBKEY>(i));
   }
 
   // Get the pubKeys for lookup nodes
@@ -1372,20 +1360,6 @@ bool DirectoryService::CheckIfDSNode(const PubKey& submitterPubKey) {
   for (const auto& dsMember : *m_mediator.m_DSCommittee) {
     if (dsMember.first == submitterPubKey) {
       return true;
-    }
-  }
-
-  return false;
-}
-
-bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
-  lock_guard<mutex> g(m_mutexShards);
-
-  for (const auto& shard : m_shards) {
-    for (const auto& node : shard) {
-      if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
-        return true;
-      }
     }
   }
 

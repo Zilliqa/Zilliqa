@@ -608,7 +608,8 @@ void DSCommitteeToProtoCommittee(const DequeOfNode& dsCommittee,
   }
 }
 
-void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
+void ShardToProtoCommittee(const DequeOfShardMembers& shard,
+                           ProtoCommittee& protoCommittee) {
   for (const auto& node : shard) {
     SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                     *protoCommittee.add_members());
@@ -616,28 +617,26 @@ void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
 }
 
 void ShardingStructureToProtobuf(
-    const uint32_t& version, const DequeOfShard& shards,
+    const uint32_t& version, const DequeOfShardMembers& shards,
     ProtoShardingStructure& protoShardingStructure) {
   protoShardingStructure.set_version(version);
-  for (const auto& shard : shards) {
-    ProtoShardingStructure::Shard* proto_shard =
-        protoShardingStructure.add_shards();
+  ProtoShardingStructure::Shard* proto_shard =
+      protoShardingStructure.add_shards();
 
-    for (const auto& node : shard) {
-      ProtoShardingStructure::Member* proto_member = proto_shard->add_members();
+  for (const auto& node : shards) {
+    ProtoShardingStructure::Member* proto_member = proto_shard->add_members();
 
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
-                                      *proto_member->mutable_pubkey());
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
-                                      *proto_member->mutable_peerinfo());
-      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
-    }
+    SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
+                                    *proto_member->mutable_pubkey());
+    SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
+                                    *proto_member->mutable_peerinfo());
+    proto_member->set_reputation(std::get<SHARD_NODE_REPUTATION>(node));
   }
 }
 
 bool ProtobufToShardingStructure(
     const ProtoShardingStructure& protoShardingStructure, uint32_t& version,
-    DequeOfShard& shards) {
+    DequeOfShardMembers& shardMembers) {
   if (!CheckRequiredFieldsProtoShardingStructure(protoShardingStructure)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoShardingStructure failed");
     return false;
@@ -652,8 +651,6 @@ bool ProtobufToShardingStructure(
       return false;
     }
 
-    shards.emplace_back();
-
     for (const auto& proto_member : proto_shard.members()) {
       if (!CheckRequiredFieldsProtoShardingStructureMember(proto_member)) {
         LOG_GENERAL(WARNING,
@@ -667,7 +664,7 @@ bool ProtobufToShardingStructure(
       PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_member.pubkey(), key);
       PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_member.peerinfo(), peer);
 
-      shards.back().emplace_back(key, peer, proto_member.reputation());
+      shardMembers.emplace_back(key, peer, proto_member.reputation());
     }
   }
 
@@ -675,55 +672,61 @@ bool ProtobufToShardingStructure(
 }
 
 void AnnouncementShardingStructureToProtobuf(
-    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+    const DequeOfShardMembers& shardMembers, const MapOfPubKeyPoW& allPoWs,
     ProtoShardingStructureWithPoWSolns& protoShardingStructure) {
-  for (const auto& shard : shards) {
-    ProtoShardingStructureWithPoWSolns::Shard* proto_shard =
-        protoShardingStructure.add_shards();
+  ProtoShardingStructureWithPoWSolns::Shard* proto_shard =
+      protoShardingStructure.add_shards();
+  LOG_GENERAL(WARNING, "BZ Shard to Proto, has this many shards: "
+                           << protoShardingStructure.shards_size());
+  LOG_GENERAL(WARNING, "BZ Shard to Proto, has this members in shard: "
+                           << shardMembers.size());
 
-    for (const auto& node : shard) {
-      ProtoShardingStructureWithPoWSolns::Member* proto_member =
-          proto_shard->add_members();
+  for (const auto& node : shardMembers) {
+    ProtoShardingStructureWithPoWSolns::Member* proto_member =
+        proto_shard->add_members();
 
-      const PubKey& key = std::get<SHARD_NODE_PUBKEY>(node);
+    LOG_GENERAL(WARNING,
+                "BZ Shard to Proto, Adding shard member: "
+                    << std::get<SHARD_NODE_PEER>(node).GetPrintableIPAddress());
+    const PubKey& key = std::get<SHARD_NODE_PUBKEY>(node);
 
-      SerializableToProtobufByteArray(key, *proto_member->mutable_pubkey());
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
-                                      *proto_member->mutable_peerinfo());
-      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
+    SerializableToProtobufByteArray(key, *proto_member->mutable_pubkey());
+    SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
+                                    *proto_member->mutable_peerinfo());
+    proto_member->set_reputation(std::get<SHARD_NODE_REPUTATION>(node));
 
-      ProtoPoWSolution* proto_soln = proto_member->mutable_powsoln();
-      const auto soln = allPoWs.find(key);
-      proto_soln->set_nonce(soln->second.m_nonce);
-      proto_soln->set_result(soln->second.m_result.data(),
-                             soln->second.m_result.size());
-      proto_soln->set_mixhash(soln->second.m_mixhash.data(),
-                              soln->second.m_mixhash.size());
-      proto_soln->set_lookupid(soln->second.m_lookupId);
-      NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-          soln->second.m_gasPrice, *proto_soln->mutable_gasprice());
-      if (proto_soln->govdata().IsInitialized()) {
-        proto_soln->mutable_govdata()->set_proposalid(
-            soln->second.m_govProposal.first);
-        proto_soln->mutable_govdata()->set_votevalue(
-            soln->second.m_govProposal.second);
-      }
+    ProtoPoWSolution* proto_soln = proto_member->mutable_powsoln();
+    const auto soln = allPoWs.find(key);
+    proto_soln->set_nonce(soln->second.m_nonce);
+    proto_soln->set_result(soln->second.m_result.data(),
+                           soln->second.m_result.size());
+    proto_soln->set_mixhash(soln->second.m_mixhash.data(),
+                            soln->second.m_mixhash.size());
+    proto_soln->set_lookupid(soln->second.m_lookupId);
+    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+        soln->second.m_gasPrice, *proto_soln->mutable_gasprice());
+    if (proto_soln->govdata().IsInitialized()) {
+      proto_soln->mutable_govdata()->set_proposalid(
+          soln->second.m_govProposal.first);
+      proto_soln->mutable_govdata()->set_votevalue(
+          soln->second.m_govProposal.second);
     }
   }
 }
 
 bool ProtobufToShardingStructureAnnouncement(
     const ProtoShardingStructureWithPoWSolns& protoShardingStructure,
-    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
+    DequeOfShardMembers& shardMembers, MapOfPubKeyPoW& allPoWs) {
   std::array<unsigned char, 32> result{};
   std::array<unsigned char, 32> mixhash{};
   uint128_t gasPrice;
   uint32_t govProposalId{};
   uint32_t govVoteValue{};
-
+  LOG_GENERAL(WARNING, "BZ: Found shards in ProtoMessage: "
+                           << protoShardingStructure.shards().size());
   for (const auto& proto_shard : protoShardingStructure.shards()) {
-    shards.emplace_back();
-
+    LOG_GENERAL(WARNING, "BZ: Found members in this shard in ProtoMessage: "
+                             << proto_shard.members_size());
     for (const auto& proto_member : proto_shard.members()) {
       PubKey key;
       Peer peer;
@@ -731,7 +734,7 @@ bool ProtobufToShardingStructureAnnouncement(
       PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_member.pubkey(), key);
       PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_member.peerinfo(), peer);
 
-      shards.back().emplace_back(key, peer, proto_member.reputation());
+      shardMembers.emplace_back(key, peer, proto_member.reputation());
 
       copy(proto_member.powsoln().result().begin(),
            proto_member.powsoln().result().begin() +
@@ -1306,10 +1309,11 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
   return true;
 }
 
-bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
+bool Messenger::GetShardHash(const DequeOfShardMembers& shardMembers,
+                             CommitteeHash& dst) {
   ProtoCommittee protoCommittee;
 
-  ShardToProtoCommittee(shard, protoCommittee);
+  ShardToProtoCommittee(shardMembers, protoCommittee);
 
   if (!protoCommittee.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoCommittee initialization failed");
@@ -1333,7 +1337,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
 }
 
 bool Messenger::GetShardingStructureHash(const uint32_t& version,
-                                         const DequeOfShard& shards,
+                                         const DequeOfShardMembers& shards,
                                          ShardingHash& dst) {
   ProtoShardingStructure protoShardingStructure;
 
@@ -2223,7 +2227,7 @@ bool Messenger::GetBlockLink(
 
 bool Messenger::SetDiagnosticDataNodes(zbytes& dst, const unsigned int offset,
                                        const uint32_t& shardingStructureVersion,
-                                       const DequeOfShard& shards,
+                                       const DequeOfShardMembers& shards,
                                        const uint32_t& dsCommitteeVersion,
                                        const DequeOfNode& dsCommittee) {
   ProtoDiagnosticDataNodes result;
@@ -2244,7 +2248,7 @@ bool Messenger::SetDiagnosticDataNodes(zbytes& dst, const unsigned int offset,
 bool Messenger::GetDiagnosticDataNodes(const zbytes& src,
                                        const unsigned int offset,
                                        uint32_t& shardingStructureVersion,
-                                       DequeOfShard& shards,
+                                       DequeOfShardMembers& shards,
                                        uint32_t& dsCommitteeVersion,
                                        DequeOfNode& dsCommittee) {
   ProtoDiagnosticDataNodes result;
@@ -2707,7 +2711,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey, const DSBlock& dsBlock,
-    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+    const DequeOfShardMembers& shards, const MapOfPubKeyPoW& allPoWs,
     const MapOfPubKeyPoW& dsWinnerPoWs, zbytes& messageToCosign) {
   ConsensusAnnouncement announcement;
 
@@ -2769,8 +2773,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
-    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
-    zbytes& messageToCosign) {
+    DequeOfShardMembers& shards, MapOfPubKeyPoW& allPoWs,
+    MapOfPubKeyPoW& dsWinnerPoWs, zbytes& messageToCosign) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -3111,7 +3115,8 @@ bool Messenger::GetDSMissingMicroBlocksErrorMsg(
 bool Messenger::SetNodeVCDSBlocksMessage(
     zbytes& dst, const unsigned int offset, const uint32_t shardId,
     const DSBlock& dsBlock, const std::vector<VCBlock>& vcBlocks,
-    const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
+    const uint32_t& shardingStructureVersion,
+    const DequeOfShardMembers& shards) {
   NodeDSBlock result;
 
   result.set_shardid(shardId);
@@ -3136,7 +3141,7 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
                                          uint32_t& shardId, DSBlock& dsBlock,
                                          std::vector<VCBlock>& vcBlocks,
                                          uint32_t& shardingStructureVersion,
-                                         DequeOfShard& shards) {
+                                         DequeOfShardMembers& shards) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -3482,12 +3487,14 @@ bool Messenger::GetNodeVCBlock(const zbytes& src, const unsigned int offset,
 bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
                                        const uint64_t& epochNumber,
                                        const uint64_t& dsBlockNum,
+                                       const uint32_t shardId,
                                        const PairOfKey& lookupKey,
                                        std::vector<Transaction>& transactions) {
   NodeForwardTxnBlock result;
 
   result.set_epochnumber(epochNumber);
   result.set_dsblocknum(dsBlockNum);
+  result.set_shardid(shardId);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   unsigned int txnsCurrentCount = 0, msg_size = 0;
@@ -3603,6 +3610,7 @@ bool Messenger::GetNodeForwardTxnBlock(
   epochNumber = result.epochnumber();
   dsBlockNum = result.dsblocknum();
   shardId = result.shardid();
+  LOG_GENERAL(WARNING, "BZ GetNodeForwardTxnBlock shardId: " << shardId);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
   if (result.transactions().size() > 0) {
@@ -3724,7 +3732,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
 
 bool Messenger::ShardStructureToArray(zbytes& dst, const unsigned int offset,
                                       const uint32_t& version,
-                                      const DequeOfShard& shards) {
+                                      const DequeOfShardMembers& shards) {
   ProtoShardingStructure protoShardingStructure;
   ShardingStructureToProtobuf(version, shards, protoShardingStructure);
 
@@ -3743,7 +3751,8 @@ bool Messenger::ShardStructureToArray(zbytes& dst, const unsigned int offset,
 
 bool Messenger::ArrayToShardStructure(const zbytes& src,
                                       const unsigned int offset,
-                                      uint32_t& version, DequeOfShard& shards) {
+                                      uint32_t& version,
+                                      DequeOfShardMembers& shards) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -5404,7 +5413,8 @@ bool Messenger::GetLookupGetShardsFromSeed(const zbytes& src,
 // UNUSED
 bool Messenger::SetLookupSetShardsFromSeed(
     zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
-    const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
+    const uint32_t& shardingStructureVersion,
+    const DequeOfShardMembers& shards) {
   LookupSetShardsFromSeed result;
 
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
@@ -5437,7 +5447,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const zbytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey,
                                            uint32_t& shardingStructureVersion,
-                                           DequeOfShard& shards) {
+                                           DequeOfShardMembers& shards) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
