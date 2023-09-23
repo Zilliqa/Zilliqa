@@ -18,6 +18,7 @@ task("init-signers", "A task to init signers")
     spinner.start(`Creating ${count} accounts...`);
 
     const accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
+
     spinner.succeed();
 
     const file_name = `${hre.network.name}.json`;

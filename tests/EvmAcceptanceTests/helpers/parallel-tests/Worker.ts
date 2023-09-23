@@ -24,6 +24,7 @@ const processDescribeChild = (
       } catch (error) {
         continue;
       }
+
       if (regex.test(subChild.name)) {
         allTests.push({
           txn: subChild.fn,
