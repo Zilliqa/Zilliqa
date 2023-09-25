@@ -12,7 +12,6 @@
     "boost-multiprecision",
     "boost-program-options",
     "boost-process",
-    "boost-thread",
     "boost-timer",
     "boost-test",
     "snappy",
