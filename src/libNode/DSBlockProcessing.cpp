@@ -27,7 +27,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -199,17 +199,9 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
     return true;
   }
 
-  m_numShards = m_mediator.m_ds->m_shards.size();
+  m_numShards = 1;
 
-  // Check the shard ID against the deserialized structure
-  if (m_myshardId >= m_mediator.m_ds->m_shards.size()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Shard ID " << m_myshardId << " >= num shards "
-                          << m_mediator.m_ds->m_shards.size());
-    return false;
-  }
-
-  const auto& my_shard = m_mediator.m_ds->m_shards.at(m_myshardId);
+  const auto& my_shard = m_mediator.m_ds->m_shards;
 
   // All nodes; first entry is leader
   unsigned int index = 0;
@@ -268,7 +260,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Clear();
-  P2PComm::ClearPeerConnectionCount();
 
   CleanWhitelistReqs();
   m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
@@ -334,17 +325,13 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // CommitTxnPacketBuffer();
   m_txn_distribute_window_open = true;
   if (fbWaitState) {
     SetState(WAITING_FINALBLOCK);
-    CleanMicroblockConsensusBuffer();
-  } else {
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
-    DetachedFunction(1, main_func3);
   }
 }
 
@@ -358,8 +345,9 @@ bool Node::ProcessVCDSBlocksMessage(
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
-  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
-
+  const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
+                      m_mediator.m_ds->GetConsensusMyID();
+  LOG_GENERAL(WARNING, "I am " << (leader ? "" : "not") << " the leader");
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -376,7 +364,7 @@ bool Node::ProcessVCDSBlocksMessage(
   uint32_t shardId;
   Peer newleaderIP;
 
-  DequeOfShard t_shards;
+  DequeOfShardMembers t_shards;
   uint32_t shardingStructureVersion = 0;
 
   if (!Messenger::GetNodeVCDSBlocksMessage(
@@ -519,25 +507,25 @@ bool Node::ProcessVCDSBlocksMessage(
 
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    LOG_EXTRA("Shards updated " << m_mediator.m_ds->m_shards.size() << "->"
+                                << t_shards.size());
     m_mediator.m_ds->m_shards = std::move(t_shards);
   }
 
   MinerInfoDSComm minerInfoDSComm;
   MinerInfoShards minerInfoShards;
   if (LOOKUP_NODE_MODE) {
-    for (const auto& shard : m_mediator.m_ds->m_shards) {
-      minerInfoShards.m_shards.push_back(MinerInfoShards::MinerInfoShard());
-      minerInfoShards.m_shards.back().m_shardSize = shard.size();
-      for (const auto& node : shard) {
-        const PubKey& pubKey = std::get<SHARD_NODE_PUBKEY>(node);
-        if (!Guard::GetInstance().IsNodeInShardGuardList(pubKey)) {
-          minerInfoShards.m_shards.back().m_shardNodes.emplace_back(pubKey);
-        }
+    minerInfoShards.m_shards.push_back(MinerInfoShards::MinerInfoShard());
+    minerInfoShards.m_shards.back().m_shardSize =
+        m_mediator.m_ds->m_shards.size();
+    for (const auto& node : m_mediator.m_ds->m_shards) {
+      const PubKey& pubKey = std::get<SHARD_NODE_PUBKEY>(node);
+      if (!Guard::GetInstance().IsNodeInShardGuardList(pubKey)) {
+        minerInfoShards.m_shards.back().m_shardNodes.emplace_back(pubKey);
       }
     }
   }
 
-  m_myshardId = shardId;
   if (!BlockStorage::GetBlockStorage().PutShardStructure(
           m_mediator.m_ds->m_shards, m_myshardId)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
@@ -645,7 +633,6 @@ bool Node::ProcessVCDSBlocksMessage(
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
         if (!m_mediator.m_ds->ProcessShardingStructure(
                 m_mediator.m_ds->m_shards,
-                m_mediator.m_ds->m_publicKeyToshardIdMap,
                 m_mediator.m_ds->m_mapNodeReputation)) {
           return false;
         }
@@ -713,12 +700,11 @@ bool Node::ProcessVCDSBlocksMessage(
     ResetConsensusId();
     // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
-    P2PComm::GetInstance().ClearPeerConnectionCount();
 
     m_mediator.m_node->CleanWhitelistReqs();
 
-    if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards, true);
+    if (m_mediator.m_lookup->GetIsServer() && ARCHIVAL_LOOKUP) {
+      SendTxnMemPoolToNextLayer();
     }
   }
 

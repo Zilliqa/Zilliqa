@@ -137,8 +137,6 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   // Check if from account is sharded here
 
   const Address fromAddr = tx.GetSenderAddr();
-  unsigned int shardId = m_mediator.m_node->GetShardId();
-  unsigned int numShards = m_mediator.m_node->getNumShards();
 
   if (tx.GetGasLimitZil() >
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE
@@ -154,37 +152,6 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
     error_code = TxnStatus::INVALID_FROM_ACCOUNT;
     return false;
-  }
-
-  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-    unsigned int correct_shard_from =
-        Transaction::GetShardIndex(fromAddr, numShards);
-    if (correct_shard_from != shardId) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "This tx is not sharded to me!"
-                    << " From Account  = 0x" << fromAddr
-                    << " Correct shard = " << correct_shard_from
-                    << " This shard    = " << m_mediator.m_node->GetShardId());
-      error_code = TxnStatus::INCORRECT_SHARD;
-      return false;
-      // // Transaction created from the GenTransactionBulk will be rejected
-      // // by all shards but one. Next line is commented to avoid this
-      // return false;
-    }
-
-    if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
-      unsigned int correct_shard_to =
-          Transaction::GetShardIndex(tx.GetToAddr(), numShards);
-      if (correct_shard_to != correct_shard_from) {
-        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                  "The fromShard " << correct_shard_from << " and toShard "
-                                   << correct_shard_to
-                                   << " is different for the call SC txn");
-        // Already checked at lookup
-        error_code = TxnStatus::CONTRACT_CALL_WRONG_SHARD;
-        return false;
-      }
-    }
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {

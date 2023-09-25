@@ -118,7 +118,7 @@ void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
 
   lock_guard<mutex> g(m_mutexDSGuardList);
   m_DSGuardList.emplace(dsGuardPubKey);
-  // LOG_GENERAL(INFO, "Added " << dsGuardPubKey);
+  LOG_EXTRA("Added " << dsGuardPubKey);
 }
 
 void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
@@ -129,6 +129,7 @@ void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
 
   lock_guard<mutex> g(m_mutexShardGuardList);
   m_ShardGuardList.emplace(shardGuardPubKey);
+  LOG_EXTRA("Added " << shardGuardPubKey);
 }
 
 bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
@@ -229,7 +230,7 @@ void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
       if (dsIndex < GetNumOfDSGuard()) {
         // Ensure it is not 0.0.0.0
         if (IsNodeInDSGuardList(i.first) && i.second.m_ipAddress != 0) {
-          Blacklist::GetInstance().Whitelist(i.second.m_ipAddress);
+          Blacklist::GetInstance().Whitelist({i.second.m_ipAddress,i.second.m_listenPortHost, i.second.m_nodeIndentifier});
           LOG_GENERAL(INFO,
                       "Excluding ds guard " << i.second << " from blacklist");
         } else {

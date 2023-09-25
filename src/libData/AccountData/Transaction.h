@@ -176,14 +176,8 @@ class Transaction : public SerializableDataBlock {
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
 
-  unsigned int GetShardIndex(unsigned int numShards) const;
-
   /// Set the signature
   void SetSignature(const Signature& signature);
-
-  /// Identifies the shard number that should process the transaction.
-  static unsigned int GetShardIndex(const Address& fromAddr,
-                                    unsigned int numShards);
 
   enum ContractType {
     NON_CONTRACT = 0,

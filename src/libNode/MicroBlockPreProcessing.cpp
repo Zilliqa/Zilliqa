@@ -27,7 +27,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -57,8 +57,9 @@ class MicroBlockPreProcessingVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.microblockpre.gauge",
-                                          "Consensus microblock pre", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(
+          Z_FL::BLOCKS, "consensus.microblockpre.gauge",
+          "Consensus microblock pre", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
@@ -104,8 +105,7 @@ bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
 
   CommitteeHash committeeHash;
   if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shardId),
-                                 committeeHash)) {
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards, committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetShardHash failed");
       return false;
@@ -197,8 +197,7 @@ bool Node::ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit) {
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
   CommitteeHash committeeHash;
   if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shardId),
-                                 committeeHash)) {
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards, committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetShardHash failed");
       return false;
@@ -310,7 +309,7 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, tx_message);
+  zil::p2p::GetInstance().SendMessage(peer, tx_message);
 
   return true;
 }
@@ -592,6 +591,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
 
     for (const auto& tranHash : tranHashes) {
       if (!m_createdTxns.exist(tranHash)) {
+        LOG_GENERAL(WARNING,
+                    "Missing transaction hash in my pool: " << tranHash.hex());
         missingtranHashes.emplace_back(tranHash);
       }
     }
@@ -1032,8 +1033,7 @@ void Node::UpdateBalanceForPreGeneratedAccounts() {
   LOG_MARKER();
   int counter = 0;
   for (unsigned int i = 0; i < m_populatedAddresses.size(); i++) {
-    if ((i % (m_mediator.m_ds->m_shards.size() + 1) == m_myshardId) &&
-        (i % NUM_FINAL_BLOCK_PER_POW ==
+    if ((i % NUM_FINAL_BLOCK_PER_POW ==
          (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW))) {
       AccountStore::GetInstance().IncreaseBalanceTemp(
           m_populatedAddresses.at(i), 1);
@@ -1125,312 +1125,6 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
   return true;
 }
 
-bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
-  LOG_MARKER();
-
-  zil::local::variables.SetIsShardLeader(1);
-
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::RunConsensusOnMicroBlockWhenShardLeader not "
-                "expected to be called from LookUp node");
-    return true;
-  }
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "I am shard leader. Creating microblock for epoch "
-                << m_mediator.m_currentEpochNum);
-
-  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-    // extra time added for first txepoch for tx distribution
-    auto extra_wait_time =
-        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
-            ? 0
-            : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
-    std::this_thread::sleep_for(
-        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time +
-                             SHARD_ANNOUNCEMENT_DELAY_IN_MS));
-    if (!m_mediator.GetIsVacuousEpoch()) {
-      while (m_txnPacketThreadOnHold > 0) {
-        std::this_thread::sleep_for(chrono::milliseconds(100));
-      }
-    }
-  }
-
-  m_txn_distribute_window_open = false;
-
-  /*
-  if (m_mediator.ToProcessTransaction()) {
-    ProcessTransactionWhenShardLeader(SHARD_MICROBLOCK_GAS_LIMIT);
-    if (!AccountStore::GetInstance().SerializeDelta()) {
-      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
-      return false;
-    }
-  }
-
-
-  // composed microblock stored in m_microblock
-  if (!ComposeMicroBlock(SHARD_MICROBLOCK_GAS_LIMIT)) {
-    LOG_GENERAL(WARNING, "Unable to create microblock");
-    return false;
-  }
-  */
-  m_completeMicroBlockReady = false;
-
-  // composed preprep microblock stored in m_microblock
-  if (!ComposePrePrepMicroBlock(SHARD_MICROBLOCK_GAS_LIMIT)) {
-    LOG_GENERAL(WARNING, "Unable to create pre-prep microblock");
-    m_prePrepMicroblock = nullptr;
-    return false;
-  }
-
-  // m_consensusID = 0;
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
-
-  {
-    lock_guard<mutex> g(m_mutexShardMember);
-
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I am shard leader. "
-                  << "m_consensusID: " << m_mediator.m_consensusID
-                  << " m_consensusMyID: " << m_consensusMyID
-                  << " m_consensusLeaderID: " << m_consensusLeaderID
-                  << " Shard Leader: "
-                  << (*m_myShardMembers)[m_consensusLeaderID].second);
-
-    auto nodeMissingTxnsFunc = [this](const zbytes& errorMsg,
-                                      const Peer& from) mutable -> bool {
-      return OnNodeMissingTxns(errorMsg, 0, from);
-    };
-
-    auto commitFailureFunc =
-        [this](const map<unsigned int, zbytes>& m) mutable -> bool {
-      return OnCommitFailure(m);
-    };
-
-    m_consensusObject.reset(new ConsensusLeader(
-        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
-        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
-        *m_myShardMembers, static_cast<uint8_t>(NODE),
-        static_cast<uint8_t>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
-        commitFailureFunc, m_mediator.m_ds->m_mode != DirectoryService::IDLE));
-  }
-
-  if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Unable to create consensus object");
-    return false;
-  }
-
-  ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-
-  auto preprepMBAnnouncementGeneratorFunc =
-      [this](zbytes& dst, unsigned int offset, const uint32_t consensusID,
-             const uint64_t blockNumber, const zbytes& blockHash,
-             const uint16_t leaderID, const PairOfKey& leaderKey,
-             zbytes& messageToCosign) mutable -> bool {
-    return Messenger::SetNodeMicroBlockAnnouncement(
-        dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
-        *m_prePrepMicroblock, messageToCosign);
-  };
-
-  auto newMBAnnouncementReadinessFunc =
-      [this](zbytes& newAnnouncement, unsigned int offset,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const zbytes& blockHash, const uint16_t leaderID,
-             const PairOfKey& leaderKey,
-             zbytes& messageToCosign) mutable -> bool {
-    // wait for complete microblock being ready by me (leader)
-    if (!WaitUntilCompleteMicroBlockIsReady()) {
-      return false;
-    }
-
-    LOG_GENERAL(WARNING, "Announcing new microblock!");
-    return Messenger::SetNodeMicroBlockAnnouncement(
-        newAnnouncement, offset, consensusID, blockNumber, blockHash, leaderID,
-        leaderKey, *m_microblock, messageToCosign);
-  };
-
-  LOG_STATE(
-      "[MICON-BEG]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << m_myshardId << "]");
-
-  cl->StartConsensus(preprepMBAnnouncementGeneratorFunc,
-                     newMBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
-
-  SetState(MICROBLOCK_CONSENSUS);
-
-  if (m_mediator.ToProcessTransaction()) {
-    ProcessTransactionWhenShardLeader(SHARD_MICROBLOCK_GAS_LIMIT);
-    if (!AccountStore::GetInstance().SerializeDelta()) {
-      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
-      return false;
-    }
-  }
-
-  // composed microblock stored in m_microblock
-  if (!ComposeMicroBlock(SHARD_MICROBLOCK_GAS_LIMIT)) {
-    LOG_GENERAL(WARNING, "Unable to create microblock");
-    return false;
-  }
-
-  return true;
-}
-
-bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
-  LOG_MARKER();
-
-  zil::local::variables.SetIsShardLeader(0);
-
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::RunConsensusOnMicroBlockWhenShardBackup not "
-                "expected to be called from LookUp node");
-    return true;
-  }
-
-  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-            TXN_SHARD_TARGET_DIFFICULTY &&
-        m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
-       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-           TXN_DS_TARGET_NUM)) {
-    // extra time added for first txepoch for tx distribution
-    auto extra_wait_time =
-        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
-            ? 0
-            : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
-    std::this_thread::sleep_for(
-        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time));
-    if (!m_mediator.GetIsVacuousEpoch()) {
-      while (m_txnPacketThreadOnHold > 0) {
-        std::this_thread::sleep_for(chrono::milliseconds(100));
-      }
-    }
-  }
-
-  LOG_EPOCH(
-      INFO, m_mediator.m_currentEpochNum,
-      "I am a backup node. Waiting for pre-microblock announcement for epoch "
-          << m_mediator.m_currentEpochNum);
-  // m_consensusID = 0;
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
-
-  auto completeMBValidatorFunc =
-      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const zbytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
-    return MicroBlockValidator(input, offset, errorMsg, consensusID,
-                               blockNumber, blockHash, leaderID, leaderKey,
-                               messageToCosign);
-  };
-
-  auto preprepMBValidatorFunc =
-      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const zbytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
-    return PrePrepMicroBlockValidator(input, offset, errorMsg, consensusID,
-                                      blockNumber, blockHash, leaderID,
-                                      leaderKey, messageToCosign);
-  };
-
-  auto postPreprepValidationFunc = [this]() -> void {
-    StartTxnProcessingThread();
-  };
-
-  auto txnProcessingReadinessfunc = [this]() -> bool {
-    // wait for txn processing being ready by me (backup)
-    return WaitUntilTxnProcessingDone();
-  };
-
-  DequeOfNode peerList;
-
-  {
-    lock_guard<mutex> g(m_mutexShardMember);
-    LOG_GENERAL(WARNING, "I am shard backup");
-    LOG_GENERAL(WARNING, "Leader IP    = "
-                          << (*m_myShardMembers)[m_consensusLeaderID].second);
-
-    for (const auto& it : *m_myShardMembers) {
-      peerList.emplace_back(it);
-    }
-  }
-
-  m_consensusObject.reset(new ConsensusBackup(
-      m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
-      m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-      m_mediator.m_selfKey.first, peerList, static_cast<uint8_t>(NODE),
-      static_cast<uint8_t>(MICROBLOCKCONSENSUS), completeMBValidatorFunc,
-      preprepMBValidatorFunc, postPreprepValidationFunc,
-      /* postFailedPreprepValidationFunc, */ txnProcessingReadinessfunc,
-      m_mediator.m_ds->m_mode != DirectoryService::IDLE));
-
-  if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Unable to create consensus object");
-    return false;
-  }
-
-  m_prePrepRunning = true;
-
-  SetState(MICROBLOCK_CONSENSUS);
-
-  return true;
-}
-
-bool Node::RunConsensusOnMicroBlock() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::RunConsensusOnMicroBlock not expected to be called "
-                "from LookUp node");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  SetState(MICROBLOCK_CONSENSUS_PREP);
-  cv_txnPacket.notify_all();
-
-  if (m_mediator.GetIsVacuousEpoch()) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Vacuous epoch: Skipping submit transactions");
-    CleanCreatedTransaction();
-  }
-
-  if (m_isPrimary) {
-    if (!RunConsensusOnMicroBlockWhenShardLeader()) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Error at RunConsensusOnMicroBlockWhenShardLeader");
-      // throw exception();
-      return false;
-    }
-  } else {
-    if (!RunConsensusOnMicroBlockWhenShardBackup()) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Error at RunConsensusOnMicroBlockWhenShardBackup");
-      // throw exception();
-      return false;
-    }
-  }
-
-  CommitMicroBlockConsensusBuffer();
-
-  return true;
-}
-
 bool Node::CheckMicroBlockVersion() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1476,8 +1170,7 @@ bool Node::CheckMicroBlockshardId() {
   // Verify the shard committee hash
   CommitteeHash committeeHash;
   if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
-                                 committeeHash)) {
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards, committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetShardHash failed");
       return false;
@@ -1806,23 +1499,6 @@ bool Node::CheckMicroBlockValidity(zbytes& errorMsg,
   // (must be = block number of last DS block header in the DS blockchain) Need
   // some rework to be able to access DS blockchain (or we switch to using the
   // persistent storage lib)
-}
-
-bool Node::PrePrepMicroBlockValidator(
-    const zbytes& message, unsigned int offset, zbytes& errorMsg,
-    const uint32_t consensusID, const uint64_t blockNumber,
-    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    zbytes& messageToCosign) {
-  LOG_MARKER();
-  if (!MicroBlockValidator(message, offset, errorMsg, consensusID, blockNumber,
-                           blockHash, leaderID, leaderKey, messageToCosign)) {
-    LOG_GENERAL(WARNING, "PrePhase - Microblock validitation failed")
-    m_microblock = nullptr;
-    return false;
-  }
-  m_microblock = nullptr;
-
-  return true;
 }
 
 bool Node::MicroBlockValidator(const zbytes& message, unsigned int offset,

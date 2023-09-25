@@ -118,7 +118,8 @@ class FinalBLockProcessingVariables {
         result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
         result.Set(timedOutMicroblock, {{"counter", "TimedOutMicroblock"}});
-        result.Set(missedMicroblockConsensus, {{"counter", "MissedMicroblockConsensus"}});
+        result.Set(missedMicroblockConsensus,
+                   {{"counter", "MissedMicroblockConsensus"}});
         result.Set(isShardLeader, {{"counter", "IsShardLeader"}});
         result.Set(shard, {{"counter", "Shard"}});
       });
@@ -220,9 +221,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
     if (LOOKUP_NODE_MODE) {
       // Add all mbhashes to unavailable list if newlookup/levellookup is
       // syncing. Otherwise respect the check condition.
-      if (skipShardIDCheck ||
-          !(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
-            info.m_txnRootHash == TxnHash())) {
+      if (skipShardIDCheck || !(info.m_txnRootHash == TxnHash())) {
         auto& mbs = m_unavailableMicroBlocks[blockNum];
         if (std::find_if(mbs.begin(), mbs.end(),
                          [info](const std::pair<BlockHash, TxnHash>& e) {
@@ -389,13 +388,13 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
 }
 
 void Node::InitiatePoW() {
+  LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
         "Node::InitiatePoW not expected to be called from LookUp node.");
     return;
   }
-
   SetState(POW_SUBMISSION);
 
   if (m_mediator.m_disablePoW) {
@@ -472,19 +471,6 @@ void Node::UpdateStateForNextConsensusRound() {
   zil::local::variables.SetShard(m_myshardId);
 }
 
-void Node::ScheduleMicroBlockConsensus() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ScheduleMicroBlockConsensus not expected to be "
-                "called from LookUp node.");
-    return;
-  }
-
-  auto main_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
-
-  DetachedFunction(1, main_func);
-}
-
 void Node::BeginNextConsensusRound() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -500,8 +486,6 @@ void Node::BeginNextConsensusRound() {
   }
 
   UpdateStateForNextConsensusRound();
-
-  ScheduleMicroBlockConsensus();
 
   // CommitTxnPacketBuffer();
 }
@@ -556,7 +540,7 @@ void Node::CallActOnFinalblock() {
 
   auto sendMbnFowardTxnToShardNodes =
       []([[gnu::unused]] const zbytes& message,
-         [[gnu::unused]] const DequeOfShard& shards,
+         [[gnu::unused]] const DequeOfShardMembers& shards,
          [[gnu::unused]] const unsigned int& my_shards_lo,
          [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
@@ -647,6 +631,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 }
 
 void Node::PrepareGoodStateForFinalBlock() {
+  /*
   if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I may have missed the micrblock consensus. However, if I "
@@ -654,6 +639,7 @@ void Node::PrepareGoodStateForFinalBlock() {
     // TODO: Optimize state transition.
     SetState(WAITING_FINALBLOCK);
   }
+   */
 }
 
 bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
@@ -724,7 +710,10 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   uint32_t consensusID = 0;
   TxBlock txBlock;
   zbytes stateDelta;
-
+  LOG_GENERAL(WARNING,
+              "Processing final block with committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
   if (LOOKUP_NODE_MODE) {
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       // Buffer the Final Block
@@ -870,7 +859,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
   zil::local::variables.SetLastBlockHeight(txBlock.GetHeader().GetBlockNum());
-
+  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ENTER");
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
@@ -1036,20 +1025,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     if (m_lastMicroBlockCoSig.first == 0) {
       m_txn_distribute_window_open = true;
     }
-    // I don't want to wait if I failed last mb consensus already and already in
-    // WAITING_FINALBLOCK state
-    else if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum &&
-             (m_state == MICROBLOCK_CONSENSUS ||
-              m_state == MICROBLOCK_CONSENSUS_PREP)) {
-      std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-      // TODO: cv fix
-      if (cv_FBWaitMB.wait_for(
-              cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus. Timeout: " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW << " seconds");
-        zil::local::variables.AddTimedOutMicroblock(1);
-      }
-    }
 
     PrepareGoodStateForFinalBlock();
 
@@ -1112,7 +1087,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_pendingTxns.erase(txnHash);
     }
   }
-
+  LOG_GENERAL(
+      WARNING,
+      "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock ENTER");
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
@@ -1199,9 +1176,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
     }
 
-    // Remove because shard nodes will be shuffled in next epoch.
-    CleanMicroblockConsensusBuffer();
-
     if (!StoreFinalBlock(txBlock)) {
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
@@ -1287,6 +1261,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     ClearUnconfirmedTxn();
     if (isVacuousEpoch) {
+      LOG_GENERAL(WARNING, "It's vacuous epoch, will start PoW soon...");
       InitiatePoW();
     } else {
       auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };
@@ -1301,14 +1276,14 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     // Now only forwarded txn are left, so only call in lookup
 
-    uint32_t numShards = m_mediator.m_ds->GetNumShards();
-
     CommitMBnForwardedTransactionBuffer();
-    if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
+    // Seed/external nodes send mempool transactions upon arrival of final block
+    if (ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
          NUM_FINAL_BLOCK_PER_POW) != 0) {
-      m_mediator.m_lookup->SenderTxnBatchThread(numShards);
+      SendTxnMemPoolToNextLayer();
+      m_mediator.m_lookup->ClearTxnMemPool();
     }
 
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(
@@ -1317,10 +1292,29 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   return true;
 }
 
+void Node::SendTxnMemPoolToNextLayer() {
+  LOG_GENERAL(WARNING,
+              "Sending from seed to lookup txn with size: "
+                  << m_mediator.m_lookup->GetTransactionsFromMemPool().size());
+  zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+
+  {
+    lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
+    if (!Messenger::SetForwardTxnBlockFromSeed(
+            msg, MessageOffset::BODY,
+            m_mediator.m_lookup->GetTransactionsFromMemPool())) {
+      LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
+    }
+  }
+  // Sending mempool txns to random node next in the ladder (either lookup or
+  // upper seed for external nodes)
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
+}
+
 bool Node::ProcessStateDeltaFromFinalBlock(
     const zbytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash) {
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "Node::ProcessStateDeltaFromFinalBlock ENTER");
   // Init local AccountStoreTemp first
   AccountStore::GetInstance().InitTemp();
 
@@ -1375,7 +1369,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING,
+              "Committing forwarded transactions with committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
   if (!entry.m_transactions.empty()) {
     uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
@@ -1407,10 +1404,12 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
       }
+      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: "
+                               << txhash.hex()
+                               << ", NONCE: " << tran.GetNonce());
 
       if (LOOKUP_NODE_MODE) {
         LookupServer::AddToRecentTransactions(txhash);
-
         const auto& receipt = twr.GetTransactionReceipt();
         cache_upd.AddCommittedTransaction(epochNum, shardId, txhash.hex(),
                                           receipt.GetJsonValue());
@@ -1540,7 +1539,7 @@ bool Node::ProcessMBnForwardTransaction(
                 "called from Normal node.");
     return true;
   }
-
+  LOG_GENERAL(WARNING, "Node::ProcessMBnForwardTransaction ENTER");
   LOG_MARKER();
 
 #ifdef SJ_TEST_SJ_MISSING_MBTXNS
@@ -1569,18 +1568,11 @@ bool Node::ProcessMBnForwardTransaction(
     return false;
   }
 
-  bool isDSMB = false;
-
-  {
-    std::lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    isDSMB = entry.m_microBlock.GetHeader().GetShardId() ==
-             m_mediator.m_ds->m_shards.size();
-  }
+  bool isDSMB = true;
 
   // Verify the co-signature if not DS MB
   if (!isDSMB &&
-      !m_mediator.m_ds->VerifyMicroBlockCoSignature(
-          entry.m_microBlock, entry.m_microBlock.GetHeader().GetShardId())) {
+      !m_mediator.m_ds->VerifyMicroBlockCoSignature(entry.m_microBlock)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Microblock co-sig verification failed");
     return false;
@@ -1656,13 +1648,13 @@ bool Node::ProcessMBnForwardTransaction(
     // soft confirmation
     SoftConfirmForwardedTransactions(entry);
     // invoke txn distribution
-    if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
+    /*if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
              NUM_FINAL_BLOCK_PER_POW !=
          0)) {
       m_mediator.m_lookup->SendTxnPacketToShard(
           entry.m_microBlock.GetHeader().GetShardId(), false, true);
-    }
+    }*/
 
     return true;
   }
@@ -1672,22 +1664,14 @@ bool Node::ProcessMBnForwardTransaction(
 
 bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
                          uint32_t shardId, const zbytes& txnListHash) {
-  uint size;
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    size = m_mediator.m_ds->m_shards.size();
-    if (shardId > size) {
-      LOG_GENERAL(WARNING, "Shard id exceeds shards: " << shardId);
+    if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards, pubkey)) {
+      LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
       return false;
-    } else if (shardId < size) {
-      if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards.at(shardId),
-                                    pubkey)) {
-        LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
-        return false;
-      }
     }
   }
-  if (shardId == size) {
+  {
     // DS Committee
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {
@@ -1827,7 +1811,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "Node::ProcessMBnForwardTransactionCore ENTER");
   LOG_GENERAL(INFO, entry);
 
   {

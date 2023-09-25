@@ -36,8 +36,9 @@ class Serializable {
   /// the specified offset. Returns 0 if there are not enough bytes to read from
   /// the stream.
   template <class numerictype>
-  static numerictype GetNumber(const zbytes& src, unsigned int offset,
-                               unsigned int numerictype_len) {
+  static numerictype GetNumber(
+      const zbytes& src, unsigned int offset,
+      unsigned int numerictype_len = sizeof(numerictype)) {
     numerictype result = 0;
 
     if (offset + numerictype_len <= src.size()) {
@@ -56,7 +57,7 @@ class Serializable {
   /// the specified offset. Destination is resized if necessary.
   template <class numerictype>
   static void SetNumber(zbytes& dst, unsigned int offset, numerictype value,
-                        unsigned int numerictype_len) {
+                        unsigned int numerictype_len = sizeof(numerictype)) {
     const unsigned int length_available = dst.size() - offset;
 
     if (length_available < numerictype_len) {

@@ -399,7 +399,7 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     helm_remove_repository(config, 'grafana')
 
-def prometheus_up(config, testnet_name, count = 23):
+def prometheus_up(config, testnet_name, count = 8):
     """ Let helm deploy prometheus """
     ips = []
     while True:
@@ -729,18 +729,19 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
-        os.path.join(ZILLIQA_DIR, "constants.xml"),
-        "--image", zilliqa_image,
-        "-n", "20",
-        "-d", "5",
-        "-l", "1",
-        "--guard", "4/10",
-        "--gentxn", "false",
-        "--multiplier-fanout", "2",
-        "--host-network", "false",
-        "--https", "localdomain",
-        "--seed-multiplier", "true",
-        "--localstack", "true"]
+           os.path.join(ZILLIQA_DIR, "constants.xml"),
+           "--image", zilliqa_image,
+           "-n", "20",
+           "-d", "5",
+           "-l", "1",
+           "--guard", "4/10",
+           "--gentxn", "false",
+           "--multiplier-fanout", "1",
+           "--host-network", "false",
+           "--https", "localdomain",
+           "--seed-multiplier", "true",
+           "--skip-non-guard-ds", "true",
+           "--localstack", "true"]
     cmd = cmd + ([ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else [])
     cmd = cmd + [ "-f" ]
     if persistence is not None and key_file is not None:
@@ -1352,7 +1353,8 @@ def cli(ctx):
     You need the local-dev-minikube branch of testnet if it hasn't yet
     been merged.
 
-    You will need to have built scilla.
+    Your scilla repo must be checked out to release-v0.13.5 or a branch off
+    it.
 
     localdev.py runs in stages:
      setup           - Sets up k8s (through minikube, and colima on OS X)

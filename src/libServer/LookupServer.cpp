@@ -21,17 +21,13 @@
 #include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "common/Messages.h"
-#include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libMessage/Messenger.h"
 #include "libMetrics/Api.h"
-#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
@@ -323,8 +319,8 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
   this->bindAndAddMethod(
-      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
-                         NULL),
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
       &Server::GetVersionI);
 
   m_StartTimeTx = 0;
@@ -368,14 +364,12 @@ bool LookupServer::StartCollectorThread() {
   auto collectorThread = [this]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
-    vector<Transaction> txnsShard;
-    vector<Transaction> txnsDS;
+    vector<Transaction> txnsToSend;
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
       this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
-      txnsShard.clear();
-      txnsDS.clear();
+      txnsToSend.clear();
 
       if (m_mediator.m_disableTxns) {
         LOG_GENERAL(INFO, "Txns disabled - skipping forwarding to upper seed");
@@ -389,55 +383,15 @@ bool LookupServer::StartCollectorThread() {
 
       if (USE_REMOTE_TXN_CREATOR &&
           !m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT,
-                                             txnsShard, txnsDS)) {
+                                             txnsToSend)) {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
       }
 
-      if (!txnsShard.empty()) {
-        for (const auto& tx : txnsShard) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
-        }
-        LOG_GENERAL(INFO, "Size of txns to shard: " << txnsShard.size());
+      LOG_GENERAL(INFO, "Size of generated txns to DS: " << txnsToSend.size());
+
+      for (const auto& tx : txnsToSend) {
+        m_mediator.m_lookup->AddTxnToMemPool(tx);
       }
-
-      if (!txnsDS.empty()) {
-        for (const auto& tx : txnsDS) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_DS);
-        }
-        LOG_GENERAL(INFO, "Size of txns to DS: " << txnsDS.size());
-      }
-
-      for (auto const& i :
-           {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
-        {
-          lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
-          if (m_mediator.m_lookup->GetTxnFromShardMap(i).empty()) {
-            continue;
-          }
-        }
-      }
-
-      zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
-
-      {
-        lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
-        if (!Messenger::SetForwardTxnBlockFromSeed(
-                msg, MessageOffset::BODY,
-                m_mediator.m_lookup->GetTxnFromShardMap(
-                    SEND_TYPE::ARCHIVAL_SEND_SHARD),
-                m_mediator.m_lookup->GetTxnFromShardMap(
-                    SEND_TYPE::ARCHIVAL_SEND_DS))) {
-          continue;
-        }
-        for (auto const& i :
-             {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
-          m_mediator.m_lookup->DeleteTxnShardMap(i);
-        }
-      }
-
-      m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
     }
   };
   DetachedFunction(1, collectorThread);
@@ -556,9 +510,8 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
-Json::Value LookupServer::CreateTransaction(
-    const Json::Value& _json, const unsigned int num_shards,
-    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
+Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
+                                            const uint128_t& gasPrice) {
   INC_CALLS(GetCallsCounter());
 
   LOG_MARKER();
@@ -609,17 +562,8 @@ Json::Value LookupServer::CreateTransaction(
       toAccountIsContract = toAccountExist && toAccount->isContract();
     }
 
-    const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-    unsigned int mapIndex = shard;
-    bool priority = false;
-    if (_json.isMember("priority")) {
-      priority = _json["priority"].asBool();
-    }
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
-        if (ARCHIVAL_LOOKUP) {
-          mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-        }
         if (toAccountExist) {
           if (toAccountIsContract) {
             throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
@@ -628,28 +572,17 @@ Json::Value LookupServer::CreateTransaction(
           }
         }
 
-        ret["Info"] = "Non-contract txn, sent to shard";
+        ret["Info"] = "Non-contract txn, sent to Ds";
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
-        // We use the same logic for CONTRACT_CREATION and CONTRACT_CALL.
-        // TODO(valeryz): once we stop using Zilliqa APIs for EVM, revert
-        // to the old behavior where CONTRACT_CREATION can be sharded.
-        auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
+        ret["Info"] = CheckContractTxn(tx, toAccountExist, toAccountIsContract);
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1,
                                            tx.GetVersionIdentifier())
                 .hex();
-        mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
-        auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
-        mapIndex = check.second;
+        ret["Info"] = CheckContractTxn(tx, toAccountExist, toAccountIsContract);
       } break;
       case Transaction::ContractType::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -658,14 +591,8 @@ Json::Value LookupServer::CreateTransaction(
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
-    if (m_mediator.m_lookup->m_sendAllToDS) {
-      if (ARCHIVAL_LOOKUP) {
-        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-      } else {
-        mapIndex = num_shards;
-      }
-    }
-    if (!targetFunc(tx, mapIndex)) {
+
+    if (!m_mediator.m_lookup->AddTxnToMemPool(tx)) {
       throw JsonRpcException(RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
@@ -985,13 +912,15 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
 
     string initDataStr;
     Json::Value initDataJson;
-    // If the contract is EVM, represent the init data as a hex string. Otherwise, it is JSON.
+    // If the contract is EVM, represent the init data as a hex string.
+    // Otherwise, it is JSON.
     if (EvmUtils::isEvm(code)) {
       initDataStr = DataConversion::Uint8VecToHexStrRet(initData);
       initDataJson = initDataStr;
     } else {
       initDataStr = DataConversion::CharArrayToString(initData);
-      if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
+      if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr,
+                                                     initDataJson)) {
         throw JsonRpcException(RPC_PARSE_ERROR,
                                "Unable to convert initData into Json");
       }
@@ -1263,8 +1192,7 @@ double LookupServer::GetTransactionRate() {
     refBlockNum = refBlockNum - REF_BLOCK_DIFF;
   }
 
-  mp::cpp_dec_float_50 numTxns(
-      LookupServer::GetNumTransactions(refBlockNum));
+  mp::cpp_dec_float_50 numTxns(LookupServer::GetNumTransactions(refBlockNum));
   LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
   try {
@@ -1680,11 +1608,7 @@ Json::Value LookupServer::GetShardingStructure() {
 
     auto shards = m_mediator.m_lookup->GetShardPeers();
 
-    unsigned int num_shards = shards.size();
-
-    for (unsigned int i = 0; i < num_shards; i++) {
-      _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
-    }
+    _json["NumPeers"].append(static_cast<unsigned int>(shards.size()));
 
     return _json;
 
@@ -2022,22 +1946,16 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
-  const auto shards = m_mediator.m_lookup->GetShardPeers();
-  const auto& num_shards = shards.size();
-  if (num_shards <= shardID) {
+  const auto shardMembers = m_mediator.m_lookup->GetShardPeers();
+  if (shardID > 1) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
   }
   Json::Value _json;
   try {
-    const auto& shard = shards.at(shardID);
-    if (shard.empty()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
-    }
-
     auto random_vec =
-        GenUniqueIndices(shard.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
+        GenUniqueIndices(shardMembers.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
     for (auto const& x : random_vec) {
-      const auto& node = shard.at(x);
+      const auto& node = shardMembers.at(x);
       _json.append(JSONConversion::convertNode(node));
     }
     return _json;
@@ -2353,16 +2271,12 @@ Json::Value LookupServer::GetStateProof(const string& address,
   return ret;
 }
 
-
-std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
-    bool priority, unsigned int shard, const Transaction& tx,
-    unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
+std::string LookupServer::CheckContractTxn(const Transaction& tx,
+                                           bool toAccountExist,
+                                           bool toAccountIsContract) {
   TRACE(zil::trace::FilterClass::DEMO);
 
   INC_CALLS(GetCallsCounter());
-
-  unsigned int mapIndex = shard;
-  std::string resultStr;
 
   if (!ENABLE_SC) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -2380,49 +2294,10 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
                            "Non - contract address called");
   }
 
-  Transaction::ContractType scType = Transaction::GetTransactionType(tx);
-
-  // Use m_sendSCCallsToDS as initial setting
-  bool sendToDs = priority || m_sharedMediator.m_lookup->m_sendSCCallsToDS;
-  if (!tx.IsEth() && scType == Transaction::CONTRACT_CREATION) {
-    // Scilla smart CONTRACT_CREATION call should be executed in shard rather
-    // than DS.
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    }
-    resultStr = "Contract Creation txn, sent to shard";
-  } else {
-    // CONTRACT_CALL - scilla and EVM , CONTRACT_CREATION - EVM
-    Address affectedAddress = tx.GetToAddr();
-    unsigned int to_shard =
-        Transaction::GetShardIndex(affectedAddress, num_shards);
-    if ((to_shard == shard) && !sendToDs) {
-      if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
-        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                               "txn gas limit exceeding shard maximum limit");
-      }
-      if (ARCHIVAL_LOOKUP) {
-        mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-      }
-      resultStr =
-          "Contract Creation/Call Txn, Shards Match of the sender "
-          "and receiver";
-    } else {
-      if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-        throw JsonRpcException(
-            ServerBase::RPC_INVALID_PARAMETER,
-            (boost::format(
-                 "txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") %
-             tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT)
-                .str());
-      }
-      if (ARCHIVAL_LOOKUP) {
-        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-      } else {
-        mapIndex = num_shards;
-      }
-      resultStr = "Contract Creation/Call Txn, Sent To Ds";
-    }
+  if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "txn gas limit exceeding shard maximum limit");
   }
-  return make_pair(resultStr, mapIndex);
+
+  return "Contract Creation/Call Txn, Sent To Ds";
 }

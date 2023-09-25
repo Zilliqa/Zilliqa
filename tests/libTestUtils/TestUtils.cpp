@@ -227,19 +227,11 @@ DequeOfNode GenerateRandomDSCommittee(uint32_t size) {
   return ds_c;
 }
 
-Shard GenerateRandomShard(size_t size) {
-  Shard s;
+DequeOfShardMembers GenerateDequeueOfShard(size_t size) {
+  DequeOfShardMembers dos;
   for (size_t i = 1; i <= size; i++) {
-    s.push_back(std::make_tuple(GenerateRandomPubKey(PrivKey()),
-                                GenerateRandomPeer(), DistUint16()));
-  }
-  return s;
-}
-
-DequeOfShard GenerateDequeueOfShard(size_t size) {
-  DequeOfShard dos;
-  for (size_t i = 1; i <= size; i++) {
-    dos.push_front(GenerateRandomShard(i));
+    dos.push_front(std::make_tuple(GenerateRandomPubKey(PrivKey()),
+                                   GenerateRandomPeer(), DistUint16()));
   }
   return dos;
 }

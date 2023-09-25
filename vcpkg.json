@@ -12,14 +12,12 @@
     "boost-multiprecision",
     "boost-program-options",
     "boost-process",
-    "boost-thread",
     "boost-timer",
     "boost-test",
     "snappy",
     "mongo-c-driver",
     "mongo-cxx-driver",
     "miniupnpc",
-    "libevent",
     {
       "name": "leveldb",
       "default-features": false,
@@ -42,7 +40,8 @@
         "otlp"
       ]
     },
-    "secp256k1"
+    "secp256k1",
+    "cpr"
   ],
   "builtin-baseline": "9d47b24eacbd1cd94f139457ef6cd35e5d92cc84",
   "overrides": [

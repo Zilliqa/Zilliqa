@@ -23,7 +23,7 @@
 #include "libMessage/Messenger.h"
 #include "libMetrics/Api.h"
 #include "libMetrics/TracedIds.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
@@ -53,8 +53,9 @@ class BackupVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.backup.gauge",
-                                          "Consensus bacup state", "calls", true);
+      temp =
+          std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.backup.gauge",
+                                       "Consensus bacup state", "calls", true);
 
       temp->SetCallback([this](auto&& result) {
         result.Set(consensusState, {{"counter", "ConsensusState"}});
@@ -148,8 +149,9 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
         // Unicast to the leader
         // =====================
-        LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce)");
-        P2PComm::GetInstance().SendMessage(
+        LOG_GENERAL(WARNING,
+                    "Uni-casting response to leader (message announce)");
+        zil::p2p::GetInstance().SendMessage(
             GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
         return true;
@@ -182,8 +184,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
     // Unicast to the leader
     // =====================
     LOG_GENERAL(WARNING, "Uni-casting response to leader (message announce2)");
-    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
-                                       commit);
+    zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+                                        commit);
   }
   return result;
 }
@@ -345,10 +347,9 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
     // Unicast to the leader
     // =====================
-
     LOG_GENERAL(WARNING, "Uni-casting response to leader (message challenge)");
-    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
-                                       response);
+    zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+                                        response);
 
     return true;
   }
@@ -475,9 +476,11 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
       // Unicast to the leader
       // =====================
-      LOG_GENERAL(WARNING, "Uni-casting response to leader (message collective sig core)");
-      P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
-                                         finalcommit);
+      LOG_GENERAL(
+          WARNING,
+          "Uni-casting response to leader (message collective sig core)");
+      zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+                                          finalcommit);
     }
   } else {
     // Save the collective sig over the second round

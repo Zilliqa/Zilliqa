@@ -244,8 +244,8 @@ bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "IP Address provided not valid");
     }
-
-    if (!Blacklist::GetInstance().Whitelist(numIP)) {
+    // TODO - SW
+    if (!Blacklist::GetInstance().Whitelist({numIP, 0, ""})) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Could not add IP Address in exclusion list, already present");
@@ -337,8 +337,8 @@ bool StatusServer::AddToSeedsWhitelist(const string& ipAddr) {
           RPC_INVALID_PARAMETER,
           "Whitelisting is disabled. Node might not be synced yet!");
     }
-
-    if (!Blacklist::GetInstance().WhitelistSeed(numIP)) {
+    // TODO - SW
+    if (!Blacklist::GetInstance().WhitelistSeed({numIP, 0, ""})) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Could not add IP Address in whitelisted seed list, already present");
@@ -363,7 +363,7 @@ bool StatusServer::RemoveFromSeedsWhitelist(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    if (!Blacklist::GetInstance().RemoveFromWhitelistedSeeds(numIP)) {
+    if (!Blacklist::GetInstance().RemoveFromWhitelistedSeeds({numIP, 0, ""})) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Could not remove IP Address from whitelisted seed list");
@@ -379,6 +379,7 @@ bool StatusServer::RemoveFromSeedsWhitelist(const string& ipAddr) {
   }
 }
 
+// TODO - SW
 bool StatusServer::IsIPInBlacklist(const string& ipAddr) {
   try {
     uint128_t numIP;
@@ -387,8 +388,8 @@ bool StatusServer::IsIPInBlacklist(const string& ipAddr) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "IP Address provided not valid");
     }
-
-    return Blacklist::GetInstance().Exist(numIP);
+    // TODO - SW
+    return Blacklist::GetInstance().Exist({numIP, 0, ""});
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (const exception& e) {
@@ -405,8 +406,8 @@ bool StatusServer::RemoveIPFromBlacklist(const string& ipAddr) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "IP Address provided not valid");
     }
-
-    Blacklist::GetInstance().Remove(numIP);
+    // TODO - SW
+    Blacklist::GetInstance().Remove({numIP, 0, ""});
     return true;
   } catch (const JsonRpcException& je) {
     throw je;
@@ -425,7 +426,7 @@ bool StatusServer::RemoveFromBlacklistExclusion(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    if (!Blacklist::GetInstance().RemoveFromWhitelist(numIP)) {
+    if (!Blacklist::GetInstance().RemoveFromWhitelist({numIP, 0, ""})) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Could not remove IP Address from exclusion list");
     }
@@ -722,14 +723,10 @@ bool StatusServer::AuditShard(const std::string& shardIDStr) {
   LOG_GENERAL(INFO, "Auditing shard " << shardID);
 
   try {
-    const auto shards = m_mediator.m_lookup->GetShardPeers();
-    if (shards.size() <= shardID) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shardID");
-    }
+    const auto shardMembers = m_mediator.m_lookup->GetShardPeers();
 
-    const auto& shard = shards.at(shardID);
     vector<Peer> peersVec;
-    for (const auto& peer : shard) {
+    for (const auto& peer : shardMembers) {
       LOG_GENERAL(INFO,
                   "Checking " << std::get<1>(peer).GetPrintableIPAddress());
       peersVec.emplace_back(std::get<1>(peer));

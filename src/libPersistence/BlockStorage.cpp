@@ -71,8 +71,10 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
     m_txTraceDB = std::make_shared<LevelDB>("txTraces");
     m_otterTraceDB = std::make_shared<LevelDB>("otterTraces");
-    m_otterTxAddressMappingDB = std::make_shared<LevelDB>("otterTxAddressMappings");
-    m_otterAddressNonceLookup = std::make_shared<LevelDB>("otterAddressNonceLookup");
+    m_otterTxAddressMappingDB =
+        std::make_shared<LevelDB>("otterTxAddressMappings");
+    m_otterAddressNonceLookup =
+        std::make_shared<LevelDB>("otterAddressNonceLookup");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -1181,7 +1183,7 @@ bool BlockStorage::GetDSCommittee(shared_ptr<DequeOfNode>& dsCommittee,
   return true;
 }
 
-bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
+bool BlockStorage::PutShardStructure(const DequeOfShardMembers& shards,
                                      const uint32_t myshardId) {
   LOG_MARKER();
 
@@ -1215,7 +1217,7 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
   return true;
 }
 
-bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
+bool BlockStorage::GetShardStructure(DequeOfShardMembers& shards) {
   LOG_MARKER();
 
   unsigned int index = 1;
@@ -1227,8 +1229,10 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   }
 
   uint32_t version = 0;
+  auto old_size = shards.size();
   Messenger::ArrayToShardStructure(zbytes(dataStr.begin(), dataStr.end()), 0,
                                    version, shards);
+  LOG_EXTRA("Shards updated " << old_size << "->" << shards.size());
 
   if (version != SHARDINGSTRUCTURE_VERSION) {
     LOG_CHECK_FAIL("Sharding structure version", version,
@@ -1281,7 +1285,7 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
 }
 
 bool BlockStorage::PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
-                                          const DequeOfShard& shards,
+                                          const DequeOfShardMembers& shards,
                                           const DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
@@ -1330,7 +1334,7 @@ bool BlockStorage::PutDiagnosticDataCoinbase(
 }
 
 bool BlockStorage::GetDiagnosticDataNodes(const uint64_t& dsBlockNum,
-                                          DequeOfShard& shards,
+                                          DequeOfShardMembers& shards,
                                           DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
@@ -1652,7 +1656,8 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
   return found;
 }
 
-bool BlockStorage::PutContractCreator(const dev::h160 address, const dev::h256 txnHash) {
+bool BlockStorage::PutContractCreator(const dev::h160 address,
+                                      const dev::h256 txnHash) {
   if (!m_contractCreatorDB) {
     return true;
   }
@@ -1667,7 +1672,9 @@ dev::h256 BlockStorage::GetContractCreator(const dev::h160 address) {
   }
 
   lock_guard<mutex> g(m_contractCreatorMutex);
-  return dev::h256(reinterpret_cast<const unsigned char*>(m_contractCreatorDB->Lookup(address.asBytes()).c_str()), dev::h256::ConstructFromPointerType::ConstructFromPointer);
+  return dev::h256(reinterpret_cast<const unsigned char*>(
+                       m_contractCreatorDB->Lookup(address.asBytes()).c_str()),
+                   dev::h256::ConstructFromPointerType::ConstructFromPointer);
 }
 
 bool BlockStorage::ResetDB(DBTYPE type) {
@@ -2076,7 +2083,8 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   }
 }
 
-bool BlockStorage::PutOtterTrace(const dev::h256& key, const std::string& trace) {
+bool BlockStorage::PutOtterTrace(const dev::h256& key,
+                                 const std::string& trace) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(
         WARNING,
@@ -2106,7 +2114,7 @@ bool BlockStorage::PutOtterTrace(const dev::h256& key, const std::string& trace)
   // Store txn hash and epoch inside txEpochs DB
   if (m_otterTraceDB->Insert(key, toWrite.SerializeAsString()) != 0) {
     LOG_GENERAL(WARNING, "Tx trace insertion failed. "
-        << " key=" << key);
+                             << " key=" << key);
     return false;
   }
 
@@ -2138,7 +2146,9 @@ bool BlockStorage::GetOtterTrace(const dev::h256& key, std::string& trace) {
   return true;
 }
 
-bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::set<std::string>& addresses, const uint64_t& blocknum) {
+bool BlockStorage::PutOtterTxAddressMapping(
+    const dev::h256& txId, const std::set<std::string>& addresses,
+    const uint64_t& blocknum) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(
         WARNING,
@@ -2155,12 +2165,11 @@ bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::se
 
   // for each address, add to the tx hashes and block number that touched them
   for (auto address : addresses) {
-
     // lowercase address
     std::transform(address.begin(), address.end(), address.begin(), ::tolower);
 
     // if address has 0x prefix, remove it
-    if (address.substr(0,2) == "0x") {
+    if (address.substr(0, 2) == "0x") {
       address = address.substr(2);
     }
 
@@ -2170,7 +2179,8 @@ bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::se
     }
 
     if (address.size() != 40) {
-      LOG_GENERAL(WARNING, "Address " << address << " is not 40 characters long");
+      LOG_GENERAL(WARNING,
+                  "Address " << address << " is not 40 characters long");
       continue;
     }
 
@@ -2179,7 +2189,7 @@ bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::se
 
     auto res = m_otterTxAddressMappingDB->Lookup(address);
 
-    if(!res.empty()) {
+    if (!res.empty()) {
       ret.ParseFromString(res);
     }
 
@@ -2197,8 +2207,9 @@ bool BlockStorage::PutOtterTxAddressMapping(const dev::h256& txId, const std::se
   return true;
 }
 
-std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string address, unsigned long blockNumber, unsigned long pageSize, bool before, bool &wasMore) {
-
+std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(
+    std::string address, unsigned long blockNumber, unsigned long pageSize,
+    bool before, bool& wasMore) {
   std::vector<std::string> addresses;
   lock_guard<mutex> g(m_mutexTxBody);
 
@@ -2213,7 +2224,7 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
   std::transform(address.begin(), address.end(), address.begin(), ::tolower);
 
   // remove 0x prefix from address if exists
-  if (address.substr(0,2) == "0x") {
+  if (address.substr(0, 2) == "0x") {
     address = address.substr(2);
   }
 
@@ -2235,13 +2246,13 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
 
   // If we are searching before the block number,
   // we need to reverse the order of the hashes so we are searching downward
-  if(before) {
+  if (before) {
     std::reverse(hashes.begin(), hashes.end());
   }
 
   uint64_t stopOnBlock = -1;
 
-  for(int i = 0; i < hashes.size();i++) {
+  for (int i = 0; i < hashes.size(); i++) {
     auto item = hashes.Get(i);
 
     if (item.blocknum() == stopOnBlock) {
@@ -2250,17 +2261,17 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
     }
 
     // The otter docs indicate
-    if(addresses.size() >= pageSize) {
+    if (addresses.size() >= pageSize) {
       stopOnBlock = item.blocknum();
       stopOnBlock = before ? stopOnBlock - 1 : stopOnBlock + 1;
     }
 
-    if(before) {
-      if(item.blocknum() < blockNumber) {
+    if (before) {
+      if (item.blocknum() < blockNumber) {
         addresses.push_back(item.hash());
       }
     } else {
-      if(item.blocknum() > blockNumber) {
+      if (item.blocknum() > blockNumber) {
         addresses.push_back(item.hash());
       }
     }
@@ -2268,15 +2279,16 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(std::string addr
 
   // Results should always be descending, so they need to be reversed
   // if the search was 'after'
-  if(!before) {
+  if (!before) {
     std::reverse(addresses.begin(), addresses.end());
   }
 
   return addresses;
 }
 
-
-bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t nonce, std::string address) {
+bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId,
+                                              uint64_t nonce,
+                                              std::string address) {
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(
         WARNING,
@@ -2292,7 +2304,7 @@ bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t no
   std::transform(address.begin(), address.end(), address.begin(), ::tolower);
 
   // remove 0x prefix from address if exists
-  if (address.substr(0,2) == "0x") {
+  if (address.substr(0, 2) == "0x") {
     address = address.substr(2);
   }
 
@@ -2315,8 +2327,8 @@ bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId, uint64_t no
   return m_otterAddressNonceLookup->Insert(key, ser) == 0;
 }
 
-std::string BlockStorage::GetOtterAddressNonceLookup(std::string address, uint64_t nonce) {
-
+std::string BlockStorage::GetOtterAddressNonceLookup(std::string address,
+                                                     uint64_t nonce) {
   lock_guard<mutex> g(m_mutexTxBody);
 
   if (!m_otterAddressNonceLookup) {
@@ -2329,7 +2341,7 @@ std::string BlockStorage::GetOtterAddressNonceLookup(std::string address, uint64
   // remove 0x prefix from address if exists, make lowercase
   std::transform(address.begin(), address.end(), address.begin(), ::tolower);
 
-  if (address.substr(0,2) == "0x") {
+  if (address.substr(0, 2) == "0x") {
     address = address.substr(2);
   }
 

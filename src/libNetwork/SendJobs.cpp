@@ -27,11 +27,14 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/container/small_vector.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #include "SendJobs.h"
 
 #include "Blacklist.h"
 #include "Peer.h"
+#include "common/MessageNames.h"
 #include "libMetrics/Api.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
@@ -118,17 +121,10 @@ const ErrorCode NETWORK_UNREACHABLE = boost::asio::error::network_unreachable;
 namespace {
 
 inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
-  return Blacklist::GetInstance().Exist(peer.m_ipAddress,
-                                        !allow_relaxed_blacklist);
-}
-
-inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
-  return (ec == HOST_UNREACHABLE || ec == NETWORK_DOWN ||
-          ec == NETWORK_UNREACHABLE);
-}
-
-inline bool IsNodeNotRunning(const ErrorCode& ec) {
-  return (ec == TIMED_OUT || ec == CONN_REFUSED);
+  return Blacklist::GetInstance().Exist(
+      {peer.GetIpAddress(), peer.GetListenPortHost(),
+       peer.GetNodeIndentifier()},
+      !allow_relaxed_blacklist);
 }
 
 inline Milliseconds Clock() {
@@ -138,24 +134,67 @@ inline Milliseconds Clock() {
 
 /// Waits for timer and calls a member function of Object,
 /// Timer must be in the scope of object (for pointers validity)
-template <typename F, typename Time>
-void WaitTimer(SteadyTimer& timer, Time delay, F onTimerHandler) {
+template <typename Object, typename Time>
+void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
+               void (Object::*OnTimer)()) {
   ErrorCode ec;
   timer.expires_at(
       boost::asio::steady_timer::clock_type::time_point(Clock() + delay), ec);
 
   if (ec) {
-    LOG_GENERAL(FATAL,
-                "Cannot set timer: " << ec.message() << " (" << ec << ')');
+    LOG_GENERAL(FATAL, "Cannot set timer");
     return;
   }
 
-  timer.async_wait([onTimer = std::move(onTimerHandler)](const ErrorCode& ec) {
-    LOG_GENERAL(DEBUG, "Timer expired: " << ec.message() << " (" << ec << ')');
-    if (!ec) {
-      onTimer();
+  timer.async_wait([obj, OnTimer](const ErrorCode& error) {
+    if (!error) {
+      (obj->*OnTimer)();
     }
   });
+}
+
+std::set<Peer> ExtractMultipliers() {
+  using boost::property_tree::ptree;
+
+  std::set<Peer> peers;
+
+  try {
+    ptree pt;
+    read_xml("constants.xml", pt);
+    for (const ptree::value_type& v : pt.get_child("node.multipliers")) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr {};
+        inet_pton(AF_INET, v.second.get<std::string>("ip").c_str(), &ip_addr);
+        if (ip_addr.s_addr == 0) {
+          LOG_GENERAL(WARNING, "Ignoring zero multiplier IP");
+          continue;
+        }
+        auto port = v.second.get<uint32_t>("port");
+        if (port == 0) {
+          LOG_GENERAL(WARNING, "Ignoring zero multiplier port");
+          continue;
+        }
+        auto inserted = peers.emplace(uint128_t(ip_addr.s_addr), port);
+        if (inserted.second) {
+          LOG_GENERAL(INFO, "Found multiplier at " << *inserted.first);
+        }
+      }
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Cannot read multipliers from constants.xml: " << e.what());
+  }
+
+  return peers;
+}
+
+/// Returns a dummy buffer to read into (we really need to use reads in this
+/// part of the protocol just to detect EOFs)
+inline auto& GetDummyBuffer() {
+  static std::array<uint8_t, 2048> dummyArray;
+  static auto buf =
+      boost::asio::mutable_buffer(dummyArray.data(), dummyArray.size());
+  return buf;
 }
 
 /// Closes socket gracefully, waits for EOF first. Helps to avoid undesirable
@@ -163,14 +202,13 @@ void WaitTimer(SteadyTimer& timer, Time delay, F onTimerHandler) {
 class GracefulCloseImpl
     : public std::enable_shared_from_this<GracefulCloseImpl> {
   Socket m_socket;
-  std::array<uint8_t, 8> m_dummyArray;
 
  public:
-  GracefulCloseImpl(Socket socket) : m_socket(std::move(socket)) {}
+  GracefulCloseImpl(Socket&& socket) : m_socket(std::move(socket)) {}
 
   void Close() {
     m_socket.async_read_some(
-        boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
+        GetDummyBuffer(),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
             LOG_GENERAL(DEBUG,
@@ -180,7 +218,7 @@ class GracefulCloseImpl
   }
 };
 
-void CloseGracefully(Socket socket) {
+void CloseGracefully(Socket&& socket) {
   ErrorCode ec;
   if (!socket.is_open()) {
     return;
@@ -203,6 +241,9 @@ void CloseGracefully(Socket socket) {
   }
 }
 
+constexpr std::chrono::milliseconds RECONNECT_PERIOD(2000);
+constexpr std::chrono::milliseconds IDLE_TIMEOUT(120000);
+
 }  // namespace
 
 class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
@@ -213,15 +254,18 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     Milliseconds expires_at;
   };
 
-  using DoneCallback = std::function<void(const Peer& peer, ErrorCode ec)>;
+  using DoneCallback = std::function<void(const Peer& peer)>;
 
-  PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb, Peer peer)
+  PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb, Peer peer,
+                bool is_multiplier, bool no_wait)
       : m_asioContext(ctx),
         m_doneCallback(done_cb),
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
         m_timer(m_asioContext),
-        m_expireTime(std::max(5000u, TX_DISTRIBUTE_TIME_IN_MS * 3 / 4)) {}
+        m_messageExpireTime(std::max(15000u, TX_DISTRIBUTE_TIME_IN_MS * 5 / 6)),
+        m_isMultiplier(is_multiplier),
+        m_noWait(no_wait) {}
 
   ~PeerSendQueue() { Close(); }
 
@@ -230,10 +274,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     auto& item = m_queue.back();
     item.msg = std::move(msg);
     item.allow_relaxed_blacklist = allow_relaxed_blacklist;
-    item.expires_at = Clock() + m_expireTime;
+    item.expires_at = Clock() + m_messageExpireTime;
     if (m_queue.size() == 1) {
-      Connect();
+      if (!m_connected) {
+        Connect();
+      } else {
+        SendMessage();
+      }
     }
+    m_inIdleTimeout = false;
   }
 
   void Close() {
@@ -254,29 +303,20 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         LOG_GENERAL(INFO, "Cannot create endpoint for address "
                               << m_peer.GetPrintableIPAddress() << ":"
                               << m_peer.GetListenPortHost());
-        Done(ec);
+        Done();
         return;
       }
       m_endpoint = Endpoint(std::move(address), m_peer.GetListenPortHost());
     }
 
-    m_timer.cancel(ec);
+    LOG_GENERAL(INFO, "Connecting to " << m_peer);
 
-    LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
-
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
-      m_socket.cancel();
-      OnConnected(TIMED_OUT);
-    });
-    m_socket.async_connect(m_endpoint, [self = shared_from_this()](
-                                           const ErrorCode& ec) {
-      LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
-                                          << ec.message() << " (" << ec << ')');
-      if (ec != OPERATION_ABORTED) {
-        self->m_timer.cancel();
-        self->OnConnected(ec);
-      }
-    });
+    m_socket.async_connect(m_endpoint,
+                           [self = shared_from_this()](const ErrorCode& ec) {
+                             if (ec != OPERATION_ABORTED) {
+                               self->OnConnected(ec);
+                             }
+                           });
   }
 
   void OnConnected(const ErrorCode& ec) {
@@ -284,62 +324,65 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
     if (!ec) {
+      m_connected = true;
       SendMessage();
     } else {
-      ScheduleReconnectOrGiveUp(ec);
+      m_connected = false;
+      ScheduleReconnectOrGiveUp();
+    }
+  }
+
+
+  bool FindNotExpiredMessage() {
+    auto clock = Clock();
+    while (!m_queue.empty()) {
+      if (m_queue.front().expires_at < clock) {
+        m_queue.pop_front();
+        LOG_GENERAL(INFO, "Dropping P2P message as expired, peer=" << m_peer);
+        // TODO metric about message drops
+      } else {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void OnIdleTimer() {
+    if (m_inIdleTimeout && m_queue.empty()) {
+      Done();
     }
   }
 
   void SendMessage() {
-    if (!CheckAgainstBlacklist()) {
+    if (!FindNotExpiredMessage()) {
+      if (m_connected && !m_noWait && !m_isMultiplier) {
+        m_inIdleTimeout = true;
+        WaitTimer(m_timer, IDLE_TIMEOUT, this, &PeerSendQueue::OnIdleTimer);
+      } else {
+        Done();
+      }
       return;
     }
 
+    assert(!m_queue.empty());
+
     auto& msg = m_queue.front().msg;
 
-    LOG_GENERAL(DEBUG, "Sending " << msg.size << " bytes to " << m_peer);
+
+    if (msg.size >= 2) {
+      auto* p = (const unsigned char*)msg.data.get();
+      LOG_EXTRA(FormatMessageName(p[0], p[1])
+                << " of size " << msg.size << " to " << m_peer);
+    }
+
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
-        [self = shared_from_this()](const ErrorCode& ec, size_t count) {
-          LOG_GENERAL(DEBUG, "Wrote " << count << " bytes to "
-                                      << self->m_endpoint << ": "
-                                      << ec.message() << " (" << ec << ')');
+        [self = shared_from_this()](const ErrorCode& ec, size_t) {
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
           }
         });
-  }
-
-  /// Deal with blacklist in which peer may have appeared after some delay
-  bool CheckAgainstBlacklist() {
-    auto sz = m_queue.size();
-    if (sz > 0 && IsBlacklisted(m_peer, false)) {
-      if (!IsBlacklisted(m_peer, true)) {
-        LOG_GENERAL(INFO,
-                    "Peer " << m_peer << " is relaxed blacklisted, Q=" << sz);
-        // Find 1st item which allows to be sent in non-strict blacklist mode
-        while (!m_queue.empty()) {
-          auto& item = m_queue.front();
-          if (item.allow_relaxed_blacklist) {
-            break;
-          }
-          m_queue.pop_front();
-        }
-      } else {
-        // the peer is blacklisted strictly
-        LOG_GENERAL(INFO,
-                    "Peer " << m_peer << " is strictly blacklisted, Q=" << sz);
-        m_queue.clear();
-      }
-    }
-
-    if (m_queue.empty()) {
-      Done();
-      return false;
-    }
-
-    return true;
   }
 
   void OnWritten(const ErrorCode& ec) {
@@ -348,7 +391,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     if (ec) {
-      ScheduleReconnectOrGiveUp(ec);
+      m_connected = false;
+      ScheduleReconnectOrGiveUp();
       return;
     }
 
@@ -363,80 +407,75 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     m_queue.pop_front();
-
-    Reconnect();
+    SendMessage();
   }
 
-  bool ExpiredOrDone(const ErrorCode& ec = ErrorCode{}) {
-    if (m_queue.empty()) {
+  void ScheduleReconnectOrGiveUp() {
+    if (!FindNotExpiredMessage()) {
       Done();
-      return true;
-    }
-
-    if (m_queue.front().expires_at < Clock()) {
-      Done(ec ? ec : TIMED_OUT);
-      return true;
-    }
-
-    return false;
-  }
-
-  void ScheduleReconnectOrGiveUp(const ErrorCode& ec) {
-    if (ExpiredOrDone(ec)) {
       return;
     }
 
-    assert(ec);
-
-    zil::local::variables.AddReconntionToPeerCount(1);
-    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS},
-              [this]() { Reconnect(); });
+    WaitTimer(m_timer, RECONNECT_PERIOD, this, &PeerSendQueue::Reconnect);
   }
 
   void Reconnect() {
-    if (!CheckAgainstBlacklist() || ExpiredOrDone()) {
-      return;
-    }
-
-    LOG_GENERAL(INFO, "Reconnecting to " << m_endpoint << "...");
-
-    // TODO the current protocol is weird and it assumes reconnecting every
-    // time. This should be changed!!!
+    LOG_GENERAL(DEBUG, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Connect();
   }
 
-  void Done(const ErrorCode& ec = ErrorCode{}) {
+  void Done() {
     if (!m_closed) {
-      m_doneCallback(m_peer, ec);
+      m_doneCallback(m_peer);
     }
   }
 
   AsioContext& m_asioContext;
+
+  // cb to the owner
   DoneCallback m_doneCallback;
 
+  // remote peer
   Peer m_peer;
 
+  // peer's endpoint
   Endpoint m_endpoint;
 
+  // message queue
   std::deque<Item> m_queue;
+
+  // tcp socket
   Socket m_socket;
 
+  // Timer is used
   SteadyTimer m_timer;
 
-  Milliseconds m_expireTime;
+  // Every message has some expire time for delivery
+  // TODO: make it explicit for various kinds of messages
+  Milliseconds m_messageExpireTime;
 
+  bool m_isMultiplier;
+
+  // If true, then this instance will nolonger disturb the owner which may not
+  // exist at the moment (shared_ptr may be live in some async operations)
   bool m_closed = false;
+
+  // it's hard to determine is an asio socket really connected, so explicit var
+  bool m_connected = false;
+
+  bool m_inIdleTimeout = false;
+
+  bool m_noWait = false;
 };
 
 class SendJobsImpl : public SendJobs,
                      public std::enable_shared_from_this<SendJobsImpl> {
  public:
   SendJobsImpl()
-      : m_doneCallback([this](const Peer& peer, ErrorCode ec) {
-          OnPeerQueueFinished(peer, ec);
-        }),
+      : m_doneCallback([this](const Peer& peer) { OnPeerQueueFinished(peer); }),
+        m_multipliers(ExtractMultipliers()),
         m_workerThread([this] { WorkerThread(); }) {}
 
   ~SendJobsImpl() override {
@@ -473,21 +512,14 @@ class SendJobsImpl : public SendJobs,
 
     AsioContext localCtx(1);
 
-    auto doneCallback = [&localCtx](const Peer& peer, ErrorCode ec) {
+    auto doneCallback = [&localCtx](const Peer& peer) {
       auto peerStr = peer.GetPrintableIPAddress();
-      if (ec) {
-        zil::local::variables.AddSendMessageToPeerFailed(1);
-        LOG_GENERAL(WARNING, "Send message to "
-                                 << peerStr
-                                 << " failed with error: " << ec.message());
-      } else {
-        LOG_GENERAL(INFO, "Send message to " << peerStr << " done");
-      }
+      LOG_GENERAL(DEBUG, "Done with " << peer);
       localCtx.stop();
     };
 
-    auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
-                                                   std::move(peer));
+    auto peerCtx = std::make_shared<PeerSendQueue>(
+        localCtx, doneCallback, std::move(peer), false, true);
     peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();
@@ -506,52 +538,20 @@ class SendJobsImpl : public SendJobs,
 
     auto& ctx = m_activePeers[peer];
     if (!ctx) {
-      ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback,
-                                            std::move(peer));
+      bool is_multiplier = m_multipliers.contains(peer);
+      ctx = std::make_shared<PeerSendQueue>(
+          m_asioCtx, m_doneCallback, std::move(peer), is_multiplier, false);
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
   }
 
-  void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
-    if (ec) {
-      LOG_GENERAL(
-          INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
-                                             << ":" << peer.GetListenPortHost()
-                                             << " ec=" << ec.message());
-    }
-
+  void OnPeerQueueFinished(const Peer& peer) {
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
       zil::local::variables.AddSendMessageToPeerFailed(1);
       return;
-    }
-
-    if (IsHostHavingNetworkIssue(ec)) {
-      zil::local::variables.AddSendMessageToPeerFailed(1);
-      if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << ec.value() << " (" << ec.message()
-                                 << "). Adding seed "
-                                 << peer.GetPrintableIPAddress()
-                                 << " as relaxed blacklisted");
-        // Add this seed node to relaxed blacklist even if it is whitelisted
-        // in general.
-        Blacklist::GetInstance().Add(peer.m_ipAddress, false, true);
-      } else {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << ec.value() << " (" << ec.message()
-                                 << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " as strictly blacklisted");
-        Blacklist::GetInstance().Add(peer.m_ipAddress);  // strict
-      }
-    } else if (IsNodeNotRunning(ec)) {
-      LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << ec.value() << " (" << ec.message()
-                               << "). Adding " << peer.GetPrintableIPAddress()
-                               << " as relaxed blacklisted");
-      Blacklist::GetInstance().Add(peer.m_ipAddress, false);
     }
 
     // explicit Close() because shared_ptr may be reused in async operation
@@ -574,6 +574,7 @@ class SendJobsImpl : public SendJobs,
 
   AsioContext m_asioCtx;
   PeerSendQueue::DoneCallback m_doneCallback;
+  std::set<Peer> m_multipliers;
   std::thread m_workerThread;
   std::map<Peer, std::shared_ptr<PeerSendQueue>> m_activePeers;
 };

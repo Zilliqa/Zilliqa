@@ -186,6 +186,7 @@ class AccountStore : public AccountStoreBase {
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
                                        const bool revertible = false) {
+    LOG_GENERAL(WARNING, "AddAccountDuringDeserialization with addr: " << address);
     m_addressToAccount->insert_or_assign(address, account);
 
     if (revertible) {

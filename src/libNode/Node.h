@@ -44,12 +44,13 @@ class Retriever;
 typedef std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
     UnavailableMicroBlockList;
 
+constexpr uint8_t DEFAULT_SHARD_ID = 1;
+
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable {
   enum Action {
     STARTPOW = 0x00,
     PROCESS_DSBLOCK,
-    PROCESS_MICROBLOCKCONSENSUS,
     PROCESS_FINALBLOCK,
     PROCESS_TXNBODY,
     NUM_ACTIONS
@@ -176,9 +177,6 @@ class Node : public Executable {
   std::condition_variable cv_TxnProcFinished;
   bool m_txnProcessingFinished = false;
 
-  std::mutex m_mutexMicroBlockConsensusBuffer;
-  std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
-
   // soft confirmed transactions
   std::mutex m_mutexSoftConfirmedTxns;
   std::unordered_map<TxnHash, TransactionWithReceipt> m_softConfirmedTxns;
@@ -233,10 +231,7 @@ class Node : public Executable {
   // void StoreMicroBlocks();
   bool StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();
-  void ScheduleMicroBlockConsensus();
   void BeginNextConsensusRound();
-
-  void CommitMicroBlockConsensusBuffer();
 
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
       const uint64_t& blocknum);
@@ -257,19 +252,12 @@ class Node : public Executable {
   bool ProcessStartPoW(const zbytes& message, unsigned int offset,
                        const Peer& from,
                        [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessSharding(const zbytes& message, unsigned int offset,
-                       const Peer& from,
-                       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessSubmitTransaction(const zbytes& message, unsigned int offset,
                                 const Peer& from,
                                 [[gnu::unused]] const unsigned char& startByte);
   bool ProcessMicroBlockConsensus(
       const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessMicroBlockConsensusCore(
-      const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte =
-          zil::p2p::START_BYTE_NORMAL);
   bool ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
                            const Peer& from, const unsigned char& startByte);
   bool ProcessVCFinalBlockCore(const zbytes& message, unsigned int offset,
@@ -324,8 +312,6 @@ class Node : public Executable {
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte);
 
-  // bool ProcessCreateAccounts(const bytes & message,
-  // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const zbytes& message, unsigned int cur_offset,
                                 const Peer& from,
                                 [[gnu::unused]] const unsigned char& startByte);
@@ -355,16 +341,6 @@ class Node : public Executable {
   // Transaction functions
   bool OnCommitFailure(const std::map<unsigned int, zbytes>&);
 
-  bool RunConsensusOnMicroBlockWhenShardLeader();
-  bool RunConsensusOnMicroBlockWhenShardBackup();
-  bool PrePrepMicroBlockValidator(const zbytes& message, unsigned int offset,
-                                  zbytes& errorMsg, const uint32_t consensusID,
-                                  const uint64_t blockNumber,
-                                  const zbytes& blockHash,
-                                  const uint16_t leaderID,
-                                  const PubKey& leaderKey,
-                                  zbytes& messageToCosign);
-  bool ComposeMicroBlockMessageForSender(zbytes& microblock_message) const;
   bool MicroBlockValidator(const zbytes& message, unsigned int offset,
                            zbytes& errorMsg, const uint32_t consensusID,
                            const uint64_t blockNumber, const zbytes& blockHash,
@@ -419,12 +395,12 @@ class Node : public Executable {
   void UpdateGovProposalRemainingVoteInfo();
   bool CheckIfGovProposalActive();
 
+  void SendTxnMemPoolToNextLayer();
+
  public:
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
     WAITING_DSBLOCK,
-    MICROBLOCK_CONSENSUS_PREP,
-    MICROBLOCK_CONSENSUS,
     WAITING_FINALBLOCK,
     SYNC
   };
@@ -437,10 +413,6 @@ class Node : public Executable {
 
   // This process is newly invoked by shell from late node join script
   bool m_runFromLate = false;
-
-  // std::condition_variable m_cvAllMicroBlocksRecvd;
-  // std::mutex m_mutexAllMicroBlocksRecvd;
-  // bool m_allMicroBlocksRecvd = true;
 
   std::mutex m_mutexShardMember;
   std::shared_ptr<DequeOfNode> m_myShardMembers;
@@ -461,10 +433,6 @@ class Node : public Executable {
   std::mutex m_mutexCVMicroBlockMissingTxn;
   std::condition_variable cv_MicroBlockMissingTxn;
 
-  // std::condition_variable m_cvNewRoundStarted;
-  // std::mutex m_mutexNewRoundStarted;
-  // bool m_newRoundStarted = false;
-
   std::mutex m_mutexIsEveryMicroBlockAvailable;
 
   // Transaction body sharing variables
@@ -472,7 +440,7 @@ class Node : public Executable {
   UnavailableMicroBlockList m_unavailableMicroBlocks;
 
   /// Sharding variables
-  std::atomic<uint32_t> m_myshardId{};
+  const uint32_t m_myshardId = DEFAULT_SHARD_ID;
   std::atomic<bool> m_isPrimary{};
   std::shared_ptr<ConsensusCommon> m_consensusObject;
 
@@ -590,7 +558,7 @@ class Node : public Executable {
   bool DownloadPersistenceFromS3();
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType, bool &allowRecoverAllSync,
+  bool StartRetrieveHistory(const SyncType syncType, bool& allowRecoverAllSync,
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(const bool fromValidateDBBinary = false);
@@ -599,13 +567,6 @@ class Node : public Executable {
   bool SendPendingTxnToLookup();
 
   bool ValidateDB();
-
-  // Erase m_committedTransactions for given epoch number
-  // void EraseCommittedTransactions(uint64_t epochNum)
-  // {
-  //     std::lock_guard<std::mutex> g(m_mutexCommittedTransactions);
-  //     m_committedTransactions.erase(epochNum);
-  // }
 
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
@@ -626,12 +587,6 @@ class Node : public Executable {
   void PopulateAccounts();
 
   void UpdateBalanceForPreGeneratedAccounts();
-
-  void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
-                                      const zbytes& message,
-                                      unsigned int offset, const Peer& peer,
-                                      const PubKey& senderPubKey);
-  void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
 
@@ -673,15 +628,9 @@ class Node : public Executable {
                              const uint32_t& lookupId,
                              const uint128_t& gasPrice);
 
-  /// Used by oldest DS node to configure shard ID as a new shard node
-  void SetMyshardId(uint32_t shardId);
-
   /// Used by oldest DS node to finish setup as a new shard node
   /// And also used by shard node rejoining back
   void StartFirstTxEpoch(bool fbWaitState = false);
-
-  /// Used for start consensus on microblock
-  bool RunConsensusOnMicroBlock();
 
   /// Used for commit buffered txn packet
   void CommitTxnPacketBuffer(bool ignorePktForPrevEpoch = false);
@@ -734,11 +683,6 @@ class Node : public Executable {
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
                                                const DequeOfNode& shardMembers);
-  uint32_t CalculateShardLeaderFromShard(uint16_t lastBlockHash,
-                                         uint32_t sizeOfShard,
-                                         const Shard& shardMembers,
-                                         PairOfNode& shardLeader);
-
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
                           const DequeOfNode& dsCommittee, PairOfNode& dsLeader);

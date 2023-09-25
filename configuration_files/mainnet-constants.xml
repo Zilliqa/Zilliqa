@@ -187,7 +187,6 @@
 	<CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
     </jsonrpc>
     <network_composition>
-        
         <COMM_SIZE>600</COMM_SIZE>
         <NUM_DS_ELECTION>10</NUM_DS_ELECTION>
         

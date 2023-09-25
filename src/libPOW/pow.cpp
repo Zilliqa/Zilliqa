@@ -789,6 +789,7 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
   // mutex required to prevent a new mining to begin before previous mining
   // operation has ended(ie. m_shouldMine=false has been processed) and
   // result.success has been returned)
+  LOG_GENERAL(INFO, "PoWMine difficulty = "<<unsigned(difficulty));
   std::lock_guard<std::mutex> g(m_mutexPoWMine);
   EthashConfigureClient(blockNum, fullDataset);
   auto boundary = DifficultyLevelInIntDevided(difficulty);
