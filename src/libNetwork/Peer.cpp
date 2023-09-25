@@ -27,7 +27,13 @@ using namespace boost::multiprecision;
 Peer::Peer() : m_ipAddress(0), m_listenPortHost(0) {}
 
 Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host, const std::string& nodeIndentifier)
-    : m_ipAddress(ip_address), m_listenPortHost(listen_port_host), m_nodeIndentifier(nodeIndentifier) {}
+    : m_ipAddress(ip_address), m_listenPortHost(listen_port_host), m_nodeIndentifier(nodeIndentifier) {
+  if (m_ipAddress == 0) {
+        LOG_GENERAL(WARNING, "We tried to init Peer with zero IP address.");
+  } else if  (IPConverter::ToStrFromNumericalIP(m_ipAddress) == "127.0.0.1") {
+        LOG_GENERAL(WARNING, "We tried to init Peer with 127.0.0.1 port.");
+  }
+}
 
 Peer::Peer(const zbytes& src, unsigned int offset)
     : m_ipAddress(0), m_listenPortHost(0) {

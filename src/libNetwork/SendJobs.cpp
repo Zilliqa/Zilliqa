@@ -242,7 +242,8 @@ void CloseGracefully(Socket&& socket) {
 }
 
 constexpr std::chrono::milliseconds RECONNECT_PERIOD(2000);
-constexpr std::chrono::milliseconds IDLE_TIMEOUT(120000);
+// TODO: Make this bigger for testing
+constexpr std::chrono::milliseconds IDLE_TIMEOUT(1200000);
 
 }  // namespace
 

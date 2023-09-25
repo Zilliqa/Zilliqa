@@ -192,6 +192,7 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
+#if DONE_BY_STEVE
   if (from.GetIpAddress() != submitterPeer.GetIpAddress()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The sender ip adress " << from.GetPrintableIPAddress()
@@ -199,6 +200,7 @@ bool DirectoryService::ProcessPoWSubmission(
                                       << submitterPeer.GetPrintableIPAddress());
     return false;
   }
+#endif
 
   if (resultingHash.size() != 64) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
