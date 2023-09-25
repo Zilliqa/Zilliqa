@@ -69,7 +69,7 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
       m_nodeIndex(0),
       m_syncType(0),
       m_cseed(false),
-      m_noKill(false) {
+      m_kill(true) {
   if (ReadInputs(argc, argv) != SUCCESS) {
     ZilliqaDaemon::LOG(m_log, "Failed to read inputs.");
     exit(EXIT_FAILURE);
@@ -139,14 +139,14 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
   for (const pid_t& pid : pids) {
     // If sig is 0 (the null signal), error checking is performed but no signal
     // is actually sent
-    if (!m_noKill and kill(pid, 0) < 0) {
+    if (m_kill and kill(pid, 0) < 0) {
       if (errno == EPERM) {
         ZilliqaDaemon::LOG(m_log, "Daemon does not have permission Name: " +
                                       name + " Id: " + to_string(pid));
       } else if (errno == ESRCH) {
         ZilliqaDaemon::LOG(m_log, "We think Process died Name: " + name +
                                       " Id: " + to_string(pid));
-        m_died[pid] = !m_noKill;
+        m_died[pid] = true;
       } else {
         ZilliqaDaemon::LOG(m_log, "Kill failed due to " + to_string(errno) +
                                       " Name: " + name +
@@ -399,7 +399,7 @@ void ZilliqaDaemon::StartScripts() {
   string cmdToRun = "ps axf | grep " + script +
                     " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
 
-  if (!m_noKill) {
+  if (m_kill) {
     ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
     ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
   } else {
@@ -429,7 +429,7 @@ void ZilliqaDaemon::Exit(int exitCode) {
 void ZilliqaDaemon::KillProcess(const string& procName) {
   vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(procName);
   for (const auto& pid : pids) {
-    if (!m_noKill) {
+    if (m_kill) {
       ZilliqaDaemon::LOG(
           m_log, "Killing " + procName + " process before launching daemon...");
 
@@ -485,7 +485,7 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
     if (vm.count("killnone")) {
       ZilliqaDaemon::LOG(
           m_log, "does not kill things - useful for experimental native.");
-      m_noKill = true;
+      m_kill = false;
     }
   } catch (boost::program_options::required_option& e) {
     ZilliqaDaemon::LOG(m_log, "ERROR: " + string(e.what()));
