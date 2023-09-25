@@ -228,13 +228,6 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
 
       index++;
     }
-
-    LOG_GENERAL(WARNING,
-                "BZ: LoadShardingStructure Setting myShardMembers to: ");
-    for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
-      LOG_GENERAL(WARNING, "BZ: LoadShardingStructure IP: "
-                               << kv.second.GetPrintableIPAddress());
-    }
   }
 
   if (!foundMe && !callByRetrieve) {
@@ -354,8 +347,7 @@ bool Node::ProcessVCDSBlocksMessage(
 
   const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
                       m_mediator.m_ds->GetConsensusMyID();
-  LOG_GENERAL(WARNING, "BZ ProcessVCDSBlocksMessage enter, I am leader? : "
-                           << (leader ? "true" : "false"));
+  LOG_GENERAL(WARNING, "I am " << (leader ? "" : "not") << " the leader");
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -712,7 +704,6 @@ bool Node::ProcessVCDSBlocksMessage(
     m_mediator.m_node->CleanWhitelistReqs();
 
     if (m_mediator.m_lookup->GetIsServer() && ARCHIVAL_LOOKUP) {
-      LOG_GENERAL(WARNING, "BZ Sending txns to next layer");
       SendTxnMemPoolToNextLayer();
     }
   }

@@ -40,9 +40,6 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
   const auto& NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
   unsigned int NumWinners = NewDSMembers.size();
 
-  LOG_GENERAL(WARNING, "BZ UpdateDSCommitteeCompositionCore enter, winners: "
-                           << NumWinners);
-
   // Get the vector of all non-performant nodes to be removed.
   const auto& removeDSNodePubkeys = dsblock.GetHeader().GetDSRemovePubKeys();
 
@@ -75,9 +72,6 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
     dsComm.emplace_back(*it);
     dsComm.erase(it);
 
-    LOG_GENERAL(WARNING, "BZ Pushing node to the end: "
-                             << it->second.GetPrintableIPAddress());
-
     continue;
   }
 
@@ -90,15 +84,11 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
         // Peer() is required because my own node's network information is
         // zeroed out.
         dsComm.emplace_front(selfKeyPub, Peer());
-        LOG_GENERAL(WARNING, "BZ Myself Pushing non-guard to front: "
-                                 << DSPowWinner.second.GetPrintableIPAddress());
       } else {
         // Calculate the position to insert the current winner.
         it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
         // Place my node's information in front of the DS Committee Community
         // Nodes.
-        LOG_GENERAL(WARNING, "BZ Myself Pushing guard to proper position: "
-                                 << DSPowWinner.second.GetPrintableIPAddress());
         dsComm.emplace(it, selfKeyPub, Peer());
       }
     } else {
@@ -106,15 +96,11 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
         // Place the current winner node's information in front of the DS
         // Committee.
         dsComm.emplace_front(DSPowWinner);
-        LOG_GENERAL(WARNING, "BZ Other Pushing non-guard to front: "
-                                 << DSPowWinner.second.GetPrintableIPAddress());
       } else {
         // Calculate the position to insert the current winner.
         it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
         // Place the winner's information in front of the DS Committee Community
         // Nodes.
-        LOG_GENERAL(WARNING, "BZ Other Pushing guard to proper position: "
-                                 << DSPowWinner.second.GetPrintableIPAddress());
         dsComm.emplace(it, DSPowWinner);
       }
     }
@@ -146,14 +132,10 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
     }
 
     if (LOOKUP_NODE_MODE && !bStoreDSCommittee) {
-      LOG_GENERAL(WARNING, "BZ Adding ejected node: "
-                               << dsComm.back().second.GetPrintableIPAddress());
       minerInfo.m_dsNodesEjected.emplace_back(dsComm.back().first);
     }
 
     // Remove this node from blacklist if it exists
-    LOG_GENERAL(WARNING, "BZ Removing from dsComm node: "
-                             << dsComm.back().second.GetPrintableIPAddress());
     Peer& p = dsComm.back().second;
     Blacklist::GetInstance().Remove({p.GetIpAddress(),p.GetListenPortHost(),p.GetNodeIndentifier()});
     dsComm.pop_back();

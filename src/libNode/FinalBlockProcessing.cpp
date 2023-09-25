@@ -388,14 +388,13 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
 }
 
 void Node::InitiatePoW() {
+  LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
         "Node::InitiatePoW not expected to be called from LookUp node.");
     return;
   }
-  LOG_GENERAL(WARNING, "BZ InitiatePoW enter");
-  LOG_GENERAL(WARNING, "BZ Setting state to POW_SUBMISSION");
   SetState(POW_SUBMISSION);
 
   if (m_mediator.m_disablePoW) {
@@ -412,7 +411,6 @@ void Node::InitiatePoW() {
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     auto txBlockRand = m_mediator.m_txBlockRand;
-    LOG_GENERAL(WARNING, "BZ Will start PoW in detached function enter");
     StartPoW(
         epochNumber,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
@@ -713,7 +711,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   TxBlock txBlock;
   zbytes stateDelta;
   LOG_GENERAL(WARNING,
-              "BZ Node::ProcessFinalBlock ENTER, committee size: "
+              "Processing final block with committee size: "
                   << m_mediator.m_DSCommittee->size()
                   << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
   if (LOOKUP_NODE_MODE) {
@@ -1263,7 +1261,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
     ClearUnconfirmedTxn();
     if (isVacuousEpoch) {
-      LOG_GENERAL(WARNING, "BZ It's vacuous epoch, will start PoW soon");
+      LOG_GENERAL(WARNING, "It's vacuous epoch, will start PoW soon...");
       InitiatePoW();
     } else {
       auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };
@@ -1296,7 +1294,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
 void Node::SendTxnMemPoolToNextLayer() {
   LOG_GENERAL(WARNING,
-              "BZ Sending from seed to lookup txn with size: "
+              "Sending from seed to lookup txn with size: "
                   << m_mediator.m_lookup->GetTransactionsFromMemPool().size());
   zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
@@ -1372,7 +1370,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
 
   LOG_MARKER();
   LOG_GENERAL(WARNING,
-              "BZ Node::CommitForwardedTransactions, committee size: "
+              "Committing forwarded transactions with committee size: "
                   << m_mediator.m_DSCommittee->size()
                   << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
   if (!entry.m_transactions.empty()) {

@@ -218,8 +218,6 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
   is_library = false;
   extlibs.clear();
 
-  std::cout << "Steve was here" << std::endl;
-
   bool found_scilla_version = false;
   bool found_library = false;
   bool found_extlibs = false;

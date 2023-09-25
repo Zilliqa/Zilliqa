@@ -676,18 +676,10 @@ void AnnouncementShardingStructureToProtobuf(
     ProtoShardingStructureWithPoWSolns& protoShardingStructure) {
   ProtoShardingStructureWithPoWSolns::Shard* proto_shard =
       protoShardingStructure.add_shards();
-  LOG_GENERAL(WARNING, "BZ Shard to Proto, has this many shards: "
-                           << protoShardingStructure.shards_size());
-  LOG_GENERAL(WARNING, "BZ Shard to Proto, has this members in shard: "
-                           << shardMembers.size());
-
   for (const auto& node : shardMembers) {
     ProtoShardingStructureWithPoWSolns::Member* proto_member =
         proto_shard->add_members();
 
-    LOG_GENERAL(WARNING,
-                "BZ Shard to Proto, Adding shard member: "
-                    << std::get<SHARD_NODE_PEER>(node).GetPrintableIPAddress());
     const PubKey& key = std::get<SHARD_NODE_PUBKEY>(node);
 
     SerializableToProtobufByteArray(key, *proto_member->mutable_pubkey());
@@ -722,11 +714,7 @@ bool ProtobufToShardingStructureAnnouncement(
   uint128_t gasPrice;
   uint32_t govProposalId{};
   uint32_t govVoteValue{};
-  LOG_GENERAL(WARNING, "BZ: Found shards in ProtoMessage: "
-                           << protoShardingStructure.shards().size());
   for (const auto& proto_shard : protoShardingStructure.shards()) {
-    LOG_GENERAL(WARNING, "BZ: Found members in this shard in ProtoMessage: "
-                             << proto_shard.members_size());
     for (const auto& proto_member : proto_shard.members()) {
       PubKey key;
       Peer peer;
@@ -3610,7 +3598,6 @@ bool Messenger::GetNodeForwardTxnBlock(
   epochNumber = result.epochnumber();
   dsBlockNum = result.dsblocknum();
   shardId = result.shardid();
-  LOG_GENERAL(WARNING, "BZ GetNodeForwardTxnBlock shardId: " << shardId);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
   if (result.transactions().size() > 0) {

@@ -180,10 +180,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                 << m_mediator.m_DSCommittee->size()
                 << ", shard size: " << std::size(m_shards));
 
-  LOG_GENERAL(
-      WARNING,
-      "BZ DirectoryService::ProcessFinalBlockConsensusWhenDone() enter");
-
   if (m_mode == PRIMARY_DS) {
     LOG_STATE(
         "[FBCON]["
@@ -334,9 +330,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
   if (isVacuousEpoch) {
-    LOG_GENERAL(WARNING,
-                "BZ FinalBlockConsensusDone, vacuous epoch, setting state to "
-                "POW_SUBMISSION");
     SetState(POW_SUBMISSION);
   }
 
@@ -381,15 +374,9 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     return true;
   }
 
-  LOG_GENERAL(WARNING,
-              "BZ DirectoryService::ProcessFinalBlockConsensus() enter");
-
   uint32_t consensus_id = 0;
   zbytes reserialized_message;
   PubKey senderPubKey;
-
-  LOG_GENERAL(WARNING, "BZ ProcessFinalBlockConsensus enter, my state is: "
-                           << GetStateString());
 
   if (!m_consensusObject->PreProcessMessage(
           message, offset, consensus_id, senderPubKey, reserialized_message)) {

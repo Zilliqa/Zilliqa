@@ -220,8 +220,6 @@ bool Node::ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit) {
   const uint32_t numTxs = m_createdTxns.size();
 
   for (const auto& entry : m_createdTxns.HashIndex) {
-    LOG_GENERAL(WARNING,
-                "BZ Adding txn has to PrePremicroblock: " << entry.first.hex());
     tranHashes.emplace_back(entry.first);
   }
 
@@ -593,8 +591,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
 
     for (const auto& tranHash : tranHashes) {
       if (!m_createdTxns.exist(tranHash)) {
-        LOG_GENERAL(WARNING, "BZ Missing transaction hash in my pool: "
-                                 << tranHash.hex());
+        LOG_GENERAL(WARNING,
+                    "Missing transaction hash in my pool: " << tranHash.hex());
         missingtranHashes.emplace_back(tranHash);
       }
     }
@@ -1204,9 +1202,6 @@ bool Node::CheckMicroBlockTimestamp() {
   }
 
   LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "BZ Verifying microblock timestamp which is: "
-                           << m_microblock->GetTimestamp());
 
   return VerifyTimestamp(m_microblock->GetTimestamp(),
                          CONSENSUS_OBJECT_TIMEOUT);

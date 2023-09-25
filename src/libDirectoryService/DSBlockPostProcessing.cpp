@@ -319,11 +319,6 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   LOG_MARKER();
   std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
-  const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
-                      m_mediator.m_ds->m_consensusLeaderID;
-  LOG_GENERAL(WARNING, "BZ UpdateDSCommitteeComposition enter, I am leader? : "
-                           << (leader ? "true" : "false"));
-
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second,
                                    *m_mediator.m_DSCommittee,
                                    m_mediator.m_dsBlockChain.GetLastBlock());
@@ -336,8 +331,6 @@ void DirectoryService::StartNextTxEpoch() {
                 "called from LookUp node.");
     return;
   }
-
-  LOG_GENERAL(WARNING, "BZ DirectoryService::StartNextTxEpoch() enter");
 
   LOG_MARKER();
 
@@ -371,12 +364,9 @@ void DirectoryService::StartNextTxEpoch() {
 
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
 
-    LOG_GENERAL(
-        WARNING,
-        "BZ: DirectoryService::StartNextTxEpoch Setting myShardMembers to: ");
+    LOG_GENERAL(INFO, "Setting myShardMembers to: ");
     for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
-      LOG_GENERAL(WARNING, "BZ: DirectoryService::StartNextTxEpoch IP: "
-                               << kv.second.GetPrintableIPAddress());
+      LOG_GENERAL(INFO, "IP: " << kv.second.GetPrintableIPAddress());
     }
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DS shard:");
@@ -457,8 +447,6 @@ void DirectoryService::StartFirstTxEpoch() {
 
   LOG_MARKER();
 
-  LOG_GENERAL(WARNING, "BZ DirectoryService::StartFirstTxEpoch() enter");
-
   {
     lock_guard<mutex> g(m_mutexAllPOW);
     m_allPoWs.clear();
@@ -494,12 +482,9 @@ void DirectoryService::StartFirstTxEpoch() {
     lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
 
-    LOG_GENERAL(
-        WARNING,
-        "BZ: DirectoryService::StartFirstTxEpoch Setting myShardMembers to: ");
+    LOG_GENERAL(INFO, "Setting myShardMembers to: ");
     for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
-      LOG_GENERAL(WARNING, "BZ: DirectoryService::StartFirstTxEpoch IP: "
-                               << kv.second.GetPrintableIPAddress());
+      LOG_GENERAL(INFO, "IP: " << kv.second.GetPrintableIPAddress());
     }
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DS shard:");

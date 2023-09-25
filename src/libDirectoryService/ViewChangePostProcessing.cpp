@@ -230,12 +230,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     {
       lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
-      LOG_GENERAL(
-          WARNING,
-          "BZ: ProcessViewChangeConsensusWhenDone Setting myShardMembers to: ");
+
+      LOG_GENERAL(INFO, "Setting myShardMembers to: ");
       for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
-        LOG_GENERAL(WARNING, "BZ: ProcessViewChangeConsensusWhenDone IP: "
-                                 << kv.second.GetPrintableIPAddress());
+        LOG_GENERAL(INFO, "IP: " << kv.second.GetPrintableIPAddress());
       }
     }
     m_mediator.m_node->SetConsensusMyID(m_consensusMyID.load());
@@ -362,8 +360,6 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
                 "called from LookUp node.");
     return;
   }
-
-  LOG_GENERAL(WARNING, "BZ DirectoryService::ProcessNextConsensus() enter");
 
   this_thread::sleep_for(chrono::seconds(POST_VIEWCHANGE_BUFFER));
 

@@ -93,6 +93,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
   LOG_GENERAL(
       WARNING,
-      "BZ ProcessMicroblockSubmission shouldn't be called in desharded mode!");
+      "ProcessMicroblockSubmission shouldn't be called in desharded mode!");
   return false;
 }

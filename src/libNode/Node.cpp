@@ -809,7 +809,6 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
   m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
-  LOG_GENERAL(WARNING, "BZ: Prepare -> POW_SUBMISSION");
   SetState(POW_SUBMISSION);
   POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
@@ -1342,8 +1341,6 @@ void Node::WakeupAtTxEpoch() {
     return;
   }
 
-  LOG_GENERAL(WARNING, "BZ Node::WakeupAtTxEpoch() enter");
-
   lock_guard<mutex> g(m_mutexShardMember);
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     m_myShardMembers = m_mediator.m_DSCommittee;
@@ -1661,8 +1658,6 @@ bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] const unsigned char &startByte) {
   LOG_MARKER();
 
-  LOG_GENERAL(WARNING, "BZ ProcessTxnPacketFromLookup");
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessTxnPacketFromLookup not expected to "
@@ -1750,8 +1745,6 @@ bool Node::ProcessTxnPacketFromLookup(
   bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
                     from.GetPrintableIPAddress() != "127.0.0.1";
 
-  // BZ -- remove this:
-
   const bool properReq1 =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE);
 
@@ -1765,17 +1758,6 @@ bool Node::ProcessTxnPacketFromLookup(
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        m_txn_distribute_window_open && (m_state == WAITING_FINALBLOCK));
 
-  LOG_GENERAL(WARNING, "BZ First: m_mode: " << std::hex
-                                            << (int)m_mediator.m_ds->m_mode
-                                            << ", m_state: " << std::hex
-                                            << (int)m_mediator.m_ds->m_state);
-  LOG_GENERAL(WARNING, "BZ Second: m_txn_distribute_window_open: "
-                           << m_txn_distribute_window_open);
-  LOG_GENERAL(WARNING, "BZ Third: m_state: " << std::hex
-                                             << (int)m_mediator.m_ds->m_state);
-  LOG_GENERAL(WARNING, "BZ States for proper are << " << properReq1 << ", "
-                                                      << properReq2 << ", "
-                                                      << properReq2);
   const bool properState = properReq1 || properReq2 || properReq3;
   if (!properState) {
     if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
@@ -1819,8 +1801,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
                                           const PubKey &lookupPubKey,
                                           const vector<Transaction> &txns) {
   LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "BZ ProcessTxnPacketFromLookupCore");
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1871,8 +1851,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   }
 
   if (shardId != m_myshardId) {
-    LOG_GENERAL(WARNING, "BZ Wrong Shard (" << shardId << "), m_myshardId ("
-                                            << m_myshardId << ")");
+    LOG_GENERAL(WARNING, "Wrong shard: " << shardId
+                                         << "; m_myshardId = " << m_myshardId);
     return false;
   }
 
@@ -1913,8 +1893,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members: ");
     for (const auto &member : toSend) {
-      LOG_GENERAL(WARNING,
-                  "BZ: Sending to : " << member.GetPrintableIPAddress());
+      LOG_GENERAL(WARNING, "Sending to " << member.GetPrintableIPAddress());
     }
 
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, message);
@@ -2131,10 +2110,8 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
     }
     if (!(ignorePktForPrevEpoch &&
           (epochNumber < m_mediator.m_currentEpochNum))) {
-      LOG_GENERAL(WARNING,
-                  "BZ CommitTxnPacketBuffer will do for transactions: ");
       for (const auto &tran : transactions) {
-        LOG_GENERAL(WARNING, "BZ: Tran hash: " << tran.GetTranID().hex());
+        LOG_GENERAL(WARNING, "Transaction hash: " << tran.GetTranID().hex());
       }
       ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                      lookupPubKey, transactions);
@@ -3127,8 +3104,6 @@ bool Node::Execute(const zbytes &message, unsigned int offset, const Peer &from,
     return false;
   }
 
-  LOG_GENERAL(WARNING, "BZ Dispatching Node msg type: "
-                           << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);

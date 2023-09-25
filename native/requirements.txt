@@ -1,2 +1,0 @@
-netaddr~=0.8.0
-setuptools~=65.5.1

@@ -1007,13 +1007,8 @@ ConsensusLeader::ConsensusLeader(
   m_state = INITIAL;
   zil::local::variables.SetConsensusState(int(m_state));
   // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
-  LOG_GENERAL(
-      WARNING,
-      "BZ Determining number of consensus responses for committee size: "
-          << committee.size());
   m_numForConsensus = ConsensusCommon::NumForConsensus(committee.size());
-  LOG_GENERAL(WARNING,
-              "BZ Number of consensus responses : " << m_numForConsensus);
+  LOG_GENERAL(INFO, "Number of consensus responses: " << m_numForConsensus);
   m_numForConsensusFailure = committee.size() - m_numForConsensus;
 
   m_nodeCommitFailureHandlerFunc = std::move(nodeCommitFailureHandlerFunc);
@@ -1110,14 +1105,9 @@ bool ConsensusLeader::StartConsensus(
     for (auto const& i : m_committee) {
       peer.push_back(i.second);
     }
-    LOG_GENERAL(WARNING,
-                "BZ Sending ConsensusMessageType::ANNOUNCE from leader");
     zil::p2p::GetInstance().SendMessage(
         peer, announcement_message, zil::p2p::START_BYTE_NORMAL, true, true);
   }
-
-  LOG_GENERAL(WARNING, "BZ ConsensusLeader::StartConsensus I'm in state: "
-                           << GetStateString());
 
   if (m_numOfSubsets > 1) {
     // Start timer for accepting commits
@@ -1164,28 +1154,20 @@ bool ConsensusLeader::ProcessMessage(const zbytes& message, unsigned int offset,
 
   bool result = false;
 
-  LOG_GENERAL(WARNING, "BZ ConsensusLeader::ProcessMessage I'm in state: "
-                           << GetStateString());
-
   switch (message.at(offset)) {
     case ConsensusMessageType::COMMIT:
-      LOG_GENERAL(INFO, "BZ Processing COMMIT message at leader");
       result = ProcessMessageCommit(message, offset + 1, from);
       break;
     case ConsensusMessageType::COMMITFAILURE:
-      LOG_GENERAL(INFO, "BZ Processing COMMITFAILURE message at leader");
       result = ProcessMessageCommitFailure(message, offset + 1, from);
       break;
     case ConsensusMessageType::RESPONSE:
-      LOG_GENERAL(INFO, "BZ Processing RESPONSE message at leader");
       result = ProcessMessageResponse(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALCOMMIT:
-      LOG_GENERAL(INFO, "BZ Processing FINALCOMMIT message at leader");
       result = ProcessMessageFinalCommit(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALRESPONSE:
-      LOG_GENERAL(INFO, "BZ Processing FINALRESPONSE message at leader");
       result = ProcessMessageFinalResponse(message, offset + 1, from);
       break;
     default:
@@ -1200,9 +1182,6 @@ void ConsensusLeader::Audit() {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutex);
-
-  LOG_GENERAL(WARNING,
-              "BZ ConsensusLeader::Audit I'm in state: " << GetStateString());
 
   for (unsigned int subsetID = 0; subsetID < m_consensusSubsets.size();
        subsetID++) {

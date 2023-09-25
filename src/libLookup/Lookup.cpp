@@ -4061,7 +4061,6 @@ bool Lookup::InitMining() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
-  LOG_GENERAL(WARNING, "BZ Init mining, will start PoW soon");
   m_mediator.m_node->StartPoW(
       curDsBlockNum + 1,
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
@@ -5201,8 +5200,6 @@ bool Lookup::Execute(const zbytes& message, unsigned int offset,
       return false;
     }
   }
-  LOG_GENERAL(WARNING, "BZ Dispatching Lookup msg type: "
-                           << hex << (unsigned int)ins_byte);
   if (ins_byte < ins_handlers_count) {
     result =
         (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
@@ -5299,7 +5296,6 @@ void Lookup::SenderTxnBatchThread(std::vector<Transaction> transactions) {
 }
 
 void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
-  LOG_GENERAL(WARNING, "BZ SendTxnPacketToShard");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketToShard not expected to be called from"
@@ -5318,15 +5314,11 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
     auto transactionNumber = transactions.size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
-    LOG_GENERAL(INFO, "BZ shardId: " << m_mediator.m_node->GetShardId());
 
     if (transactions.empty()) {
       LOG_GENERAL(INFO, "No txns to send to ds shard");
       return;
     }
-
-    LOG_GENERAL(WARNING, "BZ Creating message with size of txns: "
-                             << transactions.size());
 
     result = Messenger::SetNodeForwardTxnBlock(
         msg, MessageOffset::BODY, epoch,
@@ -5368,9 +5360,6 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
         }
       }
     }
-    LOG_GENERAL(WARNING, "BZ Broadcasting messages to shard from lookup, size: "
-                             << toSend.size() << ", but max is: "
-                             << m_mediator.m_DSCommittee->size());
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
@@ -5387,7 +5376,6 @@ void Lookup::SendTxnsToDSShard(std::vector<Transaction> transactionsToSend) {
 
 void Lookup::SendTxnPacketPrepare(
     std::vector<Transaction>& transactionsToSend) {
-  LOG_GENERAL(WARNING, "BZ SendTxnPacketPrepare");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketPrepare not expected to be called from "
@@ -5485,7 +5473,6 @@ bool Lookup::VerifySenderNode(const DequeOfShardMembers& shardMembers,
 bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                [[gnu::unused]] const unsigned char& startByte) {
-  LOG_GENERAL(WARNING, "BZ Received ProcessForwardTxn");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessForwardTxn not expected to be called from "
@@ -5502,9 +5489,6 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
   // private seed nodes
   if (ARCHIVAL_LOOKUP) {
     // I'm seed/external-seed - forward message to next layer of 'lookups'
-    LOG_GENERAL(WARNING,
-                "BZ: Received txn message at lookup, sending to next lookup in "
-                "the chain");
     SendMessageToRandomSeedNode(message);
   } else {
     // I'm a lookup (non-seed & non-external) - forward messages to ds shard
@@ -5514,8 +5498,6 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                   "Unable to deserialize message from by Lookup from Seed");
       return false;
     }
-    LOG_GENERAL(WARNING, "BZ Sending from lookup to dsshard txn with size: "
-                             << transactions.size());
     SenderTxnBatchThread(std::move(transactions));
   }
 
