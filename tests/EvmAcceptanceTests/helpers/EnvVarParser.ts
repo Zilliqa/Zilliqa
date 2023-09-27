@@ -11,6 +11,10 @@ export const ENV_VARS = yargs()
       type: "number",
       default: 4
     },
+    mochaReporter: {
+      type: "string",
+      default: "spec"
+    },
     mochaTimeout: {
       type: "number",
       default: 300000

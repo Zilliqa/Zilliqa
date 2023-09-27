@@ -119,6 +119,7 @@ const config: HardhatUserConfig = {
     }
   },
   mocha: {
+    reporter: ENV_VARS.mochaReporter,
     timeout: ENV_VARS.mochaTimeout,
     jobs: ENV_VARS.mochaWorkers
   }
