@@ -134,23 +134,24 @@ inline Milliseconds Clock() {
 
 /// Waits for timer and calls a member function of Object,
 /// Timer must be in the scope of object (for pointers validity)
-template <typename Object, typename Time>
-void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
-               void (Object::*OnTimer)()) {
+template <typename F, typename Time>
+void WaitTimer(SteadyTimer& timer, Time delay, F onTimerHandler) {
   ErrorCode ec;
   timer.expires_at(
       boost::asio::steady_timer::clock_type::time_point(Clock() + delay), ec);
 
   if (ec) {
-    LOG_GENERAL(FATAL, "Cannot set timer");
+    LOG_GENERAL(FATAL,
+                "Cannot set timer: " << ec.message() << " (" << ec << ')');
     return;
   }
 
-  timer.async_wait([obj, OnTimer](const ErrorCode& error) {
-    if (!error) {
-      (obj->*OnTimer)();
-    }
-  });
+  timer.async_wait(
+      [timerHandler = std::move(onTimerHandler)](const ErrorCode& error) {
+        if (!error) {
+          timerHandler();
+        }
+      });
 }
 
 std::set<Peer> ExtractMultipliers() {
@@ -241,8 +242,7 @@ void CloseGracefully(Socket&& socket) {
   }
 }
 
-constexpr std::chrono::milliseconds RECONNECT_PERIOD(2000);
-constexpr std::chrono::milliseconds IDLE_TIMEOUT(120000);
+constinit std::chrono::milliseconds IDLE_TIMEOUT(120000);
 
 }  // namespace
 
@@ -309,14 +309,24 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       m_endpoint = Endpoint(std::move(address), m_peer.GetListenPortHost());
     }
 
+    m_timer.cancel(ec);
+
     LOG_GENERAL(INFO, "Connecting to " << m_peer);
 
-    m_socket.async_connect(m_endpoint,
-                           [self = shared_from_this()](const ErrorCode& ec) {
-                             if (ec != OPERATION_ABORTED) {
-                               self->OnConnected(ec);
-                             }
-                           });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
+      m_socket.cancel();
+      OnConnected(TIMED_OUT);
+    });
+
+    m_socket.async_connect(m_endpoint, [self = shared_from_this()](
+                                           const ErrorCode& ec) {
+      LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
+                                          << ec.message() << " (" << ec << ')');
+      if (ec != OPERATION_ABORTED) {
+        self->m_timer.cancel();
+        self->OnConnected(ec);
+      }
+    });
   }
 
   void OnConnected(const ErrorCode& ec) {
@@ -331,7 +341,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       ScheduleReconnectOrGiveUp();
     }
   }
-
 
   bool FindNotExpiredMessage() {
     auto clock = Clock();
@@ -357,7 +366,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!FindNotExpiredMessage()) {
       if (m_connected && !m_noWait && !m_isMultiplier) {
         m_inIdleTimeout = true;
-        WaitTimer(m_timer, IDLE_TIMEOUT, this, &PeerSendQueue::OnIdleTimer);
+        WaitTimer(m_timer, IDLE_TIMEOUT, [this]() { OnIdleTimer(); });
       } else {
         Done();
       }
@@ -368,13 +377,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-
     if (msg.size >= 2) {
       auto* p = (const unsigned char*)msg.data.get();
       LOG_EXTRA(FormatMessageName(p[0], p[1])
                 << " of size " << msg.size << " to " << m_peer);
     }
-
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -416,7 +423,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
 
-    WaitTimer(m_timer, RECONNECT_PERIOD, this, &PeerSendQueue::Reconnect);
+    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS}, [this]() { Reconnect(); });
   }
 
   void Reconnect() {
