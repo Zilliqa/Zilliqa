@@ -122,6 +122,87 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
   }
 }
 
+std::optional<RewardInformation> DirectoryService::GetRewardInformation()
+    const {
+  uint128_t sig_count = 0;
+  uint32_t lookup_count = 0;
+  for (auto const& epochNum : m_coinbaseRewardees) {
+    for (auto const& shardId : epochNum.second) {
+      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
+        lookup_count += shardId.second.size();
+      } else {
+        sig_count += shardId.second.size();
+      }
+    }
+  }
+  LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
+                                               << lookup_count);
+
+  uint128_t total_reward = COINBASE_REWARD_PER_DS;
+
+  LOG_GENERAL(INFO, "Total reward: " << total_reward);
+
+  uint128_t base_reward = 0;
+
+  if (!SafeMath<uint128_t>::mul(total_reward, BASE_REWARD_IN_PERCENT,
+                                base_reward)) {
+    LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
+    return std::nullopt;
+  }
+  base_reward /= 100;
+
+  LOG_GENERAL(INFO, "Total base reward: " << base_reward);
+
+  uint128_t base_reward_each = 0;
+  uint128_t node_count = m_mediator.m_DSCommittee->size() + m_shards.size();
+  LOG_GENERAL(INFO, "Total num of node: " << node_count);
+  if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
+    LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
+    return std::nullopt;
+    ;
+  }
+  LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
+
+  uint128_t lookupReward = 0;
+  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
+                                lookupReward)) {
+    LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
+    return std::nullopt;
+    ;
+  }
+  lookupReward /= 100;
+
+  uint128_t nodeReward = total_reward - lookupReward - base_reward;
+  uint128_t reward_each = 0;
+  uint128_t reward_each_lookup = 0;
+
+  if (!SafeMath<uint128_t>::div(nodeReward, sig_count, reward_each)) {
+    LOG_GENERAL(WARNING, "reward_each dividing unsafe!");
+    return std::nullopt;
+    ;
+  }
+
+  if (!SafeMath<uint128_t>::div(lookupReward, lookup_count,
+                                reward_each_lookup)) {
+    LOG_GENERAL(WARNING, "reward_each_lookup dividing unsafe");
+    return std::nullopt;
+  }
+
+  LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
+                                    << reward_each_lookup);
+
+  return RewardInformation{.base_reward = base_reward,
+                           .base_each_reward = base_reward_each,
+                           .each_reward = reward_each,
+                           .lookup_reward = lookupReward,
+                           .lookup_each_reward = reward_each_lookup,
+                           .lookup_count = lookup_count,
+                           .total_reward = total_reward,
+                           .sig_count = sig_count,
+                           .node_count = node_count,
+                           .node_reward = nodeReward};
+}
+
 void DirectoryService::InitCoinbase() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -171,69 +252,16 @@ void DirectoryService::InitCoinbase() {
 
   Address coinbaseAddress = Address();
 
-  uint128_t sig_count = 0;
-  uint32_t lookup_count = 0;
-  for (auto const& epochNum : m_coinbaseRewardees) {
-    for (auto const& shardId : epochNum.second) {
-      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
-        lookup_count += shardId.second.size();
-      } else {
-        sig_count += shardId.second.size();
-      }
-    }
-  }
-  LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
-                                               << lookup_count);
+  const auto rewardInformation = GetRewardInformation();
 
-  uint128_t total_reward = COINBASE_REWARD_PER_DS;
-
-  LOG_GENERAL(INFO, "Total reward: " << total_reward);
-
-  uint128_t base_reward = 0;
-
-  if (!SafeMath<uint128_t>::mul(total_reward, BASE_REWARD_IN_PERCENT,
-                                base_reward)) {
-    LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
-    return;
-  }
-  base_reward /= 100;
-
-  LOG_GENERAL(INFO, "Total base reward: " << base_reward);
-
-  uint128_t base_reward_each = 0;
-  uint128_t node_count = m_mediator.m_DSCommittee->size() + m_shards.size();
-  LOG_GENERAL(INFO, "Total num of node: " << node_count);
-  if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
-    LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
-    return;
-  }
-  LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
-
-  uint128_t lookupReward = 0;
-  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
-                                lookupReward)) {
-    LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
-    return;
-  }
-  lookupReward /= 100;
-
-  uint128_t nodeReward = total_reward - lookupReward - base_reward;
-  uint128_t reward_each = 0;
-  uint128_t reward_each_lookup = 0;
-
-  if (!SafeMath<uint128_t>::div(nodeReward, sig_count, reward_each)) {
-    LOG_GENERAL(WARNING, "reward_each dividing unsafe!");
+  if (!rewardInformation) {
+    LOG_GENERAL(WARNING, "Calculating reward parameters failed");
     return;
   }
 
-  if (!SafeMath<uint128_t>::div(lookupReward, lookup_count,
-                                reward_each_lookup)) {
-    LOG_GENERAL(WARNING, "reward_each_lookup dividing unsafe");
-    return;
-  }
-
-  LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
-                                    << reward_each_lookup);
+  auto base_reward_each = rewardInformation->base_each_reward;
+  auto reward_each = rewardInformation->each_reward;
+  auto reward_each_lookup = rewardInformation->lookup_each_reward;
 
   // Add rewards come from gas fee back to the coinbase account
   if (!AccountStore::GetInstance().IncreaseBalanceTemp(coinbaseAddress,
@@ -254,7 +282,7 @@ void DirectoryService::InitCoinbase() {
   unordered_map<PubKey, bool> pubKeyAndIsGuard;
 
   std::ofstream file;
-  constexpr auto FILE_PATH = "/rewards.txt";
+  constexpr auto FILE_PATH = "rewards.txt";
   file.open(FILE_PATH, std::ios::out | std::ios::app);
 
   const uint128_t BASE_REWARD_MULTIPLIER = 4726;
@@ -313,6 +341,10 @@ void DirectoryService::InitCoinbase() {
     }
     file << "[CNBSE] Rewarding account: " << addr.hex()
          << ", with value: " << base_reward_each_desharded << '\n';
+    LOG_GENERAL(WARNING,
+                "Rewarding Base address: "
+                    << addr.hex() << ", with value: "
+                    << base_reward_each_desharded.convert_to<std::string>());
   }
 
   // Reward based on cosigs
@@ -344,6 +376,7 @@ void DirectoryService::InitCoinbase() {
   file << "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes..."
        << '\n';
 
+  LOG_GENERAL(WARNING, "Rewardees has size: " << m_coinbaseRewardees.size());
   for (const auto& epochNumShardRewardee : m_coinbaseRewardees) {
     const auto& epochNum = epochNumShardRewardee.first;
     const auto& shards = epochNumShardRewardee.second;
@@ -355,6 +388,10 @@ void DirectoryService::InitCoinbase() {
       if (shardId == CoinbaseReward::LOOKUP_REWARD) {
         for (const auto& pk : rewardees) {
           const auto& addr = Account::GetAddressFromPublicKey(pk);
+          LOG_GENERAL(WARNING,
+                      "Rewarding lookup address: "
+                          << addr.hex() << ", with value: "
+                          << reward_each_lookup.convert_to<std::string>());
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, coinbaseAddress, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could not reward " << addr << " - " << pk);
@@ -369,6 +406,10 @@ void DirectoryService::InitCoinbase() {
             suc_counter++;
           } else {
             const auto& addr = Account::GetAddressFromPublicKey(pk);
+            LOG_GENERAL(WARNING,
+                        "Rewarding Each address: "
+                            << addr.hex() << ", with value: "
+                            << reward_each_desharded.convert_to<std::string>());
             if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                     addr, coinbaseAddress, reward_each_desharded)) {
               LOG_GENERAL(WARNING, "Could not reward " << addr << " - " << pk);
@@ -395,9 +436,10 @@ void DirectoryService::InitCoinbase() {
 
   file.close();
 
-  uint128_t balance_left = total_reward - (suc_counter * reward_each) -
+  uint128_t balance_left = rewardInformation->total_reward -
+                           (suc_counter * reward_each) -
                            (suc_lookup_counter * reward_each_lookup) -
-                           (node_count * base_reward_each);
+                           (rewardInformation->node_count * base_reward_each);
 
   LOG_GENERAL(INFO, "Left reward: " << balance_left);
 
@@ -405,11 +447,19 @@ void DirectoryService::InitCoinbase() {
 
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-  DiagnosticDataCoinbase entry = {
-      node_count,  sig_count,        lookup_count, total_reward,
-      base_reward, base_reward_each, lookupReward, reward_each_lookup,
-      nodeReward,  reward_each,      balance_left, PubKey(PrivKey()),
-      Address()};
+  DiagnosticDataCoinbase entry = {rewardInformation->node_count,
+                                  rewardInformation->sig_count,
+                                  rewardInformation->lookup_count,
+                                  rewardInformation->total_reward,
+                                  rewardInformation->base_reward,
+                                  base_reward_each,
+                                  rewardInformation->lookup_reward,
+                                  reward_each_lookup,
+                                  rewardInformation->node_reward,
+                                  reward_each,
+                                  balance_left,
+                                  PubKey(PrivKey()),
+                                  Address()};
 
   if (nonGuard.empty()) {
     LOG_GENERAL(WARNING, "No non-guard found, skip LuckyDraw");
