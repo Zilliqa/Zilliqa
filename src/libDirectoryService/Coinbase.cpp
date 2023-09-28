@@ -14,15 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#include <fstream>
 #include <map>
-#include <queue>
 #include <vector>
 
 #include "DirectoryService.h"
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountStore/AccountStore.h"
-#include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
 #include "libUtils/SafeMath.h"
 
@@ -253,6 +253,31 @@ void DirectoryService::InitCoinbase() {
   // repeated checking of guard list
   unordered_map<PubKey, bool> pubKeyAndIsGuard;
 
+  std::ofstream file;
+  constexpr auto FILE_PATH = "/rewards.txt";
+  file.open(FILE_PATH, std::ios::out | std::ios::app);
+
+  const uint128_t BASE_REWARD_MULTIPLIER = 4726;
+  uint128_t base_reward_each_desharded;
+
+  if (!SafeMath<uint128_t>::mul(base_reward_each, BASE_REWARD_MULTIPLIER,
+                                base_reward_each_desharded)) {
+    LOG_GENERAL(WARNING, "base_reward_desharded multiplication unsafe!");
+    return;
+  }
+
+  if (!SafeMath<uint128_t>::div(base_reward_each_desharded, 1000,
+                                base_reward_each_desharded)) {
+    LOG_GENERAL(WARNING, "base_reward_desharded division unsafe!");
+    return;
+  }
+
+  file << "Starting Base reward section for epoch: "
+       << m_mediator.m_currentEpochNum << '\n';
+  file << "Old base_reward_each is: " << base_reward_each
+       << ", base_reward_each_desharded: " << base_reward_each_desharded
+       << '\n';
+  file << "[CNBSE] Rewarding base reward to DS nodes..." << '\n';
   // DS nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");
   for (const auto& ds : *m_mediator.m_DSCommittee) {
@@ -271,41 +296,23 @@ void DirectoryService::InitCoinbase() {
     }
     nonGuard.emplace_back(addr);
 
-    if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
-                                                        base_reward_each)) {
+    if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+            addr, coinbaseAddress, base_reward_each_desharded)) {
       LOG_GENERAL(WARNING, "Could not reward base reward  " << addr);
+      continue;
     } else {
       if (addr == myAddr) {
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "[REWARD] Rewarded base reward " << base_reward_each);
+        LOG_EPOCH(
+            INFO, m_mediator.m_currentEpochNum,
+            "[REWARD] Rewarded base reward " << base_reward_each_desharded);
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << m_mediator.m_currentEpochNum << "]["
-                              << base_reward_each << "] base reward");
+                              << base_reward_each_desharded << "] base reward");
       }
     }
-  }
-
-  // Shard nodes
-  LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to shard nodes...");
-  for (const auto& node : m_shards) {
-    const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
-    if (GUARD_MODE) {
-      auto& isGuard = pubKeyAndIsGuard[pk];
-      if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
-        isGuard = true;
-        continue;
-      }
-      isGuard = false;
-    }
-    Address addr = Account::GetAddressFromPublicKey(pk);
-    nonGuard.emplace_back(addr);
-
-    if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
-                                                        base_reward_each)) {
-      LOG_GENERAL(WARNING, "Could not reward base reward  " << addr);
-    }
-    // No need to log as shard node won't call InitCoinbase
+    file << "[CNBSE] Rewarding account: " << addr.hex()
+         << ", with value: " << base_reward_each_desharded << '\n';
   }
 
   // Reward based on cosigs
@@ -313,9 +320,29 @@ void DirectoryService::InitCoinbase() {
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
 
+  const uint128_t REWARD_EACH_MULTIPLIER = 1668;
+  uint128_t reward_each_desharded;
+
+  if (!SafeMath<uint128_t>::mul(reward_each, REWARD_EACH_MULTIPLIER,
+                                reward_each_desharded)) {
+    LOG_GENERAL(WARNING, "reward_each_desharded multiplication unsafe!");
+    return;
+  }
+
+  if (!SafeMath<uint128_t>::div(reward_each_desharded, 1000,
+                                reward_each_desharded)) {
+    LOG_GENERAL(WARNING, "reward_each_desharded division unsafe!");
+    return;
+  }
+
   LOG_GENERAL(
       INFO,
       "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes...");
+
+  file << "Old reward_each is: " << reward_each
+       << ", reward_each_desharded: " << reward_each_desharded << '\n';
+  file << "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes..."
+       << '\n';
 
   for (const auto& epochNumShardRewardee : m_coinbaseRewardees) {
     const auto& epochNum = epochNumShardRewardee.first;
@@ -343,26 +370,30 @@ void DirectoryService::InitCoinbase() {
           } else {
             const auto& addr = Account::GetAddressFromPublicKey(pk);
             if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                    addr, coinbaseAddress, reward_each)) {
+                    addr, coinbaseAddress, reward_each_desharded)) {
               LOG_GENERAL(WARNING, "Could not reward " << addr << " - " << pk);
             } else {
               if (addr == myAddr) {
                 LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                          "[REWARD] Rewarded " << reward_each << " for blk "
-                                               << epochNum);
+                          "[REWARD] Rewarded " << reward_each_desharded
+                                               << " for blk " << epochNum);
                 LOG_STATE("[REWARD]["
                           << setw(15) << left
                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
                           << "][" << m_mediator.m_currentEpochNum << "]["
-                          << reward_each << "] for blk " << epochNum);
+                          << reward_each_desharded << "] for blk " << epochNum);
               }
               suc_counter++;
             }
+            file << "[CNBSE] Rewarding account: " << addr.hex()
+                 << ", with value: " << reward_each_desharded << '\n';
           }
         }
       }
     }
   }
+
+  file.close();
 
   uint128_t balance_left = total_reward - (suc_counter * reward_each) -
                            (suc_lookup_counter * reward_each_lookup) -
