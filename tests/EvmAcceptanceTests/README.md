@@ -14,6 +14,8 @@
     npx hardhat test folder/*    # to run tests of `folder`
     npx hardhat test test/scilla/*    # to run scilla tests only
     SCILLA=false npx hardhat test   # to disable scilla tests. `.env` file can be used as well.
+    MOCHA_TIMEOUT=300000 npx hardhat test   # To increase mocha timeout.
+    MOCHA_REPORTER=MOCHA_REPORTER=./BriefMochaReporter.ts npx hardhat test    # To use brief reporter.
 ```
 
 # Start running tests
@@ -110,6 +112,10 @@ npx hardhat test --grep "something"     # Run tests containing "something" in th
 npx hardhat test --parallel
 npx hardhat test --bail     # Stop running tests after the first test failure
 ```
+
+### Change mocha reporter
+
+Mocha uses a reporter to print test results. It has some [predefined reporters](https://www.codingninjas.com/studio/library/mocha-reporters). In order to change the reporter, set `MOCHA_REPORTER` to one of those like `dot` or use our customized one by setting `MOCHA_REPORTER=./BriefMochaReporter.ts`. This reporter just prints timed out tests and failures. It also prints the failure call stack as soon as the test fails.
 
 # How to define a new network for hardhat
 

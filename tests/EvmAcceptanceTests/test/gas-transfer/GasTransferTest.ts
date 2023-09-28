@@ -63,7 +63,6 @@ describe("GasTransferTest", function () {
 
   // @todo use parallelizer to stop this being serial.
   testCases.forEach(function (testCase) {
-
     // Disabled in q4-working-branch
     xit(`Should run case ${testCase.name}`, async function () {
       if (DEBUG) {
