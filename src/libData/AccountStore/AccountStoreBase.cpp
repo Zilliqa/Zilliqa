@@ -226,7 +226,7 @@ bool AccountStoreBase::IncreaseBalance(const Address& address,
     return true;
   } else if (account == nullptr) {
     LOG_GENERAL(WARNING,
-                "ccountStoreBase::IncreaseBalance Adding nonexisting acc: "
+                "AccountStoreBase::IncreaseBalance Adding nonexisting acc: "
                     << address << ", with balance: " << delta);
     return AddAccount(address, {delta, 0});
   }
