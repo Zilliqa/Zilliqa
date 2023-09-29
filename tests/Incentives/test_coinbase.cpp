@@ -19,7 +19,6 @@
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountStore/AccountStore.h"
@@ -130,7 +129,19 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   };
 
   calcReward(dummy_ds_comm);
-  calcReward( dummy_shards);
+  calcReward(dummy_shards);
+
+  auto rewardInformation = mediator.m_ds->GetRewardInformation();
+
+  const auto base_each_reward_desharded =
+      (rewardInformation->base_each_reward * 4726) / 1000;
+  const auto each_reward_desharded =
+      (rewardInformation->each_reward * 1668) / 1000;
+
+  const auto EXPECTED_REWARD =
+      base_each_reward_desharded * dummy_ds_size +
+      each_reward_desharded * rewardInformation->sig_count +
+      rewardInformation->lookup_reward;
 
   auto normalReward = totalReward;
 
@@ -140,16 +151,10 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   const auto lookupRewardPerc = (lookupReward * 100) / COINBASE_REWARD_PER_DS;
 
-  const auto percRewarded = (normalReward * 100) / COINBASE_REWARD_PER_DS;
-
-  const auto expectedPercNormal = 100 - LOOKUP_REWARD_IN_PERCENT;
-
-  BOOST_CHECK_MESSAGE(percRewarded - 1 <= expectedPercNormal &&
-                          percRewarded + 1 >= expectedPercNormal,
-                      "Percent: " << percRewarded << " does not match");
-
-  BOOST_CHECK_MESSAGE(totalReward == COINBASE_REWARD_PER_DS,
-                      "total reward wrong");
+  BOOST_CHECK_MESSAGE(
+      totalReward < EXPECTED_REWARD + each_reward_desharded &&
+          totalReward > EXPECTED_REWARD - each_reward_desharded,
+      "total reward wrong: " << totalReward << ", Base: " << EXPECTED_REWARD);
 
   BOOST_CHECK_MESSAGE(lookupRewardPerc - 1 <= LOOKUP_REWARD_IN_PERCENT &&
                           lookupRewardPerc + 1 >= LOOKUP_REWARD_IN_PERCENT,

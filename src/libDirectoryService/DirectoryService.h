@@ -96,6 +96,19 @@ using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
 using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
 
+struct RewardInformation {
+  uint128_t base_reward;
+  uint128_t base_each_reward;
+  uint128_t each_reward;
+  uint128_t lookup_reward;
+  uint128_t lookup_each_reward;
+  uint32_t lookup_count;
+  uint128_t total_reward;
+  uint128_t sig_count;
+  uint128_t node_count;
+  uint128_t node_reward;
+};
+
 /// Implements Directory Service functionality including PoW verification, DS,
 /// Tx Block Consensus and sharding management.
 class DirectoryService : public Executable {
@@ -593,6 +606,8 @@ class DirectoryService : public Executable {
   void GetCoinbaseRewardees(
       std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
           coinbase_rewardees);
+
+  std::optional<RewardInformation> GetRewardInformation() const;
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
