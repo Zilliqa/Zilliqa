@@ -84,7 +84,7 @@ class RemoteStorageDB : boost::noncopyable {
                  const uint64_t& epoch, const bool success = false);
   bool UpdateTxn(const std::string& txnhash, const TxnStatus status,
                  const uint64_t& epoch, const bool success);
-  Json::Value QueryTxnHash(const std::string& txnhash);
+  Json::Value QueryTxnHash(const dev::h256& hash);
   Json::Value QueryPendingTxns(const unsigned int txEpochFirstExclusive,
                                const unsigned int txEpochLastInclusive);
   ModificationState GetModificationState(const TxnStatus status) const;
