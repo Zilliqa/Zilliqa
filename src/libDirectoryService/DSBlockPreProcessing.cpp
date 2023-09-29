@@ -29,7 +29,6 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -108,18 +107,19 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   return numOfElectedDSMembers;
 }
 
-void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
+void DirectoryService::ComputeMembersInShard(
+    const VectorOfPoWSoln& sortedPoWSolns) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::ComputeSharding not expected to be "
+                "DirectoryService::ComputeMembersInShard not expected to be "
                 "called from LookUp node.");
     return;
   }
 
   LOG_MARKER();
 
+  LOG_EXTRA("Shards cleared " << m_shards.size());
   m_shards.clear();
-  m_publicKeyToshardIdMap.clear();
 
   // Cap the number of nodes based on MAX_SHARD_NODE_NUM
   const uint32_t numNodesForSharding =
@@ -128,25 +128,6 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   LOG_GENERAL(INFO, "Number of PoWs received     = " << sortedPoWSolns.size());
   LOG_GENERAL(INFO, "Number of PoWs for sharding = " << numNodesForSharding);
-
-  const uint32_t shardSize = m_mediator.GetShardSize(false);
-
-  // Generate the number of shards and node counts per shard
-  vector<uint32_t> shardCounts;
-  ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_TOLERANCE_LO,
-                                           SHARD_SIZE_TOLERANCE_HI,
-                                           numNodesForSharding, shardCounts);
-
-  // Abort if zero shards generated
-  if (shardCounts.empty()) {
-    LOG_GENERAL(WARNING, "Zero shards generated");
-    return;
-  }
-
-  // Resize the shard map to the generated number of shards
-  for (unsigned int i = 0; i < shardCounts.size(); i++) {
-    m_shards.emplace_back();
-  }
 
   // Push all the sorted PoW submissions into an ordered map with key =
   // H(last_block_hash, pow_hash)
@@ -171,18 +152,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     sortedPoWs.emplace(sortHash, key);
   }
 
-  // Distribute the map-ordered nodes among the generated shards
-  // First fill up first shard, then second shard, ..., then final shard
-  uint32_t shard_index = 0;
   for (const auto& kv : sortedPoWs) {
     // Move to next shard counter if current shard already filled up
-    if (shardCounts.at(shard_index) == 0) {
-      shard_index++;
-      // Stop if all shards filled up
-      if (shard_index == shardCounts.size()) {
-        break;
-      }
-    }
     if (DEBUG_LEVEL >= 5) {
       string hashStr;
       if (!DataConversion::charArrToHexStr(kv.first, hashStr)) {
@@ -194,12 +165,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     }
     // Put the node into the shard
     const PubKey& key = kv.second;
-    m_shards.at(shard_index)
-        .emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
-    m_publicKeyToshardIdMap.emplace(key, shard_index);
-
-    // Decrement remaining count for this shard
-    shardCounts.at(shard_index)--;
+    m_shards.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
   }
 }
 
@@ -303,12 +269,13 @@ void DirectoryService::InjectPoWForDSNode(
 
     // Remove this node from blacklist if it exists
     Peer& p = rit->second;
-    Blacklist::GetInstance().Remove(p.GetIpAddress());
+    Blacklist::GetInstance().Remove(
+        {p.GetIpAddress(), p.GetListenPortHost(), p.GetNodeIndentifier()});
 
     ++counter;
   }
 
-  LOG_GENERAL(INFO, "Num PoWs after injection = " << sortedPoWSolns.size());
+  LOG_GENERAL(INFO, "### Num PoWs after injection = " << sortedPoWSolns.size());
 }
 
 bool DirectoryService::VerifyPoWWinner(
@@ -473,7 +440,7 @@ bool DirectoryService::VerifyRemovedByzantineNodes() {
 }
 
 bool DirectoryService::VerifyPoWOrdering(
-    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader,
+    const DequeOfShardMembers& shards, const MapOfPubKeyPoW& allPoWsFromLeader,
     const MapOfPubKeyPoW& priorityNodePoWs) {
   LOG_MARKER();
 
@@ -540,94 +507,88 @@ bool DirectoryService::VerifyPoWOrdering(
   bool ret = true;
   zbytes vec(BLOCK_HASH_SIZE), preVec(BLOCK_HASH_SIZE);
   uint32_t misorderNodes = 0;
-  for (const auto& shard : shards) {
-    for (const auto& shardNode : shard) {
-      const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
-      auto it = std::find_if(
-          sortedPoWSolns.cbegin(), sortedPoWSolns.cend(),
-          [&toFind](
-              const std::pair<std::array<unsigned char, 32>, PubKey>& item) {
-            return item.second == toFind;
-          });
+  for (const auto& shardNode : shards) {
+    const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+    auto it = std::find_if(
+        sortedPoWSolns.cbegin(), sortedPoWSolns.cend(),
+        [&toFind](
+            const std::pair<std::array<unsigned char, 32>, PubKey>& item) {
+          return item.second == toFind;
+        });
 
-      std::array<unsigned char, 32> result{};
-      if (it == sortedPoWSolns.cend()) {
-        LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
-                                 << toFind << " " << sortedPoWSolns.size());
+    std::array<unsigned char, 32> result{};
+    if (it == sortedPoWSolns.cend()) {
+      LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
+                               << toFind << " " << sortedPoWSolns.size());
 
-        if (m_allPoWs.find(toFind) != m_allPoWs.end()) {
-          result = m_allPoWs.at(toFind).m_result;
-          LOG_GENERAL(INFO, "Found the PoW from local PoW list");
-        } else {
-          LOG_GENERAL(INFO,
-                      "Checking for the key and PoW in the announcement...");
-          auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
-          if (pubKeyToPoW != allPoWsFromLeader.end()) {
-            const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
-            const auto& powSoln = pubKeyToPoW->second;
-            if (VerifyPoWFromLeader(peer, pubKeyToPoW->first, powSoln)) {
-              result = powSoln.m_result;
-            } else {
-              ret = false;
-              break;
-            }
+      if (m_allPoWs.find(toFind) != m_allPoWs.end()) {
+        result = m_allPoWs.at(toFind).m_result;
+        LOG_GENERAL(INFO, "Found the PoW from local PoW list");
+      } else {
+        LOG_GENERAL(INFO,
+                    "Checking for the key and PoW in the announcement...");
+        auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
+        if (pubKeyToPoW != allPoWsFromLeader.end()) {
+          const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
+          const auto& powSoln = pubKeyToPoW->second;
+          if (VerifyPoWFromLeader(peer, pubKeyToPoW->first, powSoln)) {
+            result = powSoln.m_result;
           } else {
-            LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
             ret = false;
             break;
           }
-        }
-      } else {
-        result = it->first;
-      }
-
-      auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
-      if (!r.second) {
-        LOG_GENERAL(WARNING, "The key is not unique in the sharding structure "
-                                 << std::get<SHARD_NODE_PUBKEY>(shardNode));
-        ret = false;
-        break;
-      }
-
-      copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-      const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
-
-      if (DEBUG_LEVEL >= 5) {
-        string sortHashVecStr;
-        if (!DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
-          LOG_GENERAL(INFO,
-                      "[DSSORT]"
-                          << " Unable to convert sortHashVec to hex string");
         } else {
-          LOG_GENERAL(INFO, "[DSSORT]"
-                                << sortHashVecStr << " "
-                                << std::get<SHARD_NODE_PUBKEY>(shardNode));
+          LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
+          ret = false;
+          break;
         }
       }
-      if (sortHashVec < vec) {
-        string vecStr, sortHashVecStr;
-        if (!DataConversion::Uint8VecToHexStr(vec, vecStr) ||
-            !DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
-          LOG_GENERAL(WARNING,
-                      "Unable to convert vec or sortHashVec to hex string");
-        } else {
-          LOG_GENERAL(WARNING, "Bad PoW ordering found: " << vecStr << " "
-                                                          << sortHashVecStr);
-        }
-
-        ++misorderNodes;
-        // If there is one PoW ordering fail, then vec is assigned to a big
-        // mismatch hash already, need to revert it to previous result and
-        // continue the comparison.
-        vec = preVec;
-        continue;
-      }
-      preVec = vec;
-      vec = sortHashVec;
+    } else {
+      result = it->first;
     }
-    if (!ret) {
+
+    auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
+    if (!r.second) {
+      LOG_GENERAL(WARNING, "The key is not unique in the sharding structure "
+                               << std::get<SHARD_NODE_PUBKEY>(shardNode));
+      ret = false;
       break;
     }
+
+    copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
+    const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
+
+    if (DEBUG_LEVEL >= 5) {
+      string sortHashVecStr;
+      if (!DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+        LOG_GENERAL(INFO,
+                    "[DSSORT]"
+                        << " Unable to convert sortHashVec to hex string");
+      } else {
+        LOG_GENERAL(INFO, "[DSSORT]" << sortHashVecStr << " "
+                                     << std::get<SHARD_NODE_PUBKEY>(shardNode));
+      }
+    }
+    if (sortHashVec < vec) {
+      string vecStr, sortHashVecStr;
+      if (!DataConversion::Uint8VecToHexStr(vec, vecStr) ||
+          !DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+        LOG_GENERAL(WARNING,
+                    "Unable to convert vec or sortHashVec to hex string");
+      } else {
+        LOG_GENERAL(WARNING, "Bad PoW ordering found: " << vecStr << " "
+                                                        << sortHashVecStr);
+      }
+
+      ++misorderNodes;
+      // If there is one PoW ordering fail, then vec is assigned to a big
+      // mismatch hash already, need to revert it to previous result and
+      // continue the comparison.
+      vec = preVec;
+      continue;
+    }
+    preVec = vec;
+    vec = sortHashVec;
   }
 
   if (misorderNodes > MAX_MISORDER_NODE) {
@@ -686,8 +647,8 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
   return true;
 }
 
-bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
-                                          MapOfPubKeyPoW& priorityNodePoWs) {
+bool DirectoryService::VerifyNodePriority(
+    const DequeOfShardMembers& shardMembers, MapOfPubKeyPoW& priorityNodePoWs) {
   // If the PoW submissions less than the max number of nodes, then all nodes
   // can join, no need to verify.
   if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM) {
@@ -709,19 +670,17 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
     setTopPriorityNodes.insert(kv.first);
   }
 
-  for (const auto& shard : shards) {
-    for (const auto& shardNode : shard) {
-      const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
-      if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end()) {
-        auto reputation = m_mapNodeReputation.find(toFind);
-        // New miners have no priority record and cannot be checked here
-        if (reputation != m_mapNodeReputation.end()) {
-          auto priority = CalculateNodePriority(reputation->second);
-          if (priority < lowestPriority) {
-            ++numOutOfMyPriorityList;
-            LOG_GENERAL(WARNING,
-                        "Node " << toFind << " is not in my top priority list");
-          }
+  for (const auto& shardNode : shardMembers) {
+    const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+    if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end()) {
+      auto reputation = m_mapNodeReputation.find(toFind);
+      // New miners have no priority record and cannot be checked here
+      if (reputation != m_mapNodeReputation.end()) {
+        auto priority = CalculateNodePriority(reputation->second);
+        if (priority < lowestPriority) {
+          ++numOutOfMyPriorityList;
+          LOG_GENERAL(WARNING,
+                      "Node " << toFind << " is not in my top priority list");
         }
       }
     }
@@ -759,22 +718,10 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
   if (trimBeyondCommSize) {
     const uint32_t numNodesTotal = PoWOrderSorter.size();
 
-    // Number of Nodes to Trim. Account for the removed Byzantine nodes that do
-    // not get injected as a shard solution.
-    const uint32_t numNodesAfterTrim =
-        std::min(ShardSizeCalculator::GetTrimmedShardCount(
-                     m_mediator.GetShardSize(false), SHARD_SIZE_TOLERANCE_LO,
-                     SHARD_SIZE_TOLERANCE_HI, numNodesTotal) +
-                     byzantineRemoved,
-                 numNodesTotal);
-
-    LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
-                          << numNodesTotal << " to " << numNodesAfterTrim);
-
     uint32_t count = 0;
     if (!GUARD_MODE) {
       for (auto kv = PoWOrderSorter.begin();
-           (kv != PoWOrderSorter.end()) && (count < numNodesAfterTrim);
+           (kv != PoWOrderSorter.end()) && (count < numNodesTotal);
            kv++, count++) {
         sortedPoWSolns.emplace_back(*kv);
       }
@@ -794,20 +741,20 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
       // "FilteredPoWOrderSorter"
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
-      uint32_t trimmedGuardCount = ceil(numNodesAfterTrim * SHARD_GUARD_TOL);
-      uint32_t trimmedNonGuardCount = numNodesAfterTrim - trimmedGuardCount;
+      uint32_t trimmedGuardCount = ceil(numNodesTotal * SHARD_GUARD_TOL);
+      uint32_t trimmedNonGuardCount = numNodesTotal - trimmedGuardCount;
 
-      if (trimmedGuardCount + trimmedNonGuardCount < numNodesAfterTrim) {
+      if (trimmedGuardCount + trimmedNonGuardCount < numNodesTotal) {
         LOG_GENERAL(WARNING,
                     "trimmedGuardCount: "
                         << trimmedGuardCount
                         << " trimmedNonGuardCount: " << trimmedNonGuardCount
-                        << " numNodesAfterTrim: " << numNodesAfterTrim);
+                        << " numNodesAfterTrim: " << numNodesTotal);
         trimmedGuardCount +=
-            (numNodesAfterTrim - trimmedGuardCount - trimmedNonGuardCount);
+            (numNodesTotal - trimmedGuardCount - trimmedNonGuardCount);
         LOG_GENERAL(WARNING,
                     "Added  "
-                        << (numNodesAfterTrim - trimmedGuardCount -
+                        << (numNodesTotal - trimmedGuardCount -
                             trimmedNonGuardCount)
                         << " to trimmedGuardCount to form a complete shard.");
       }
@@ -820,7 +767,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
       // Add shard guards to "FilteredPoWOrderSorter"
       // Remove it from "ShadowPoWOrderSorter"
       for (auto kv = PoWOrderSorter.begin();
-           (kv != PoWOrderSorter.end()) && (count < numNodesAfterTrim); kv++) {
+           (kv != PoWOrderSorter.end()) && (count < numNodesTotal); kv++) {
         if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
           if (count == trimmedGuardCount) {
             LOG_GENERAL(INFO,
@@ -836,7 +783,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
 
       // Assign non shard guards if there is any slots
       for (auto kv = ShadowPoWOrderSorter.begin();
-           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);) {
+           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTotal);) {
         if (!Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
           FilteredPoWOrderSorter.emplace(*kv);
           kv = ShadowPoWOrderSorter.erase(kv);
@@ -851,12 +798,12 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
       leftOverCount =
           std::min(leftOverCount, (int32_t)ShadowPoWOrderSorter.size());
 
-      if (count < numNodesAfterTrim && leftOverCount > 0) {
+      if (count < numNodesTotal && leftOverCount > 0) {
         // If there is not enough shard nodes, need to fill up the gap
         LOG_GENERAL(INFO, "Gap to fill = " << leftOverCount);
 
         for (auto kv = ShadowPoWOrderSorter.begin();
-             (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);
+             (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTotal);
              kv++) {
           FilteredPoWOrderSorter.emplace(*kv);
           --leftOverCount;
@@ -996,7 +943,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 
   ClearReputationOfNodeWithoutPoW();
-  ComputeSharding(sortedPoWSolns);
+  ComputeMembersInShard(sortedPoWSolns);
 
   GovDSShardVotesMap govProposalMap;
   for (const auto& dsnode : powDSWinners) {
@@ -1045,7 +992,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     return false;
   }
 
-  m_mediator.m_node->m_myshardId = m_shards.size();
   if (!BlockStorage::GetBlockStorage().PutShardStructure(
           m_shards, m_mediator.m_node->m_myshardId)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
@@ -1135,7 +1081,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_allPoWs, dsWinnerPoWs, messageToCosign);
   };
-
   cl->StartConsensus(announcementGeneratorFunc, nullptr, BROADCAST_GOSSIP_MODE);
   return true;
 }
@@ -1256,8 +1201,7 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToshardIdMap,
-                                m_tempMapNodeReputation)) {
+  if (!ProcessShardingStructure(m_tempShards, m_tempMapNodeReputation)) {
     return false;
   }
 
@@ -1367,8 +1311,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
 }
 
 bool DirectoryService::ProcessShardingStructure(
-    const DequeOfShard& shards,
-    std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
+    const DequeOfShardMembers& shardMembers,
     std::map<PubKey, uint16_t>& mapNodeReputation) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1377,59 +1320,51 @@ bool DirectoryService::ProcessShardingStructure(
     return true;
   }
 
-  publicKeyToshardIdMap.clear();
   mapNodeReputation.clear();
 
-  size_t totalShardNodes = 0;
-  for (const auto& shard : shards) {
-    totalShardNodes += shard.size();
-  }
+  size_t totalShardNodes = shardMembers.size();
 
   const size_t MAX_DIFF_IP_NODES = std::ceil(
       totalShardNodes * DIFF_IP_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT);
   size_t diffIpNodes = 0;
 
-  for (unsigned int i = 0; i < shards.size(); i++) {
-    for (const auto& shardNode : shards.at(i)) {
-      const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
+  for (const auto& shardNode : shardMembers) {
+    const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
 
-      mapNodeReputation[pubKey] = std::get<SHARD_NODE_REP>(shardNode);
+    mapNodeReputation[pubKey] = std::get<SHARD_NODE_REPUTATION>(shardNode);
 
-      auto storedMember = m_allPoWConns.find(pubKey);
+    auto storedMember = m_allPoWConns.find(pubKey);
 
-      // I know the member but the member IP given by the leader is different!
-      if (storedMember != m_allPoWConns.end()) {
-        if (storedMember->second != std::get<SHARD_NODE_PEER>(shardNode)) {
+    // I know the member but the member IP given by the leader is different!
+    if (storedMember != m_allPoWConns.end()) {
+      if (storedMember->second != std::get<SHARD_NODE_PEER>(shardNode)) {
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                  "IP of the member different "
+                  "from what was in m_allPoWConns???");
+        LOG_GENERAL(WARNING, "Stored  "
+                                 << storedMember->second << " Received"
+                                 << std::get<SHARD_NODE_PEER>(shardNode));
+        diffIpNodes++;
+
+        if (diffIpNodes > MAX_DIFF_IP_NODES) {
           LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                    "IP of the member different "
-                    "from what was in m_allPoWConns???");
-          LOG_GENERAL(WARNING, "Stored  "
-                                   << storedMember->second << " Received"
-                                   << std::get<SHARD_NODE_PEER>(shardNode));
-          diffIpNodes++;
-
-          if (diffIpNodes > MAX_DIFF_IP_NODES) {
-            LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                      "Number of nodes using different IP address "
-                          << diffIpNodes << " exceeds tolerance "
-                          << MAX_DIFF_IP_NODES);
-            return false;
-          }
-
-          // If the node ip i get is different from leader, erase my one, and
-          // accept the ip from leader if within tolerance
-          m_allPoWConns.erase(storedMember);
-          m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
-                                std::get<SHARD_NODE_PEER>(shardNode));
+                    "Number of nodes using different IP address "
+                        << diffIpNodes << " exceeds tolerance "
+                        << MAX_DIFF_IP_NODES);
+          return false;
         }
-      }
-      // I don't know the member -> store the IP given by the leader
-      else {
+
+        // If the node ip i get is different from leader, erase my one, and
+        // accept the ip from leader if within tolerance
+        m_allPoWConns.erase(storedMember);
         m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
                               std::get<SHARD_NODE_PEER>(shardNode));
       }
-
-      publicKeyToshardIdMap.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode), i);
+    }
+    // I don't know the member -> store the IP given by the leader
+    else {
+      m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
+                            std::get<SHARD_NODE_PEER>(shardNode));
     }
   }
 
@@ -1439,7 +1374,7 @@ bool DirectoryService::ProcessShardingStructure(
 void DirectoryService::SaveDSPerformanceCore(
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
         coinbaseRewardees,
-    std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
+    std::map<PubKey, uint32_t>& dsMemberPerformance, const DequeOfNode& dsComm,
     uint64_t currentEpochNum, unsigned int numOfFinalBlock,
     int finalblockRewardID) {
   LOG_MARKER();
@@ -1510,7 +1445,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     unsigned int numOfProposedDSMembers,
     std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
     unsigned int numOfFinalBlock, double performanceThreshold,
-    unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+    unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
     const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
 
@@ -1537,7 +1472,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
       INFO, "threshold = " << threshold << " (" << performanceThreshold << ")");
   unsigned int numByzantine = 0;
   unsigned int index = 0;
-  for (auto it = dsComm.begin(); it != dsComm.end(); ++it) {
+  for (auto it = dsComm.cbegin(); it != dsComm.cend(); ++it) {
     // Do not evaluate guard nodes.
     if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(it->first)) {
       continue;

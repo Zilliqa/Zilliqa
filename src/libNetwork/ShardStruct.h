@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
 #define ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
 
+#include <deque>
 #include <tuple>
 
 #include <Schnorr.h>
@@ -28,11 +29,13 @@ using VectorOfPeer = std::vector<Peer>;
 enum ShardData {
   SHARD_NODE_PUBKEY,
   SHARD_NODE_PEER,
-  SHARD_NODE_REP,
+  SHARD_NODE_REPUTATION,
 };
 
-using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
-using DequeOfShard = std::deque<Shard>;
+// using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
+using ShardMember = std::tuple<PubKey, Peer, uint16_t>;
+// using DequeOfShard = std::deque<Shard>;
+using DequeOfShardMembers = std::deque<ShardMember>;
 
 using PairOfNode = std::pair<PubKey, Peer>;
 

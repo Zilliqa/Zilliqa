@@ -30,7 +30,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -141,15 +141,15 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
     newDSmembers.emplace_back(newDSmember.second);
   }
 
-  P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message);
+  zil::p2p::GetInstance().SendMessage(newDSmembers, dsblock_message);
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I will send DSBlock to lookups and new DS nodes");
 }
 
 void DirectoryService::SendDSBlockToShardNodes(
-    [[gnu::unused]] const zbytes& dsblock_message, const DequeOfShard& shards,
-    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi) {
+    [[gnu::unused]] const zbytes& dsblock_message,
+    const DequeOfShardMembers& shardMembers) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendDSBlockToShardNodes not expected to "
@@ -159,72 +159,66 @@ void DirectoryService::SendDSBlockToShardNodes(
 
   LOG_MARKER();
 
-  auto p = shards.begin();
-  advance(p, my_shards_lo);
+  // Get the shard ID from the leader's info in m_publicKeyToshardIdMap
+  uint32_t shardId = 0;
 
-  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
-    // Get the shard ID from the leader's info in m_publicKeyToshardIdMap
-    uint32_t shardId =
-        m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
+  zbytes dsblock_message_to_shard = {MessageType::NODE,
+                                     NodeInstructionType::DSBLOCK};
+  if (!Messenger::SetNodeVCDSBlocksMessage(
+          dsblock_message_to_shard, MessageOffset::BODY, shardId,
+          *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
+          m_shards)) {
+    LOG_EPOCH(
+        WARNING, m_mediator.m_currentEpochNum,
+        "Messenger::SetNodeVCDSBlocksMessage failed. " << *m_pendingDSBlock);
+    return;
+  }
 
-    zbytes dsblock_message_to_shard = {MessageType::NODE,
-                                       NodeInstructionType::DSBLOCK};
-    if (!Messenger::SetNodeVCDSBlocksMessage(
-            dsblock_message_to_shard, MessageOffset::BODY, shardId,
-            *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
-            m_shards)) {
-      LOG_EPOCH(
-          WARNING, m_mediator.m_currentEpochNum,
-          "Messenger::SetNodeVCDSBlocksMessage failed. " << *m_pendingDSBlock);
-      continue;
+  // Send the message
+  SHA256Calculator sha256;
+  sha256.Update(dsblock_message_to_shard);
+  auto this_msg_hash = sha256.Finalize();
+
+  if (BROADCAST_TREEBASED_CLUSTER_MODE) {
+    // Choose N other Shard nodes to be recipient of DS block
+    VectorOfPeer shardDSBlockReceivers;
+    unsigned int numOfDSBlockReceivers =
+        NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+    if (numOfDSBlockReceivers <= NUM_DS_ELECTION) {
+      LOG_GENERAL(WARNING,
+                  "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be "
+                  "greater than NUM_DS_ELECTION. Why not correct the "
+                  "constant.xml next time.");
+      numOfDSBlockReceivers = NUM_DS_ELECTION + 1;
     }
 
-    // Send the message
-    SHA256Calculator sha256;
-    sha256.Update(dsblock_message_to_shard);
-    auto this_msg_hash = sha256.Finalize();
+    string msgHash;
+    DataConversion::Uint8VecToHexStr(this_msg_hash, msgHash);
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Sending [" << msgHash.substr(0, 6) << "] to "
+                          << numOfDSBlockReceivers << " peers");
 
-    if (BROADCAST_TREEBASED_CLUSTER_MODE) {
-      // Choose N other Shard nodes to be recipient of DS block
-      VectorOfPeer shardDSBlockReceivers;
-      unsigned int numOfDSBlockReceivers =
-          NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
-      if (numOfDSBlockReceivers <= NUM_DS_ELECTION) {
-        LOG_GENERAL(WARNING,
-                    "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be "
-                    "greater than NUM_DS_ELECTION. Why not correct the "
-                    "constant.xml next time.");
-        numOfDSBlockReceivers = NUM_DS_ELECTION + 1;
-      }
+    numOfDSBlockReceivers =
+        std::min(numOfDSBlockReceivers, (uint32_t)shardMembers.size());
 
-      string msgHash;
-      DataConversion::Uint8VecToHexStr(this_msg_hash, msgHash);
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending [" << msgHash.substr(0, 6) << "] to "
-                            << numOfDSBlockReceivers << " peers");
-
-      numOfDSBlockReceivers =
-          std::min(numOfDSBlockReceivers, (uint32_t)p->size());
-
-      for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
-        shardDSBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(p->at(i)));
-        LOG_GENERAL(INFO, "[" << PAD(i, 2, ' ') << "] "
-                              << std::get<SHARD_NODE_PUBKEY>(p->at(i)) << " "
-                              << std::get<SHARD_NODE_PEER>(p->at(i)));
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
-                                                  dsblock_message_to_shard);
-    } else {
-      vector<Peer> shard_peers;
-      for (const auto& kv : *p) {
-        shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-      }
-      P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                  dsblock_message_to_shard);
+    for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
+      shardDSBlockReceivers.emplace_back(
+          std::get<SHARD_NODE_PEER>(shardMembers.at(i)));
+      LOG_GENERAL(INFO, "[" << PAD(i, 2, ' ') << "] "
+                            << std::get<SHARD_NODE_PUBKEY>(shardMembers.at(i))
+                            << " "
+                            << std::get<SHARD_NODE_PEER>(shardMembers.at(i)));
     }
 
-    p++;
+    zil::p2p::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
+                                                 dsblock_message_to_shard);
+  } else {
+    vector<Peer> shard_peers;
+    for (const auto& kv : shardMembers) {
+      shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+    }
+    zil::p2p::GetInstance().SendBroadcastMessage(shard_peers,
+                                                 dsblock_message_to_shard);
   }
 }
 
@@ -253,11 +247,11 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   // 2. My node was removed by the DS Committee due to lack of sufficient
   // performance.
   bool isDropout = true;
-  for (auto it = m_mediator.m_DSCommittee->begin();
-       it != m_mediator.m_DSCommittee->end(); ++it) {
+  for (auto it = m_mediator.m_DSCommittee->cbegin();
+       it != m_mediator.m_DSCommittee->cend(); ++it) {
     // Look for my public key.
     if (m_mediator.m_selfKey.second == it->first) {
-      m_consensusMyID = std::distance(m_mediator.m_DSCommittee->begin(), it);
+      m_consensusMyID = std::distance(m_mediator.m_DSCommittee->cbegin(), it);
       isDropout = false;
       break;
     }
@@ -353,7 +347,6 @@ void DirectoryService::StartNextTxEpoch() {
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
-  P2PComm::ClearPeerConnectionCount();
 
   m_mediator.m_node->CleanWhitelistReqs();
 
@@ -370,6 +363,11 @@ void DirectoryService::StartNextTxEpoch() {
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee, adopt_lock);
 
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
+    LOG_GENERAL(INFO, "Setting myShardMembers to: ");
+    for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
+      LOG_GENERAL(INFO, "IP: " << kv.second.GetPrintableIPAddress());
+    }
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DS shard:");
 
@@ -402,7 +400,6 @@ void DirectoryService::StartNextTxEpoch() {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard backup");
   }
 
-  m_mediator.m_node->m_myshardId = m_shards.size();
   m_stateDeltaFromShards.clear();
 
   // if this happens to be first tx epoch of current ds epoch after ds syncing.
@@ -410,9 +407,6 @@ void DirectoryService::StartNextTxEpoch() {
     lock_guard<mutex> h(m_mutexCoinbaseRewardees);
     m_coinbaseRewardees.clear();
   }
-
-  // Start sharding work
-  SetState(MICROBLOCK_SUBMISSION);
 
   auto func1 = [this]() mutable -> void {
     m_mediator.m_node->CommitTxnPacketBuffer(true);
@@ -426,58 +420,20 @@ void DirectoryService::StartNextTxEpoch() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] BEGIN");
 
-  m_stopRecvNewMBSubmission = false;
-
   if (BROADCAST_GOSSIP_MODE) {
     VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // ReInitialize RumorManager for this epoch.
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
-  if (m_mediator.m_node->m_myshardId == 0 || m_dsEpochAfterUpgrade) {
+  if (m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID ||
+      m_dsEpochAfterUpgrade) {
     LOG_GENERAL(
         INFO,
         "No other shards. So no other microblocks expected to be received");
-    m_stopRecvNewMBSubmission = true;
-
     RunConsensusOnFinalBlock();
-  } else {
-    auto func = [this]() mutable -> void {
-      // Check for state change. If it get stuck at microblock submission for
-      // too long, move on to finalblock without the microblock
-      std::unique_lock<std::mutex> cv_lk(m_MutexScheduleDSMicroBlockConsensus);
-      // Check timestamp with extra time added for first txepoch for tx
-      // distribution in shard
-      auto extra_time =
-          (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
-              ? 0
-              : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
-      // TODO: cv fix
-      if (cv_scheduleDSMicroBlockConsensus.wait_for(
-              cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING,
-                    "Timeout: Didn't receive all Microblock. Proceeds "
-                    "without it");
-
-        LOG_STATE("[MIBLKSWAIT]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetBlockNum() +
-                         1
-                  << "] TIMEOUT: Didn't receive all Microblock.");
-
-        m_stopRecvNewMBSubmission = true;
-        RunConsensusOnFinalBlock();
-      }
-    };
-    DetachedFunction(1, func);
-
-    CommitMBSubmissionMsgBuffer();
   }
 }
 
@@ -504,7 +460,6 @@ void DirectoryService::StartFirstTxEpoch() {
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
-  P2PComm::ClearPeerConnectionCount();
 
   m_mediator.m_node->CleanWhitelistReqs();
 
@@ -526,6 +481,11 @@ void DirectoryService::StartFirstTxEpoch() {
   if (m_mode != IDLE) {
     lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
+    LOG_GENERAL(INFO, "Setting myShardMembers to: ");
+    for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
+      LOG_GENERAL(INFO, "IP: " << kv.second.GetPrintableIPAddress());
+    }
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DS shard:");
 
@@ -559,12 +519,7 @@ void DirectoryService::StartFirstTxEpoch() {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard backup");
     }
 
-    // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
-    m_mediator.m_node->m_myshardId = m_shards.size();
     m_stateDeltaFromShards.clear();
-
-    // Start sharding work
-    SetState(MICROBLOCK_SUBMISSION);
 
     auto func1 = [this]() mutable -> void {
       m_mediator.m_node->CommitTxnPacketBuffer();
@@ -579,58 +534,21 @@ void DirectoryService::StartFirstTxEpoch() {
                1
         << "] BEGIN");
 
-    m_stopRecvNewMBSubmission = false;
-
     if (BROADCAST_GOSSIP_MODE) {
       VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
       // ReInitialize RumorManager for this epoch.
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
-    if (m_mediator.m_node->m_myshardId == 0) {
+    if (m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID) {
       auto func = [this]() mutable -> void {
         LOG_GENERAL(
             INFO,
             "No other shards. So no other microblocks expected to be received");
-        m_stopRecvNewMBSubmission = true;
-
+        SetState(FINALBLOCK_CONSENSUS_PREP);
         RunConsensusOnFinalBlock();
-      };
-      DetachedFunction(1, func);
-    } else {
-      auto func = [this]() mutable -> void {
-        // Check for state change. If it get stuck at microblock submission for
-        // too long, move on to finalblock without the microblock
-        std::unique_lock<std::mutex> cv_lk(
-            m_MutexScheduleDSMicroBlockConsensus);
-        // Check timestamp with extra time added for first txepoch for tx
-        // distribution in shard
-        auto extra_time =
-            (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
-                ? 0
-                : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
-        // TODO: cv fix
-        if (cv_scheduleDSMicroBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING,
-                      "Timeout: Didn't receive all Microblock. Proceeds "
-                      "without it");
-
-          LOG_STATE("[MIBLKSWAIT]["
-                    << setw(15) << left
-                    << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                    << m_mediator.m_txBlockChain.GetLastBlock()
-                               .GetHeader()
-                               .GetBlockNum() +
-                           1
-                    << "] TIMEOUT: Didn't receive all Microblock.");
-
-          m_stopRecvNewMBSubmission = true;
-          RunConsensusOnFinalBlock();
-        }
       };
       DetachedFunction(1, func);
     }
@@ -641,14 +559,11 @@ void DirectoryService::StartFirstTxEpoch() {
 
     // I need to know my shard ID -> iterate through m_shards
     bool found = false;
-    for (unsigned int i = 0; i < m_shards.size() && !found; i++) {
-      for (const auto& shardNode : m_shards.at(i)) {
-        if (std::get<SHARD_NODE_PUBKEY>(shardNode) ==
-            m_mediator.m_selfKey.second) {
-          m_mediator.m_node->SetMyshardId(i);
-          found = true;
-          break;
-        }
+    for (const auto& shardNode : m_shards) {
+      if (std::get<SHARD_NODE_PUBKEY>(shardNode) ==
+          m_mediator.m_selfKey.second) {
+        found = true;
+        break;
       }
     }
 
@@ -747,15 +662,15 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
     if (m_mode == BACKUP_DS) {
+      LOG_EXTRA("Shard members updated " << m_shards.size() << "->"
+                                         << m_tempShards.size());
       m_shards = std::move(m_tempShards);
-      m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
       m_mapNodeReputation = std::move(m_tempMapNodeReputation);
     } else if (m_mode == PRIMARY_DS) {
       RemoveReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
     }
   }
 
-  m_mediator.m_node->m_myshardId = m_shards.size();
   if (!BlockStorage::GetBlockStorage().PutShardStructure(
           m_shards, m_mediator.m_node->m_myshardId)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
@@ -786,10 +701,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     };
 
     auto sendDSBlockToShardNodes =
-        [this](const zbytes& message, const DequeOfShard& shards,
+        [this](const zbytes& message, const DequeOfShardMembers& members,
                const unsigned int& my_shards_lo,
                const unsigned int& my_shards_hi) -> void {
-      SendDSBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
+      SendDSBlockToShardNodes(message, members);
     };
 
     DataSender::GetInstance().SendDataToOthers(

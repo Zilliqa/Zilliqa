@@ -17,7 +17,6 @@
 
 #include "ScillaUtils.h"
 
-#include <boost/filesystem/operations.hpp>
 
 #include "common/Constants.h"
 #include "libData/AccountStore/AccountStore.h"
@@ -34,7 +33,7 @@ bool ScillaUtils::PrepareRootPathWVersion(const uint32_t& scilla_version,
     root_w_version += '/' + to_string(scilla_version);
   }
 
-  if (!boost::filesystem::exists(root_w_version)) {
+  if (!std::filesystem::exists(root_w_version)) {
     LOG_GENERAL(WARNING, "Folder for desired version (" << root_w_version
                                                         << ") doesn't exists");
     return false;
@@ -48,14 +47,14 @@ Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
                                                 const uint64_t& available_gas) {
   Json::Value ret;
   ret["argv"].append("-init");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      INIT_JSON);
   ret["argv"].append("-libdir");
   ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
-                     boost::filesystem::current_path().string() + '/' +
+                     std::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
   ret["argv"].append(
-      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
+      std::filesystem::current_path().string() + '/' + INPUT_CODE +
       (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
   ret["argv"].append("-gaslimit");
   ret["argv"].append(to_string(available_gas));
@@ -70,16 +69,16 @@ Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
                                                const uint128_t& balance) {
   Json::Value ret;
   ret["argv"].append("-init");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      INIT_JSON);
   ret["argv"].append("-ipcaddress");
   ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
   ret["argv"].append("-o");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      OUTPUT_JSON);
   ret["argv"].append("-i");
   ret["argv"].append(
-      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
+      std::filesystem::current_path().string() + '/' + INPUT_CODE +
       (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
   ret["argv"].append("-gaslimit");
   ret["argv"].append(to_string(available_gas));
@@ -87,7 +86,7 @@ Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
   ret["argv"].append(balance.convert_to<string>());
   ret["argv"].append("-libdir");
   ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
-                     boost::filesystem::current_path().string() + '/' +
+                     std::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
   ret["argv"].append("-jsonerrors");
 
@@ -100,19 +99,19 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
                                              const bool& is_library) {
   Json::Value ret;
   ret["argv"].append("-init");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      INIT_JSON);
   ret["argv"].append("-ipcaddress");
   ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
   ret["argv"].append("-imessage");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      INPUT_MESSAGE_JSON);
   ret["argv"].append("-o");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      OUTPUT_JSON);
   ret["argv"].append("-i");
   ret["argv"].append(
-      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
+      std::filesystem::current_path().string() + '/' + INPUT_CODE +
       (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
   ret["argv"].append("-gaslimit");
   ret["argv"].append(to_string(available_gas));
@@ -120,7 +119,7 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append(balance.convert_to<string>());
   ret["argv"].append("-libdir");
   ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
-                     boost::filesystem::current_path().string() + '/' +
+                     std::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
   ret["argv"].append("-jsonerrors");
   ret["argv"].append("-pplit");
@@ -132,15 +131,15 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
 Json::Value ScillaUtils::GetDisambiguateJson() {
   Json::Value ret;
   ret["argv"].append("-iinit");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      INIT_JSON);
   ret["argv"].append("-ipcaddress");
   ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
   ret["argv"].append("-oinit");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      OUTPUT_JSON);
   ret["argv"].append("-i");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+  ret["argv"].append(std::filesystem::current_path().string() + '/' +
                      INPUT_CODE + CONTRACT_FILE_EXTENSION);
 
   return ret;
@@ -163,7 +162,7 @@ void ScillaUtils::ExportCommonFiles(
     std::string code_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
     code_path += LIBRARY_CODE_EXTENSION;
-    boost::filesystem::remove(code_path);
+    std::filesystem::remove(code_path);
 
     os.open(code_path);
     os << extlib_export.second.first;
@@ -171,7 +170,7 @@ void ScillaUtils::ExportCommonFiles(
 
     std::string init_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
-    boost::filesystem::remove(init_path);
+    std::filesystem::remove(init_path);
 
     os.open(init_path);
     os << extlib_export.second.second;
@@ -187,11 +186,11 @@ bool ScillaUtils::ExportCreateContractFiles(
         extlibs_exports) {
   LOG_MARKER();
 
-  boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
+  std::filesystem::remove_all("./" + SCILLA_FILES);
+  std::filesystem::create_directories("./" + SCILLA_FILES);
 
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
+  if (!(std::filesystem::exists("./" + SCILLA_LOG))) {
+    std::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
   if (!ScillaUtils::PrepareRootPathWVersion(scilla_version,
@@ -244,8 +243,8 @@ bool ScillaUtils::PopulateExtlibsExports(
       std::string code_path = EXTLIB_FOLDER + '/' + libAddr.hex();
       code_path += LIBRARY_CODE_EXTENSION;
       std::string json_path = EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
-      if (boost::filesystem::exists(code_path) &&
-          boost::filesystem::exists(json_path)) {
+      if (std::filesystem::exists(code_path) &&
+          std::filesystem::exists(json_path)) {
         continue;
       }
 

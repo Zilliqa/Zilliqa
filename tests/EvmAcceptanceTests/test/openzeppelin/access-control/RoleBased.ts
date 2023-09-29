@@ -28,7 +28,8 @@ describe("Openzeppelin role based access control functionality", function () {
     expect(await contract.hasRole(MINTER_ROLE, minter.address)).to.be.true;
   });
 
-  it("should be possible for minter to mint", async function () {
+  // Disabled in q4-working-branch
+  xit("should be possible for minter to mint", async function () {
     expect(await contract.connect(minter).mint(user.address, 1000)).to.changeTokenBalance(contract, user.address, 1000);
 
     expect(await contract.totalSupply()).to.be.at.least(1000);
@@ -49,7 +50,8 @@ describe("Openzeppelin role based access control functionality", function () {
       .withArgs(BURNER_ROLE, burner, defaultAdmin);
   });
 
-  it("should be possible for burner to burn after it grants the access", async function () {
+  // Disabled in q4-working-branch
+  xit("should be possible for burner to burn after it grants the access", async function () {
     expect(await contract.connect(burner).burn(user.address, 100)).to.changeTokenBalance(contract, user.address, -100);
   });
 

@@ -16,7 +16,6 @@
  */
 
 #include <leveldb/db.h>
-#include <boost/filesystem/operations.hpp>
 #include <regex>
 
 #include "libData/AccountStore/AccountStore.h"
@@ -104,7 +103,7 @@ AccountStore::AccountStore()
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
-    boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
+    std::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(this, m_scillaIPCServerConnector);
 
@@ -135,7 +134,7 @@ AccountStore::AccountStore()
 }
 
 AccountStore::~AccountStore() {
-  // boost::filesystem::remove_all("./state");
+  // std::filesystem::remove_all("./state");
   if (m_scillaIPCServer != nullptr) {
     m_scillaIPCServer->StopListening();
   }
@@ -355,7 +354,7 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
       }
     }
   }
-
+  LOG_GENERAL(WARNING, "AccountStore::DeserializeDelta revertible " << revertible);
   if (revertible) {
     unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
     unique_lock<mutex> g2(m_mutexRevertibles, defer_lock);
@@ -554,7 +553,7 @@ bool AccountStore::UpdateAccountsTemp(
 
   lock(g, g2);
 
-  bool isEvm{false};
+  bool isEvm = transaction.IsEth();
 
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {
@@ -706,10 +705,11 @@ void AccountStore::CommitTempRevertible() {
 
 bool AccountStore::RevertCommitTemp() {
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "AccountStore::RevertCommitTemp Commiting from temp to normal, size: " << m_addressToAccountRevChanged.size());
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
   for (auto const &entry : m_addressToAccountRevChanged) {
+    LOG_GENERAL(WARNING, "Committing account with addr: " << entry.first);
     m_addressToAccount->insert_or_assign(entry.first, entry.second);
     UpdateStateTrie(entry.first, entry.second);
   }

@@ -1,15 +1,19 @@
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {Block, Scenario, TestInfo, Txn} from "./Scenario";
 import fs from "fs";
-import { getState, resetState } from 'jest-circus';
+import {getState, resetState} from "jest-circus";
 
-const processDescribeChild = (child: any, describes: string[], regex: RegExp): [tests: TestInfo[], beforeHooks: Txn[]] => {
-  const nestedDescribes = [...describes, child.name]
+const processDescribeChild = (
+  child: any,
+  describes: string[],
+  regex: RegExp
+): [tests: TestInfo[], beforeHooks: Txn[]] => {
+  const nestedDescribes = [...describes, child.name];
   const allTests: TestInfo[] = [];
   const allBeforeBlocks: Txn[] = [];
   allBeforeBlocks.push(...child.hooks.filter((hook: any) => hook.type === "beforeAll").map((hook: any) => hook.fn));
   for (const subChild of child.children) {
-    if (subChild.type === 'describeBlock') {
+    if (subChild.type === "describeBlock") {
       const [tests, beforeHooks] = processDescribeChild(subChild, nestedDescribes, regex);
       allTests.push(...tests);
       allBeforeBlocks.push(...beforeHooks);
@@ -20,20 +24,20 @@ const processDescribeChild = (child: any, describes: string[], regex: RegExp): [
       } catch (error) {
         continue;
       }
-      
+
       if (regex.test(subChild.name)) {
         allTests.push({
           txn: subChild.fn,
           msg: subChild.name,
           describes: nestedDescribes,
           run_in: block
-        })
+        });
       }
     }
   }
 
   return [allTests, allBeforeBlocks];
-}
+};
 
 export const parseTestFile = async function (
   testFile: string,
@@ -47,7 +51,7 @@ export const parseTestFile = async function (
   const before = beforeAll;\n
   const after = afterAll;\n
   const xit = () => {};
-  ${await fs.promises.readFile(testFile, "utf8")}`
+  ${await fs.promises.readFile(testFile, "utf8")}`;
 
   // Does file contain #parallel tag?? If not, skip it!
   if (!code.includes("#parallel")) {
@@ -56,7 +60,7 @@ export const parseTestFile = async function (
 
   await fs.promises.writeFile(testFile, code);
 
-  require(fs.realpathSync(testFile))
+  require(fs.realpathSync(testFile));
 
   const state = getState();
 
@@ -71,9 +75,8 @@ export const parseTestFile = async function (
       scenarios.push({
         scenario_name: describeName,
         beforeHooks,
-        tests,
-
-      })
+        tests
+      });
     }
   }
 

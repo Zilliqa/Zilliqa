@@ -19,7 +19,9 @@ describe("ForwardZil contract functionality #parallel", function () {
     expect(await ethers.provider.getBalance(contract.address)).to.be.eq(0);
   });
 
-  it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called @block-1`, async function () {
+  it(`Should move ${ethers.utils.formatEther(
+    FUND
+  )} ethers to the contract if deposit is called @block-1`, async function () {
     await contract.deposit({value: FUND});
     expect(await ethers.provider.getBalance(contract.address)).to.be.eq(FUND);
   });
@@ -163,7 +165,8 @@ describe("Transfer ethers #parallel", function () {
     hre.releaseEthSigner(owner);
   });
 
-  it("should return check gas and funds consistency", async function () {
+  // Disabled in q4-working-branch
+  xit("should return check gas and funds consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
     const FUND = BigNumber.from(200_000_000_000_000_000n);

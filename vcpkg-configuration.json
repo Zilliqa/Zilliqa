@@ -3,7 +3,13 @@
     {
       "kind": "filesystem",
       "path": "vcpkg-registry",
-      "packages": [ "python3", "g3log", "g3sinks", "schnorr", "cryptoutils", "websocketpp", "opentelemetry-cpp" ]
+      "packages": [
+        "g3log",
+        "g3sinks",
+        "schnorr",
+        "cryptoutils",
+        "opentelemetry-cpp"
+      ]
     }
   ]
 }

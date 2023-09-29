@@ -22,11 +22,10 @@
 #include "libUtils/SysCommand.h"
 
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
 
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 ScillaClient::~ScillaClient() {
   std::string cmdStr = "pkill " + SCILLA_SERVER_BINARY + " >/dev/null &";
@@ -54,9 +53,9 @@ void ScillaClient::Init() {
   if (ENABLE_SCILLA_MULTI_VERSION) {
     path scilla_root_path(SCILLA_ROOT);
     // scan existing versions
+    LOG_GENERAL(INFO, "looking in directory " << scilla_root_path << " ...  ");
     for (auto& entry :
          boost::make_iterator_range(directory_iterator(scilla_root_path), {})) {
-      LOG_GENERAL(INFO, "scilla-server path: " << entry.path().string());
       std::string folder_name = entry.path().string();
       folder_name.erase(0, SCILLA_ROOT.size() + 1);
       LOG_GENERAL(INFO, "folder_name: " << folder_name);

@@ -242,7 +242,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getUncleCountByBlockNumber",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
-                           "param01", jsonrpc::JSON_STRING, nullptr),
+                           nullptr),
         &LookupServer::GetEthUncleCountI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -297,18 +297,15 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetNetVersionI);
 
+    //Parameters are not listed to bypass library's parameter validation.
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, "param02",
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthBalanceI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_BOOLEAN, NULL),
+                           jsonrpc::JSON_STRING, nullptr),
         &LookupServer::GetEthBlockByNumberI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -334,8 +331,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getTransactionCount",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_STRING, NULL),
+                           NULL),
         &LookupServer::GetEthTransactionCountI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -370,9 +366,7 @@ void IsolatedServer::BindAllEvmMethods() {
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_STRING, NULL),
+                           jsonrpc::JSON_STRING, nullptr),
         &LookupServer::GetEthCodeI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -384,7 +378,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
+                           NULL),
         &LookupServer::GetEthBlockTransactionCountByNumberI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -397,8 +391,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_STRING, NULL),
+                           nullptr),
         &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(

@@ -1,7 +1,7 @@
 import {assert, expect} from "chai";
 import hre, {ethers} from "hardhat";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import { Contract, Wallet } from "ethers";
+import {Contract, Wallet} from "ethers";
 
 const METHOD = "ots_getInternalOperations";
 describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
@@ -17,12 +17,9 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
       assert.equal(status, 200, "has status code");
     });
 
-
     const ACCOUNTS_COUNT = 3;
 
-    accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
-      ethers.Wallet.createRandom().connect(ethers.provider)
-    );
+    accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) => ethers.Wallet.createRandom().connect(ethers.provider));
 
     addresses = accounts.map((signer) => signer.address);
 
@@ -32,7 +29,6 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
   });
 
   it("We can get the otter internal operations @block-1", async function () {
-
     // Check we can for example detect a suicide with correct value.
     // Below is taken from transfer.ts test
 
@@ -48,5 +44,4 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
       assert.equal(jsonObject[3]["type"], 1, "has correct type for self destruct");
     });
   });
-
 });

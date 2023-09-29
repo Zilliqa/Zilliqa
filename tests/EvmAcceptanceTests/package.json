@@ -9,7 +9,7 @@
     "lint": "eslint --fix && prettier --write ."
   },
   "engines": {
-    "node": ">14.0.0 <17.0.0"
+    "node": ">14.0.0"
   },
   "author": "",
   "license": "ISC",
@@ -55,7 +55,7 @@
   "dependencies": {
     "@types/deep-equal-in-any-order": "^1.0.1",
     "@types/terminal-kit": "^2.5.1",
-    "@zilliqa-js/zilliqa": "^3.3.4",
+    "@zilliqa-js/zilliqa": "^3.4.4",
     "cli-color": "^2.0.3",
     "deep-equal-in-any-order": "^2.0.6",
     "dotenv": "^16.0.3",

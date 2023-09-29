@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem.hpp>
 
 #include <Schnorr.h>
 #include <array>
@@ -96,8 +95,8 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
 
   // record the output_file
   string logfile = "LogInvoke";
-  if (!(boost::filesystem::exists("./" + logfile))) {
-    boost::filesystem::create_directories("./" + logfile);
+  if (!(std::filesystem::exists("./" + logfile))) {
+    std::filesystem::create_directories("./" + logfile);
   }
 
   ofstream output_log(logfile + "/" + (didResetCF ? "R+" : "") +

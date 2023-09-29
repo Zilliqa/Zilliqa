@@ -45,6 +45,16 @@ describe("Subscriptions functionality", function () {
         .withArgs(event.from, event.to, event.amount);
       receivedEvents = await waitForEvents(receivedEvents);
       expect(receivedEvents[0]).to.deep.equalInAnyOrder(event);
+
+      await contract.event1(event.to, event.amount);
+
+      const queriedLogs = await eventsContract.queryFilter(filter);
+      expect(queriedLogs).to.have.length(2);
+      expect(
+        queriedLogs.every((e) => {
+          return !e["removed"];
+        })
+      ).to.be.equal(true);
     });
 
     it("Should receive event when 'or' filter is provided", async function () {

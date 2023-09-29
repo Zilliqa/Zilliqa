@@ -1,6 +1,5 @@
 import clc from "cli-color";
 import {task} from "hardhat/config";
-import semver from "semver";
 
 task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")
@@ -10,15 +9,6 @@ task("test")
     const private_keys: string[] = hre.network["config"]["accounts"] as string[];
     hre.signer_pool.initSigners(signers, private_keys);
     let balances = await Promise.all(signers.map((signer) => signer.getBalance()));
-
-    const node_version = process.version;
-    if (semver.gt(node_version, "17.0.0")) {
-      throw new Error(
-        "⛔️" +
-          clc.redBright.bold("Zilliqa-is incompatible with your current node version.") +
-          "It should be >13.0.0 & <17.0.0."
-      );
-    }
 
     if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
       hre.ethers.provider.on("debug", (info) => {

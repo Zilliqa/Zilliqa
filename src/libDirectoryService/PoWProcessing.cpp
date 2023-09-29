@@ -26,7 +26,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -59,7 +59,7 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   vector<Peer> peerList;
 
   if (BROADCAST_GOSSIP_MODE) {
-    if (!P2PComm::GetInstance().SpreadRumor(powpacketmessage)) {
+    if (!zil::p2p::GetInstance().SpreadRumor(powpacketmessage)) {
       LOG_GENERAL(INFO,
                   "Seems same packet was received by me from other DS member. "
                   "That's even better.")
@@ -72,7 +72,7 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
     for (auto const& i : *m_mediator.m_DSCommittee) {
       peerList.push_back(i.second);
     }
-    P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
+    zil::p2p::GetInstance().SendMessage(peerList, powpacketmessage);
   }
 
   return true;
@@ -495,11 +495,6 @@ void DirectoryService::AddDSPoWs(const PubKey& Pubk,
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
 
-MapOfPubKeyPoW DirectoryService::GetAllDSPoWs() {
-  lock_guard<mutex> g(m_mutexAllDSPOWs);
-  return m_allDSPoWs;
-}
-
 void DirectoryService::ClearDSPoWSolns() {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   m_allDSPoWs.clear();
@@ -514,11 +509,6 @@ std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(
     LOG_GENERAL(WARNING, "No such element in m_allDSPoWs");
     return array<unsigned char, 32>();
   }
-}
-
-bool DirectoryService::IsNodeSubmittedDSPoWSoln(const PubKey& Pubk) {
-  lock_guard<mutex> g(m_mutexAllDSPOWs);
-  return m_allDSPoWs.find(Pubk) != m_allDSPoWs.end();
 }
 
 uint32_t DirectoryService::GetNumberOfDSPoWSolns() {
@@ -545,12 +535,11 @@ void DirectoryService::ClearReputationOfNodeWithoutPoW() {
 }
 
 void DirectoryService::RemoveReputationOfNodeFailToJoin(
-    const DequeOfShard& shards, std::map<PubKey, uint16_t>& mapNodeReputation) {
+    const DequeOfShardMembers& shardMembers,
+    std::map<PubKey, uint16_t>& mapNodeReputation) {
   std::set<PubKey> allShardNodePubKey;
-  for (const auto& shard : shards) {
-    for (const auto& shardNode : shard) {
-      allShardNodePubKey.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
-    }
+  for (const auto& shardNode : shardMembers) {
+    allShardNodePubKey.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
   }
 
   for (auto iter = mapNodeReputation.begin();

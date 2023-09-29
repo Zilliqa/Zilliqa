@@ -17,6 +17,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 #define ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 
+#include "Server.h"
+#include <jsonrpccpp/common/exception.h>
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
@@ -37,15 +39,6 @@ class EthRpcMethods {
 
   Z_I64METRIC m_apiCallCount{Z_FL::EVM_RPC, "ethrpc_invocation_count",
                              "Calls to ethereum API", "Calls"};
-
-  std::pair<std::string, unsigned int> CheckContractTxnShards(
-      bool priority, unsigned int shard, const Transaction& tx,
-      unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
-
-  CreateTransactionTargetFunc m_createTransactionTarget =
-      [this](const Transaction& tx, uint32_t shardId) -> bool {
-    return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
-  };
 
   void Init(LookupServer* lookupServer);
 
@@ -84,6 +77,12 @@ class EthRpcMethods {
                                            Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
+
+    // Because we bypassed the library to validate parameters, we should do it manually.
+    if (request[0].empty() || !request[1].isBool()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response =
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
@@ -122,18 +121,23 @@ class EthRpcMethods {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     std::string block_or_tag;
-    if (request.size()> 1) {
+    if (request.size() > 1) {
       block_or_tag = request[1u].asString();
     }
 
-    response = this->GetEthEstimateGas(request[0u],
-                                       (request.size() > 1 ? &block_or_tag : nullptr));
+    response = this->GetEthEstimateGas(
+        request[0u], (request.size() > 1 ? &block_or_tag : nullptr));
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+    if (request[0u].empty() || request[1u].empty()) {
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     try {
+
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
       const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
@@ -177,13 +181,18 @@ class EthRpcMethods {
                            EVM_ZIL_SCALING_FACTOR) /
                           GasConv::GetScalingFactor();
 
-    response = CreateTransactionEth(fields, pubKey, shards, gasPrice,
-                                    m_createTransactionTarget);
+    response = CreateTransactionEth(fields, pubKey, shards, gasPrice);
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library parameters validation, let's do it manually.
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
@@ -385,6 +394,12 @@ class EthRpcMethods {
 
   virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library parameters validation, let's do it manually.
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
@@ -419,6 +434,12 @@ class EthRpcMethods {
   inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    // Because we bypassed the library to validate parameters, we should do it manually.
+    if (request[0].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response =
         this->GetEthBlockTransactionCountByNumber(request[0u].asString());
   }
@@ -449,6 +470,11 @@ class EthRpcMethods {
   inline virtual void GetEthTransactionByBlockNumberAndIndexI(
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
+    if (request[0].empty() || request[1].empty()){
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    }
+
     response = this->GetEthTransactionByBlockNumberAndIndex(
         request[0u].asString(), request[1u].asString());
   }
@@ -596,7 +622,7 @@ class EthRpcMethods {
    * @param response : none
    */
   inline virtual void OtterscanEnableI(const Json::Value& request,
-                                                      Json::Value& response) {
+                                       Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     ARCHIVAL_LOOKUP_WITH_TX_TRACES = request[0u].asBool();
   }
@@ -606,10 +632,11 @@ class EthRpcMethods {
    * @param request : transaction hash
    * @param response : transaction internal operations
    */
-  inline virtual void OtterscanGetInternalOperationsI(const Json::Value& request,
-                                             Json::Value& response) {
+  inline virtual void OtterscanGetInternalOperationsI(
+      const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->OtterscanGetInternalOperations(request[0u].asString(), "otter_internal_tracer");
+    response = this->OtterscanGetInternalOperations(request[0u].asString(),
+                                                    "otter_internal_tracer");
   }
 
   /**
@@ -618,9 +645,10 @@ class EthRpcMethods {
    * @param response : transaction internal operations
    */
   inline virtual void OtterscanGetTransactionErrorI(const Json::Value& request,
-                                                      Json::Value& response) {
+                                                    Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->OtterscanGetInternalOperations(request[0u].asString(), "otter_transaction_error");
+    response = this->OtterscanGetInternalOperations(request[0u].asString(),
+                                                    "otter_transaction_error");
   }
 
   /**
@@ -629,20 +657,10 @@ class EthRpcMethods {
    * @param response : transaction trace (abridged)
    */
   inline virtual void OtterscanTraceTransactionI(const Json::Value& request,
-                                                      Json::Value& response) {
-    LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->OtterscanGetInternalOperations(request[0u].asString(), "otter_call_tracer");
-  }
-
-  /**
-   * @brief Handles json rpc 2.0 request on method: ots_traceTransaction
-   * @param request : transaction hash
-   * @param response : transaction trace (abridged)
-   */
-  inline virtual void OtterscanSearchTransactionsBeforeI(const Json::Value& request,
                                                  Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->OtterscanSearchTransactions(request[0u].asString(), request[1u].asInt64(), request[2u].asInt64(), true);
+    response = this->OtterscanGetInternalOperations(request[0u].asString(),
+                                                    "otter_call_tracer");
   }
 
   /**
@@ -650,10 +668,12 @@ class EthRpcMethods {
    * @param request : transaction hash
    * @param response : transaction trace (abridged)
    */
-  inline virtual void OtterscanSearchTransactionsAfterI(const Json::Value& request,
-                                                         Json::Value& response) {
+  inline virtual void OtterscanSearchTransactionsBeforeI(
+      const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->OtterscanSearchTransactions(request[0u].asString(), request[1u].asInt64(), request[2u].asInt64(), false);
+    response = this->OtterscanSearchTransactions(request[0u].asString(),
+                                                 request[1u].asInt64(),
+                                                 request[2u].asInt64(), true);
   }
 
   /**
@@ -661,10 +681,24 @@ class EthRpcMethods {
    * @param request : transaction hash
    * @param response : transaction trace (abridged)
    */
-  inline virtual void OtterscanGetTransactionBySenderAndNonceI(const Json::Value& request,
-                                                 Json::Value& response) {
+  inline virtual void OtterscanSearchTransactionsAfterI(
+      const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->OtterscanGetTransactionBySenderAndNonce(request[0u].asString(), request[1u].asInt64());
+    response = this->OtterscanSearchTransactions(request[0u].asString(),
+                                                 request[1u].asInt64(),
+                                                 request[2u].asInt64(), false);
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: ots_traceTransaction
+   * @param request : transaction hash
+   * @param response : transaction trace (abridged)
+   */
+  inline virtual void OtterscanGetTransactionBySenderAndNonceI(
+      const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->OtterscanGetTransactionBySenderAndNonce(
+        request[0u].asString(), request[1u].asInt64());
   }
 
   /**
@@ -686,29 +720,34 @@ class EthRpcMethods {
   }
 
   inline virtual void GetOtterscanApiLevelI(const Json::Value& request,
-                                         Json::Value& response) {
+                                            Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = 8;
   }
 
-  inline virtual void HasCodeI(const Json::Value& request, Json::Value& response) {
+  inline virtual void HasCodeI(const Json::Value& request,
+                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->HasCode(request[0u].asString(), request[1u].asString());
   }
 
   inline virtual void GetBlockDetailsI(const Json::Value& request,
-                                         Json::Value& response) {
+                                       Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetBlockDetails(request[0u].asUInt64());
   }
 
   inline virtual void GetBlockTransactionsI(const Json::Value& request,
-                                         Json::Value& response) {
+                                            Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->GetBlockTransactions(request[0u].asUInt64(), boost::numeric_cast<uint32_t>(request[1u].asUInt64()), boost::numeric_cast<uint32_t>(request[2u].asUInt64()));
+    response = this->GetBlockTransactions(
+        request[0u].asUInt64(),
+        boost::numeric_cast<uint32_t>(request[1u].asUInt64()),
+        boost::numeric_cast<uint32_t>(request[2u].asUInt64()));
   }
 
-  inline virtual void GetContractCreatorI(const Json::Value& request, Json::Value& response) {
+  inline virtual void GetContractCreatorI(const Json::Value& request,
+                                          Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetContractCreator(request[0u].asString());
   }
@@ -720,7 +759,8 @@ class EthRpcMethods {
   std::string DebugTraceCallEth(const Json::Value& _json,
                                 const std::string& block_or_tag,
                                 const Json::Value& tracer);
-  std::string GetEthEstimateGas(const Json::Value& _json, const std::string *block_or_tag);
+  std::string GetEthEstimateGas(const Json::Value& _json,
+                                const std::string* block_or_tag);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys,
                              std::string const& tracer = "");
   Json::Value GetBalanceAndNonce(const std::string& address);
@@ -762,10 +802,10 @@ class EthRpcMethods {
   Json::Value GetEthGasPrice() const;
   uint256_t GetEthGasPriceNum() const;
 
-  std::string CreateTransactionEth(
-      Eth::EthFields const& fields, zbytes const& pubKey,
-      const unsigned int num_shards, const uint128_t& gasPriceWei,
-      const CreateTransactionTargetFunc& targetFunc);
+  std::string CreateTransactionEth(Eth::EthFields const& fields,
+                                   zbytes const& pubKey,
+                                   const unsigned int num_shards,
+                                   const uint128_t& gasPriceWei);
 
   Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
   Json::Value GetEthBlockTransactionCountByNumber(
@@ -791,21 +831,27 @@ class EthRpcMethods {
   Json::Value GetEthBlockReceipts(const std::string& blockId);
   Json::Value DebugTraceTransaction(const std::string& txHash,
                                     const Json::Value& json);
-  Json::Value OtterscanGetInternalOperations(const std::string& txHash, const std::string &tracer);
-  Json::Value OtterscanSearchTransactions(const std::string& address, unsigned long blockNumber, unsigned long pageSize, bool before);
-  Json::Value OtterscanGetTransactionBySenderAndNonce(const std::string& address, uint64_t nonce);
+  Json::Value OtterscanGetInternalOperations(const std::string& txHash,
+                                             const std::string& tracer);
+  Json::Value OtterscanSearchTransactions(const std::string& address,
+                                          unsigned long blockNumber,
+                                          unsigned long pageSize, bool before);
+  Json::Value OtterscanGetTransactionBySenderAndNonce(
+      const std::string& address, uint64_t nonce);
   Json::Value DebugTraceBlockByNumber(const std::string& blockNum,
                                       const Json::Value& json);
 
   Json::Value GetHeaderByNumber(const uint64_t blockNumber);
   bool HasCode(const std::string& address, const std::string& block);
   Json::Value GetBlockDetails(const uint64_t blockNumber);
-  Json::Value GetBlockTransactions(const uint64_t blockNumber, const uint32_t pageNumber, const uint32_t pageSize);
+  Json::Value GetBlockTransactions(const uint64_t blockNumber,
+                                   const uint32_t pageNumber,
+                                   const uint32_t pageSize);
   Json::Value GetContractCreator(const std::string& address);
 
   Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
-  static bool UnpackRevert(const std::string &data_in, std::string &message);
+  static bool UnpackRevert(const std::string& data_in, std::string& message);
 
  public:
   Mediator& m_sharedMediator;

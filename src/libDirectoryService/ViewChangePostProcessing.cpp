@@ -230,6 +230,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     {
       lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
+      LOG_GENERAL(INFO, "Setting myShardMembers to: ");
+      for (const auto& kv : *m_mediator.m_node->m_myShardMembers) {
+        LOG_GENERAL(INFO, "IP: " << kv.second.GetPrintableIPAddress());
+      }
     }
     m_mediator.m_node->SetConsensusMyID(m_consensusMyID.load());
     m_mediator.m_node->SetConsensusLeaderID(GetConsensusLeaderID());
@@ -333,7 +338,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       }
     }
 
-    DequeOfShard t_shards;
+    DequeOfShardMembers t_shards;
     if (m_forceMulticast && GUARD_MODE) {
       ReloadGuardedShards(t_shards);
     }

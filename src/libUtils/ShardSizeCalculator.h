@@ -26,17 +26,6 @@ class ShardSizeCalculator {
   /// Calculate and return the min size of required each shard for a specifc
   /// number of total nodes
   static uint32_t CalculateShardSize(const uint32_t numberOfNodes);
-
-  static void GenerateShardCounts(const uint32_t shardSize,
-                                  const uint32_t shardSizeToleranceLo,
-                                  const uint32_t shardSizeToleranceHi,
-                                  const uint32_t numNodesForSharding,
-                                  std::vector<uint32_t>& shardCounts);
-
-  static uint32_t GetTrimmedShardCount(const uint32_t shardSize,
-                                       const uint32_t shardSizeToleranceLo,
-                                       const uint32_t shardSizeToleranceHi,
-                                       const uint32_t numNodesForSharding);
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_SHARDSIZECALCULATOR_H_

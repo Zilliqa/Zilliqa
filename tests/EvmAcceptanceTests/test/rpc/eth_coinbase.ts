@@ -5,7 +5,7 @@ import hre from "hardhat";
 
 const METHOD = "eth_coinbase";
 
-describe(`Calling " + ${METHOD} #parallel`, function () {
+describe(`Calling ${METHOD} #parallel`, function () {
   describe("When on Zilliqa network", function () {
     before(async function () {
       if (!hre.isZilliqaNetworkSelected()) {

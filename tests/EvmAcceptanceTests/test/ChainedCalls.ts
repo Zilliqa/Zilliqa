@@ -1,7 +1,7 @@
-import { assert, expect } from "chai";
-import { Contract } from "ethers";
+import {assert, expect} from "chai";
+import {Contract} from "ethers";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
-import hre, { ethers } from "hardhat";
+import hre, {ethers} from "hardhat";
 
 describe("Chained Contract Calls Functionality #parallel", function () {
   let contractOne: Contract;
@@ -13,7 +13,8 @@ describe("Chained Contract Calls Functionality #parallel", function () {
       [contractOne, contractTwo, contractThree] = await Promise.all([
         await hre.deployContract("ContractOne"),
         await hre.deployContract("ContractTwo"),
-        await hre.deployContract("ContractThree")]);
+        await hre.deployContract("ContractThree")
+      ]);
     } else {
       contractOne = await hre.deployContract("ContractOne");
       contractTwo = await hre.deployContract("ContractTwo");
@@ -40,7 +41,7 @@ describe("Chained Contract Calls Functionality #parallel", function () {
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
-      let tracer = { tracer: "callTracer" };
+      let tracer = {tracer: "callTracer"};
 
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
@@ -76,7 +77,7 @@ describe("Chained Contract Calls Functionality #parallel", function () {
         );
       });
 
-      let secondTracer = { tracer: "raw" };
+      let secondTracer = {tracer: "raw"};
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
         assert.equal(status, 200, "has status code");

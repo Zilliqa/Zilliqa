@@ -96,6 +96,19 @@ using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
 using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
 
+struct RewardInformation {
+  uint128_t base_reward;
+  uint128_t base_each_reward;
+  uint128_t each_reward;
+  uint128_t lookup_reward;
+  uint128_t lookup_each_reward;
+  uint32_t lookup_count;
+  uint128_t total_reward;
+  uint128_t sig_count;
+  uint128_t node_count;
+  uint128_t node_reward;
+};
+
 /// Implements Directory Service functionality including PoW verification, DS,
 /// Tx Block Consensus and sharding management.
 class DirectoryService : public Executable {
@@ -113,8 +126,7 @@ class DirectoryService : public Executable {
   std::mutex m_mutexConsensus;
 
   // Temporary buffers for sharding committee members and transaction sharing
-  DequeOfShard m_tempShards;
-  std::map<PubKey, uint32_t> m_tempPublicKeyToshardIdMap;
+  DequeOfShardMembers m_tempShards;
   std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
   // PoW common variables
@@ -278,15 +290,9 @@ class DirectoryService : public Executable {
   void ResetPoWSubmissionCounter();
   void ClearReputationOfNodeWithoutPoW();
   static void RemoveReputationOfNodeFailToJoin(
-      const DequeOfShard& shards,
+      const DequeOfShardMembers& shards,
       std::map<PubKey, uint16_t>& mapNodeReputation);
   std::set<PubKey> FindTopPriorityNodes(uint8_t& lowestPriority);
-
-  void SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
-                                                unsigned int& my_shards_lo,
-                                                unsigned int& my_shards_hi);
-  void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
-                                               unsigned int my_shards_hi);
 
   unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
                                         std::map<PubKey, Peer>& powDSWinners,
@@ -294,7 +300,7 @@ class DirectoryService : public Executable {
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
-  void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
+  void ComputeMembersInShard(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers,
                           const std::vector<PubKey>& removeDSNodePubkeys);
@@ -309,12 +315,12 @@ class DirectoryService : public Executable {
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyRemovedByzantineNodes();
-  bool VerifyPoWOrdering(const DequeOfShard& shards,
+  bool VerifyPoWOrdering(const DequeOfShardMembers& shards,
                          const MapOfPubKeyPoW& allPoWsFromLeader,
                          const MapOfPubKeyPoW& priorityNodePoWs);
   bool VerifyPoWFromLeader(const Peer& peer, const PubKey& pubKey,
                            const PoWSolution& powSoln);
-  bool VerifyNodePriority(const DequeOfShard& shards,
+  bool VerifyNodePriority(const DequeOfShardMembers& shards,
                           MapOfPubKeyPoW& priorityNodePoWs);
 
   // DS Reputation
@@ -333,9 +339,7 @@ class DirectoryService : public Executable {
   bool ComposeDSBlockMessageForSender(zbytes& dsblock_message);
   void SendDSBlockToLookupNodesAndNewDSMembers(const zbytes& dsblock_message);
   void SendDSBlockToShardNodes(const zbytes& dsblock_message,
-                               const DequeOfShard& shards,
-                               const unsigned int& my_shards_lo,
-                               const unsigned int& my_shards_hi);
+                               const DequeOfShardMembers& shards);
   void UpdateMyDSModeAndConsensusId();
   void UpdateDSCommitteeComposition();
 
@@ -350,22 +354,9 @@ class DirectoryService : public Executable {
   bool RunConsensusOnFinalBlockWhenDSBackup();
   bool ComposeFinalBlock();
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
-  void CommitMBSubmissionMsgBuffer();
-  bool ProcessMicroblockSubmissionFromShard(
-      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<zbytes>& stateDelta);
-  bool ProcessMicroblockSubmissionFromShardCore(const MicroBlock& microBlocks,
-                                                const zbytes& stateDelta);
-  bool ProcessMissingMicroblockSubmission(
-      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<zbytes>& stateDeltas);
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
                                   uint128_t& allRewards, uint32_t& numTxs);
-  bool ProcessStateDelta(const zbytes& stateDelta,
-                         const StateHash& microBlockStateDeltaHash,
-                         const BlockHash& microBlockHash);
-  void SkipDSMicroBlock();
   void PrepareRunConsensusOnFinalBlockNormal();
 
   // FinalBlockValidator functions
@@ -390,9 +381,6 @@ class DirectoryService : public Executable {
                         const uint64_t blockNumber, const zbytes& blockHash,
                         const uint16_t leaderID, const PubKey& leaderKey,
                         zbytes& messageToCosign);
-
-  // Sharding consensus validator function
-  bool ShardingValidator(const zbytes& sharding_structure, zbytes& errorMsg);
 
   // PrePrep Final block consensus validator function
   bool PrePrepFinalBlockValidator(const zbytes& message, unsigned int offset,
@@ -421,16 +409,6 @@ class DirectoryService : public Executable {
   bool OnNodeFinalConsensusError(const zbytes& errorMsg, const Peer& from);
   bool OnNodeMissingMicroBlocks(const zbytes& errorMsg,
                                 const unsigned int offset, const Peer& from);
-
-  // void StoreMicroBlocksToDisk();
-
-  // Used to reconsile view of m_AllPowConn is different.
-  void LastDSBlockRequest();
-
-  bool ProcessLastDSBlockRequest(const zbytes& message, unsigned int offset,
-                                 const Peer& from);
-  bool ProcessLastDSBlockResponse(const zbytes& message, unsigned int offset,
-                                  const Peer& from);
 
   // View change
   bool NodeVCPrecheck();
@@ -461,7 +439,7 @@ class DirectoryService : public Executable {
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
   void CalculateCurrentDSMBGasLimit();
 
-  void ReloadGuardedShards(DequeOfShard& shards);
+  void ReloadGuardedShards(DequeOfShardMembers& shards);
 
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
@@ -470,7 +448,6 @@ class DirectoryService : public Executable {
     POW_SUBMISSION = 0x00,
     DSBLOCK_CONSENSUS_PREP,
     DSBLOCK_CONSENSUS,
-    MICROBLOCK_SUBMISSION,
     FINALBLOCK_CONSENSUS_PREP,
     FINALBLOCK_CONSENSUS,
     VIEWCHANGE_CONSENSUS_PREP,
@@ -497,20 +474,13 @@ class DirectoryService : public Executable {
   /// Sharing assignment for state delta
   VectorOfPeer m_sharingAssignment;
 
-  std::mutex m_MutexScheduleDSMicroBlockConsensus;
-  std::condition_variable cv_scheduleDSMicroBlockConsensus;
-
-  std::mutex m_MutexScheduleFinalBlockConsensus;
-  std::condition_variable cv_scheduleFinalBlockConsensus;
-
   /// The current role of this Zilliqa instance within the directory service
   /// committee.
   std::atomic<Mode> m_mode{};
 
   // Sharding committee members
   std::mutex mutable m_mutexShards;
-  DequeOfShard m_shards;
-  std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
+  DequeOfShardMembers m_shards;
 
   // Proof of Reputation(PoR) variables.
   std::mutex mutable m_mutexMapNodeReputation;
@@ -531,9 +501,6 @@ class DirectoryService : public Executable {
   /// Serialized account store temp to revert to if ds microblock consensus
   /// failed
   zbytes m_stateDeltaFromShards;
-
-  /// Whether ds started microblock consensus
-  std::atomic<bool> m_stopRecvNewMBSubmission{};
 
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
@@ -581,7 +548,7 @@ class DirectoryService : public Executable {
   bool m_dsEpochAfterUpgrade = false;
 
   // GetShards
-  uint32_t GetNumShards() const;
+  uint32_t GetNumShards() const { return 1; }
   /// Force multicast when sending block to shard
   std::atomic<bool> m_forceMulticast{};
 
@@ -616,10 +583,6 @@ class DirectoryService : public Executable {
   /// Start synchronization with lookup as a DS node
   void StartSynchronization(bool clean = true);
 
-  /// Launches separate thread to execute sharding consensus after wait_window
-  /// seconds.
-  void ScheduleShardingConsensus(const unsigned int wait_window);
-
   /// Rejoin the network as a DS node in case of failure happens in protocol
   void RejoinAsDS(bool modeCheck = true, bool fromUpperSeed = false);
 
@@ -644,15 +607,15 @@ class DirectoryService : public Executable {
       std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
           coinbase_rewardees);
 
+  std::optional<RewardInformation> GetRewardInformation() const;
+
   /// Implements the Execute function inherited from Executable.
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
                const unsigned char& startByte);
 
   /// Used by PoW winner to configure sharding variables as the next DS leader
-  bool ProcessShardingStructure(
-      const DequeOfShard& shards,
-      std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
-      std::map<PubKey, uint16_t>& mapNodeReputation);
+  bool ProcessShardingStructure(const DequeOfShardMembers& members,
+                                std::map<PubKey, uint16_t>& mapNodeReputation);
 
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
@@ -694,9 +657,6 @@ class DirectoryService : public Executable {
   // Update shard node's network info
   bool UpdateShardNodeNetworkInfo(const Peer& shardNodeNetworkInfo,
                                   const PubKey& pubKey);
-
-  bool CheckIfShardNode(const PubKey& submitterPubKey);
-
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
@@ -706,21 +666,20 @@ class DirectoryService : public Executable {
 
   std::string GetStateString() const;
 
-  bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
-                                   uint32_t shardId);
+  bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock);
 
   // DS Reputation functions with no state access.
   static void SaveDSPerformanceCore(
       std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
           coinbaseRewardees,
-      std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
-      uint64_t currentEpochNum, unsigned int numOfFinalBlock,
-      int finalblockRewardID);
+      std::map<PubKey, uint32_t>& dsMemberPerformance,
+      const DequeOfNode& dsComm, uint64_t currentEpochNum,
+      unsigned int numOfFinalBlock, int finalblockRewardID);
   static unsigned int DetermineByzantineNodesCore(
       unsigned int numOfProposedDSMembers,
       std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
       unsigned int numOfFinalBlock, double performanceThreshold,
-      unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+      unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
       const std::map<PubKey, uint32_t>& dsMemberPerformance);
 
  private:
@@ -731,10 +690,8 @@ class DirectoryService : public Executable {
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
 
   void AddDSPoWs(const PubKey& Pubk, const PoWSolution& DSPOWSoln);
-  MapOfPubKeyPoW GetAllDSPoWs();
   void ClearDSPoWSolns();
   std::array<unsigned char, 32> GetDSPoWSoln(const PubKey& Pubk);
-  bool IsNodeSubmittedDSPoWSoln(const PubKey& Pubk);
   uint32_t GetNumberOfDSPoWSolns();
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary();

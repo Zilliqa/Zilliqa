@@ -23,7 +23,6 @@
 #include <vector>
 
 #include <openssl/rand.h>
-#include <boost/filesystem.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
@@ -952,13 +951,13 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   // Check whether cache of library 1 exists
   BOOST_CHECK_MESSAGE(
-      boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
+      std::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
                                 LIBRARY_CODE_EXTENSION),
       "libAddr1 cache not exists for libAddr2 deployment");
   AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
   // Check whether cache of library 1 exists
   BOOST_CHECK_MESSAGE(
-      boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
+      std::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
                                 LIBRARY_CODE_EXTENSION),
       "libAddr1 cache still exists for libAddr2 deployment after cache clean");
 
@@ -1007,9 +1006,9 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   // Check whether cache of library 1/2 exists
   BOOST_CHECK_MESSAGE(
-      boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
+      std::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
                                 LIBRARY_CODE_EXTENSION) &&
-          boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" +
+          std::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" +
                                     libAddr2.hex() + LIBRARY_CODE_EXTENSION),
       "libAddr1/2 cache not exists for contAddr1 deployment");
 

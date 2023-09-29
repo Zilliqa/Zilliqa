@@ -1,5 +1,5 @@
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import { assert } from "chai";
+import {assert} from "chai";
 import hre from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
 

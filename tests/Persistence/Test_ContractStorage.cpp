@@ -17,7 +17,6 @@
 
 #define BOOST_TEST_MODULE trietest
 #include <json/json.h>
-#include <boost/filesystem/path.hpp>
 #include <boost/test/included/unit_test.hpp>
 
 #include "depends/common/FixedHash.h"

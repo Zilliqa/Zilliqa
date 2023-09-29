@@ -171,6 +171,13 @@ describe("ERC20 Is ZRC2", function () {
     await receipt.wait();
     await new Promise((r) => setTimeout(r, 2000));
     expect(receivedEvents).to.be.not.empty;
+
+    const queriedLogs = await erc20_contract.queryFilter(filter);
+    expect(
+      queriedLogs.every((e) => {
+        return e["data"].startsWith("0x");
+      })
+    ).to.be.equal(true);
   });
 
   it("Should not be able to transfer to evm contract when scilla receiver handler is present", async function () {

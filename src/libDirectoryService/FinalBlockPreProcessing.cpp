@@ -26,7 +26,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -233,9 +233,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 
   // No other shards exists, then allow additional time for txns distribution.
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
-    std::this_thread::sleep_for(chrono::milliseconds(
-        EXTRA_TX_DISTRIBUTE_TIME_IN_MS + LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+      m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
+      !m_mediator.GetIsVacuousEpoch()) {
+    std::this_thread::sleep_for(
+        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
@@ -350,10 +351,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
         messageToCosign);
   };
 
+  SetState(FINALBLOCK_CONSENSUS);
+
   cl->StartConsensus(preprepFBAnnouncementGeneratorFunc,
                      newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
-
-  SetState(FINALBLOCK_CONSENSUS);
 
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
@@ -486,7 +487,6 @@ bool DirectoryService::CheckMicroBlocks(zbytes& errorMsg, bool fromShards,
   }
 
   LOG_MARKER();
-
   {
     lock_guard<mutex> g(m_mutexMicroBlocks);
 
@@ -495,10 +495,9 @@ bool DirectoryService::CheckMicroBlocks(zbytes& errorMsg, bool fromShards,
     // If its slow on benchmarking, may be first populate an unordered_set and
     // then std::find
     for (const auto& info : m_finalBlock->GetMicroBlockInfos()) {
-      if (info.m_shardId == m_shards.size()) {
+      if (info.m_shardId == m_mediator.m_node->GetShardId()) {
         continue;
       }
-
       BlockHash hash = info.m_microBlockHash;
       LOG_GENERAL(INFO, "MicroBlock hash = " << hash);
       bool found = false;
@@ -679,19 +678,19 @@ bool DirectoryService::OnNodeFinalConsensusError(const zbytes& errorMsg,
 
   switch (type) {
     case FINALCONSENSUSERRORTYPE::CHECKMICROBLOCK: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)CHECKMICROBLOCK);
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSMBMISSINGTXN: {
-      LOG_GENERAL(INFO, "ErrorType: " << DSMBMISSINGTXN);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)DSMBMISSINGTXN);
       return m_mediator.m_node->OnNodeMissingTxns(errorMsg, offset, from);
     }
     case FINALCONSENSUSERRORTYPE::CHECKFINALBLOCK: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKFINALBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)CHECKFINALBLOCK);
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSFBMISSINGMB: {
-      LOG_GENERAL(INFO, "ErrorType: " << DSFBMISSINGMB);
+      LOG_GENERAL(INFO, "ErrorType: " << std::hex << (int)DSFBMISSINGMB);
       return OnNodeMissingMicroBlocks(errorMsg, offset, from);
     }
     default:
@@ -787,7 +786,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, mb_message);
+  zil::p2p::GetInstance().SendMessage(peer, mb_message);
 
   return true;
 }
@@ -1125,23 +1124,6 @@ bool DirectoryService::PrePrepFinalBlockValidator(
     return false;
   }
 
-  if (!CheckMicroBlocks(errorMsg, false,
-                        true)) {  // Firstly check whether the leader
-                                  // has any mb that I don't have
-    m_mediator.m_node->m_microblock = nullptr;
-    AccountStore::GetInstance().InitTemp();
-    AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
-    AccountStore::GetInstance().SerializeDelta();
-
-    LOG_GENERAL(WARNING, "Proposed Preprep finalblock is not valid");
-    if (m_consensusObject->GetConsensusErrorCode() ==
-        ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS) {
-      errorMsg.insert(errorMsg.begin(), DSFBMISSINGMB);
-    }
-
-    return false;
-  }
-
   errorMsg.clear();
   // check if the DS microblock is valid
   if (m_mediator.m_node->m_microblock != nullptr) {
@@ -1202,9 +1184,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 
   // No other shards exists, then allow additional time for txns distribution.
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
-    std::this_thread::sleep_for(chrono::milliseconds(
-        EXTRA_TX_DISTRIBUTE_TIME_IN_MS + LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+      m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
+      !m_mediator.GetIsVacuousEpoch()) {
+    std::this_thread::sleep_for(
+        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
@@ -1341,12 +1324,13 @@ void DirectoryService::RunConsensusOnFinalBlock() {
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    if (!(m_state == VIEWCHANGE_CONSENSUS || m_state == MICROBLOCK_SUBMISSION ||
-          m_state == FINALBLOCK_CONSENSUS_PREP)) {
+    if (m_state != VIEWCHANGE_CONSENSUS &&
+        m_state != FINALBLOCK_CONSENSUS_PREP &&
+        m_state != FINALBLOCK_CONSENSUS) {
       LOG_GENERAL(WARNING,
                   "DirectoryService::RunConsensusOnFinalBlock "
                   "is not allowed in current state "
-                      << m_state);
+                      << std::hex << static_cast<int>(m_state));
       return;
     }
 

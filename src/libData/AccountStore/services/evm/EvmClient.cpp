@@ -16,7 +16,6 @@
  */
 
 #include "EvmClient.h"
-#include <boost/filesystem.hpp>
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <filesystem>
@@ -55,24 +54,24 @@ bool LaunchEvmDaemon(boost::process::child& child,
   LOG_MARKER();
 
   const std::vector<std::string>& args = GetEvmDaemonArgs();
-  boost::filesystem::path bin_path(binaryPath);
-  boost::filesystem::path socket_path(socketPath);
+  std::filesystem::path bin_path(binaryPath);
+  std::filesystem::path socket_path(socketPath);
   boost::system::error_code ec;
 
-  if (boost::filesystem::exists(socket_path)) {
-    boost::filesystem::remove(socket_path, ec);
+  if (std::filesystem::exists(socket_path)) {
+    std::filesystem::remove(socket_path, ec);
     if (ec.failed()) {
       TRACE_ERROR("Problem removing filesystem entry for socket ");
     }
   }
-  if (not boost::filesystem::exists(bin_path)) {
+  if (not std::filesystem::exists(bin_path)) {
     std::stringstream ss;
     TRACE_ERROR("Cannot create a subprocess that does not exist " +
                 EVM_SERVER_BINARY);
     return false;
   }
   boost::process::child c =
-      boost::process::child(bin_path, boost::process::args(args));
+      boost::process::child(bin_path.native(), boost::process::args(args));
   child = std::move(c);
   pid_t thread_id = child.id();
   if (thread_id > 0 && child.valid()) {
@@ -84,7 +83,7 @@ bool LaunchEvmDaemon(boost::process::child& child,
     return false;
   }
   int counter{0};
-  while (not boost::filesystem::exists(socket_path)) {
+  while (not std::filesystem::exists(socket_path)) {
     if ((counter++ % 10) == 0)
       LOG_GENERAL(WARNING, "Awaiting Launch of the evm-ds daemon ");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

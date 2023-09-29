@@ -18,7 +18,11 @@
 #include <arpa/inet.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <boost/asio/readable_pipe.hpp>
+#include <boost/process/v2/process.hpp>
+#include <boost/process/v2/start_dir.hpp>
+#include <boost/process/v2/stdio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -35,10 +39,9 @@
 #include "libMetrics/Api.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
-#include "libPythonRunner/PythonRunner.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -255,6 +258,22 @@ Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
+namespace {
+
+// FIXME: duplicate from daemon/ZilliqaUpdater.cpp; move to a common function.
+std::string readPipe(boost::asio::readable_pipe &pipe) {
+  std::string result;
+  boost::system::error_code errorCode;
+  while (!errorCode) {
+    std::array<char, 1024> buffer;
+    auto byteCount = pipe.read_some(boost::asio::buffer(buffer), errorCode);
+    result += std::string_view{buffer.data(), byteCount};
+  }
+
+  return result;
+}
+
+}  // namespace
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   AccountStore::GetInstance().SetPurgeStopSignal();
@@ -262,10 +281,47 @@ bool Node::DownloadPersistenceFromS3() {
     LOG_GENERAL(INFO, "Purge Already Running");
     this_thread::sleep_for(chrono::milliseconds(10));
   }
-  string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
-  return PythonRunner::RunPyFunc("download_incr_DB", "start",
-                                 {STORAGE_PATH + "/", excludembtxns},
-                                 "py_download_incr_DB.log");
+  // TODO: replace
+
+  try {
+    string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
+    boost::asio::io_context ioContext;
+    int exitCode = -1;
+    std::thread thread;
+
+    ioContext.post([&]() {
+      thread = std::thread{[&]() {
+        // Make sure SIGCHLD isn't SIG_IGN or wait() below will fail and throw
+        // and exception.
+        auto prevHandler = signal(SIGCHLD, SIG_DFL);
+        try {
+          boost::asio::readable_pipe pipe{ioContext};
+          boost::process::v2::process process{
+              ioContext,
+              "/usr/bin/python3",
+              {"download_incr_DB.py", STORAGE_PATH + "/", excludembtxns},
+              boost::process::v2::process_stdio{{}, pipe, {}}};
+          auto output = readPipe(pipe);
+          LOG_GENERAL(INFO, output);
+          exitCode = process.wait();
+          LOG_GENERAL(INFO,
+                      "Running download_incr_DB.py returned with exit code = "
+                          << exitCode);
+        } catch (std::exception &e) {
+          LOG_GENERAL(WARNING, "Failed to run/wait processes: " << e.what());
+        }
+
+        signal(SIGCHLD, prevHandler);
+        ioContext.stop();
+      }};
+    });
+    ioContext.run();
+    thread.join();
+    return exitCode == 0;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error while downloading persistence...");
+    return false;
+  }
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
@@ -771,7 +827,7 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     do {
       m_mediator.m_lookup->GetTxBlockFromSeedNodes(
           m_mediator.m_txBlockChain.GetBlockCount(), 0);
-    // TODO: cv fix
+      // TODO: cv fix
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
@@ -785,7 +841,8 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
   m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllSync,
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool &allowRecoveryAllSync,
                                 bool rejoiningAfterRecover) {
   LOG_MARKER();
 
@@ -1070,18 +1127,16 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
   }
 
   if (!ipMapping.empty()) {
-    for (auto &shard : m_mediator.m_ds->m_shards) {
-      for (auto &node : shard) {
-        string pubKey;
-        if (!DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node),
-                                                  pubKey)) {
-          LOG_GENERAL(WARNING, "Error converting pubkey to string");
-          continue;
-        }
+    for (auto &node : m_mediator.m_ds->m_shards) {
+      string pubKey;
+      if (!DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node),
+                                                pubKey)) {
+        LOG_GENERAL(WARNING, "Error converting pubkey to string");
+        continue;
+      }
 
-        if (ipMapping.find(pubKey) != ipMapping.end()) {
-          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
-        }
+      if (ipMapping.find(pubKey) != ipMapping.end()) {
+        get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
       }
     }
   }
@@ -1089,37 +1144,16 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
   bool bInShardStructure = false;
   bool bIpChanged = false;
 
-  if (bDS) {
-    m_myshardId = m_mediator.m_ds->m_shards.size();
-  } else {
-    for (unsigned int i = 0;
-         i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
-      for (const auto &shardNode : m_mediator.m_ds->m_shards.at(i)) {
-        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
-          SetMyshardId(i);
-          LOG_GENERAL(
-              INFO, "This node belongs to sharding structure #" << m_myshardId);
-          bInShardStructure = true;
-          if (get<SHARD_NODE_PEER>(shardNode).m_ipAddress !=
-              m_mediator.m_selfPeer.m_ipAddress) {
-            bIpChanged = true;
-          }
-          break;
-        }
-      }
-    }
-  }
-
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_lookup->ProcessEntireShardingStructure();
   } else {
     LoadShardingStructure(true);
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
     m_mediator.m_ds->ProcessShardingStructure(
-        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-        m_mediator.m_ds->m_mapNodeReputation);
+        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_mapNodeReputation);
   }
-  bool rejoinCondition = REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
+  bool rejoinCondition =
+      REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS;
 
   if (rejoinCondition && bIpChanged) {
     LOG_GENERAL(
@@ -1268,7 +1302,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType, bool &allowRecoveryAllS
 void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
   LOG_MARKER();
 
-  if (!boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+  if (!std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
     LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
     return;
   }
@@ -1290,8 +1324,8 @@ void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
 void Node::RemoveIpMapping() {
   LOG_MARKER();
 
-  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
-    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+  if (std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (std::filesystem::remove(IP_MAPPING_FILE_NAME)) {
       LOG_GENERAL(INFO,
                   IP_MAPPING_FILE_NAME << " has been removed successfully.");
     } else {
@@ -1324,10 +1358,8 @@ void Node::WakeupAtTxEpoch() {
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
-      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+      zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
-    m_mediator.m_ds->SetState(
-        DirectoryService::DirState::MICROBLOCK_SUBMISSION);
     auto func = [this]() mutable -> void {
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     };
@@ -1341,7 +1373,7 @@ void Node::WakeupAtTxEpoch() {
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+    zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   SetState(WAITING_FINALBLOCK);
@@ -1424,6 +1456,9 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
     uint16_t lastBlockHash, uint32_t sizeOfShard,
     const DequeOfNode &shardMembers) {
   LOG_MARKER();
+  LOG_GENERAL(INFO, "STEVE lastBlockHash: "
+                        << lastBlockHash << ", sizeOfShard: " << sizeOfShard
+                        << ", shardMembers.size(): " << shardMembers.size());
   if (GUARD_MODE) {
     uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
 
@@ -1447,43 +1482,9 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
   }
 }
 
-uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
-                                             uint32_t sizeOfShard,
-                                             const Shard &shardMembers,
-                                             PairOfNode &shardLeader) {
-  LOG_MARKER();
-  uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
-  if (GUARD_MODE) {
-    unsigned int iterationCount = 0;
-    while (!Guard::GetInstance().IsNodeInShardGuardList(
-               std::get<SHARD_NODE_PUBKEY>(
-                   shardMembers.at(consensusLeaderIndex))) &&
-           (iterationCount < SHARD_LEADER_SELECT_TOL)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "consensusLeaderIndex " << consensusLeaderIndex
-                                        << " is not a shard guard.");
-      SHA256Calculator sha2;
-      sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
-          lastBlockHash));
-      lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-      consensusLeaderIndex = lastBlockHash % sizeOfShard;
-      iterationCount++;
-    }
-    shardLeader = make_pair(
-        std::get<SHARD_NODE_PUBKEY>(shardMembers.at(consensusLeaderIndex)),
-        std::get<SHARD_NODE_PEER>(shardMembers.at(consensusLeaderIndex)));
-    return consensusLeaderIndex;
-  } else {
-    shardLeader = make_pair(
-        std::get<SHARD_NODE_PUBKEY>(shardMembers.at(consensusLeaderIndex)),
-        std::get<SHARD_NODE_PEER>(shardMembers.at(consensusLeaderIndex)));
-    return consensusLeaderIndex;
-  }
-}
-
 bool Node::CheckState(Action action) {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      action != PROCESS_MICROBLOCKCONSENSUS) {
+      action != PROCESS_FINALBLOCK) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "I am a DS node. Why am I getting this message? Action: "
                   << GetActionString(action));
@@ -1494,7 +1495,6 @@ bool Node::CheckState(Action action) {
       {POW_SUBMISSION, STARTPOW},
       {POW_SUBMISSION, PROCESS_DSBLOCK},
       {WAITING_DSBLOCK, PROCESS_DSBLOCK},
-      {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
       {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
   bool found = false;
@@ -1534,7 +1534,6 @@ bool GetOneGenesisAddress(Address &oAddr) {
 
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
-
   zil::local::nodeVar.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1641,20 +1640,11 @@ bool Node::ProcessSubmitTransaction(
   cur_offset += MessageOffset::INST;
 
   if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN) {
-    if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-      if (m_state != MICROBLOCK_CONSENSUS) {
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "As a shard node not in a microblock consensus state: don't "
-                  "want missing txns")
-        return false;
-      }
-    } else {
-      if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "As a ds node not in a finalblock consensus state: don't "
-                  "want missing txns");
-        return false;
-      }
+    if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "As a ds node not in a finalblock consensus state: don't "
+                "want missing txns");
+      return false;
     }
 
     ProcessSubmitMissingTxn(message, cur_offset, from);
@@ -1706,7 +1696,9 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
-  LOG_GENERAL(INFO, "Received from " << from);
+  LOG_GENERAL(INFO, "Received txns: " << transactions.size() << ", from "
+                                      << from << ", my shardId is: "
+                                      << m_mediator.m_node->m_myshardId);
 
   {
     // The check here is in case the lookup send the packet
@@ -1753,20 +1745,20 @@ bool Node::ProcessTxnPacketFromLookup(
   bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
                     from.GetPrintableIPAddress() != "127.0.0.1";
 
-  bool properState =
-      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
+  const bool properReq1 =
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE);
 
+  const bool properReq2 =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
-       m_mediator.m_ds->m_state ==
-           DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
-
-      (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
        m_txn_distribute_window_open &&
-       (m_state == MICROBLOCK_CONSENSUS_PREP ||
-        m_state == MICROBLOCK_CONSENSUS || m_state == WAITING_FINALBLOCK));
+       m_mediator.m_ds->m_state == DirectoryService::FINALBLOCK_CONSENSUS_PREP);
 
+  const bool properReq3 =
+      (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+       m_txn_distribute_window_open && (m_state == WAITING_FINALBLOCK));
+
+  const bool properState = properReq1 || properReq2 || properReq3;
   if (!properState) {
     if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
@@ -1859,8 +1851,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   }
 
   if (shardId != m_myshardId) {
-    LOG_GENERAL(WARNING, "Wrong Shard (" << shardId << "), m_myshardId ("
-                                         << m_myshardId << ")");
+    LOG_GENERAL(WARNING, "Wrong shard: " << shardId
+                                         << "; m_myshardId = " << m_myshardId);
     return false;
   }
 
@@ -1876,7 +1868,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
               << string(lookupPubKey).substr(0, 6) << "][" << message.size()
               << "] BEGN");
-    if (P2PComm::GetInstance().SpreadRumor(message)) {
+    if (zil::p2p::GetInstance().SpreadRumor(message)) {
       LOG_STATE("[TXNPKTPROC-INITIATE]["
                 << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
@@ -1895,13 +1887,16 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     vector<Peer> toSend;
     {
       lock_guard<mutex> g(m_mutexShardMember);
-      for (auto &it : *m_myShardMembers) {
+      for (const auto &it : *m_myShardMembers) {
         toSend.push_back(it.second);
       }
     }
-    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
+    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members: ");
+    for (const auto &member : toSend) {
+      LOG_GENERAL(WARNING, "Sending to " << member.GetPrintableIPAddress());
+    }
 
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    zil::p2p::GetInstance().SendBroadcastMessage(toSend, message);
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
@@ -1956,11 +1951,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 #endif  // DM_TEST_DM_MORETXN_HALF
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      m_state != MICROBLOCK_CONSENSUS_PREP) {
+      m_state != WAITING_FINALBLOCK) {
     unique_lock<mutex> lk(m_mutexCVTxnPacket);
     m_txnPacketThreadOnHold++;
-    cv_txnPacket.wait(lk,
-                      [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
+    cv_txnPacket.wait(lk, [this] { return m_state == WAITING_FINALBLOCK; });
   }
 
   // Process the txns
@@ -2003,7 +1997,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             rejectTxns.emplace_back(status.second, status.first);
           }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to ( " << (int)status.first << ") "
+                                   << " rejected by pool due to ( "
+                                   << (int)status.first << ") "
                                    << status.first);
         }
       } else {
@@ -2019,8 +2014,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
-                                        << " TxnPool size after processing: "
-                                        << m_createdTxns.size());
+                                           << " TxnPool size after processing: "
+                                           << m_createdTxns.size());
 
     zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
@@ -2115,6 +2110,9 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
     }
     if (!(ignorePktForPrevEpoch &&
           (epochNumber < m_mediator.m_currentEpochNum))) {
+      for (const auto &tran : transactions) {
+        LOG_GENERAL(WARNING, "Transaction hash: " << tran.GetTranID().hex());
+      }
       ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                      lookupPubKey, transactions);
     }
@@ -2248,12 +2246,10 @@ bool Node::CleanVariables() {
   }
   m_isPrimary = false;
   m_stillMiningPrimary = false;
-  m_myshardId = 0;
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   m_lastMicroBlockCoSig = {0, CoSignatures()};
   CleanCreatedTransaction();
-  CleanMicroblockConsensusBuffer();
-  P2PComm::GetInstance().InitializeRumorManager({}, {});
+  zil::p2p::GetInstance().InitializeRumorManager({}, {});
   this->ResetRejoinFlags();
 
   {
@@ -2304,16 +2300,6 @@ void Node::CleanUnavailableMicroBlocks() {
   m_unavailableMicroBlocks.clear();
 }
 
-void Node::SetMyshardId(uint32_t shardId) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Node::SetMyshardId not expected to be called from LookUp node.");
-    return;
-  }
-  m_myshardId = shardId;
-}
-
 void Node::CleanMBConsensusAndTxnBuffers() {
   LOG_MARKER();
   {
@@ -2325,7 +2311,6 @@ void Node::CleanMBConsensusAndTxnBuffers() {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
     t_processedTransactions.clear();
   }
-  CleanMicroblockConsensusBuffer();
 }
 
 void Node::CleanCreatedTransaction() {
@@ -2432,7 +2417,7 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
         }
       }
     }
-    P2PComm::GetInstance().SendMessage(peerList, message);
+    zil::p2p::GetInstance().SendMessage(peerList, message);
   }
 
   if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
@@ -2469,7 +2454,8 @@ bool Node::ProcessRemoveNodeFromBlacklist(
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
     // Blacklist - strict one - since too many whitelist request in current ds
     // epoch.
-    Blacklist::GetInstance().Add(from.GetIpAddress());
+    Blacklist::GetInstance().Add({from.GetIpAddress(), from.GetListenPortHost(),
+                                  from.GetNodeIndentifier()});
     return false;
   }
 
@@ -2505,7 +2491,8 @@ bool Node::ProcessRemoveNodeFromBlacklist(
     return false;
   }
 
-  Blacklist::GetInstance().Remove(ipAddress);
+  Blacklist::GetInstance().Remove(
+      {ipAddress, from.GetListenPortHost(), from.GetNodeIndentifier()});
   return true;
 }
 
@@ -2610,7 +2597,7 @@ bool Node::UpdateShardNodeIdentity() {
   {
     // Multicast to all my shard peers
     lock_guard<mutex> g(m_mutexShardMember);
-    for (auto &it : *m_myShardMembers) {
+    for (const auto &it : *m_myShardMembers) {
       peerInfo.push_back(it.second);
     }
   }
@@ -2623,7 +2610,7 @@ bool Node::UpdateShardNodeIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage);
+  zil::p2p::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage);
 
   return true;
 }
@@ -2702,7 +2689,7 @@ bool Node::ProcessNewShardNodeNetworkInfo(
         m_myShardMembers->at(indexOfShardNode).second = shardNodeNewNetworkInfo;
         if (BROADCAST_GOSSIP_MODE) {
           // Update peer info for gossip
-          P2PComm::GetInstance().UpdatePeerInfoInRumorManager(
+          zil::p2p::GetInstance().UpdatePeerInfoInRumorManager(
               shardNodeNewNetworkInfo, shardNodePubkey);
         }
 
@@ -2758,8 +2745,8 @@ bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
       LOG_GENERAL(WARNING, "Messenger::SetNodeSetVersion failed");
       return false;
     }
-    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
-                                       response);
+    zil::p2p::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
+                                        response);
     m_versionChecked = true;
   }
 
@@ -2901,7 +2888,9 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
                     });
 
         if (it != m_mediator.m_DSCommittee->end()) {
-          Blacklist::GetInstance().RemoveFromWhitelist(it->second.m_ipAddress);
+          Blacklist::GetInstance().RemoveFromWhitelist(
+              {it->second.m_ipAddress, it->second.m_listenPortHost,
+               it->second.GetNodeIndentifier()});
           LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
                                        << " from blacklist exclude list");
         }
@@ -2923,7 +2912,9 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
       if (GUARD_MODE) {
         Blacklist::GetInstance().Whitelist(
-            dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
+            {dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress,
+             dsguardupdate.m_dsGuardNewNetworkInfo.m_listenPortHost,
+             dsguardupdate.m_dsGuardNewNetworkInfo.GetNodeIndentifier()});
         LOG_GENERAL(INFO,
                     "Added ds guard "
                         << dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress
@@ -3053,25 +3044,19 @@ void Node::SendBlockToOtherShardNodes(const zbytes &message,
                           << std::get<SHARD_NODE_PUBKEY>(kv) << " "
                           << std::get<SHARD_NODE_PEER>(kv));
   }
-  P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
+  zil::p2p::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
 bool Node::RecalculateMyShardId(bool &ipChanged) {
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-  uint32_t shardId = -1;
-  m_myshardId = -1;
   ipChanged = false;
-  for (const auto &shard : m_mediator.m_ds->m_shards) {
-    shardId++;
-    for (const auto &node : shard) {
-      if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
-        m_myshardId = shardId;
-        if (get<SHARD_NODE_PEER>(node).m_ipAddress !=
-            m_mediator.m_selfPeer.m_ipAddress) {
-          ipChanged = true;
-        }
-        return true;
+  for (const auto &node : m_mediator.m_ds->m_shards) {
+    if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
+      if (get<SHARD_NODE_PEER>(node).m_ipAddress !=
+          m_mediator.m_selfPeer.m_ipAddress) {
+        ipChanged = true;
       }
+      return true;
     }
   }
   return false;
@@ -3139,12 +3124,8 @@ bool Node::Execute(const zbytes &message, unsigned int offset, const Peer &from,
   { s, #s }
 
 map<Node::NodeState, string> Node::NodeStateStrings = {
-    MAKE_LITERAL_PAIR(POW_SUBMISSION),
-    MAKE_LITERAL_PAIR(WAITING_DSBLOCK),
-    MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
-    MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
-    MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
-    MAKE_LITERAL_PAIR(SYNC)};
+    MAKE_LITERAL_PAIR(POW_SUBMISSION), MAKE_LITERAL_PAIR(WAITING_DSBLOCK),
+    MAKE_LITERAL_PAIR(WAITING_FINALBLOCK), MAKE_LITERAL_PAIR(SYNC)};
 
 string Node::GetStateString() const {
   if (NodeStateStrings.find(m_state) == NodeStateStrings.end()) {
@@ -3155,11 +3136,8 @@ string Node::GetStateString() const {
 }
 
 map<Node::Action, string> Node::ActionStrings = {
-    MAKE_LITERAL_PAIR(STARTPOW),
-    MAKE_LITERAL_PAIR(PROCESS_DSBLOCK),
-    MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
-    MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
-    MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
+    MAKE_LITERAL_PAIR(STARTPOW), MAKE_LITERAL_PAIR(PROCESS_DSBLOCK),
+    MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK), MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
     MAKE_LITERAL_PAIR(NUM_ACTIONS)};
 
 std::string Node::GetActionString(Action action) const {
@@ -3330,16 +3308,15 @@ void Node::CheckPeers(const vector<Peer> &peers) {
                                     m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");
   }
-  P2PComm::GetInstance().SendMessage(peers, message);
+  zil::p2p::GetInstance().SendMessage(peers, message);
 }
 
-
-void Node::AddPendingTxn(Transaction const& tx) {
+void Node::AddPendingTxn(Transaction const &tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   // Emergency fail safe to avoid memory issues if the pool isn't getting
   // cleared somehow
-  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+  if (m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
     LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
     m_pendingTxns.clear();
   }
@@ -3352,7 +3329,7 @@ std::vector<Transaction> Node::GetPendingTxns() const {
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 
-  for (const auto &s :m_pendingTxns) {
+  for (const auto &s : m_pendingTxns) {
     ret.push_back(s.second);
   }
 

@@ -31,7 +31,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -105,56 +105,23 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Current dsblock is " << block_num);
 
-  m_stillMiningPrimary = true;
-
   lock_guard<mutex> g(m_mutexGasPrice);
 
-  EthashMiningResult winning_result;
-
-  uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, m_mediator.m_selfPeer,
                                        m_mediator.m_selfKey.second, lookupId,
                                        m_proposedGasPrice);
 
-  auto startTime = std::chrono::high_resolution_clock::now();
-  int powTimeWindow = POW_WINDOW_IN_SECONDS;
+  EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
+      block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
+      FULL_DATASET_MINE, std::time(0), POW_WINDOW_IN_SECONDS);
 
-  // Only in guard mode that shard guard can submit different PoW
-  if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
-                        m_mediator.m_selfKey.second)) {
-    winning_result = POW::GetInstance().PoWMine(
-        block_num, shardGuardDiff, m_mediator.m_selfKey, headerHash,
-        FULL_DATASET_MINE, std::time(0), powTimeWindow);
-  } else {
-    winning_result = POW::GetInstance().PoWMine(
-        block_num, difficulty, m_mediator.m_selfKey, headerHash,
-        FULL_DATASET_MINE, std::time(0), powTimeWindow);
-  }
+  if (ds_pow_winning_result.success) {
+    LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
 
-  if (winning_result.success) {
-    string rand1Str, rand2Str;
-    if (!DataConversion::charArrToHexStr(rand1, rand1Str)) {
-      LOG_GENERAL(WARNING, "rand1 is not a valid hex");
-    }
-
-    if (!DataConversion::charArrToHexStr(rand2, rand2Str)) {
-      LOG_GENERAL(WARNING, "rand2 is not a valid hex");
-    }
-
-    LOG_GENERAL(INFO, "nonce   = " << hex << winning_result.winning_nonce);
-    LOG_GENERAL(INFO, "result  = " << hex << winning_result.result);
-    LOG_GENERAL(INFO, "mixhash = " << hex << winning_result.mix_hash);
-    LOG_GENERAL(INFO, "rand1   = " << rand1Str);
-    LOG_GENERAL(INFO, "rand2   = " << rand2Str);
-
-    m_stillMiningPrimary = false;
-
-    // Possible scenarios
-    // 1. Found solution that meets ds difficulty and difficulty
-    // - Submit solution
-    // 2. Found solution that meets only difficulty
-    // - Submit solution and continue to do PoW till DS difficulty met or
-    //   ds block received. (stopmining())
+    LOG_GENERAL(INFO,
+                "nonce   = " << hex << ds_pow_winning_result.winning_nonce);
+    LOG_GENERAL(INFO, "result  = " << hex << ds_pow_winning_result.result);
+    LOG_GENERAL(INFO, "mixhash = " << hex << ds_pow_winning_result.mix_hash);
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       const unsigned int fixedDSNodesPoWTime =
@@ -199,93 +166,27 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         }
       }
     };
-
-    // In guard mode, an additional scenario
-    // 1. Shard guard submit pow with diff shardGuardDiff
-    if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
-                          m_mediator.m_selfKey.second)) {
-      if (!SendPoWResultToDSComm(block_num, shardGuardDiff,
-                                 winning_result.winning_nonce,
-                                 winning_result.result, winning_result.mix_hash,
-                                 lookupId, m_proposedGasPrice)) {
-        return false;
-      } else {
-        DetachedFunction(1, checkerThread);
-      }
-    } else if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-                   winning_result.result, ds_difficulty)) {
-      LOG_GENERAL(INFO,
-                  "Found PoW solution that met requirement for both ds "
-                  "commitee and shard.");
-
-      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
-                                 winning_result.winning_nonce,
-                                 winning_result.result, winning_result.mix_hash,
-                                 lookupId, m_proposedGasPrice)) {
-        return false;
-      } else {
-        DetachedFunction(1, checkerThread);
-      }
+    // Submission of PoW for ds commitee
+    if (!SendPoWResultToDSComm(
+            block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
+            ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
+            lookupId, m_proposedGasPrice)) {
+      return false;
     } else {
-      // If solution does not meet targeted ds difficulty, send the initial
-      // solution to ds commitee and continue to do PoW
-      if (!SendPoWResultToDSComm(block_num, difficulty,
-                                 winning_result.winning_nonce,
-                                 winning_result.result, winning_result.mix_hash,
-                                 lookupId, m_proposedGasPrice)) {
-        return false;
-      }
-
       DetachedFunction(1, checkerThread);
-
-      if (SKIP_POW_REATTEMPT_FOR_DS_DIFF) {
-        LOG_GENERAL(INFO, "Skipping PoW reattempt for DS difficulty");
-      } else {
-        LOG_GENERAL(INFO, "Mining again for DS diff");
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        auto shardPoWTime = std::chrono::duration_cast<std::chrono::seconds>(
-                                currentTime - startTime)
-                                .count();
-        powTimeWindow -= shardPoWTime;
-
-        if (powTimeWindow > 1) {
-          EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
-              block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
-              FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
-
-          if (ds_pow_winning_result.success) {
-            LOG_GENERAL(INFO,
-                        "DS diff soln = " << ds_pow_winning_result.result);
-
-            // Submission of PoW for ds commitee
-            if (!SendPoWResultToDSComm(block_num, ds_difficulty,
-                                       ds_pow_winning_result.winning_nonce,
-                                       ds_pow_winning_result.result,
-                                       ds_pow_winning_result.mix_hash, lookupId,
-                                       m_proposedGasPrice)) {
-              return false;
-            }
-          } else {
-            LOG_GENERAL(INFO, "Failed to find soln for DS diff");
-          }
-        } else {
-          LOG_GENERAL(
-              INFO, "Time window for DS diff is too short, skip DS diff mine");
-        }
-      }
     }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
-    LOG_GENERAL(INFO, "Failed to do PoW, will try to rejoin in next DS block!");
+    LOG_GENERAL(
+        INFO,
+        "Failed to do PoW, setting to sync mode, try do pow in new DS epoch ");
     m_mediator.m_lookup->m_startedPoW = false;
     m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
     StartSynchronization();
     return false;
   }
 
-  if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
-    SetState(WAITING_DSBLOCK);
-  }
+  SetState(WAITING_DSBLOCK);
 
   return true;
 }
@@ -380,14 +281,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  // Instead of sending whole list at once, send 1 by 1 to prevent incidents
-  // where that particular node is down and hence the whole list is being
-  // delayed or gone
-  auto& p2pComm = P2PComm::GetInstance();
-  for (const auto& p : peerList) {
-    p2pComm.SendMessage(p, powmessage);
-  }
-
+  zil::p2p::GetInstance().SendMessage(peerList, powmessage);
   return true;
 }
 
@@ -467,6 +361,8 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   m_mediator.m_DSCommittee->clear();
   LOG_GENERAL(INFO, "DS count = " << numDS);
 
+  PubKey emptyPubKey;
+
   for (unsigned int i = 0; i < numDS; i++) {
     PubKey pubkey(message, cur_offset);
     cur_offset += PUB_KEY_SIZE;
@@ -487,10 +383,13 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
                      m_mediator.m_initialDSCommittee->size());
     }
     unsigned int i = 0;
-    for (auto const& dsNode : *m_mediator.m_DSCommittee) {
-      if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
-        LOG_CHECK_FAIL("DS PubKey", dsNode.first,
-                       m_mediator.m_initialDSCommittee->at(i));
+    for (auto& dsNode : *m_mediator.m_DSCommittee) {
+      const auto& initialPubKey = m_mediator.m_initialDSCommittee->at(i);
+      if (!(dsNode.first == initialPubKey)) {
+        LOG_CHECK_FAIL("DS PubKey", dsNode.first, initialPubKey);
+        if (dsNode.first == emptyPubKey) {
+          dsNode.first = initialPubKey;
+        }
       }
       i++;
     }

@@ -865,8 +865,7 @@ message LookupGetMicroBlockFromL2l
 
 message LookupForwardTxnsFromSeed
 {
-    ProtoTransactionArray shardtransactions = 1;
-    ProtoTransactionArray dstransactions    = 2;
+    ProtoTransactionArray transactions = 1;
 }
 
 message LookupGetTxnsFromLookup
