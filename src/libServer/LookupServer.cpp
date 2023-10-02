@@ -2122,12 +2122,10 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
     if (!REMOTESTORAGE_DB_ENABLE) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
     }
-    if (txnhash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Txn Hash size not appropriate");
-    }
 
-    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
+    TxnHash tranHash(txnhash);
+
+    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(tranHash);
 
     if (result.isMember("error")) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
