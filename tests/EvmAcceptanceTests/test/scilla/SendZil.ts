@@ -18,7 +18,10 @@ describe("Move Zil #parallel", function () {
     zilliqa = new Zilliqa(hre.getNetworkUrl());
 
     if (hre.parallel) {
-      [contract, to_be_funded_contract] = await Promise.all([hre.deployScillaContract2("SendZil"), hre.deployScillaContract2("SendZil")]);
+      [contract, to_be_funded_contract] = await Promise.all([
+        hre.deployScillaContract2("SendZil"),
+        hre.deployScillaContract2("SendZil")
+      ]);
     } else {
       contract = await parallelizer.deployScillaContract("SendZil");
       to_be_funded_contract = await parallelizer.deployScillaContract("SendZil");

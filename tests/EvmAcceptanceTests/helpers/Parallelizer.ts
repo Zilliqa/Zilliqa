@@ -2,7 +2,7 @@ import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import BN from "bn.js";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
 import {initZilliqa, ScillaContract, Setup, UserDefinedLibrary} from "hardhat-scilla-plugin";
-import {} from "hardhat-scilla-plugin/dist/src/index"
+import {} from "hardhat-scilla-plugin/dist/src/index";
 
 export type DeployOptions = {
   gasPrice?: string;

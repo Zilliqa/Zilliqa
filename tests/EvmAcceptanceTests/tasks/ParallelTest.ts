@@ -14,7 +14,7 @@ task("parallel-test", "Runs test in parallel")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile");
     const [eth_signer_count, zil_signer_count] = hre.signer_pool.count();
-  
+
     const {grep, testFiles}: {grep: string | undefined; testFiles: string[]} = taskArgs;
 
     // Running Typescript
@@ -45,8 +45,8 @@ task("parallel-test", "Runs test in parallel")
     await hre.run("parallel-test:output-results", {failures});
 
     const [current_eth_signer_count, current_zil_signer_count] = hre.signer_pool.count();
-    console.log(`🪪  ${clc.bold.white(eth_signer_count - current_eth_signer_count)} eth signers used.`)
-    console.log(`🪪  ${clc.bold.white(zil_signer_count - current_zil_signer_count)} zil signers used.`)
+    console.log(`🪪  ${clc.bold.white(eth_signer_count - current_eth_signer_count)} eth signers used.`);
+    console.log(`🪪  ${clc.bold.white(zil_signer_count - current_zil_signer_count)} zil signers used.`);
   });
 
 subtask("parallel-test:run-tsc", "Runs tsc to make sure everything's synced").setAction(async () => {

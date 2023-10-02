@@ -5,9 +5,9 @@ import hre from "hardhat";
 describe("Ecdsa contract #parallel", () => {
   let contract: ScillaContract;
 
-  before(async() => {
+  before(async () => {
     contract = await hre.deployScillaContract2("Ecdsa");
-  })
+  });
 
   it("Deploy ecdsa contract @block-1", async () => {
     assert.isTrue(contract.address !== undefined);

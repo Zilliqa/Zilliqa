@@ -5,7 +5,7 @@ import fs from "fs";
 import {join} from "path";
 import clc from "cli-color";
 import ora from "ora";
-import { getAddressFromPrivateKey } from "@zilliqa-js/zilliqa";
+import {getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
 
 task("init-signers", "A task to init signers")
   .addParam("from", "Sender's private key")
@@ -64,7 +64,10 @@ const createAccountsEth = async (
 
   const accounts = Array.from({length: count}, (v, k) => ethers.Wallet.createRandom().connect(hre.ethers.provider));
 
-  const addresses = [...accounts.map((signer) => signer.address), ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())];
+  const addresses = [
+    ...accounts.map((signer) => signer.address),
+    ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())
+  ];
 
   await hre.deployContractWithSigner("BatchTransferCtor", wallet, addresses, amount, {
     value: amount.mul(addresses.length)

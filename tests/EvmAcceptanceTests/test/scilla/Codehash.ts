@@ -1,4 +1,4 @@
-import { assert, expect } from "chai";
+import {assert, expect} from "chai";
 import {ScillaContract} from "hardhat-scilla-plugin";
 import hre from "hardhat";
 const {createHash} = require("crypto");
@@ -8,7 +8,7 @@ describe("Codehash contract #parallel", () => {
   let contract: ScillaContract;
   before(async () => {
     contract = await hre.deployScillaContract2("Codehash");
-  })
+  });
 
   it("Deploy codehash contract @block-1", async () => {
     expectedCodeHash = "0x" + createHash("sha256").update(contract.code).digest("hex");

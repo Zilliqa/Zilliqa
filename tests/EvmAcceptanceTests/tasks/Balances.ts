@@ -52,7 +52,7 @@ const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
       balanceString = clc.red.bold(balanceResult.error.message);
     } else {
       const balance = new BN(balanceResult.result.balance);
-      balanceString = units.fromQa(balance, units.Units.Zil)
+      balanceString = units.fromQa(balance, units.Units.Zil);
     }
 
     displayBalance(++index, address, balanceString, error ? "" : "zil");

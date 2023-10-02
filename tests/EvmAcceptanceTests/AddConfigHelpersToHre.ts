@@ -6,8 +6,8 @@ import {Contract as Web3Contract} from "web3-eth-contract";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {TransactionRequest, TransactionResponse} from "@ethersproject/providers";
 import BN from "bn.js";
-import { ScillaContract, Setup } from "hardhat-scilla-plugin";
-import { Account } from "@zilliqa-js/zilliqa";
+import {ScillaContract, Setup} from "hardhat-scilla-plugin";
+import {Account} from "@zilliqa-js/zilliqa";
 
 declare module "hardhat/types/runtime" {
   interface HardhatRuntimeEnvironment {
@@ -27,7 +27,8 @@ declare module "hardhat/types/runtime" {
     getProtocolVersion: () => number;
     getMiningState: () => boolean;
     getNetworkName: () => string;
-    getASignerForContractDeployment: () => Promise<SignerWithAddress>;
+    getEthSignerForContractDeployment: () => Promise<SignerWithAddress>;
+    getZilSignerForContractDeployment: () => Account;
     allocateEthSigner: () => SignerWithAddress;
     allocateZilSigner: () => Account;
     releaseEthSigner: (...signer: SignerWithAddress[]) => void;
@@ -86,11 +87,19 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     return (hre as any).network.name;
   };
 
-  hre.getASignerForContractDeployment = async (): Promise<SignerWithAddress> => {
+  hre.getEthSignerForContractDeployment = async (): Promise<SignerWithAddress> => {
     if (hre.parallel) {
       return hre.signer_pool.takeEthSigner();
     } else {
       return (await hre.ethers.getSigners())[0];
+    }
+  };
+
+  hre.getZilSignerForContractDeployment = (): Account => {
+    if (hre.parallel) {
+      return hre.signer_pool.takeZilSigner();
+    } else {
+      return hre.signer_pool.getZilSigner(0);
     }
   };
 
@@ -110,7 +119,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
   hre.releaseZilSigner = (...signer: Account[]) => {
     hre.signer_pool.releaseZilSigner(...signer);
-  }
+  };
 
   hre.sendEthTransaction = async (txn: TransactionRequest) => {
     const signer = hre.allocateEthSigner();
@@ -121,19 +130,23 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   };
 
   hre.deployScillaContract2 = async (name: string, ...args: any[]): Promise<ScillaContract> => {
-    const signer = hre.signer_pool.takeZilSigner();
+    const signer = hre.getZilSignerForContractDeployment();
     hre.setActiveAccount(signer);
     return hre.deployScillaContract(name, ...args);
   };
 
-  hre.deployScillaContractWithSigner = async (name: string, signer: Account, ...args: any[]): Promise<ScillaContract> => {
+  hre.deployScillaContractWithSigner = async (
+    name: string,
+    signer: Account,
+    ...args: any[]
+  ): Promise<ScillaContract> => {
     hre.setActiveAccount(signer);
     let contract = await hre.deployScillaContract(name, ...args);
     return contract.connect(signer);
   };
 
   hre.deployContract = async (name: string, ...args: any[]): Promise<Contract> => {
-    const signer = await hre.getASignerForContractDeployment();
+    const signer = await hre.getEthSignerForContractDeployment();
     return hre.deployContractWithSigner(name, signer, ...args);
   };
 
@@ -148,7 +161,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     options: {gasPrice?: string; gasLimit?: number; value?: BN},
     ...args: any[]
   ): Promise<Web3Contract> => {
-    const signer = await hre.getASignerForContractDeployment();
+    const signer = await hre.getEthSignerForContractDeployment();
 
     const contractRaw = hre.artifacts.readArtifactSync(contractName);
     const contract = new hre.web3.eth.Contract(contractRaw.abi);
