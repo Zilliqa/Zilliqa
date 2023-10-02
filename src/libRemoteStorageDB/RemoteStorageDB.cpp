@@ -246,7 +246,7 @@ bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
   return true;
 }
 
-Json::Value RemoteStorageDB::QueryTxnHash(const std::string& txnhash) {
+Json::Value RemoteStorageDB::QueryTxnHash(const dev::h256& txnhash) {
   LOG_MARKER();
   Json::Value _json{Json::Value::null};
   if (!m_initialized) {
@@ -264,7 +264,7 @@ Json::Value RemoteStorageDB::QueryTxnHash(const std::string& txnhash) {
       return _json;
     }
     auto txnCollection = conn.value()->database(m_dbName)[m_txnCollectionName];
-    auto cursor = txnCollection.find_one(make_document(kvp("ID", txnhash)));
+    auto cursor = txnCollection.find_one(make_document(kvp("ID", txnhash.hex())));
     if (cursor) {
       const auto& json_string = bsoncxx::to_json(cursor.value());
       Json::Reader reader;
