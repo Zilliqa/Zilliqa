@@ -34,6 +34,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libScilla/ScillaClient.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -220,6 +221,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   if (isVacuousEpoch) {
+    // Restart scilla client after every vacuous epoch
+    ScillaClient::GetInstance().RestartScillaClient();
+
     auto writeStateToDisk = [this]() -> void {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               m_mediator.m_dsBlockChain.GetLastBlock()
