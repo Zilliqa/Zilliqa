@@ -44,6 +44,8 @@ class ScillaClient {
 
   bool CheckClient(uint32_t version, bool enforce = false);
 
+  void RestartScillaClient();
+
   void Init();
 
   bool isScillaRuning();

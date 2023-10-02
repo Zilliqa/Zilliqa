@@ -148,6 +148,17 @@ bool ScillaClient::OpenServer(uint32_t version) {
   return true;
 }
 
+void ScillaClient::RestartScillaClient() {
+  LOG_MARKER();
+  if (ENABLE_SCILLA_MULTI_VERSION == true) {
+    for (const auto& entry : m_clients) {
+      CheckClient(entry.first, true);
+    }
+  } else {
+    CheckClient(0, true);
+  }
+}
+
 bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
