@@ -15,6 +15,10 @@ describe("Scilla HelloWorld contract #parallel", function () {
     contract = await hre.deployScillaContractWithSigner("HelloWorld", signer, signer.address);
   });
 
+  after(function () {
+    hre.releaseZilSigner(signer);
+  });
+
   it("Should be deployed successfully @block-1", async function () {
     expect(contract.address).to.be.properAddress;
   });

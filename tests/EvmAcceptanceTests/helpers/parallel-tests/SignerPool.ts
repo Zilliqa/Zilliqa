@@ -32,6 +32,10 @@ export default class SignerPool {
     this.eth_signers.push(...signer);
   }
 
+  public releaseZilSigner(...signer: Account[]) {
+    this.zil_signers.push(...signer);
+  }
+
   public count(): [eth_count: number, zil_count: number] {
     return [this.eth_signers.length, this.zil_signers.length];
   }

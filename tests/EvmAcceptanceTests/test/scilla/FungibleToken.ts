@@ -2,9 +2,11 @@ import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
+import {Account} from "@zilliqa-js/zilliqa";
 
 describe("Scilla Fungible token contract", function () {
   let contract: ScillaContract;
+  let signer: Account;
   let null_contract: ScillaContract;
   let aliceAddress: string;
   let bobAddress: string;
@@ -22,9 +24,12 @@ describe("Scilla Fungible token contract", function () {
       this.skip();
     }
 
-    contract = await parallelizer.deployScillaContract(
+    signer = hre.allocateZilSigner();
+
+    contract = await hre.deployScillaContractWithSigner(
       "FungibleToken",
-      parallelizer.zilliqaAccountAddress,
+      signer,
+      signer.address,
       "Saeed's Token",
       "SDT",
       2,
@@ -33,7 +38,11 @@ describe("Scilla Fungible token contract", function () {
     null_contract = await parallelizer.deployScillaContract("HelloWorld", "0xBFe2445408C51CD8Ee6727541195b02c891109ee");
     aliceAddress = parallelizer.zilliqaSetup.zilliqa.wallet.create().toLocaleLowerCase();
     bobAddress = parallelizer.zilliqaSetup.zilliqa.wallet.create().toLocaleLowerCase();
-    ownerAddress = parallelizer.zilliqaAccountAddress;
+    ownerAddress = signer.address;
+  });
+
+  after(function () {
+    hre.releaseZilSigner(signer);
   });
 
   it("Should be deployed successfully", async function () {
@@ -49,7 +58,7 @@ describe("Scilla Fungible token contract", function () {
   });
 
   it("Should have 1000 as contract owner's balance", async function () {
-    const owner_balance = (await contract.balances())[parallelizer.zilliqaAccountAddress.toLowerCase()];
+    const owner_balance = (await contract.balances())[ownerAddress.toLowerCase()];
     expect(Number(owner_balance)).to.be.eq(1000);
   });
 

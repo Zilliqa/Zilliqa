@@ -31,6 +31,7 @@ declare module "hardhat/types/runtime" {
     allocateEthSigner: () => SignerWithAddress;
     allocateZilSigner: () => Account;
     releaseEthSigner: (...signer: SignerWithAddress[]) => void;
+    releaseZilSigner: (...signer: Account[]) => void;
     sendEthTransaction: (txn: TransactionRequest) => Promise<{response: TransactionResponse; signer_address: string}>;
     deployScillaContract2: (name: string, ...args: any[]) => Promise<ScillaContract>;
     deployScillaContractWithSigner: (name: string, signer: Account, ...args: any[]) => Promise<ScillaContract>;
@@ -106,6 +107,10 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.releaseEthSigner = (...signer: SignerWithAddress[]) => {
     hre.signer_pool.releaseEthSigner(...signer);
   };
+
+  hre.releaseZilSigner = (...signer: Account[]) => {
+    hre.signer_pool.releaseZilSigner(...signer);
+  }
 
   hre.sendEthTransaction = async (txn: TransactionRequest) => {
     const signer = hre.allocateEthSigner();
