@@ -33,6 +33,7 @@ const loadFromSignersFile = (network_name: string): string[] => {
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
   defaultNetwork: "isolated_server",
+
   networks: {
     public_devnet: {
       url: "https://api.devnet.zilliqa.com",
