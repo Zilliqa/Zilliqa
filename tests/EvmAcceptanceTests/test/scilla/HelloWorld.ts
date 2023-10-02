@@ -1,17 +1,18 @@
 import {expect} from "chai";
-import hre, {ethers} from "hardhat";
+import hre from "hardhat";
 import {ScillaContract} from "hardhat-scilla-plugin";
-import {parallelizer} from "../../helpers";
-import {BN, Zilliqa} from "@zilliqa-js/zilliqa";
+import {Account, Zilliqa} from "@zilliqa-js/zilliqa";
 
 describe("Scilla HelloWorld contract #parallel", function () {
   let contract: ScillaContract;
+  let signer: Account;
   before(async function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
 
-    contract = await hre.deployScillaContract2("HelloWorld", parallelizer.zilliqaAccountAddress);
+    signer = hre.allocateZilSigner();
+    contract = await hre.deployScillaContractWithSigner("HelloWorld", signer, signer.address);
   });
 
   it("Should be deployed successfully @block-1", async function () {
@@ -31,17 +32,17 @@ describe("Scilla HelloWorld contract #parallel", function () {
 
   it("Should cost gas for failed transaction due to execution error", async function () {
     const zilliqa = new Zilliqa(hre.getNetworkUrl());
-    const balanceBefore = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    const balanceBefore = await zilliqa.blockchain.getBalance(signer.address);
     await contract.throwError();
-    const balanceAfter = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    const balanceAfter = await zilliqa.blockchain.getBalance(signer.address);
     expect(Number.parseInt(balanceAfter.result.balance)).to.be.lt(Number.parseInt(balanceBefore.result.balance));
   });
 
   it("Should cost gas for failed transaction due to too low gas", async function () {
     const zilliqa = new Zilliqa(hre.getNetworkUrl());
-    const balanceBefore = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    const balanceBefore = await zilliqa.blockchain.getBalance(signer.address);
     await contract.getHello({gasLimit: 300});
-    const balanceAfter = await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress);
+    const balanceAfter = await zilliqa.blockchain.getBalance(signer.address);
     expect(Number.parseInt(balanceAfter.result.balance)).to.be.lt(Number.parseInt(balanceBefore.result.balance));
   });
 });
