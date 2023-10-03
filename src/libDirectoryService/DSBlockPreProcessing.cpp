@@ -1454,7 +1454,12 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
     const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
-
+  LOG_GENERAL(INFO,
+              "Chetan DetermineByzantineNodesCore  numOfProposedDSMembers = "
+                  << numOfProposedDSMembers
+                  << " removeDSNodePubkeys = " << removeDSNodePubkeys.size()
+                  << " performanceThreshold = " << performanceThreshold
+                  << " maxByzantineRemoved = " << maxByzantineRemoved);
   // Do not determine Byzantine nodes on the first epoch when performance cannot
   // be measured.
   if (currentEpochNum <= 1) {
