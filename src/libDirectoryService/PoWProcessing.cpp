@@ -329,7 +329,9 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
   LOG_GENERAL(INFO, "Block = " << blockNumber);
-
+  LOG_GENERAL(INFO,
+              "DS_POW_DIFFICULTY = " << DS_POW_DIFFICULTY
+                                     << " POW_DIFFICULTY = " << POW_DIFFICULTY);
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
   uint8_t expectedShardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
@@ -397,6 +399,9 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice,
                        std::make_pair(govProposalId, govVoteValue));
 
+      LOG_GENERAL(INFO,
+                  "Chetan submitterPubKey = " << submitterPubKey
+                                        << " submitterPeer =" << submitterPeer);
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;
@@ -407,6 +412,9 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
         // oldSolnStr);
         LOG_GENERAL(INFO, "Replaced");
         m_allPoWs[submitterPubKey] = soln;
+      LOG_GENERAL(INFO,
+                  "Chetan submitterPubKey = " << submitterPubKey
+                                        << " submitterPeer =" << submitterPeer);
       } else if (m_allPoWs[submitterPubKey].m_result == soln.m_result) {
         LOG_GENERAL(INFO, "Duplicated");
         return true;
@@ -475,6 +483,7 @@ bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(
 }
 
 void DirectoryService::UpdatePoWSubmissionCounterforNode(const PubKey& key) {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexAllPoWCounter);
 
   if (m_AllPoWCounter.find(key) == m_AllPoWCounter.end()) {
@@ -491,7 +500,9 @@ void DirectoryService::ResetPoWSubmissionCounter() {
 
 void DirectoryService::AddDSPoWs(const PubKey& Pubk,
                                  const PoWSolution& DSPOWSoln) {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexAllDSPOWs);
+  LOG_GENERAL(INFO, "Chetan m_allDSPoWs submitterPubKey = " << Pubk);
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
 

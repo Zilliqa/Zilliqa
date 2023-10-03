@@ -855,11 +855,17 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   {
     std::lock_guard<std::mutex> g(m_mutexAllPOW);
     allPoWs = m_allPoWs;
+    for(const auto& pow : m_allPoWs){
+      LOG_GENERAL(INFO, "m_allPoWs first = "<< pow.first);
+    }
   }
 
   {
     std::lock_guard<std::mutex> g(m_mutexAllDSPOWs);
     allDSPoWs = m_allDSPoWs;
+    for(const auto& pow : allDSPoWs){
+      LOG_GENERAL(INFO, "allDSPoWs first = "<< pow.first);
+    }
   }
 
   if (allPoWs.size() > MAX_SHARD_NODE_NUM) {
@@ -929,7 +935,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers,
                      removeDSNodePubkeys);
 
-  if (DEBUG_LEVEL >= 5) {
+  if (DEBUG_LEVEL >= 3) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
       string powHashStr;
       if (!DataConversion::charArrToHexStr(pairPoWKey.first, powHashStr)) {
