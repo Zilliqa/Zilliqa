@@ -54,8 +54,8 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   }
 
   // Assemble DS block header
-  unsigned int numOfElectedDSMembers =
-      min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
+  unsigned int numOfElectedDSMembers = min(
+      sortedDSPoWSolns.size(), (size_t)MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM);
   unsigned int counter = 0;
   for (const auto& submitter : sortedDSPoWSolns) {
     if (counter >= numOfElectedDSMembers) {
@@ -855,16 +855,16 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   {
     std::lock_guard<std::mutex> g(m_mutexAllPOW);
     allPoWs = m_allPoWs;
-    for(const auto& pow : m_allPoWs){
-      LOG_GENERAL(INFO, "m_allPoWs first = "<< pow.first);
+    for (const auto& pow : m_allPoWs) {
+      LOG_GENERAL(INFO, "m_allPoWs first = " << pow.first);
     }
   }
 
   {
     std::lock_guard<std::mutex> g(m_mutexAllDSPOWs);
     allDSPoWs = m_allDSPoWs;
-    for(const auto& pow : allDSPoWs){
-      LOG_GENERAL(INFO, "allDSPoWs first = "<< pow.first);
+    for (const auto& pow : allDSPoWs) {
+      LOG_GENERAL(INFO, "allDSPoWs first = " << pow.first);
     }
   }
 
