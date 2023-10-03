@@ -459,7 +459,7 @@ const unsigned int SHARD_SIZE_TOLERANCE_HI{ReadConstantNumeric(
 const unsigned int STORE_DS_COMMITTEE_INTERVAL{ReadConstantNumeric(
     "STORE_DS_COMMITTEE_INTERVAL", "node.network_composition.")};
 const unsigned int MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM{ReadConstantNumeric(
-    "MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM", "node.network_composition.", 20)};
+    "MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM", "node.network_composition.", 30)};
 
 
 
