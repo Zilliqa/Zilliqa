@@ -401,8 +401,8 @@ npx hardhat transfer --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa
 To get the balances of the current accounts, run:
 
 ```bash
-npx hardhat run scripts/Accounts.js
-npx hardhat run scripts/Accounts.js --network public_testnet
+npx hardhat run scripts/Accounts.ts
+npx hardhat run scripts/Accounts.ts --network public_testnet
 ```
 
 When you start a testnet, your funds are initially in zil addresses, which is inconvenient.
@@ -411,6 +411,11 @@ and moves half of the funds at that address to the same address, but eth style.
 
 ```bash
 npx hardhat run scripts/FundAccountsFromZil.ts --network testnet
+```
+
+Similarly you can do the same job if your initial accounts have funds in their eth addresses:
+```bash
+npx hardhat run scripts/FundAccountsFromEth.ts --network your_network
 ```
 
 ## Setup github pre-commit hook
