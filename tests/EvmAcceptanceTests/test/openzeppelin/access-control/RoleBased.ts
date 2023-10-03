@@ -13,14 +13,14 @@ describe("Openzeppelin role based access control functionality", function () {
   before(async function () {
     user = ethers.Wallet.createRandom();
 
-    minter = hre.allocateSigner();
+    minter = hre.allocateEthSigner();
     contract = await hre.deployContract("OpenZeppelinRoleBasedToken", minter.address);
     defaultAdmin = contract.signer;
-    burner = hre.allocateSigner();
+    burner = hre.allocateEthSigner();
   });
 
   after(function () {
-    hre.releaseSigner(minter, burner);
+    hre.releaseEthSigner(minter, burner);
   });
 
   it("should return true if hasRole is called for minter and MINTER_ROLE", async function () {

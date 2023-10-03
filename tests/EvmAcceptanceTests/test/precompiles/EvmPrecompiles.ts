@@ -52,12 +52,12 @@ describe("Precompile tests with web3.js #parallel", function () {
     const modulus = 10;
     const expectedResult = 8;
 
-    const signer = hre.allocateSigner();
+    const signer = hre.allocateEthSigner();
     const sendResult = await contract.methods.testModexp(base, exponent, modulus).send({
       from: signer.address
     });
 
-    hre.releaseSigner(signer);
+    hre.releaseEthSigner(signer);
     expect(sendResult).to.be.not.null;
 
     const readValue = await contract.methods.modExpResult().call({gasLimit: 50000});

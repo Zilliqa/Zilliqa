@@ -38,7 +38,7 @@ describe("ForwardZil contract functionality #parallel", function () {
 
   it("should be possible to transfer ethers to the contract @block-2", async function () {
     const prevBalance = await ethers.provider.getBalance(contract.address);
-    const {response} = await hre.sendTransaction({
+    const {response} = await hre.sendEthTransaction({
       to: contract.address,
       value: FUND
     });
@@ -55,7 +55,7 @@ describe("Transfer ethers #parallel", function () {
   it("should be possible to transfer ethers to a user account @block-1", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    const {response} = await hre.sendTransaction({
+    const {response} = await hre.sendEthTransaction({
       to: payee.address,
       value: FUND
     });
@@ -144,7 +144,7 @@ describe("Transfer ethers #parallel", function () {
     let initialBal = await ethers.provider.getBalance(randomAccount);
     expect(initialBal).to.be.eq(0);
 
-    const owner = hre.allocateSigner();
+    const owner = hre.allocateEthSigner();
     let InitialOwnerbal = await ethers.provider.getBalance(owner.address);
 
     // check enough funds + gas
@@ -162,7 +162,7 @@ describe("Transfer ethers #parallel", function () {
     const receivedBal = await ethers.provider.getBalance(randomAccount);
 
     expect(receivedBal).to.be.eq(TRANSFER_VALUE);
-    hre.releaseSigner(owner);
+    hre.releaseEthSigner(owner);
   });
 
   // Disabled in q4-working-branch
@@ -171,7 +171,7 @@ describe("Transfer ethers #parallel", function () {
 
     const FUND = BigNumber.from(200_000_000_000_000_000n);
 
-    const tx = await hre.sendTransaction({
+    const tx = await hre.sendEthTransaction({
       to: rndAccount.address,
       value: FUND
     });

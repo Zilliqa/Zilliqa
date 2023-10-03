@@ -118,6 +118,7 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
+    npx hardhat run scripts/FundAccountsFromEth.ts
     DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test --bail 2>&1 > npx.out
 
     retVal=$?

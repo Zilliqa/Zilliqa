@@ -8,6 +8,6 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["./scripts", "./test", "./helpers"],
-  "files": ["./hardhat.config.ts"]
+  "include": ["./tasks", "./scripts", "./test", "./helpers"],
+  "files": ["./hardhat.config.ts", "./AddConfigHelpersToHre.ts"]
 }

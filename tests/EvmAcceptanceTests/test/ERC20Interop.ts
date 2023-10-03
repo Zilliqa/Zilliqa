@@ -16,7 +16,7 @@ describe("ERC20 Interop", function () {
       this.skip();
     }
 
-    contractOwner = hre.allocateSigner();
+    contractOwner = hre.allocateEthSigner();
 
     zrc2_contract = await parallelizer.deployScillaContract(
       "ZRC2Interop",
@@ -26,7 +26,7 @@ describe("ERC20 Interop", function () {
       2,
       1_000
     );
-    alice = hre.allocateSigner();
+    alice = hre.allocateEthSigner();
     bridge_contract = await hre.deployContractWithSigner(
       "ERC20Interop",
       contractOwner,
@@ -35,7 +35,7 @@ describe("ERC20 Interop", function () {
   });
 
   after(() => {
-    hre.releaseSigner(contractOwner, alice);
+    hre.releaseEthSigner(contractOwner, alice);
   });
 
   it("Interop Should be deployed successfully", async function () {

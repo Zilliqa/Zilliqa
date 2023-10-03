@@ -1,19 +1,14 @@
 import {expect} from "chai";
 import {ScillaContract} from "hardhat-scilla-plugin";
-import {parallelizer} from "../../helpers";
 import hre, {ethers} from "hardhat";
 
-describe("Scilla timestamp", () => {
+describe("Scilla timestamp #parallel", () => {
   let contract: ScillaContract;
   before(async function () {
-    if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
-      this.skip();
-    }
-
-    contract = await parallelizer.deployScillaContract("Timestamp");
+    contract = await hre.deployScillaContract2("Timestamp");
   });
 
-  it("Should send back timestamp of a block", async () => {
+  it("Should send back timestamp of a block @block-1", async () => {
     const blockCount = await ethers.provider.getBlockNumber();
     const blockTimestamp = (await ethers.provider.getBlock(blockCount)).timestamp;
     const tx = await contract.EventTimestamp(blockCount);
