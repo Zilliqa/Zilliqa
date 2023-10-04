@@ -91,17 +91,6 @@ bool LaunchEvmDaemon(boost::process::child& child,
   return true;
 }
 
-bool CleanupPreviousInstances() {
-  INC_CALLS(GetCallsCounter());
-
-  std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
-  int sysRep = std::system(s.c_str());
-  if (sysRep != -1) {
-    LOG_GENERAL(INFO, "system call return value " << sysRep);
-  }
-  return true;
-}
-
 bool Terminate(boost::process::child& child,
                const std::unique_ptr<jsonrpc::Client>& client) {
   INC_CALLS(GetCallsCounter());
@@ -135,9 +124,7 @@ void EvmClient::Init() {
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
-  if (LAUNCH_EVM_DAEMON) {
-    CleanupPreviousInstances();
-  } else {
+  if (!LAUNCH_EVM_DAEMON) {
     // There is a lot of junk on stackoverflow about how to do this, but for us, this will do..
     const std::vector<std::string>& args(GetEvmDaemonArgs());
     std::ostringstream cmdLine;
@@ -155,7 +142,6 @@ void EvmClient::Reset() {
   INC_CALLS(GetCallsCounter());
 
   Terminate(m_child, m_client);
-  CleanupPreviousInstances();
 }
 
 EvmClient::~EvmClient() { LOG_MARKER(); }
