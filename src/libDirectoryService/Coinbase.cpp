@@ -154,7 +154,7 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Total base reward: " << base_reward);
 
   uint128_t base_reward_each = 0;
-  uint128_t node_count = m_mediator.m_DSCommittee->size() + m_shards.size();
+  uint128_t node_count = m_mediator.m_DSCommittee->size();
   LOG_GENERAL(INFO, "Total num of node: " << node_count);
   if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
     LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
