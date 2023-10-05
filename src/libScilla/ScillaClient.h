@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <boost/process/child.hpp>
 
 #include "common/Constants.h"
 #include "libScilla/UnixDomainSocketClient.h"
@@ -28,6 +29,7 @@
 class ScillaClient {
   std::map<uint32_t, std::unique_ptr<jsonrpc::Client>> m_clients;
   std::map<uint32_t, std::unique_ptr<rpc::UnixDomainSocketClient>> m_connectors;
+  std::map<uint32_t, boost::process::child> m_child_processes;
 
   std::mutex m_mutexMain;
 
@@ -48,7 +50,7 @@ class ScillaClient {
 
   void Init();
 
-  bool isScillaRuning();
+  bool isScillaRuning(uint32_t version);
 
   bool CallChecker(uint32_t version, const Json::Value& _json,
                    std::string& result, uint32_t counter = MAXRETRYCONN);
