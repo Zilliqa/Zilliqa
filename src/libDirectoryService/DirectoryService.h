@@ -300,7 +300,6 @@ class DirectoryService : public Executable {
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
-  void ComputeMembersInShard(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers,
                           const std::vector<PubKey>& removeDSNodePubkeys);

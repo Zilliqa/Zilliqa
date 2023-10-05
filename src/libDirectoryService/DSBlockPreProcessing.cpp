@@ -107,68 +107,6 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   return numOfElectedDSMembers;
 }
 
-void DirectoryService::ComputeMembersInShard(
-    const VectorOfPoWSoln& sortedPoWSolns) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::ComputeMembersInShard not expected to be "
-                "called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  LOG_EXTRA("Shards cleared " << m_shards.size());
-  m_shards.clear();
-
-  // Cap the number of nodes based on MAX_SHARD_NODE_NUM
-  const uint32_t numNodesForSharding =
-      sortedPoWSolns.size() > MAX_SHARD_NODE_NUM ? MAX_SHARD_NODE_NUM
-                                                 : sortedPoWSolns.size();
-
-  LOG_GENERAL(INFO, "Number of PoWs received     = " << sortedPoWSolns.size());
-  LOG_GENERAL(INFO, "Number of PoWs for sharding = " << numNodesForSharding);
-
-  // Push all the sorted PoW submissions into an ordered map with key =
-  // H(last_block_hash, pow_hash)
-  map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
-  zbytes lastBlockHash(BLOCK_HASH_SIZE);
-
-  if (m_mediator.m_currentEpochNum > 1) {
-    lastBlockHash =
-        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
-  }
-
-  zbytes hashVec(BLOCK_HASH_SIZE + POW_SIZE);
-  copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
-  for (const auto& kv : sortedPoWSolns) {
-    const PubKey& key = kv.second;
-    const auto& powHash = kv.first;
-    copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-
-    const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
-    array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
-    copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
-    sortedPoWs.emplace(sortHash, key);
-  }
-
-  for (const auto& kv : sortedPoWs) {
-    // Move to next shard counter if current shard already filled up
-    if (DEBUG_LEVEL >= 5) {
-      string hashStr;
-      if (!DataConversion::charArrToHexStr(kv.first, hashStr)) {
-        LOG_GENERAL(WARNING, "[DSSORT] "
-                                 << " unable to convert hash to string");
-      } else {
-        LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " " << hashStr << endl);
-      }
-    }
-    // Put the node into the shard
-    const PubKey& key = kv.second;
-    m_shards.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
-  }
-}
-
 void DirectoryService::InjectPoWForDSNode(
     VectorOfPoWSoln& sortedPoWSolns, unsigned int numOfProposedDSMembers,
     const std::vector<PubKey>& removeDSNodePubkeys) {
@@ -949,7 +887,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 
   ClearReputationOfNodeWithoutPoW();
-  ComputeMembersInShard(sortedPoWSolns);
+
+  m_shards.clear();
 
   GovDSShardVotesMap govProposalMap;
   for (const auto& dsnode : powDSWinners) {
