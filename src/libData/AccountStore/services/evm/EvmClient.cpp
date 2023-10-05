@@ -17,7 +17,6 @@
 
 #include "EvmClient.h"
 #include <boost/process/args.hpp>
-#include <boost/process/child.hpp>
 #include <filesystem>
 #include <sstream>
 #include <thread>
@@ -65,7 +64,6 @@ bool LaunchEvmDaemon(boost::process::child& child,
     }
   }
   if (not std::filesystem::exists(bin_path)) {
-    std::stringstream ss;
     TRACE_ERROR("Cannot create a subprocess that does not exist " +
                 EVM_SERVER_BINARY);
     return false;
