@@ -42,7 +42,7 @@ void ScillaClient::Init() {
   }
 
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    path scilla_root_path(SCILLA_ROOT);
+    const path scilla_root_path(SCILLA_ROOT);
     // scan existing versions
     LOG_GENERAL(INFO, "looking in directory " << scilla_root_path << " ...  ");
     for (auto& entry :
@@ -50,9 +50,8 @@ void ScillaClient::Init() {
       std::string folder_name = entry.path().string();
       folder_name.erase(0, SCILLA_ROOT.size() + 1);
       LOG_GENERAL(INFO, "folder_name: " << folder_name);
-      uint32_t version = 0;
       try {
-        version = boost::lexical_cast<uint32_t>(folder_name);
+        const uint32_t version = boost::lexical_cast<uint32_t>(folder_name);
         if (!CheckClient(version)) {
           LOG_GENERAL(WARNING,
                       "OpenServer for version " << version << "failed");
@@ -101,7 +100,9 @@ bool ScillaClient::OpenServer(uint32_t version) {
 
   const std::vector<std::string> args {
       "-socket",
-      (ENABLE_SCILLA_MULTI_VERSION ? SCILLA_SERVER_SOCKET_PATH + "." + std::to_string(version) : SCILLA_SERVER_SOCKET_PATH)
+      (ENABLE_SCILLA_MULTI_VERSION ?
+          SCILLA_SERVER_SOCKET_PATH + "." + std::to_string(version) :
+          SCILLA_SERVER_SOCKET_PATH)
   };
 
   boost::process::child child =
