@@ -478,6 +478,8 @@ class DirectoryService : public Executable {
   std::atomic<Mode> m_mode{};
 
   // Sharding committee members
+  // These values are kept for compatibility reasons - otherwise desharding
+  // change would have been much bigger
   std::mutex mutable m_mutexShards;
   DequeOfShardMembers m_shards;
 
