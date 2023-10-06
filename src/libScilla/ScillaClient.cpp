@@ -104,7 +104,7 @@ bool ScillaClient::OpenServer(uint32_t version) {
       (ENABLE_SCILLA_MULTI_VERSION ? SCILLA_SERVER_SOCKET_PATH + "." + std::to_string(version) : SCILLA_SERVER_SOCKET_PATH)
   };
 
-  const boost::process::child child =
+  boost::process::child child =
       boost::process::child(server_path.native(), boost::process::args(args));
 
   const pid_t thread_id = child.id();

@@ -18,10 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_
 #define ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_
 
+#include <boost/process/child.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <boost/process/child.hpp>
 
 #include "common/Constants.h"
 #include "libScilla/UnixDomainSocketClient.h"
