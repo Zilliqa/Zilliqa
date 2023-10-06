@@ -2085,17 +2085,8 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
       _json["dscommittee"].append(static_cast<string>(dsnode));
     }
 
-    // Record the shard sizes and public keys in the API response message
+    // There are no shards now but keep this field for compatibility reasons
     _json["shards"] = Json::Value(Json::arrayValue);
-    for (const auto& shard : minerInfoShards.m_shards) {
-      Json::Value _jsonShard;
-      _jsonShard["size"] = uint(shard.m_shardSize);
-      _jsonShard["nodes"] = Json::Value(Json::arrayValue);
-      for (const auto& shardnode : shard.m_shardNodes) {
-        _jsonShard["nodes"].append(static_cast<string>(shardnode));
-      }
-      _json["shards"].append(_jsonShard);
-    }
 
     return _json;
   } catch (const JsonRpcException& je) {
