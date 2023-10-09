@@ -355,12 +355,19 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   } else {
     bool difficultyCorrect = true;
     if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey)) {
-      if (difficultyLevel != expectedShardGuardDiff) {
+      if (difficultyLevel != expectedDSDiff) {
         difficultyCorrect = false;
       }
+      LOG_GENERAL(INFO, "CP difficultylevel = " << difficultyLevel
+                                                << " expectedDSDiff = "
+                                                << expectedDSDiff);
     } else if (difficultyLevel != expectedDSDiff &&
                difficultyLevel != expectedDiff) {
       difficultyCorrect = false;
+      LOG_GENERAL(INFO, "CP difficultylevel = "
+                            << difficultyLevel
+                            << " expectedDSDiff = " << expectedDSDiff
+                            << " expectedDiff = " << expectedDiff);
     }
 
     if (!difficultyCorrect) {
