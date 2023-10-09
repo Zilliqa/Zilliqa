@@ -566,6 +566,16 @@ def xml_replace_element(doc, parent, name, new_value):
         elem.removeChild(elem.firstChild)
     elem.appendChild(doc.createTextNode(new_value))
 
+def xml_replace_element_if_exists(doc, parent, name, new_value):
+    """
+    replace an xml element, but don't complain if it doesn't exist -
+    it may have been removed from the config file
+    """
+    try:
+        xml_replace_element(doc, parent, name, new_value)
+    except Exception as e:
+        pass
+
 def copy_everything_in_dir(src, dest):
     """ Copy all files in src to dest """
     the_files = os.listdir(src)
@@ -759,10 +769,10 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)
     output_config = config_file.toprettyxml(newl='')
