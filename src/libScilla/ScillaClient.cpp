@@ -19,27 +19,18 @@
 
 #include "libScilla/ScillaUtils.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/SysCommand.h"
+#include "libMetrics/Api.h"
 
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/process/args.hpp>
 #include <boost/range/iterator_range.hpp>
 
 using namespace std::filesystem;
 
 ScillaClient::~ScillaClient() {
-  std::string cmdStr = "pkill " + SCILLA_SERVER_BINARY + " >/dev/null &";
-  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
-
-  try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
-  } catch (...) {
-    LOG_GENERAL(WARNING, "Unknown error encountered");
+  for (auto& process : m_child_processes) {
+    process.second.terminate();
   }
 }
 
@@ -51,7 +42,7 @@ void ScillaClient::Init() {
   }
 
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    path scilla_root_path(SCILLA_ROOT);
+    const path scilla_root_path(SCILLA_ROOT);
     // scan existing versions
     LOG_GENERAL(INFO, "looking in directory " << scilla_root_path << " ...  ");
     for (auto& entry :
@@ -59,9 +50,8 @@ void ScillaClient::Init() {
       std::string folder_name = entry.path().string();
       folder_name.erase(0, SCILLA_ROOT.size() + 1);
       LOG_GENERAL(INFO, "folder_name: " << folder_name);
-      uint32_t version = 0;
       try {
-        version = boost::lexical_cast<uint32_t>(folder_name);
+        const uint32_t version = boost::lexical_cast<uint32_t>(folder_name);
         if (!CheckClient(version)) {
           LOG_GENERAL(WARNING,
                       "OpenServer for version " << version << "failed");
@@ -77,70 +67,58 @@ void ScillaClient::Init() {
   }
 }
 
-bool ScillaClient::isScillaRuning() {
-  std::string cmdStr = "ps aux | awk '{print $2\"\\t\"$11}' | grep \"" +
-                       SCILLA_SERVER_BINARY + "\" | awk '{print $1}'";
-  std::string result;
-  try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT, cmdStr, result)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-      return false;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+bool ScillaClient::isScillaRuning(uint32_t version) {
+  const auto iter = m_child_processes.find(version);
+  if (iter == m_child_processes.end())
     return false;
-  } catch (...) {
-    LOG_GENERAL(WARNING, "Unknown error encountered");
-    return false;
-  }
-  if (result.empty()) {
-    return false;
-  }
-  return true;
+
+  return iter->second.running();
 }
 
 bool ScillaClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
-  std::string cmdStr;
+  auto iter = m_child_processes.find(version);
+  if (iter != m_child_processes.end()) {
+    iter->second.terminate();
+    m_child_processes.erase(iter);
+  }
+
   std::string root_w_version;
   if (!ScillaUtils::PrepareRootPathWVersion(version, root_w_version)) {
     LOG_GENERAL(WARNING, "ScillaUtils::PrepareRootPathWVersion failed");
     return false;
   }
 
-  std::string server_path = root_w_version + "/bin/" + SCILLA_SERVER_BINARY;
+  const path server_path = root_w_version + "/bin/" + SCILLA_SERVER_BINARY;
 
-  std::string killStr, executeStr;
-
-  if (ENABLE_SCILLA_MULTI_VERSION) {
-    cmdStr = "ps aux | awk '{print $2\"\\t\"$11}' | grep \"" + server_path +
-             "\" | awk '{print $1}' | xargs kill -SIGTERM ; " + server_path +
-             " -socket " + SCILLA_SERVER_SOCKET_PATH + "." +
-             std::to_string(version) + " >/dev/null &";
-  } else {
-    cmdStr = "pkill " + SCILLA_SERVER_BINARY + " ; " + server_path +
-             " -socket " + SCILLA_SERVER_SOCKET_PATH + " >/dev/null &";
+  if (not std::filesystem::exists(server_path)) {
+    TRACE_ERROR("Cannot create scilla subprocess that does not exist " +
+                SCILLA_SERVER_BINARY);
+    return false;
   }
 
-  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
+  const std::vector<std::string> args {
+      "-socket",
+      (ENABLE_SCILLA_MULTI_VERSION ?
+          SCILLA_SERVER_SOCKET_PATH + "." + std::to_string(version) :
+          SCILLA_SERVER_SOCKET_PATH)
+  };
 
-  try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-      return false;
+  boost::process::child child =
+      boost::process::child(server_path.native(), boost::process::args(args));
+
+  const pid_t thread_id = child.id();
+  if (thread_id > 0 && child.valid()) {
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Valid child created at " << thread_id);
     }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
-    return false;
-  } catch (...) {
-    LOG_GENERAL(WARNING, "Unknown error encountered");
+  } else {
+    LOG_GENERAL(WARNING, "child is not valid " << thread_id);
     return false;
   }
 
-  LOG_GENERAL(WARNING, "terminated: " << cmdStr);
+  m_child_processes.insert(std::make_pair(version, std::move(child)));
 
   std::this_thread::sleep_for(
       std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS));
@@ -211,7 +189,7 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
       if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
           e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
         LOG_GENERAL(WARNING, "Looks like connection problem");
-        if (!isScillaRuning()) {
+        if (!isScillaRuning(version)) {
           LOG_GENERAL(WARNING, "Scilla is not running");
           CheckClient(version,true);
         }
@@ -256,7 +234,7 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
       if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
           e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
         LOG_GENERAL(WARNING, "Looks like connection problem");
-        if (!isScillaRuning()) {
+        if (!isScillaRuning(version)) {
           LOG_GENERAL(WARNING, "Scilla is not running");
           CheckClient(version,true);
         }
@@ -302,7 +280,7 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
       if (e.GetCode() == jsonrpc::Errors::ERROR_RPC_JSON_PARSE_ERROR ||
           e.GetCode() == jsonrpc::Errors::ERROR_CLIENT_CONNECTOR){
         LOG_GENERAL(WARNING, "Looks like connection problem");
-        if (!isScillaRuning()) {
+        if (!isScillaRuning(version)) {
           LOG_GENERAL(WARNING, "Scilla is not running");
           CheckClient(version,true);
         }
