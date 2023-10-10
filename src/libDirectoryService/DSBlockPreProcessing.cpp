@@ -116,28 +116,33 @@ void DirectoryService::InjectPoWForDSNode(
   unsigned int numOfExpiring = numOfProposedDSMembers - numOfRemovedMembers;
 
   // Check the computed parameters for correctness.
-  if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
-    LOG_GENERAL(WARNING,
-                "FATAL: number of proposed ds member is larger than current ds "
-                "committee. numOfProposedDSMembers: "
-                    << numOfProposedDSMembers << " m_DSCommittee size: "
-                    << m_mediator.m_DSCommittee->size());
-    return;
-  }
+  // if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
+  //   LOG_GENERAL(WARNING,
+  //               "FATAL: number of proposed ds member is larger than current ds "
+  //               "committee. numOfProposedDSMembers: "
+  //                   << numOfProposedDSMembers << " m_DSCommittee size: "
+  //                   << m_mediator.m_DSCommittee->size());
+  //   // return;
+  // }
 
   // the number of removed members for non-performance has to be strictly less
   // than the total number of new incoming members because the field only
   // contains members that were removed for non-performance and not the expired
   // ones.
-  if (numOfRemovedMembers > numOfProposedDSMembers) {
-    LOG_GENERAL(WARNING,
-                "FATAL: number of ds members to be removed is larger than the "
-                "number of proposed ds members. numOfRemovedMembers: "
-                    << numOfRemovedMembers
-                    << " numOfProposedDSMembers: " << numOfProposedDSMembers);
-    return;
-  }
-
+  // if (numOfRemovedMembers > numOfProposedDSMembers) {
+  //   LOG_GENERAL(WARNING,
+  //               "FATAL: number of ds members to be removed is larger than the "
+  //               "number of proposed ds members. numOfRemovedMembers: "
+  //                   << numOfRemovedMembers
+  //                   << " numOfProposedDSMembers: " << numOfProposedDSMembers);
+  //   //return;
+  // }
+  LOG_GENERAL(INFO,
+              "CP : number of ds members to be removed is larger than the "
+              "number of proposed ds members. numOfRemovedMembers: "
+                  << numOfRemovedMembers
+                    << " numOfProposedDSMembers: " << numOfProposedDSMembers<<" COMM_SIZE = "<<COMM_SIZE);
+  
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
   SHA256Calculator sha2;
