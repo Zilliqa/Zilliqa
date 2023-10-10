@@ -35,8 +35,7 @@ describe("Openzeppelin role based access control functionality", function () {
     expect(await contract.totalSupply()).to.be.at.least(1000);
   });
 
-  // FIXME: Can't be parallelized yet. Needs ZIL-5055
-  xit("should not be possible for non-minter to mint", async function () {
+  it("should not be possible for non-minter to mint", async function () {
     const account = ethers.Wallet.createRandom();
     await expect(contract.mint(account.address, 1000)).to.be.reverted;
 
