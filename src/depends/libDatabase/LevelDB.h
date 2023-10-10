@@ -37,8 +37,6 @@ class LevelDB {
   leveldb::Options m_options;
   std::string m_open_db_path;
 
-  void log_error(leveldb::Status status) const;
-
  public:
   /// Constructor.
   explicit LevelDB(const std::string& dbName,
@@ -155,25 +153,6 @@ class LevelDB {
  private:
   bool ResetDBForNormalNode();
   bool ResetDBForLookupNode();
-
-  template <typename ArgT>
-  std::string LookupImpl(ArgT&& arg, bool* found = nullptr) const {
-    std::string value;
-    leveldb::Status s =
-        m_db->Get(leveldb::ReadOptions(), std::forward<ArgT>(arg), &value);
-    if (!s.ok()) {
-      log_error(s);
-      if (found) {
-        *found = false;
-      }
-      return "";
-    }
-
-    if (found) {
-      *found = true;
-    }
-    return value;
-  }
 };
 
 #endif  // __LEVELDB_H__

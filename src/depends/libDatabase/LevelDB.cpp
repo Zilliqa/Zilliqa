@@ -17,19 +17,80 @@
 
 #include "LevelDB.h"
 #include "common/Constants.h"
-#include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
-#include "depends/common/FixedHash.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
 
-void LevelDB::log_error(leveldb::Status status) const {
-  if (!status.IsNotFound()) {
-    LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " status is not OK - "
-                                    << status.ToString());
+namespace {
+
+template <typename ArgT>
+std::string LookupImpl(const std::shared_ptr<leveldb::DB> db,
+                       const std::string& dbName, ArgT&& arg,
+                       bool* found = nullptr) {
+  std::string value;
+  if (!db) {
+    LOG_GENERAL(WARNING, "LevelDB " << dbName << " isn't available");
+    if (found) {
+      *found = false;
+    }
+    return value;
   }
+
+  auto s = db->Get(leveldb::ReadOptions(), std::forward<ArgT>(arg), &value);
+  if (!s.ok()) {
+    if (!s.IsNotFound()) {
+      LOG_GENERAL(WARNING, "LevelDB " << dbName << " status is not OK - "
+                                      << s.ToString());
+    }
+    if (found) {
+      *found = false;
+    }
+  } else if (found) {
+    *found = true;
+  }
+
+  return value;
 }
+
+template <typename KeyT, typename BodyT>
+int InsertImpl(const std::shared_ptr<leveldb::DB> db, const std::string& dbName,
+               KeyT&& key, BodyT&& body) {
+  if (!db) {
+    LOG_GENERAL(WARNING, "LevelDB " << dbName << " isn't available");
+    return -1;
+  }
+
+  auto s =
+      db->Put(leveldb::WriteOptions(), leveldb::Slice(std::forward<KeyT>(key)),
+              leveldb::Slice(std::forward<BodyT>(body)));
+
+  if (!s.ok()) {
+    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
+    return -1;
+  }
+
+  return 0;
+}
+
+template <typename ArgT>
+int DeleteImpl(const std::shared_ptr<leveldb::DB> db, const std::string& dbName,
+               ArgT&& arg) {
+  if (!db) {
+    LOG_GENERAL(WARNING, "LevelDB " << dbName << " isn't available");
+    return -1;
+  }
+
+  auto s = db->Delete(leveldb::WriteOptions(), std::forward<ArgT>(arg));
+  if (!s.ok()) {
+    LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
+    return -1;
+  }
+
+  return 0;
+}
+
+}  // namespace
 
 LevelDB::LevelDB(const string& dbName, const string& path,
                  const string& subdirectory)
@@ -125,27 +186,30 @@ string LevelDB::GetDBName() {
   }
 }
 
-string LevelDB::Lookup(const std::string& key) const { return LookupImpl(key); }
+string LevelDB::Lookup(const std::string& key) const {
+  return LookupImpl(m_db, m_dbName, key);
+}
 
 string LevelDB::Lookup(const vector<unsigned char>& key) const {
-  return LookupImpl(vector_ref<const unsigned char>(&key[0], key.size()));
+  return LookupImpl(m_db, m_dbName,
+                    vector_ref<const unsigned char>(&key[0], key.size()));
 }
 
 string LevelDB::Lookup(const boost::multiprecision::uint256_t& blockNum) const {
-  return LookupImpl(blockNum.convert_to<string>());
+  return LookupImpl(m_db, m_dbName, blockNum.convert_to<string>());
 }
 
 string LevelDB::Lookup(const boost::multiprecision::uint256_t& blockNum,
                        bool& found) const {
-  return LookupImpl(blockNum.convert_to<string>(), &found);
+  return LookupImpl(m_db, m_dbName, blockNum.convert_to<string>(), &found);
 }
 
 string LevelDB::Lookup(const dev::h256& key) const {
-  return LookupImpl(key.hex());
+  return LookupImpl(m_db, m_dbName, key.hex());
 }
 
 string LevelDB::Lookup(const dev::zbytesConstRef& key) const {
-  return LookupImpl(ldb::Slice((char const*)key.data(), 32));
+  return LookupImpl(m_db, m_dbName, ldb::Slice((char const*)key.data(), 32));
 }
 
 int LevelDB::Insert(const dev::h256& key, dev::zbytesConstRef value) {
@@ -154,96 +218,45 @@ int LevelDB::Insert(const dev::h256& key, dev::zbytesConstRef value) {
 
 int LevelDB::Insert(const vector<unsigned char>& key,
                     const vector<unsigned char>& body) {
-  leveldb::Status s = m_db->Put(
-      leveldb::WriteOptions(),
-      leveldb::Slice(vector_ref<const unsigned char>(&key[0], key.size())),
-      leveldb::Slice(vector_ref<const unsigned char>(&body[0], body.size())));
-
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName,
+                    vector_ref<const unsigned char>(&key[0], key.size()),
+                    vector_ref<const unsigned char>(&body[0], body.size()));
 }
 
 int LevelDB::Insert(const boost::multiprecision::uint256_t& blockNum,
                     const vector<unsigned char>& body) {
-  leveldb::Status s = m_db->Put(
-      leveldb::WriteOptions(), leveldb::Slice(blockNum.convert_to<string>()),
-      leveldb::Slice(vector_ref<const unsigned char>(&body[0], body.size())));
-
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName, blockNum.convert_to<string>(),
+                    vector_ref<const unsigned char>(&body[0], body.size()));
 }
 
 int LevelDB::Insert(const boost::multiprecision::uint256_t& blockNum,
                     const std::string& body) {
-  leveldb::Status s = m_db->Put(leveldb::WriteOptions(),
-                                leveldb::Slice(blockNum.convert_to<string>()),
-                                leveldb::Slice(body.c_str(), body.size()));
-
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName, blockNum.convert_to<string>(),
+                    leveldb::Slice{body.c_str(), body.size()});
 }
 
 int LevelDB::Insert(const string& key, const vector<unsigned char>& body) {
-  return Insert(leveldb::Slice(key),
-                leveldb::Slice(dev::zbytesConstRef(&body[0], body.size())));
+  return InsertImpl(m_db, m_dbName, key,
+                    dev::zbytesConstRef(&body[0], body.size()));
 }
 
 int LevelDB::Insert(const leveldb::Slice& key, dev::zbytesConstRef value) {
-  leveldb::Status s =
-      m_db->Put(leveldb::WriteOptions(), key, ldb::Slice(value));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName, key, value);
 }
 
 int LevelDB::Insert(const dev::h256& key, const string& value) {
-  leveldb::Status s = m_db->Put(leveldb::WriteOptions(),
-                                ldb::Slice((char const*)key.data(), key.size),
-                                ldb::Slice(value.data(), value.size()));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName,
+                    ldb::Slice((char const*)key.data(), key.size),
+                    ldb::Slice(value.data(), value.size()));
 }
 
 int LevelDB::Insert(const dev::h256& key, const vector<unsigned char>& body) {
-  leveldb::Status s = m_db->Put(
-      leveldb::WriteOptions(), leveldb::Slice(key.hex()),
-      leveldb::Slice(vector_ref<const unsigned char>(&body[0], body.size())));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName, key.hex(),
+                    vector_ref<const unsigned char>(&body[0], body.size()));
 }
 
 int LevelDB::Insert(const leveldb::Slice& key, const leveldb::Slice& value) {
-  leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, value);
-
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return InsertImpl(m_db, m_dbName, key, value);
 }
 
 bool LevelDB::BatchInsert(
@@ -272,6 +285,11 @@ bool LevelDB::BatchInsert(
     }
   }
 
+  if (!m_db) {
+    LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " isn't available");
+    return false;
+  }
+
   ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
 
   if (!s.ok()) {
@@ -292,6 +310,11 @@ bool LevelDB::BatchInsert(
     }
   }
 
+  if (!m_db) {
+    LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " isn't available");
+    return false;
+  }
+
   ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
 
   if (!s.ok()) {
@@ -306,6 +329,11 @@ bool LevelDB::BatchDelete(const std::vector<dev::h256>& toDelete) {
   ldb::WriteBatch batch;
   for (const auto& i : toDelete) {
     batch.Delete(leveldb::Slice(i.hex()));
+  }
+
+  if (!m_db) {
+    LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " isn't available");
+    return false;
   }
 
   ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
@@ -339,47 +367,20 @@ bool LevelDB::Exists(const std::string& key) const {
 }
 
 int LevelDB::DeleteKey(const dev::h256& key) {
-  leveldb::Status s =
-      m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return DeleteImpl(m_db, m_dbName, key.hex());
 }
 
 int LevelDB::DeleteKey(const boost::multiprecision::uint256_t& blockNum) {
-  leveldb::Status s = m_db->Delete(leveldb::WriteOptions(),
-                                   ldb::Slice(blockNum.convert_to<string>()));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return DeleteImpl(m_db, m_dbName, blockNum.convert_to<string>());
 }
 
 int LevelDB::DeleteKey(const std::string& key) {
-  leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[DeleteKey] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return DeleteImpl(m_db, m_dbName, key);
 }
 
 int LevelDB::DeleteKey(const vector<unsigned char>& key) {
-  leveldb::Status s = m_db->Delete(
-      leveldb::WriteOptions(),
-      leveldb::Slice(vector_ref<const unsigned char>(&key[0], key.size())));
-  if (!s.ok()) {
-    LOG_GENERAL(WARNING, "[DeleteKey] Status: " << s.ToString());
-    return -1;
-  }
-
-  return 0;
+  return DeleteImpl(m_db, m_dbName,
+                    vector_ref<const unsigned char>(&key[0], key.size()));
 }
 
 int LevelDB::DeleteDB() {
