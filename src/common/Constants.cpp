@@ -660,6 +660,8 @@ const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 
 // Transaction constants
+const string REWARD_CONTROL_CONTRACT_ADDRESS{
+    ReadConstantString("REWARD_CONTROL_CONTRACT_ADDRESS", "node.transactions.")};
 const uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
 const uint128_t COINBASE_REWARD_PER_DS{

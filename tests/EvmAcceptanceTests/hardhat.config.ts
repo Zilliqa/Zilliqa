@@ -3,6 +3,12 @@ import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
+
+import "./tasks/ZilBalance";
+import "./tasks/Transfer";
+import "./tasks/InitSigners";
+import "./tasks/SetRewards";
+
 import fs from "fs";
 
 if (ENV_VARS.scilla) {
@@ -46,6 +52,22 @@ const config: HardhatUserConfig = {
       zilliqaNetwork: true,
       web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,
+      miningState: false
+    },
+    zblockchain: {
+      url: "http://localdev-l2api.localdomain",
+      websocketUrl: "ws://localdev-l2api.localdomain",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
+        ...loadFromSignersFile("localdev2")
+      ],
+      chainId: 0x82BC,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
       miningState: false
     },
     localdev2: {

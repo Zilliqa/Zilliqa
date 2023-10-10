@@ -89,12 +89,18 @@ struct DSGuardUpdateStruct {
 
 namespace CoinbaseReward {
 const int FINALBLOCK_REWARD = -1;
+
+// LOOKUP_REWARD is in fact used to reward stakers - the funds are drained from the
+// lookup accounts by the staking scripts and then fed back to the SSNs.
 const int LOOKUP_REWARD = -2;
+
 }  // namespace CoinbaseReward
 
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
 using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
+
+
 
 struct RewardInformation {
   uint128_t base_reward;

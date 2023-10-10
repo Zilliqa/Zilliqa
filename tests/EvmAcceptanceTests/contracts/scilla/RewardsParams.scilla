@@ -1,0 +1,139 @@
+scilla_version 0
+
+import ListUtils IntUtils PairUtils
+
+library RewardsParams
+
+let one_msg = 
+  fun (msg : Message) => 
+  let nil_msg = Nil {Message} in
+  Cons {Message} msg nil_msg
+
+(* Error events *)
+type Error =
+| AdminValidationFailed
+| StagingAdminNotExist
+| StagingAdminValidationFailed
+
+let make_error =
+  fun (result : Error) =>
+    let result_code = 
+      match result with
+      | AdminValidationFailed           => Int32 -1
+      | StagingAdminNotExist            => Int32 -2
+      | StagingAdminValidationFailed    => Int32 -3
+      end
+    in
+    { _exception : "Error"; code : result_code }
+
+let twenty = Uint32 2000
+let forty = Uint32 4000
+let one_hundred = Uint32 100
+let coinbase_default = Uint128 20400000000000000
+
+(***************************************************)
+(*             The contract definition             *)
+(***************************************************)
+
+contract RewardsParams
+(
+    init_admin: ByStr20
+)
+
+(* Mutable fields *)
+field contractadmin: ByStr20  = init_admin
+field stagingcontractadmin: Option ByStr20 = None {ByStr20}
+field base_reward_in_percent : Uint32 = twenty
+field lookup_reward_in_percent : Uint32 = forty
+field coinbase_reward_per_ds: Uint128 = coinbase_default
+field percent_precision : Uint32 = one_hundred
+
+(* Procedures *)
+
+procedure ThrowError(err: Error)
+  e = make_error err;
+  throw e
+end
+
+(* Check if the initiator is admin *)
+
+procedure IsAdmin(initiator: ByStr20)
+  contractadmin_tmp <- contractadmin;
+  is_admin = builtin eq initiator contractadmin_tmp;
+  match is_admin with
+  | True  =>
+  | False =>
+    e = AdminValidationFailed;
+    ThrowError e
+  end
+end
+
+(***************************************)
+(*             Transitions             *)
+(***************************************)
+
+(* @dev: Start a proposal for new contract admin. Used by admin only. *)
+(* @param admin: New admin value *)
+(* @multi-sig *)
+transition UpdateAdmin(admin: ByStr20)
+  IsAdmin _sender;
+  staging_admin = Some {ByStr20} admin;
+  stagingcontractadmin := staging_admin
+end
+
+(* @dev: Claim to be the new admin of contract. *)
+(* @multi-sig *)
+transition ClaimAdmin()
+  staging_admin <- stagingcontractadmin;
+  match staging_admin with
+  | Some admin =>
+    e = { _eventname: "ClaimAdminOne"; new_admin: admin; sender: _sender };
+    event e;
+  
+    is_valid = builtin eq _sender admin;
+    match is_valid with
+    | True =>
+      contractadmin := admin;
+      staging_admin_temp = None {ByStr20};
+      stagingcontractadmin := staging_admin_temp;
+      e = { _eventname: "ClaimAdmin"; new_admin: admin };
+      event e
+    | False =>
+      e = StagingAdminValidationFailed;
+      ThrowError e
+    end
+  | None =>
+    e = StagingAdminNotExist;
+    ThrowError e
+  end
+end
+
+(* @dev: Change the base reward percent *)
+(* @dev: Can be called only by the contractadmin *)
+(* @param base_reward: The base reward percent to change to *)
+
+(* @multi-sig *)
+transition ChangeBaseReward(base_reward_val: Uint32)
+    IsAdmin _sender;
+    base_reward_in_percent := base_reward_val
+end
+
+(* @dev: Change the lookup reward percent *)
+(* @dev: Can be called only by the contractadmin *)
+(* @param base_reward: The lookup reward percent to change to *)
+
+(* @multi-sig *)
+transition ChangeLookupReward(lookup_reward_val: Uint32)
+    IsAdmin _sender;
+    lookup_reward_in_percent := lookup_reward_val
+end
+
+(* @dev: Change the coinbase reward percent *)
+(* @dev: Can be called only by the contractadmin *)
+(* @param base_reward: The coinbase reward percent to change to *)
+
+(* @multi-sig *)
+transition ChangeCoinbaseReward(coinbase_reward_val: Uint128)
+    IsAdmin _sender;
+    coinbase_reward_per_ds := coinbase_reward_val
+end

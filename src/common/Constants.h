@@ -440,6 +440,7 @@ extern const unsigned int PREGEN_ACCOUNT_TIMES;
 extern const std::string PREGENED_ACCOUNTS_FILE;
 
 // Transaction constants
+extern const std::string REWARD_CONTROL_CONTRACT_ADDRESS;
 extern const uint128_t TOTAL_COINBASE_REWARD;
 extern const uint128_t COINBASE_REWARD_PER_DS;
 extern const uint128_t TOTAL_GENESIS_TOKEN;

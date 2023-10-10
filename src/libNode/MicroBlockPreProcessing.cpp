@@ -25,6 +25,7 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountData/TxnOrderVerifier.h"
 #include "libData/AccountStore/AccountStore.h"
+#include "libData/CoinbaseData/RewardControlContractState.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2P.h"
@@ -91,7 +92,8 @@ bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    rewards = COINBASE_REWARD_PER_DS;
+    RewardControlContractState control_state = RewardControlContractState::GetCurrentRewards();
+    rewards = control_state.coinbase_reward_per_ds;
   } else {
     rewards = m_txnFees;
   }
@@ -1364,8 +1366,8 @@ bool Node::CheckMicroBlockHashes(zbytes& errorMsg) {
     if (m_mediator.GetIsVacuousEpoch() &&
         m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
       // Check COINBASE_REWARD_PER_DS
-
-      uint128_t rewards = COINBASE_REWARD_PER_DS;
+      RewardControlContractState reward_state = RewardControlContractState::GetCurrentRewards();
+      uint128_t rewards = reward_state.coinbase_reward_per_ds;
 
       if (rewards != m_microblock->GetHeader().GetRewards()) {
         LOG_CHECK_FAIL("Total rewards", m_microblock->GetHeader().GetRewards(),
