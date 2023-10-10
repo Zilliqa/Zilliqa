@@ -9,9 +9,12 @@ contract Event {
     event Log(address indexed sender, string message);
     event AnotherLog();
 
-    function test() public {
+    function one_log() public {
         emit Log(msg.sender, "Hello World!");
-        emit Log(msg.sender, "Hello EVM!");
+    }
+
+    function two_logs() public {
+        emit Log(msg.sender, "Hello World!");
         emit AnotherLog();
     }
 }
