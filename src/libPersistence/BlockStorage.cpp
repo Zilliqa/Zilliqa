@@ -2149,7 +2149,7 @@ bool BlockStorage::GetOtterTrace(const dev::h256& key, std::string& trace) {
 bool BlockStorage::PutOtterTxAddressMapping(
     const dev::h256& txId, const std::set<std::string>& addresses,
     const uint64_t& blocknum) {
-  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES || !LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
         "This should only be triggered when archival lookup is enabled!.");
@@ -2162,6 +2162,13 @@ bool BlockStorage::PutOtterTxAddressMapping(
   }
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterAddressNonceLookup) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   // for each address, add to the tx hashes and block number that touched them
   for (auto address : addresses) {
@@ -2289,7 +2296,7 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(
 bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId,
                                               uint64_t nonce,
                                               std::string address) {
-  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES || !LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
         "This should only be triggered when archival lookup is enabled!.");
@@ -2317,6 +2324,13 @@ bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId,
   std::string key = address + std::to_string(nonce);
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterAddressNonceLookup) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return {};
+  }
 
   ZilliqaMessage::OtterscanAddressNonceLookup insert;
   insert.set_hash("0x" + txId.hex());
