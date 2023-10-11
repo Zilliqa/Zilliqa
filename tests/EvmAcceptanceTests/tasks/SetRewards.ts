@@ -32,7 +32,7 @@ async function ensureContractDeployment(hre): ContractContext {
     if (funderPrivateKey == undefined) {
       throw Error(clc.bold.red("Please set PRIMARY_ACCOUNT environment variable before running this script."));
     }
-  zilliqa = new Zilliqa(hre.getNetworkUrl())
+  const zilliqa = new Zilliqa(hre.getNetworkUrl())
   const version = bytes.pack(hre.getZilliqaChainId(), MSG_VERSION);
   initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [ funderPrivateKey ], 30);
   const funderAddress = getAddressFromPrivateKey(funderPrivateKey);
@@ -149,7 +149,7 @@ task('set-rewards', 'Sets the chain reward parameters')
     let context = await ensureContractDeployment(hre);
     let percentPrecision = await context.contract.getSubState("percent_precision");
     console.log(clc.green(`Percent precision is ${percentPrecision.percent_precision}`));
-    zilliqa.wallet.setDefault(context.deployerAddress);
+    context.zilliqa.wallet.setDefault(context.deployerAddress);
     let connected = context.contract.connect(context.deployerAccount);
     if (taskArgs.coinbaserewardperds !== undefined) {
       let newReward = taskArgs.coinbaserewardperds;
