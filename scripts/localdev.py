@@ -502,8 +502,7 @@ def tempo_down(config):
               default='localdev',
               show_default=True,
               help="The test network's name")
-# Need to specify like this, or passing --isolated-server-accounts will cause isolated server accounts to be disabled
-# - rrw 2023-10-10
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
 @click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
@@ -1178,8 +1177,7 @@ def restart_ingress_cmd(ctx):
               default='localdev',
               show_default=True,
               help="The test network's name")
-# Need to specify like this, or passing --isolated-server-accounts will cause isolated server accounts to be disabled
-# - rrw 2023-10-10
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
 @click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
@@ -1267,8 +1265,7 @@ def start_proxy_cmd(ctx, testnet_name):
               default='localdev',
               show_default=True,
               help="The test network's name")
-# Need to specify like this, or passing --isolated-server-accounts will cause isolated server accounts to be disabled
-# - rrw 2023-10-10
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
 @click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
