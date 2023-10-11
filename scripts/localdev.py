@@ -502,8 +502,8 @@ def tempo_down(config):
               default='localdev',
               show_default=True,
               help="The test network's name")
-@click.option("--isolated-server-accounts",
-              is_flag=True,
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
+@click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
@@ -1177,8 +1177,8 @@ def restart_ingress_cmd(ctx):
               default='localdev',
               show_default=True,
               help="The test network's name")
-@click.option("--isolated-server-accounts",
-              is_flag=True,
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
+@click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
@@ -1265,9 +1265,9 @@ def start_proxy_cmd(ctx, testnet_name):
               default='localdev',
               show_default=True,
               help="The test network's name")
-@click.option("--isolated-server-accounts",
-              is_flag=True,
-              default=False,
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
+@click.option("--isolated-server-accounts/--no-isolated-server-accounts",
+              default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
 def write_testnet_config_cmd(ctx, zilliqa_image, testnet_name, isolated_server_accounts):
