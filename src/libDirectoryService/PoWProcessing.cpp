@@ -358,16 +358,18 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       if (difficultyLevel != expectedDSDiff) {
         difficultyCorrect = false;
       }
-      LOG_GENERAL(INFO, "CP difficultylevel = " << difficultyLevel
-                                                << " expectedDSDiff = "
-                                                << expectedDSDiff);
+      LOG_GENERAL(INFO,
+                  "CP difficultylevel = " << static_cast<int>(difficultyLevel)
+                                          << " expectedDSDiff = "
+                                          << static_cast<int>(expectedDSDiff));
     } else if (difficultyLevel != expectedDSDiff &&
                difficultyLevel != expectedDiff) {
       difficultyCorrect = false;
-      LOG_GENERAL(INFO, "CP difficultylevel = "
-                            << difficultyLevel
-                            << " expectedDSDiff = " << expectedDSDiff
-                            << " expectedDiff = " << expectedDiff);
+      LOG_GENERAL(
+          INFO, "CP difficultylevel = "
+                    << static_cast<int>(difficultyLevel)
+                    << " expectedDSDiff = " << static_cast<int>(expectedDSDiff)
+                    << " expectedDiff = " << static_cast<int>(expectedDiff));
     }
 
     if (!difficultyCorrect) {
@@ -406,9 +408,9 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice,
                        std::make_pair(govProposalId, govVoteValue));
 
-      LOG_GENERAL(INFO,
-                  "Chetan submitterPubKey = " << submitterPubKey
-                                        << " submitterPeer =" << submitterPeer);
+      LOG_GENERAL(INFO, "Chetan submitterPubKey = " << submitterPubKey
+                                                    << " submitterPeer ="
+                                                    << submitterPeer);
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;
@@ -419,9 +421,9 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
         // oldSolnStr);
         LOG_GENERAL(INFO, "Replaced");
         m_allPoWs[submitterPubKey] = soln;
-      LOG_GENERAL(INFO,
-                  "Chetan submitterPubKey = " << submitterPubKey
-                                        << " submitterPeer =" << submitterPeer);
+        LOG_GENERAL(INFO, "Chetan submitterPubKey = " << submitterPubKey
+                                                      << " submitterPeer ="
+                                                      << submitterPeer);
       } else if (m_allPoWs[submitterPubKey].m_result == soln.m_result) {
         LOG_GENERAL(INFO, "Duplicated");
         return true;
