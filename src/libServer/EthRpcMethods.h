@@ -165,6 +165,7 @@ class EthRpcMethods {
     }
 
     auto pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
+    LOG_GENERAL(WARNING, "recovered key: " << DataConversion::Uint8VecToHexStrRet(pubKey));
 
     if (pubKey.empty()) {
       return;

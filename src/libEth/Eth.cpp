@@ -73,28 +73,42 @@ Json::Value populateReceiptHelper(
   ret["r"] = GetR(sig);
   ret["s"] = GetS(sig);
 
+  switch (tx.GetVersionIdentifier()) {
+    case TRANSACTION_VERSION:
+      ret["type"] = "0x0"; // FIXME?
+      break;
+    case TRANSACTION_VERSION_ETH_LEGACY:
+      ret["type"] = "0x0";
+      break;
+    case TRANSACTION_VERSION_ETH_EIP_2930:
+      ret["type"] = "0x1";
+      break;
+    case TRANSACTION_VERSION_ETH_EIP_1559:
+      ret["type"] = "0x2";
+      break;
+    default:
+      LOG_GENERAL(WARNING, "Invalid transaction type");
+      break;
+  }
+
   return ret;
 }
 
-// Given a RLP message, parse out the fields and return a EthFields object
-EthFields parseRawTxFields(std::string const &message) {
+EthFields parseLegacyTransaction(zbytes asBytes) {
   EthFields ret;
-
-  zbytes asBytes;
-  DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes,
                       dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
 
   if (rlpStream1.isNull()) {
-    LOG_GENERAL(WARNING, "Failed to parse RLP stream in raw TX! " << message);
+    LOG_GENERAL(WARNING, "Failed to parse RLP stream in raw TX!");
     return {};
   }
 
   int i = 0;
   // todo: checks on size of rlp stream etc.
 
-  ret.version = DataConversion::Pack(CHAIN_ID, 2);
+  ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_LEGACY);
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
@@ -143,6 +157,180 @@ EthFields parseRawTxFields(std::string const &message) {
   ret.nonce++;
 
   return ret;
+}
+
+EthFields parseEip2930Transaction(zbytes asBytes) {
+  EthFields ret;
+
+  dev::RLP rlpStream1(asBytes,
+                      dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
+
+  if (rlpStream1.isNull()) {
+    LOG_GENERAL(WARNING, "Failed to parse RLP stream in raw TX!");
+    return {};
+  }
+
+  int i = 0;
+
+  ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_2930);
+  LOG_GENERAL(WARNING, "set eth fields version to " << ret.version);
+
+  // RLP TX contains: chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, signatureYParity, signatureR, signatureS
+  for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
+    auto byteIt = (*it).operator zbytes();
+
+    switch (i) {
+      case 0: // Chain ID - validated earlier
+        break;
+      case 1:
+        ret.nonce = uint32_t(*it);
+        break;
+      case 2:
+        ret.gasPrice = uint128_t{*it};
+        break;
+      case 3:
+        ret.gasLimit = uint64_t{*it};
+        break;
+      case 4:
+        ret.toAddr = byteIt;
+        break;
+      case 5:
+        ret.amount = uint128_t(*it);
+        break;
+      case 6:
+        ret.code = byteIt;
+        break;
+      case 7:
+        ret.accessList = AccessList(*it);
+        break;
+      case 8:  // signatureYParity - only needed for pub sig recovery
+        break;
+      case 9:  // signatureR
+      {
+        zbytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
+      case 10:  // signatureS
+      {
+        zbytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
+      default:
+        LOG_GENERAL(WARNING, "too many fields received in rlp!");
+    }
+
+    i++;
+    it++;
+  }
+
+  // Because of the way Zil handles nonces, we increment the nonce here
+  ret.nonce++;
+
+  return ret;
+}
+
+EthFields parseEip1559Transaction(zbytes asBytes) {
+  EthFields ret;
+
+  dev::RLP rlpStream1(asBytes,
+                      dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
+
+  if (rlpStream1.isNull()) {
+    LOG_GENERAL(WARNING, "Failed to parse RLP stream in raw TX!");
+    return {};
+  }
+
+  int i = 0;
+
+  ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_1559);
+  LOG_GENERAL(WARNING, "set eth fields version to " << ret.version);
+
+  // RLP TX contains: chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, amount, data, access_list, signature_y_parity, signature_r, signature_s
+  for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
+    auto byteIt = (*it).operator zbytes();
+
+    switch (i) {
+      case 0: // Chain ID - validated earlier
+        break;
+      case 1:
+        ret.nonce = uint32_t(*it);
+        break;
+      case 2:
+        ret.maxPriorityFeePerGas = uint128_t{*it};
+        break;
+      case 3:
+        ret.maxFeePerGas = uint128_t{*it};
+        break;
+      case 4:
+        ret.gasLimit = uint64_t{*it};
+        break;
+      case 5:
+        ret.toAddr = byteIt;
+        break;
+      case 6:
+        ret.amount = uint128_t(*it);
+        break;
+      case 7:
+        ret.code = byteIt;
+        break;
+      case 8:
+        ret.accessList = AccessList(*it);
+        break;
+      case 9:  // signatureYParity - only needed for pub sig recovery
+        break;
+      case 10:  // signatureR
+      {
+        zbytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
+      case 11:  // signatureS
+      {
+        zbytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
+      default:
+        LOG_GENERAL(WARNING, "too many fields received in rlp!");
+    }
+
+    i++;
+    it++;
+  }
+
+  // Set gas price now, based on `maxPriorityFeePerGas` and `maxFeePerGas`. This gas price is what will actually be
+  // used for all downstream transaction processing. We only need to keep around the two values from the request so
+  // that we can reconstruct it later.
+  ret.gasPrice = ret.maxFeePerGas;
+
+  // Because of the way Zil handles nonces, we increment the nonce here
+  ret.nonce++;
+
+  return ret;
+}
+
+// Given a RLP message, parse out the fields and return a EthFields object
+EthFields parseRawTxFields(std::string const &message) {
+  if (message.size() < 2) {
+    LOG_GENERAL(WARNING, "Invalid transaction: " << message);
+    return {};
+  }
+
+  zbytes asBytes;
+  DataConversion::HexStrToUint8Vec(message, asBytes);
+  auto const firstByte = asBytes[0];
+  if (firstByte == 0x01) {
+    zbytes transaction(asBytes.begin() + 1, asBytes.end());
+    return parseEip2930Transaction(transaction);
+  } else if (firstByte == 0x02) {
+    zbytes transaction(asBytes.begin() + 1, asBytes.end());
+    return parseEip1559Transaction(transaction);
+  } else if ((firstByte >= 0xc0) && (firstByte <= 0xfe)) {
+    // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards Compatibility"
+    return parseLegacyTransaction(asBytes);
+  } else {
+    LOG_GENERAL(WARNING, "invalid transaction. Tx: " << message << " First byte: " << firstByte);
+    return {};
+  }
+
 }
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
@@ -420,6 +608,7 @@ uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
 // parse the fields into a TX and get its hash
 Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
                             std::string &hash) {
+  LOG_MARKER();
   hash = ZEROES_HASH;
 
   Address toAddr{fields.toAddr};
@@ -439,7 +628,10 @@ Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
                  fields.gasLimit,
                  code,  // either empty or stripped EVM-less code
                  data,  // either empty or un-hexed byte-stream
-                 Signature(fields.signature, 0)};
+                 Signature(fields.signature, 0),
+                 fields.accessList,
+                 fields.maxPriorityFeePerGas,
+                 fields.maxFeePerGas};
 
   hash = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 

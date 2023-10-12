@@ -51,6 +51,64 @@ describe("ForwardZil contract functionality #parallel", function () {
   });
 });
 
+describe("Transaction types", function () {
+  it("should be possible to send a legacy ethereum transaction", async function () {
+    const payee = ethers.Wallet.createRandom();
+
+    const {response} = await hre.sendEthTransaction({
+      to: payee.address,
+      value: FUND,
+      type: 0,
+    });
+
+    const receipt = await response.wait();
+    expect(receipt.type).to.be.eq(0);
+
+    expect(response.type).to.be.eq(0);
+  });
+
+  it("should be possible to send a EIP-2930 ethereum transaction", async function () {
+    const payee = ethers.Wallet.createRandom();
+
+    const accessList = [{ address: ethers.Wallet.createRandom().address, storageKeys: ["0x0bcad17ecf260d6506c6b97768bdc2acfb6694445d27ffd3f9c1cfbee4a9bd6d"] }];
+
+    const {response} = await hre.sendEthTransaction({
+      to: payee.address,
+      value: FUND,
+      type: 1,
+      accessList: accessList,
+    });
+
+    const receipt = await response.wait();
+    expect(receipt.type).to.be.eq(1);
+
+    expect(response.type).to.be.eq(1);
+    expect(response.accessList).to.have.lengthOf(1);
+  });
+
+  it("should be possible to send a EIP-1557 ethereum transaction", async function () {
+    const payee = ethers.Wallet.createRandom();
+
+    const accessList = [{ address: ethers.Wallet.createRandom().address, storageKeys: ["0x0bcad17ecf260d6506c6b97768bdc2acfb6694445d27ffd3f9c1cfbee4a9bd6d"] }];
+
+    const {response} = await hre.sendEthTransaction({
+      to: payee.address,
+      value: FUND,
+      type: 2,
+      accessList: accessList,
+      maxFeePerGas: 100,
+    });
+
+    const receipt = await response.wait();
+    expect(receipt.type).to.be.eq(2);
+
+    expect(response.type).to.be.eq(2);
+    expect(response.accessList).to.have.lengthOf(1);
+    expect(response.maxPriorityFeePerGas).to.be.not.null;
+    expect(response.maxFeePerGas).to.be.not.null;
+  });
+});
+
 describe("Transfer ethers #parallel", function () {
   it("should be possible to transfer ethers to a user account @block-1", async function () {
     const payee = ethers.Wallet.createRandom();

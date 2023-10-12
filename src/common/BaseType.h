@@ -22,6 +22,8 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include "depends/common/FixedHash.h"
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -37,6 +39,7 @@
 using zbytes = std::vector<uint8_t>;
 using uint128_t = boost::multiprecision::uint128_t;
 using uint256_t = boost::multiprecision::uint256_t;
+using AccessList = std::vector<std::pair<dev::h160, std::vector<dev::h256>>>;
 using GovDSShardVotesMap =
     std::map<uint32_t, std::pair<std::map<uint32_t, uint32_t>,
                                  std::map<uint32_t, uint32_t>>>;

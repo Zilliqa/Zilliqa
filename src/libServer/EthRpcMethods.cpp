@@ -469,6 +469,7 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
                                                 zbytes const &pubKey,
                                                 const unsigned int num_shards,
                                                 const uint128_t &gasPrice) {
+  LOG_MARKER();
   TRACE(zil::trace::FilterClass::TXN);
 
   INC_CALLS(GetInvocationsCounter());
@@ -806,7 +807,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json,
     } else if (toAccount == nullptr) {
       if (!ENABLE_CPS) {
         toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
-                                                TRANSACTION_VERSION_ETH);
+                                                TRANSACTION_VERSION_ETH_LEGACY);
       }
       contractCreation = true;
     }
@@ -1159,6 +1160,7 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
   try {
     TxBodySharedPtr transactionBodyPtr;
     TxnHash tranHash(transactionHash);
+    // FIXME: The `version` in `transactionBodyPtr` is wrong! It is always 2, even if we send a non-legacy Ethereum transaction (with a version of 3 or 4).
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactionBodyPtr);
     if (!isPresent) {

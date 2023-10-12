@@ -161,6 +161,7 @@ uint16_t DataConversion::charArrTo16Bits(const zbytes& hex_arr) {
 }
 
 std::string DataConversion::AddOXPrefix(std::string&& s) {
+  LOG_MARKER();
   if (s.size() <= 2 || s[1] == 'x' || s[1] == 'X') {
     return s;
   }
