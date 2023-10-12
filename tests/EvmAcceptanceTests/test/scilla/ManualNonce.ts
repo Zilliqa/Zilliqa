@@ -24,8 +24,12 @@ describe("Manual nonce #parallel", function () {
     expect(await contract.value()).to.be.eq(VALUE);
   });
 
-  // FIXME: in https://zilliqa-jira.atlassian.net/browse/ZIL-5199
-  xit("Should be possible to call multiple transitions with manual nonces @block-2", async function () {
+  it("Should be possible to call multiple transitions with manual nonces @block-2", async function () {
+    if (hre.getNetworkName() === "isolated_server") {
+      // This test doesn't work on iso server, but does on a devnet
+      this.skip();
+    }
+  
     let result = await hre.zilliqaSetup.zilliqa.blockchain.getBalance(signer.address);
 
     const NONCE = result.result.nonce;
