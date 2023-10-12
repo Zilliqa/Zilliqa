@@ -53,7 +53,7 @@ bool CpsRunEvm::IsResumable() const {
 CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
   const auto contractAddress =
-      mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH);
+      mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH_LEGACY);
 
   CREATE_SPAN(
       zil::trace::FilterClass::TXN, fromAddress.hex(), contractAddress.hex(),
@@ -495,7 +495,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     const evm::TrapData_Scheme_Legacy& legacy = scheme.legacy();
     fromAddress = ProtoToAddress(legacy.caller());
     contractAddress = mAccountStore.GetAddressForContract(
-        fromAddress, TRANSACTION_VERSION_ETH);
+        fromAddress, TRANSACTION_VERSION_ETH_LEGACY);
   } else if (scheme.has_create2()) {
     const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
     fromAddress = ProtoToAddress(create2.caller());
