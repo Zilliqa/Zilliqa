@@ -102,10 +102,9 @@ def main():
                             os.path.join("/etc/zilliqa", "isolated-server-accounts.json"))
         except:
             print("Failed to copy isolated-server-accounts.json")
+            print("you need to create a /etc/zilliqa directory with rw access ")
             return 0
 
-    # The following is the same as the original implementation, except it generates keys rather than
-    # using the secrets directory
 
     if not data.get_ips_list_from_pseudo_origin(args):
         print("Generating data from the command line arguments failed")
