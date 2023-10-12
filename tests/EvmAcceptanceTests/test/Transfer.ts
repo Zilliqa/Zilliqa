@@ -85,7 +85,7 @@ describe("Transfer ethers #parallel", function () {
 
   it("should be possible to batch transfer using a smart contract and get funds back on self destruct @block-1", async function () {
     const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_000_000_000;
+    const ACCOUNT_VALUE = ethers.utils.parseEther("0.1");
 
     const [owner] = await ethers.getSigners();
     let initialOwnerBal = await ethers.provider.getBalance(owner.address);
@@ -97,7 +97,7 @@ describe("Transfer ethers #parallel", function () {
     const addresses = accounts.map((signer) => signer.address);
 
     const batchTrans = await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
+      value: ACCOUNT_VALUE.mul(ACCOUNTS_COUNT + 2)
     });
 
     const fee1 = await getFee(batchTrans.deployTransaction.hash);
@@ -107,28 +107,9 @@ describe("Transfer ethers #parallel", function () {
     const diff = initialOwnerBal.sub(finalOwnerBal).sub(fee1);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
-    if (diff.toNumber() > ACCOUNT_VALUE * 4) {
+    if (diff > ACCOUNT_VALUE.mul(4)) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
-
-    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
-    balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
-  });
-
-  // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
-  xit("should be possible to batch transfer using a smart contract with full precision", async function () {
-    const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_234_567;
-
-    const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
-      ethers.Wallet.createRandom().connect(ethers.provider)
-    );
-
-    const addresses = accounts.map((signer) => signer.address);
-
-    await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: ACCOUNTS_COUNT * ACCOUNT_VALUE
-    });
 
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));

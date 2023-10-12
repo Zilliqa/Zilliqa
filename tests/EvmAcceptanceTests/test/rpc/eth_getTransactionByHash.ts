@@ -6,8 +6,7 @@ import logDebug from "../../helpers/DebugHelper";
 const METHOD = "eth_getTransactionByHash";
 
 describe(`Calling ${METHOD} #parallel`, function () {
-  // FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
-  xit("should have valid structure in response", async function () {
+  it("should have valid structure in response", async function () {
     const to = ethers.Wallet.createRandom();
     const {response, signer_address} = await hre.sendEthTransaction({
       to: to.address,
