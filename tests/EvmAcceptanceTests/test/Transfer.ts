@@ -38,7 +38,7 @@ describe("ForwardZil contract functionality #parallel", function () {
 
   it("should be possible to transfer ethers to the contract @block-2", async function () {
     const prevBalance = await ethers.provider.getBalance(contract.address);
-    const {response} = await hre.sendTransaction({
+    const {response} = await hre.sendEthTransaction({
       to: contract.address,
       value: FUND
     });
@@ -55,7 +55,7 @@ describe("Transfer ethers #parallel", function () {
   it("should be possible to transfer ethers to a user account @block-1", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    const {response} = await hre.sendTransaction({
+    const {response} = await hre.sendEthTransaction({
       to: payee.address,
       value: FUND
     });
@@ -85,7 +85,7 @@ describe("Transfer ethers #parallel", function () {
 
   it("should be possible to batch transfer using a smart contract and get funds back on self destruct @block-1", async function () {
     const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_000_000_000;
+    const ACCOUNT_VALUE = ethers.utils.parseEther("0.1");
 
     const [owner] = await ethers.getSigners();
     let initialOwnerBal = await ethers.provider.getBalance(owner.address);
@@ -97,7 +97,7 @@ describe("Transfer ethers #parallel", function () {
     const addresses = accounts.map((signer) => signer.address);
 
     const batchTrans = await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
+      value: ACCOUNT_VALUE.mul(ACCOUNTS_COUNT + 2)
     });
 
     const fee1 = await getFee(batchTrans.deployTransaction.hash);
@@ -107,28 +107,9 @@ describe("Transfer ethers #parallel", function () {
     const diff = initialOwnerBal.sub(finalOwnerBal).sub(fee1);
 
     // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
-    if (diff.toNumber() > ACCOUNT_VALUE * 4) {
+    if (diff > ACCOUNT_VALUE.mul(4)) {
       assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
     }
-
-    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
-    balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
-  });
-
-  // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
-  xit("should be possible to batch transfer using a smart contract with full precision", async function () {
-    const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_234_567;
-
-    const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
-      ethers.Wallet.createRandom().connect(ethers.provider)
-    );
-
-    const addresses = accounts.map((signer) => signer.address);
-
-    await hre.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: ACCOUNTS_COUNT * ACCOUNT_VALUE
-    });
 
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
@@ -144,7 +125,7 @@ describe("Transfer ethers #parallel", function () {
     let initialBal = await ethers.provider.getBalance(randomAccount);
     expect(initialBal).to.be.eq(0);
 
-    const owner = hre.allocateSigner();
+    const owner = hre.allocateEthSigner();
     let InitialOwnerbal = await ethers.provider.getBalance(owner.address);
 
     // check enough funds + gas
@@ -162,7 +143,7 @@ describe("Transfer ethers #parallel", function () {
     const receivedBal = await ethers.provider.getBalance(randomAccount);
 
     expect(receivedBal).to.be.eq(TRANSFER_VALUE);
-    hre.releaseSigner(owner);
+    hre.releaseEthSigner(owner);
   });
 
   // Disabled in q4-working-branch
@@ -171,7 +152,7 @@ describe("Transfer ethers #parallel", function () {
 
     const FUND = BigNumber.from(200_000_000_000_000_000n);
 
-    const tx = await hre.sendTransaction({
+    const tx = await hre.sendEthTransaction({
       to: rndAccount.address,
       value: FUND
     });

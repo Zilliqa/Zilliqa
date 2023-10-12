@@ -17,7 +17,6 @@
 
 #include "EvmClient.h"
 #include <boost/process/args.hpp>
-#include <boost/process/child.hpp>
 #include <filesystem>
 #include <sstream>
 #include <thread>
@@ -65,7 +64,6 @@ bool LaunchEvmDaemon(boost::process::child& child,
     }
   }
   if (not std::filesystem::exists(bin_path)) {
-    std::stringstream ss;
     TRACE_ERROR("Cannot create a subprocess that does not exist " +
                 EVM_SERVER_BINARY);
     return false;
@@ -87,17 +85,6 @@ bool LaunchEvmDaemon(boost::process::child& child,
     if ((counter++ % 10) == 0)
       LOG_GENERAL(WARNING, "Awaiting Launch of the evm-ds daemon ");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-  return true;
-}
-
-bool CleanupPreviousInstances() {
-  INC_CALLS(GetCallsCounter());
-
-  std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
-  int sysRep = std::system(s.c_str());
-  if (sysRep != -1) {
-    LOG_GENERAL(INFO, "system call return value " << sysRep);
   }
   return true;
 }
@@ -135,9 +122,7 @@ void EvmClient::Init() {
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
-  if (LAUNCH_EVM_DAEMON) {
-    CleanupPreviousInstances();
-  } else {
+  if (!LAUNCH_EVM_DAEMON) {
     // There is a lot of junk on stackoverflow about how to do this, but for us, this will do..
     const std::vector<std::string>& args(GetEvmDaemonArgs());
     std::ostringstream cmdLine;
@@ -155,7 +140,6 @@ void EvmClient::Reset() {
   INC_CALLS(GetCallsCounter());
 
   Terminate(m_child, m_client);
-  CleanupPreviousInstances();
 }
 
 EvmClient::~EvmClient() { LOG_MARKER(); }

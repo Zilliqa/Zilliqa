@@ -502,8 +502,8 @@ def tempo_down(config):
               default='localdev',
               show_default=True,
               help="The test network's name")
-@click.option("--isolated-server-accounts",
-              is_flag=True,
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
+@click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
@@ -565,6 +565,16 @@ def xml_replace_element(doc, parent, name, new_value):
     while elem.firstChild is not None:
         elem.removeChild(elem.firstChild)
     elem.appendChild(doc.createTextNode(new_value))
+
+def xml_replace_element_if_exists(doc, parent, name, new_value):
+    """
+    replace an xml element, but don't complain if it doesn't exist -
+    it may have been removed from the config file
+    """
+    try:
+        xml_replace_element(doc, parent, name, new_value)
+    except Exception as e:
+        pass
 
 def copy_everything_in_dir(src, dest):
     """ Copy all files in src to dest """
@@ -759,10 +769,10 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-    xml_replace_element(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)
     output_config = config_file.toprettyxml(newl='')
@@ -1167,8 +1177,8 @@ def restart_ingress_cmd(ctx):
               default='localdev',
               show_default=True,
               help="The test network's name")
-@click.option("--isolated-server-accounts",
-              is_flag=True,
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
+@click.option("--isolated-server-accounts/--no-isolated-server-accounts",
               default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
@@ -1255,9 +1265,9 @@ def start_proxy_cmd(ctx, testnet_name):
               default='localdev',
               show_default=True,
               help="The test network's name")
-@click.option("--isolated-server-accounts",
-              is_flag=True,
-              default=False,
+# Need to specify these options explicitly, or --isolated-server-accounts will flip the flag and disable isolated server accounts - rrw 2023-10-11
+@click.option("--isolated-server-accounts/--no-isolated-server-accounts",
+              default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
 def write_testnet_config_cmd(ctx, zilliqa_image, testnet_name, isolated_server_accounts):

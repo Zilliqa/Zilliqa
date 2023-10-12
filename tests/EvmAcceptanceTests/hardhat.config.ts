@@ -3,9 +3,6 @@ import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
 import "dotenv/config";
 import {ENV_VARS} from "./helpers/EnvVarParser";
-import "./tasks/ZilBalance";
-import "./tasks/Transfer";
-import "./tasks/InitSigners";
 import fs from "fs";
 
 if (ENV_VARS.scilla) {
@@ -36,7 +33,21 @@ const loadFromSignersFile = (network_name: string): string[] => {
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
   defaultNetwork: "isolated_server",
+
   networks: {
+    public_devnet: {
+      url: "https://api.devnet.zilliqa.com",
+      websocketUrl: "ws://api.devnet.zilliqa.com",
+      accounts: [
+        "4CC853DE4F9FE4A9155185C65B56B6A9B024F896B54528B9E9448B6CD9B8F329",
+        ...loadFromSignersFile("public_devnet")
+      ],
+      chainId: 33385,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
     localdev2: {
       url: "http://localdev-l2api.localdomain",
       websocketUrl: "ws://localdev-l2api.localdomain",
@@ -130,13 +141,20 @@ import "./AddConfigHelpersToHre";
 import {extendEnvironment} from "hardhat/config";
 import SignerPool from "./helpers/parallel-tests/SignerPool";
 extendEnvironment(async (hre) => {
+  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
+
   hre.debug = ENV_VARS.debug;
   hre.scillaTesting = ENV_VARS.scilla;
   hre.signer_pool = new SignerPool();
+  hre.zilliqaSetup = initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), private_keys, 30);
 });
 
-import "./tasks/Balances"; // To fix tsc error
-import "./tasks/Setup"; // To fix tsc error
+import "./tasks/Balances";
+import "./tasks/Setup";
 import "./tasks/ParallelTest";
 import "./tasks/Test";
+import "./tasks/ZilBalance";
+import "./tasks/Transfer";
+import "./tasks/InitSigners";
+import {initZilliqa} from "hardhat-scilla-plugin";
 export default config;

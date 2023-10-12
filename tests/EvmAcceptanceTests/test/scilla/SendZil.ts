@@ -4,7 +4,7 @@ import hre, {ethers} from "hardhat";
 import {parallelizer} from "../../helpers";
 import {BN, Zilliqa} from "@zilliqa-js/zilliqa";
 
-describe("Move Zil", function () {
+describe("Move Zil #parallel", function () {
   const ZIL_AMOUNT = 3_000_000;
   let contract: ScillaContract;
   let to_be_funded_contract: ScillaContract;
@@ -16,15 +16,24 @@ describe("Move Zil", function () {
     }
 
     zilliqa = new Zilliqa(hre.getNetworkUrl());
-    contract = await parallelizer.deployScillaContract("SendZil");
-    to_be_funded_contract = await parallelizer.deployScillaContract("SendZil");
+
+    if (hre.parallel) {
+      [contract, to_be_funded_contract] = await Promise.all([
+        hre.deployScillaContract2("SendZil"),
+        hre.deployScillaContract2("SendZil")
+      ]);
+    } else {
+      contract = await parallelizer.deployScillaContract("SendZil");
+      to_be_funded_contract = await parallelizer.deployScillaContract("SendZil");
+    }
   });
 
-  it("Should be deployed successfully", async function () {
+  it("Should be deployed successfully @block-1", async function () {
     expect(contract.address).to.be.properAddress;
+    expect(to_be_funded_contract.address).to.be.properAddress;
   });
 
-  it("Should have updated balance if accept is called", async function () {
+  it("Should have updated balance if accept is called @block-1", async function () {
     const tx = await contract.acceptZil({amount: new BN(ZIL_AMOUNT)});
     expect(tx).to.have.eventLogWithParams("currentBalance", {value: ethers.BigNumber.from(ZIL_AMOUNT)});
   });

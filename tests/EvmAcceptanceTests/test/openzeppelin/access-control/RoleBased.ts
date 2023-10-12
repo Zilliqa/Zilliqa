@@ -13,14 +13,14 @@ describe("Openzeppelin role based access control functionality", function () {
   before(async function () {
     user = ethers.Wallet.createRandom();
 
-    minter = hre.allocateSigner();
+    minter = hre.allocateEthSigner();
     contract = await hre.deployContract("OpenZeppelinRoleBasedToken", minter.address);
     defaultAdmin = contract.signer;
-    burner = hre.allocateSigner();
+    burner = hre.allocateEthSigner();
   });
 
   after(function () {
-    hre.releaseSigner(minter, burner);
+    hre.releaseEthSigner(minter, burner);
   });
 
   it("should return true if hasRole is called for minter and MINTER_ROLE", async function () {
@@ -29,14 +29,13 @@ describe("Openzeppelin role based access control functionality", function () {
   });
 
   // Disabled in q4-working-branch
-  xit("should be possible for minter to mint", async function () {
+  it("should be possible for minter to mint", async function () {
     expect(await contract.connect(minter).mint(user.address, 1000)).to.changeTokenBalance(contract, user.address, 1000);
 
     expect(await contract.totalSupply()).to.be.at.least(1000);
   });
 
-  // FIXME: Can't be parallelized yet. Needs ZIL-5055
-  xit("should not be possible for non-minter to mint", async function () {
+  it("should not be possible for non-minter to mint", async function () {
     const account = ethers.Wallet.createRandom();
     await expect(contract.mint(account.address, 1000)).to.be.reverted;
 
@@ -51,7 +50,7 @@ describe("Openzeppelin role based access control functionality", function () {
   });
 
   // Disabled in q4-working-branch
-  xit("should be possible for burner to burn after it grants the access", async function () {
+  it("should be possible for burner to burn after it grants the access", async function () {
     expect(await contract.connect(burner).burn(user.address, 100)).to.changeTokenBalance(contract, user.address, -100);
   });
 

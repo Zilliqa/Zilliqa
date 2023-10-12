@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_
 #define ZILLIQA_SRC_LIBSCILLA_SCILLACLIENT_H_
 
+#include <boost/process/child.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -28,6 +29,7 @@
 class ScillaClient {
   std::map<uint32_t, std::unique_ptr<jsonrpc::Client>> m_clients;
   std::map<uint32_t, std::unique_ptr<rpc::UnixDomainSocketClient>> m_connectors;
+  std::map<uint32_t, boost::process::child> m_child_processes;
 
   std::mutex m_mutexMain;
 
@@ -44,9 +46,11 @@ class ScillaClient {
 
   bool CheckClient(uint32_t version, bool enforce = false);
 
+  void RestartScillaClient();
+
   void Init();
 
-  bool isScillaRuning();
+  bool isScillaRuning(uint32_t version);
 
   bool CallChecker(uint32_t version, const Json::Value& _json,
                    std::string& result, uint32_t counter = MAXRETRYCONN);

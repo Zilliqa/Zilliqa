@@ -13,7 +13,7 @@ task("parallel-test", "Runs test in parallel")
   .addOptionalParam("grep", "Only run tests matching the given string or regexp")
   .setAction(async (taskArgs, hre) => {
     hre.run("compile");
-    const signersCount = hre.signer_pool.count();
+    const [eth_signer_count, zil_signer_count] = hre.signer_pool.count();
 
     const {grep, testFiles}: {grep: string | undefined; testFiles: string[]} = taskArgs;
 
@@ -44,7 +44,9 @@ task("parallel-test", "Runs test in parallel")
     // Display results
     await hre.run("parallel-test:output-results", {failures});
 
-    console.log(`🪪  ${clc.bold.white(signersCount - hre.signer_pool.count())} signers used.`);
+    const [current_eth_signer_count, current_zil_signer_count] = hre.signer_pool.count();
+    console.log(`🪪  ${clc.bold.white(eth_signer_count - current_eth_signer_count)} eth signers used.`);
+    console.log(`🪪  ${clc.bold.white(zil_signer_count - current_zil_signer_count)} zil signers used.`);
   });
 
 subtask("parallel-test:run-tsc", "Runs tsc to make sure everything's synced").setAction(async () => {

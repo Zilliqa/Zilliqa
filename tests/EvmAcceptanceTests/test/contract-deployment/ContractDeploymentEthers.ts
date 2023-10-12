@@ -9,13 +9,13 @@ describe("Contract Deployment using Ethers.js #parallel", function () {
     let nonceBeforeDeploy: number;
     let zeroParamConstructor: Contract;
     before(async function () {
-      signer = hre.allocateSigner();
+      signer = hre.allocateEthSigner();
       nonceBeforeDeploy = await ethers.provider.getTransactionCount(signer.getAddress());
       zeroParamConstructor = await hre.deployContractWithSigner("ZeroParamConstructor", signer);
     });
 
     after(() => {
-      hre.releaseSigner(signer);
+      hre.releaseEthSigner(signer);
     });
 
     it("Should be deployed successfully @block-1 [@transactional]", async function () {

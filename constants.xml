@@ -366,16 +366,21 @@
     </metric>
     <trace>
         <zilliqa>
+            <!--
             <TRACE_ZILLIQA_HOSTNAME>0.0.0.0</TRACE_ZILLIQA_HOSTNAME>
             <TRACE_ZILLIQA_PORT>4318</TRACE_ZILLIQA_PORT>
             <TRACE_ZILLIQA_PROVIDER>OTLPHTTP</TRACE_ZILLIQA_PROVIDER>
+            -->
+            <TRACE_ZILLIQA_PROVIDER>NONE</TRACE_ZILLIQA_PROVIDER>
             <TRACE_ZILLIQA_MASK>NONE</TRACE_ZILLIQA_MASK>
         </zilliqa>
     </trace>
     <logging>
         <zilliqa>
+            <!--
             <LOGGING_ZILLIQA_HOSTNAME>localhost</LOGGING_ZILLIQA_HOSTNAME>
             <LOGGING_ZILLIQA_PORT>8090</LOGGING_ZILLIQA_PORT>
+            -->
             <LOGGING_ZILLIQA_PROVIDER>NONE</LOGGING_ZILLIQA_PROVIDER>
         </zilliqa>
     </logging>
