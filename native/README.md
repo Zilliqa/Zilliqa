@@ -45,4 +45,11 @@ You can install localstack directly on your machine and start with localstack st
 
 TODO
 
-Fixup the hardhcoded path in the start.sh command, i usually run it inside by dir, I hope this is the last remaining defect with paths.
+Test, test, test
+
+Fixup the hard-coded path in the start.sh command, i usually run it inside by dir, I hope this is the last remaining defect with paths.
+
+run python web server under docker with the rest of the support utilities such as localstacck
+and the metrics daemons.
+
+Add the code required to add new join nodes and build new directories for them.
