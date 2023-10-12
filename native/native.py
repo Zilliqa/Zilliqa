@@ -98,7 +98,7 @@ def main():
     if args.isolated_server_accounts is not None:
         # Copy into configmap
         try:
-            shutil.copyfile("../Zilliqa/isolated-server-accounts.json",
+            shutil.copyfile("../isolated-server-accounts.json",
                             os.path.join("/etc/zilliqa", "isolated-server-accounts.json"))
         except:
             print("Failed to copy isolated-server-accounts.json")

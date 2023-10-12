@@ -156,7 +156,8 @@ def filter_empty_ip(ip_list):
 
 
 def create_constants_xml(args, data):
-    root = xtree.parse(path.join(args.build_dir,"../"  "constants.xml")).getroot()
+    base_dir = "../../.."
+    root = xtree.parse(path.join(base_dir,  'constants.xml')).getroot()
 
     lookup_nodes = root.find('lookups')
 
@@ -657,9 +658,9 @@ def generate_files(args, data, pod_name):
     return create_start_sh(args, data)
 
 def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
-    scripts_dir = "../Zilliqa/scripts"
-    zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../..', '..', 'zilliqa'))
-    scilla_dir = "../scilla"
+    scripts_dir = "../scripts"
+    zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../..',  'Zilliqa'))
+    scilla_dir = os.path.abspath(os.path.join(scripts_dir, '../..',  'scilla'))
     for index in range(first_index, first_index + count):
         try:
             pod_name = f'{"native"}-{node_type}-{index}'
