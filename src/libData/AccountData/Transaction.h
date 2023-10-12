@@ -32,7 +32,8 @@ struct TransactionCoreInfo {
                       const uint128_t& amountInput,
                       const uint128_t& gasPriceInput,
                       const uint64_t& gasLimitInput, const zbytes& codeInput,
-                      const zbytes& dataInput)
+                      const zbytes& dataInput, const AccessList& accessListInput,
+                      const uint128_t& maxPriorityFeePerGasInput, const uint128_t& maxFeePerGasInput)
       : version(versionInput),
         nonce(nonceInput),
         toAddr(toAddrInput),
@@ -41,7 +42,10 @@ struct TransactionCoreInfo {
         gasPrice(gasPriceInput),
         gasLimit(gasLimitInput),
         code(codeInput),
-        data(dataInput) {}
+        data(dataInput),
+        accessList(accessListInput),
+        maxPriorityFeePerGas(maxPriorityFeePerGasInput),
+        maxFeePerGas(maxFeePerGasInput) {}
 
   uint32_t version{};
   uint64_t nonce{};  // counter: the number of tx from m_fromAddr
@@ -52,6 +56,9 @@ struct TransactionCoreInfo {
   uint64_t gasLimit{};
   zbytes code;
   zbytes data;
+  AccessList accessList;
+  uint128_t maxPriorityFeePerGas;
+  uint128_t maxFeePerGas;
 };
 
 /// Stores information on a single transaction.
@@ -88,6 +95,20 @@ class Transaction : public SerializableDataBlock {
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
               const Signature& signature);
+
+  /// Constructor with specified transaction fields.
+  Transaction(const uint32_t& version, const uint64_t& nonce,
+              const Address& toAddr, const PubKey& senderPubKey,
+              const uint128_t& amount, const uint128_t& gasPrice,
+              const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
+              const Signature& signature, const AccessList &accessList);
+
+  /// Constructor with specified transaction fields.
+  Transaction(const uint32_t& version, const uint64_t& nonce,
+              const Address& toAddr, const PubKey& senderPubKey,
+              const uint128_t& amount, const uint128_t& gasPrice,
+              const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
+              const Signature& signature, const AccessList &accessList, const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas);
 
   /// Constructor with core information.
   Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,

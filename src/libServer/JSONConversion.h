@@ -72,6 +72,7 @@ class JSONConversion {
   static const Json::Value convertTxtoEthJson(uint64_t txindex,
                                               const TransactionWithReceipt& txn,
                                               const TxBlock& txblock);
+  static const Json::Value convertAccessList(const AccessList& accessList);
   // Convert a node to json
   static const Json::Value convertNode(const PairOfNode& node);
   // conver a node with reputation to json

@@ -806,7 +806,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json,
     } else if (toAccount == nullptr) {
       if (!ENABLE_CPS) {
         toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
-                                                TRANSACTION_VERSION_ETH);
+                                                TRANSACTION_VERSION_ETH_LEGACY);
       }
       contractCreation = true;
     }

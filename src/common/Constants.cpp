@@ -148,9 +148,6 @@ const bool AUTO_UPGRADE{ReadConstantString("AUTO_UPGRADE") == "true"};
 // Version constants
 const unsigned int MSG_VERSION{
     ReadConstantNumeric("MSG_VERSION", "node.version.")};
-const unsigned int TRANSACTION_VERSION{
-    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
-const unsigned int TRANSACTION_VERSION_ETH = 2;
 const unsigned int DSBLOCK_VERSION{
     ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
 const unsigned int TXBLOCK_VERSION{

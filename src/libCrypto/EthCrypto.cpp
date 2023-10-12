@@ -29,6 +29,7 @@
 #endif
 
 #include "libData/AccountData/Address.h"
+#include "libEth/Eth.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -101,6 +102,7 @@ zbytes DerivePubkey(zbytes rs, int vSelect, const unsigned char* signingHash) {
   secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(),
                                 &serializedPubkeySize, &rawPubkey,
                                 SECP256K1_EC_UNCOMPRESSED);
+  LOG_GENERAL(WARNING, "serialized pub key: " << DataConversion::Uint8VecToHexStrRet(serializedPubkey));
 
   return serializedPubkey;
 }
@@ -311,32 +313,15 @@ zbytes ToUncompressedPubKey(std::string const& pubKey) {
   return ret;
 }
 
-// EIP-155 : assume the chain height is high enough that the signing scheme
-// is in line with EIP-155.
-// message shall not contain '0x'
-zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
-  if (message.size() >= 2) {
-    auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
-    // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards
-    // Compatibiltiy"
-    if (!(firstByte >= 0xc0 && firstByte <= 0xfe)) {
-      LOG_GENERAL(WARNING, "EIP-2718 TXs not yet supported! Tx: "
-                               << message << " First byte: " << firstByte);
-      return {};
-    }
-  }
-
+zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
-  zbytes asBytes;
-  DataConversion::HexStrToUint8Vec(message, asBytes);
-
-  dev::RLP rlpStream1(asBytes,
+  dev::RLP rlpStream1(transaction,
                       dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
   dev::RLPStream rlpStreamRecreated(9);
 
   if (rlpStream1.isNull()) {
-    LOG_GENERAL(WARNING, "Failed to parse raw TX RLP: " << message);
+    LOG_GENERAL(WARNING, "Failed to parse raw TX RLP");
     return {};
   }
 
@@ -350,8 +335,8 @@ zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
   for (const auto& item : rlpStream1) {
     auto itemBytes = item.operator zbytes();
 
-    // First 5 fields stay the same
-    if (i <= 5) {
+    // First 6 fields stay the same
+    if (i < 6) {
       rlpStreamRecreated << itemBytes;
     }
 
@@ -396,33 +381,196 @@ zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
   return DerivePubkey(rs, vSelect, &signingHash.bytes[0]);
 }
 
-// nonce, gasprice, startgas, to, value, data, chainid, 0, 0
-zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
-  dev::RLPStream rlpStreamRecreated(9);
+zbytes RecoverEip2930Transaction(zbytes transaction, int expectedChainId) {
+  dev::RLP rlpStream(transaction, dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
+  dev::RLPStream rlpStreamRecreated(8);
 
-  rlpStreamRecreated << info.nonce - 1;
-  rlpStreamRecreated << info.gasPrice;
-  rlpStreamRecreated << info.gasLimit;
-  zbytes toAddr;
-  if (!IsNullAddress(info.toAddr)) {
-    toAddr = info.toAddr.asBytes();
+  if (rlpStream.isNull()) {
+    LOG_GENERAL(WARNING, "Failed to parse raw TX RLP");
+    return {};
   }
-  rlpStreamRecreated << toAddr;
-  rlpStreamRecreated << info.amount;
-  if (IsNullAddress(info.toAddr)) {
-    rlpStreamRecreated << FromEVM(info.code);
-  } else {
-    rlpStreamRecreated << info.data;
-  }
+
+  // Parse these fields separately, since `parseEip2930Transaction` won't.
+  int chainId = uint32_t(rlpStream[0]);
+  int signatureYParity = uint32_t(rlpStream[8]);
+  // Parse the rest of the fields into an `EthFields`.
+  auto fields = Eth::parseEip2930Transaction(transaction);
 
   rlpStreamRecreated << chainId;
-  rlpStreamRecreated << zbytes{};
-  rlpStreamRecreated << zbytes{};
+  rlpStreamRecreated << fields.nonce - 1;
+  rlpStreamRecreated << fields.gasPrice;
+  rlpStreamRecreated << fields.gasLimit;
+  rlpStreamRecreated << fields.toAddr;
+  rlpStreamRecreated << fields.amount;
+  rlpStreamRecreated << fields.code;
+  rlpStreamRecreated << fields.accessList;
 
-  auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
-                                             rlpStreamRecreated.out().size());
+  if (chainId != expectedChainId) {
+    LOG_GENERAL(WARNING, "Chain ID mismatch: expected: " << expectedChainId << ", got: " << chainId);
+  }
 
-  return zbytes{&signingHash.bytes[0], &signingHash.bytes[32]};
+  auto messageRecreatedBytes = rlpStreamRecreated.out();
+  // Prepend the message type specifier.
+  messageRecreatedBytes.insert(messageRecreatedBytes.begin(), 0x01);
+
+  auto hashed = ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
+
+  return DerivePubkey(fields.signature, signatureYParity, &hashed.bytes[0]);
+}
+
+
+zbytes RecoverEip1559Transaction(zbytes transaction, int expectedChainId) {
+  dev::RLP rlpStream(transaction, dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
+  dev::RLPStream rlpStreamRecreated(9);
+
+  if (rlpStream.isNull()) {
+    LOG_GENERAL(WARNING, "Failed to parse raw TX RLP");
+    return {};
+  }
+
+  // Parse these fields separately, since `parseEip1559Transaction` won't.
+  int chainId = uint32_t(rlpStream[0]);
+  int signatureYParity = uint32_t(rlpStream[9]);
+  // Parse the rest of the fields into an `EthFields`.
+  auto fields = Eth::parseEip1559Transaction(transaction);
+
+  rlpStreamRecreated << chainId;
+  rlpStreamRecreated << fields.nonce - 1;
+  rlpStreamRecreated << fields.maxPriorityFeePerGas;
+  rlpStreamRecreated << fields.maxFeePerGas;
+  rlpStreamRecreated << fields.gasLimit;
+  rlpStreamRecreated << fields.toAddr;
+  rlpStreamRecreated << fields.amount;
+  rlpStreamRecreated << fields.code;
+  rlpStreamRecreated << fields.accessList;
+
+  if (chainId != expectedChainId) {
+    LOG_GENERAL(WARNING, "Chain ID mismatch: expected: " << expectedChainId << ", got: " << chainId);
+  }
+
+  auto messageRecreatedBytes = rlpStreamRecreated.out();
+  // Prepend the message type specifier.
+  messageRecreatedBytes.insert(messageRecreatedBytes.begin(), 0x02);
+
+  auto hashed = ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
+
+  return DerivePubkey(fields.signature, signatureYParity, &hashed.bytes[0]);
+}
+
+// EIP-155 : assume the chain height is high enough that the signing scheme
+// is in line with EIP-155.
+// message shall not contain '0x'
+zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
+  if (message.size() < 2) {
+    LOG_GENERAL(WARNING, "invalid transaction. Tx: " << message);
+    return {};
+  }
+  zbytes asBytes;
+  DataConversion::HexStrToUint8Vec(message, asBytes);
+  auto const firstByte = asBytes[0];
+  if (firstByte == 0x01) {
+    zbytes transaction(asBytes.begin() + 1, asBytes.end());
+    return RecoverEip2930Transaction(transaction, chain_id);
+  } else if (firstByte == 0x02) {
+    zbytes transaction(asBytes.begin() + 1, asBytes.end());
+    return RecoverEip1559Transaction(transaction, chain_id);
+  } else if ((firstByte >= 0xc0) && (firstByte <= 0xfe)) {
+    // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards Compatibility"
+    return RecoverLegacyTransaction(asBytes, chain_id);
+  } else {
+    LOG_GENERAL(WARNING, "invalid transaction. Tx: " << message << " First byte: " << firstByte);
+    return {};
+  }
+}
+
+// nonce, gasprice, startgas, to, value, data, chainid, 0, 0
+zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
+  uint16_t version = DataConversion::UnpackB(info.version);
+  switch (version) {
+    case TRANSACTION_VERSION_ETH_LEGACY: {
+      dev::RLPStream rlpStreamRecreated(9);
+
+      rlpStreamRecreated << info.nonce - 1;
+      rlpStreamRecreated << info.gasPrice;
+      rlpStreamRecreated << info.gasLimit;
+      zbytes toAddr;
+      if (!IsNullAddress(info.toAddr)) {
+        toAddr = info.toAddr.asBytes();
+      }
+      rlpStreamRecreated << toAddr;
+      rlpStreamRecreated << info.amount;
+      if (IsNullAddress(info.toAddr)) {
+        rlpStreamRecreated << FromEVM(info.code);
+      } else {
+        rlpStreamRecreated << info.data;
+      }
+
+      rlpStreamRecreated << chainId;
+      rlpStreamRecreated << zbytes{};
+      rlpStreamRecreated << zbytes{};
+
+      auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
+                                                rlpStreamRecreated.out().size());
+
+      return zbytes{&signingHash.bytes[0], &signingHash.bytes[32]};
+    }
+    case TRANSACTION_VERSION_ETH_EIP_2930: {
+      dev::RLPStream rlpStreamRecreated(8);
+      rlpStreamRecreated << chainId;
+      rlpStreamRecreated << info.nonce - 1;
+      rlpStreamRecreated << info.gasPrice;
+      rlpStreamRecreated << info.gasLimit;
+      zbytes toAddr;
+      if (!IsNullAddress(info.toAddr)) {
+        toAddr = info.toAddr.asBytes();
+      }
+      rlpStreamRecreated << toAddr;
+      rlpStreamRecreated << info.amount;
+      if (IsNullAddress(info.toAddr)) {
+        rlpStreamRecreated << FromEVM(info.code);
+      } else {
+        rlpStreamRecreated << info.data;
+      }
+      rlpStreamRecreated << info.accessList;
+
+      auto messageRecreatedBytes = rlpStreamRecreated.out();
+      // Prepend the message type specifier.
+      messageRecreatedBytes.insert(messageRecreatedBytes.begin(), 0x01);
+
+      auto hashed = ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
+      return zbytes{&hashed.bytes[0], &hashed.bytes[32]};
+    }
+    case TRANSACTION_VERSION_ETH_EIP_1559: {
+      dev::RLPStream rlpStreamRecreated(9);
+      rlpStreamRecreated << chainId;
+      rlpStreamRecreated << info.nonce - 1;
+      rlpStreamRecreated << info.maxPriorityFeePerGas;
+      rlpStreamRecreated << info.maxFeePerGas;
+      rlpStreamRecreated << info.gasLimit;
+      zbytes toAddr;
+      if (!IsNullAddress(info.toAddr)) {
+        toAddr = info.toAddr.asBytes();
+      }
+      rlpStreamRecreated << toAddr;
+      rlpStreamRecreated << info.amount;
+      if (IsNullAddress(info.toAddr)) {
+        rlpStreamRecreated << FromEVM(info.code);
+      } else {
+        rlpStreamRecreated << info.data;
+      }
+      rlpStreamRecreated << info.accessList;
+
+      auto messageRecreatedBytes = rlpStreamRecreated.out();
+      // Prepend the message type specifier.
+      messageRecreatedBytes.insert(messageRecreatedBytes.begin(), 0x02);
+
+      auto hashed = ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
+      return zbytes{&hashed.bytes[0], &hashed.bytes[32]};
+    }
+    default:
+      LOG_GENERAL(WARNING, "Invalid transaction with version " << version);
+      return {};
+  }
 }
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
@@ -446,42 +594,124 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
       return zbytes{};
     }
 
-    dev::RLPStream rlpStreamRecreated(9);
+    uint16_t version = DataConversion::UnpackB(info.version);
 
-    // Note: the nonce is decremented because of the difference between Zil and
-    // Eth TXs
-    rlpStreamRecreated << info.nonce - 1;
-    rlpStreamRecreated << info.gasPrice;
-    rlpStreamRecreated << info.gasLimit;
-    zbytes toAddr;
-    if (!IsNullAddress(info.toAddr)) {
-      toAddr = info.toAddr.asBytes();
+    switch (version) {
+      case TRANSACTION_VERSION_ETH_LEGACY: {
+        dev::RLPStream rlpStreamRecreated(9);
+
+        // Note: the nonce is decremented because of the difference between Zil and
+        // Eth TXs
+        rlpStreamRecreated << info.nonce - 1;
+        rlpStreamRecreated << info.gasPrice;
+        rlpStreamRecreated << info.gasLimit;
+        zbytes toAddr;
+        if (!IsNullAddress(info.toAddr)) {
+          toAddr = info.toAddr.asBytes();
+        }
+        rlpStreamRecreated << toAddr;
+        rlpStreamRecreated << info.amount;
+        if (IsNullAddress(info.toAddr)) {
+          rlpStreamRecreated << FromEVM(info.code);
+        } else {
+          rlpStreamRecreated << info.data;
+        }
+
+        // i is the parity, either 0 or 1
+        int v = (chainId * 2) + 35 + i;
+
+        rlpStreamRecreated << v;
+        rlpStreamRecreated << dev::u256("0x" + signature);
+        rlpStreamRecreated << dev::u256("0x" + s);
+
+        zbytes data = rlpStreamRecreated.out();
+        auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
+        auto const pubK = RecoverECDSAPubKey(asString, chainId);
+
+        if (!PubKeysSame(pubK, info.senderPubKey)) {
+          continue;
+        }
+
+        recid = v;
+        return data;
+      }
+      case TRANSACTION_VERSION_ETH_EIP_2930: {
+        dev::RLPStream rlpStreamRecreated(11);
+        rlpStreamRecreated << chainId;
+        rlpStreamRecreated << info.nonce - 1;
+        rlpStreamRecreated << info.gasPrice;
+        rlpStreamRecreated << info.gasLimit;
+        zbytes toAddr;
+        if (!IsNullAddress(info.toAddr)) {
+          toAddr = info.toAddr.asBytes();
+        }
+        rlpStreamRecreated << toAddr;
+        rlpStreamRecreated << info.amount;
+        if (IsNullAddress(info.toAddr)) {
+          rlpStreamRecreated << FromEVM(info.code);
+        } else {
+          rlpStreamRecreated << info.data;
+        }
+        rlpStreamRecreated << info.accessList;
+        rlpStreamRecreated << i;
+        rlpStreamRecreated << dev::u256("0x" + signature);
+        rlpStreamRecreated << dev::u256("0x" + s);
+
+        zbytes data = rlpStreamRecreated.out();
+        // Prepend the message type specifier.
+        data.insert(data.begin(), 0x01);
+
+        auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
+        auto const pubK = RecoverECDSAPubKey(asString, chainId);
+
+        if (!PubKeysSame(pubK, info.senderPubKey)) {
+          continue;
+        }
+
+        recid = i;
+        return data;
+      }
+      case TRANSACTION_VERSION_ETH_EIP_1559: {
+        dev::RLPStream rlpStreamRecreated(12);
+        rlpStreamRecreated << chainId;
+        rlpStreamRecreated << info.nonce - 1;
+        rlpStreamRecreated << info.maxPriorityFeePerGas;
+        rlpStreamRecreated << info.maxFeePerGas;
+        rlpStreamRecreated << info.gasLimit;
+        zbytes toAddr;
+        if (!IsNullAddress(info.toAddr)) {
+          toAddr = info.toAddr.asBytes();
+        }
+        rlpStreamRecreated << toAddr;
+        rlpStreamRecreated << info.amount;
+        if (IsNullAddress(info.toAddr)) {
+          rlpStreamRecreated << FromEVM(info.code);
+        } else {
+          rlpStreamRecreated << info.data;
+        }
+        rlpStreamRecreated << info.accessList;
+        rlpStreamRecreated << i;
+        rlpStreamRecreated << dev::u256("0x" + signature);
+        rlpStreamRecreated << dev::u256("0x" + s);
+
+        zbytes data = rlpStreamRecreated.out();
+        // Prepend the message type specifier.
+        data.insert(data.begin(), 0x02);
+
+        auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
+        auto const pubK = RecoverECDSAPubKey(asString, chainId);
+
+        if (!PubKeysSame(pubK, info.senderPubKey)) {
+          continue;
+        }
+
+        recid = i;
+        return data;
+      }
+      default:
+        LOG_GENERAL(WARNING, "Invalid transaction with version " << version);
+        return {};
     }
-    rlpStreamRecreated << toAddr;
-    rlpStreamRecreated << info.amount;
-    if (IsNullAddress(info.toAddr)) {
-      rlpStreamRecreated << FromEVM(info.code);
-    } else {
-      rlpStreamRecreated << info.data;
-    }
-
-    // i is the parity, either 0 or 1
-    int v = (chainId * 2) + 35 + i;
-
-    rlpStreamRecreated << v;
-    rlpStreamRecreated << dev::u256("0x" + signature);
-    rlpStreamRecreated << dev::u256("0x" + s);
-
-    zbytes data = rlpStreamRecreated.out();
-    auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
-    auto const pubK = RecoverECDSAPubKey(asString, chainId);
-
-    if (!PubKeysSame(pubK, info.senderPubKey)) {
-      continue;
-    }
-
-    recid = v;
-    return data;
   }
 }
 
@@ -517,6 +747,10 @@ zbytes CreateHash(zbytes const& rawTx) {
   hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
 
   return hashBytes;
+}
+
+bool IsEthTransactionVersion(uint32_t version) {
+  return version == TRANSACTION_VERSION_ETH_LEGACY || version == TRANSACTION_VERSION_ETH_EIP_2930 || version == TRANSACTION_VERSION_ETH_EIP_1559;
 }
 
 zbytes CreateContractAddr(zbytes const& senderAddr, int nonce) {

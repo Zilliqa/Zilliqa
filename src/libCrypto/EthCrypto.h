@@ -60,6 +60,8 @@ zbytes StripEVM(zbytes const& in);
 // Create an ethereum style transaction hash
 zbytes CreateHash(zbytes const& rawTx);
 
+bool IsEthTransactionVersion(uint32_t version);
+
 // Create the eth-style contract address given the sender address and nonce
 zbytes CreateContractAddr(zbytes const& senderAddr, int nonce);
 

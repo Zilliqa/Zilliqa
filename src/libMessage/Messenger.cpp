@@ -23,6 +23,7 @@
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libUtils/SafeMath.h"
+#include "depends/common/FixedHash.h"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
@@ -752,6 +753,7 @@ bool ProtobufToShardingStructureAnnouncement(
 
 void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
                                    ProtoTransactionCoreInfo& protoTxnCoreInfo) {
+  LOG_GENERAL(WARNING, "writing protobuf with tx version of " << txnCoreInfo.version);
   protoTxnCoreInfo.set_version(txnCoreInfo.version);
   protoTxnCoreInfo.set_nonce(txnCoreInfo.nonce);
   protoTxnCoreInfo.set_toaddr(txnCoreInfo.toAddr.data(),
@@ -768,6 +770,21 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
   }
   if (!txnCoreInfo.data.empty()) {
     protoTxnCoreInfo.set_data(txnCoreInfo.data.data(), txnCoreInfo.data.size());
+  }
+  for (const auto& item : txnCoreInfo.accessList) {
+    AccessListItem* accessListItem = protoTxnCoreInfo.add_accesslist();
+    accessListItem->set_address(item.first.data(), item.first.size);
+    for (const auto& storageKey : item.second) {
+      accessListItem->add_storagekeys(storageKey.data(), storageKey.size);
+    }
+  }
+  if (txnCoreInfo.maxPriorityFeePerGas != 0) {
+    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+        txnCoreInfo.maxPriorityFeePerGas, *protoTxnCoreInfo.mutable_maxpriorityfeepergas());
+  }
+  if (txnCoreInfo.maxFeePerGas != 0) {
+    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+        txnCoreInfo.maxFeePerGas, *protoTxnCoreInfo.mutable_maxfeepergas());
   }
 }
 
@@ -802,6 +819,22 @@ bool ProtobufToTransactionCoreInfo(
     copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
          txnCoreInfo.data.begin());
   }
+  txnCoreInfo.accessList.reserve(protoTxnCoreInfo.accesslist_size());
+  for (const auto& item : protoTxnCoreInfo.accesslist()) {
+    dev::h160 address = dev::h160(item.address(), dev::h160::ConstructFromStringType::FromBinary);
+    std::vector<dev::h256> storageKeys;
+    storageKeys.reserve(item.storagekeys_size());
+    for (const auto& key : item.storagekeys()) {
+      dev::h256 storageKey = dev::h256(key, dev::h256::ConstructFromStringType::FromBinary);
+      storageKeys.push_back(storageKey);
+    }
+    auto accessListItem = std::make_pair(address, storageKeys);
+    txnCoreInfo.accessList.push_back(accessListItem);
+  }
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoTxnCoreInfo.maxpriorityfeepergas(),
+                                                     txnCoreInfo.maxPriorityFeePerGas);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoTxnCoreInfo.maxfeepergas(),
+                                                     txnCoreInfo.maxFeePerGas);
   return true;
 }
 
@@ -849,7 +882,8 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   transaction = Transaction(
       txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
       txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
-      txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
+      txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature,
+      txnCoreInfo.accessList, txnCoreInfo.maxPriorityFeePerGas, txnCoreInfo.maxFeePerGas);
 
   if (transaction.GetTranID() != tranID) {
     LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
