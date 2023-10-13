@@ -741,7 +741,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
-           "-n", "25",
+           "-n", "15",
            "-s", "15",
            "-d", "15",
            "-l", "1",
