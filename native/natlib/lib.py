@@ -279,6 +279,14 @@ def create_constants_xml(args, data):
         transactions.find('BUCKET_NAME').text = "native"
         transactions.find('TXN_PERSISTENCE_NAME').text = "zilliqa"
 
+    ''' configure SCILLA_MULTI_VERSION correctly '''
+
+    scilla = root.find('smart_contract')
+    if scilla:
+        scilla.find('ENABLE_SCILLA_MULTI_VERSION').text = "false"
+        scilla.find('LOG_SC').text = "true"
+
+
 
     jsonrpc = root.find('jsonrpc')
     if my_port is not None:
@@ -658,7 +666,8 @@ def generate_files(args, data, pod_name):
     return create_start_sh(args, data)
 
 def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
-    scripts_dir = "../scripts"
+    cwd = os.getcwd()
+    scripts_dir = os.path.abspath(os.path.join(cwd, '../scripts'))
     zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../..',  'Zilliqa'))
     scilla_dir = os.path.abspath(os.path.join(scripts_dir, '../..',  'scilla'))
     for index in range(first_index, first_index + count):
