@@ -14,8 +14,8 @@
 
 Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure.
 
-* If you’re interested in mining Zilliqa, see here: [https://dev.zilliqa.com/docs/miners/mining-getting-started/](https://dev.zilliqa.com/miners/mining/mining-getting-started/).
-* If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: [https://dev.zilliqa.com/docs/apis/api-introduction](https://dev.zilliqa.com/api/introduction/api-introduction/).
+* If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/miners/mining/mining-getting-started/.
+* If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://dev.zilliqa.com/api/introduction/api-introduction/.
 * If you’re interested more about the core protocol, see the [developer portal](https://dev.zilliqa.com/contributors/contributors/contribute-buildzil/).
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
@@ -181,4 +181,3 @@ You can find scripts which will set up an Ubuntu 22.04 machine in the cloud (or 
 | **Development discussion (discord)** | <a href="https://discord.gg/XMRE9tt" target="_blank"><img src="https://img.shields.io/discord/370992535725932544.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
-| **Security bug bounty** | <a href="https://hackerone.com/zilliqa" target="_blank">HackerOne bug bounty</a> |
