@@ -1360,6 +1360,8 @@ void Node::WakeupAtTxEpoch() {
 
       zil::p2p::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
+    m_mediator.m_ds->SetState(
+        DirectoryService::DirState::FINALBLOCK_CONSENSUS_PREP);
     auto func = [this]() mutable -> void {
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     };

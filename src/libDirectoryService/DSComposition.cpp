@@ -122,8 +122,17 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
     minerInfo.m_dsNodesEjected.clear();
   }
 
-  // Remove one node for every winner, maintaining the size of the DS Committee.
-  for (uint32_t i = 0; i < NumWinners; ++i) {
+  LOG_GENERAL(INFO, "Current dsComm size is: "
+                        << dsComm.size() << ", expected size: " << COMM_SIZE);
+
+  // Remove that many members so that new dsComm.size() == COMM_SIZE
+  const auto toRemoveCount =
+      dsComm.size() > COMM_SIZE ? dsComm.size() - COMM_SIZE : 0;
+  LOG_GENERAL(INFO,
+              "Since new dsComm might not equal expected COMM_SIZE, number of "
+              "nodes to be trimmed is: "
+                  << toRemoveCount);
+  for (uint32_t i = 0; i < toRemoveCount; ++i) {
     // One item is always removed every winner, with removal priority given to
     // 'loser' candidates before expiring nodes.
     if (showLogs) {
@@ -137,7 +146,8 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
 
     // Remove this node from blacklist if it exists
     Peer& p = dsComm.back().second;
-    Blacklist::GetInstance().Remove({p.GetIpAddress(),p.GetListenPortHost(),p.GetNodeIndentifier()});
+    Blacklist::GetInstance().Remove(
+        {p.GetIpAddress(), p.GetListenPortHost(), p.GetNodeIndentifier()});
     dsComm.pop_back();
   }
 
