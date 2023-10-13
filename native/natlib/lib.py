@@ -286,6 +286,10 @@ def create_constants_xml(args, data):
         scilla.find('ENABLE_SCILLA_MULTI_VERSION').text = "false"
         scilla.find('LOG_SC').text = "true"
 
+    ''' specifically configure metrics off for native '''
+
+    metrics = root.find('metrics')
+
 
 
     jsonrpc = root.find('jsonrpc')

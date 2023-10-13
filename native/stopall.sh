@@ -48,6 +48,26 @@ function stop_zilliqa {
   echo "Done"
 }
 
+function stop_upload_incr_DB {
+  echo "Stopping upload_incr_DB..."
+  kill -9 $(ps aux | grep '[u]pload_incr_DB' | awk '{print $2}')
+  echo "Done"
+}
+
+function stop_download_incr_DB {
+  echo "Stopping download_incr_DB..."
+  kill -9 $(ps aux | grep '[d]download_incr_DB' | awk '{print $2}')
+  echo "Done"
+}
+
+function stop_download_static_DB {
+  echo "Stopping download_static_DB..."
+  kill -9 $(ps aux | grep '[d]download_static_DB' | awk '{print $2}')
+  echo "Done"
+}
+
+
+
 
 echo "Halting processes .."
 
@@ -56,5 +76,8 @@ result=$(stop_zilliqad)
 result=$(stop_zilliqa)
 result=$(stop_webserver)
 result=$(stop_localstack)
+result=$(stop_upload_incr_DB)
+result=$(stop_download_incr_DB)
+result=$(stop_download_static_DB)
 
 echo "Done"
