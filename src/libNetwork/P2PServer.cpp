@@ -178,6 +178,10 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
   std::string error_msg;
 
   try {
+
+    // TODO - Change this to our real ip address
+
+
     auto endpoint = TcpEndpoint{boost::asio::ip::make_address("0.0.0.0"), port};
 
     TcpAcceptor socket(asio);

@@ -497,7 +497,7 @@ class SendJobsImpl : public SendJobs,
     zil::local::variables.AddSendMessageToPeerCount(1);
 
     // TODO find who is using listening host of 0.0.0.0
-    if (false && peer.m_listenPortHost == 0) {
+    if (peer.m_listenPortHost == 0) {
       LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
       zil::local::variables.AddSendMessageToPeerFailed(1);
       return;

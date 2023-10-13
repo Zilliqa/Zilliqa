@@ -736,7 +736,7 @@ def create_multiplier_start_sh(listen_port, lookupips_url):
         'echo "Listening on port {}"'.format(listen_port),
         'echo "Lookup IPs URL: {}"'.format(lookupips_url),
         'echo "Starting multiplier"',
-        './asio_multiplier -l "{}" -s "{}"'.format(listen_port, lookupips_url),
+        './asio_multiplier -l "{}" -s "{}" 2>1 & > multiplier.logfile'.format(listen_port, lookupips_url),
     ]
 
     with open('start.sh', 'w') as f:

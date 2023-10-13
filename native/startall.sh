@@ -38,9 +38,7 @@ function start_task {
 
 function start_webserver {
   echo "Starting webserver..."
-  cd rundirs
-  (python3 -m http.server &) > /dev/null 2>&1
-  cd -
+  (cd rundirs &&  python3 -m http.server& )
   echo "Done"
 }
 
@@ -50,7 +48,8 @@ function start_localstack {
   echo "Done"
 }
 
-
+echo "starting web server..."
+(cd rundirs &&  python3 -m http.server& )
 echo "starting localstack ..."
 result=$(start_localstack)
 echo "starting lookups..."
@@ -63,7 +62,5 @@ echo "starting seedpubs..."
 result=$(start_task "*native-seedpub*")
 echo "starting multiplier..."
 result=$(start_task "*native-multiplier*")
-echo "starting web server..."
-result=$(start_webserver)
 echo "$result"
 
