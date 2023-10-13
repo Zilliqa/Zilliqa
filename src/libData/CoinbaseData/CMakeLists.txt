@@ -1,3 +1,3 @@
-add_library(CoinbaseData CoinbaseStruct.cpp)
+add_library(CoinbaseData CoinbaseStruct.cpp RewardControlContractState.cpp)
 target_include_directories(CoinbaseData PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries (CoinbaseData PUBLIC Utils)

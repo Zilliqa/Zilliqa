@@ -23,6 +23,7 @@
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountStore/AccountStore.h"
+#include "libData/CoinbaseData/RewardControlContractState.h"
 #include "libNetwork/Guard.h"
 #include "libUtils/SafeMath.h"
 
@@ -138,18 +139,19 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  uint128_t total_reward = COINBASE_REWARD_PER_DS;
-
+  RewardControlContractState parsed_state = RewardControlContractState::GetCurrentRewards();
+  uint128_t total_reward = parsed_state.coinbase_reward_per_ds;
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
   uint128_t base_reward = 0;
 
-  if (!SafeMath<uint128_t>::mul(total_reward, BASE_REWARD_IN_PERCENT,
+  if (!SafeMath<uint128_t>::mul(total_reward, parsed_state.base_reward_in_percent,
                                 base_reward)) {
     LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
     return std::nullopt;
   }
-  base_reward /= 100;
+  // @TODO we should really do this division just once - rrw 2023-10-03
+  base_reward /= 100 * parsed_state.percent_prec;
 
   LOG_GENERAL(INFO, "Total base reward: " << base_reward);
 
@@ -164,13 +166,13 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
 
   uint128_t lookupReward = 0;
-  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
+  if (!SafeMath<uint128_t>::mul(total_reward, parsed_state.lookup_reward_in_percent,
                                 lookupReward)) {
     LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
     return std::nullopt;
     ;
   }
-  lookupReward /= 100;
+  lookupReward /= 100 * parsed_state.percent_prec;
 
   uint128_t nodeReward = total_reward - lookupReward - base_reward;
   uint128_t reward_each = 0;
@@ -395,6 +397,9 @@ void DirectoryService::InitCoinbase() {
       const auto& shardId = shardIdRewardee.first;
       const auto& rewardees = shardIdRewardee.second;
       LOG_GENERAL(INFO, "[CNBSE] Rewarding shard " << shardId);
+
+      // These are in fact the SSNs in disguise - rewards are disbursed to lookups, and
+      // then funneled by external scripts back to the SSNs - rrw 2023-10-02
       if (shardId == CoinbaseReward::LOOKUP_REWARD) {
         for (const auto& pk : rewardees) {
           const auto& addr = Account::GetAddressFromPublicKey(pk);
