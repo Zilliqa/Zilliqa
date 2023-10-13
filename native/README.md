@@ -1,8 +1,8 @@
 # native
 
-Ziliiqa Native Driver
+## Ziliiqa Native Driver
 
-Description
+## Description
 
 Create a program that will generate the required environment to launch a native version of the Zilliqa blockchain that will run on a local or server machine environment.
 
@@ -16,7 +16,7 @@ The driver supports both the constants.xml configuration format and can utilize 
 
 To run the tool simply run the native.py with the following arguments or variations of:
 
--n 6 -d 5 -l 1--port 30303 --websocket= --transaction-sender=0
+python3 native.py -n 6 -d 5 -l 1--port 30303 --websocket= --transaction-sender=0
 --ds-guard=4
 --shard-guard=0
 --bucket=zilliqa-devnet
@@ -24,15 +24,14 @@ To run the tool simply run the native.py with the following arguments or variati
 --multiplier-fanout=1
 --out-dir=/<yourdir>/dev/native/tmp
 --build-dir=/<yourdir>/Zilliqa/build
---skip-non-guard-ds
 --isolated-server-accounts
 
-A simple startup script
+## A simple startup script
 
 Startall.sh is provided as a first cut for launching the initial version
 
 
-Prerequisites.
+## Prerequisites.
 
 Create a read/write directory /etc/zilliqa on your local machine (Annoying but hardcoded entry in zilliqa source)
 
@@ -43,7 +42,7 @@ Currently you need to run a localstack instance.
 You can install localstack directly on your machine and start with localstack start
 
 
-TODO
+## TODO
 
 Test, test, test
 

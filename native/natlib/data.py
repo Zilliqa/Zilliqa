@@ -16,6 +16,8 @@
 
 from typing import List
 from pyzil.crypto import zilkey
+from natlib.ip import get_real_ip
+
 
 # pod map for nodes of type normal and/or dsguard
 #
@@ -102,7 +104,7 @@ class Data:
             self.seedpub_port = self.lookup_port + (arg.l*5) + 1
             self.multiplier_port = self.seedpub_port + (sum(arg.multiplier_fanout)*5) + 1
             self.nextfreeport = self.multiplier_port + (len(arg.multiplier_fanout)*5) + 1
-            self.my_ip = "192.168.0.98"
+            self.my_ip = get_real_ip()
 
         except Exception as _:
             print("We suspect the arguments are suspect")
