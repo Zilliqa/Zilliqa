@@ -19,12 +19,16 @@ Before you start, you may want to set `NUM_FINAL_BLOCK_PER_POW` to 5 or 10 (to m
 You should:
 
   * Run a network with `REWARD_CONTROL_CONTRACT_ADDRESS` not set, to check that the reward behaviour remains unchanged.
+  * Test that if there is no entry in config.xml for `REWARD_EACH_MUL_IN_MILLIS` and `BASE_REWARD_MUL_IN_MILLIS`, the correct defaults (1668 and 4726 respectively) are substituted.
+  * Check that `ENABLE_REAWRD_DEBUG_FILE` operates correctly (the `rewards.txt` file should be written when `true` and not written otherwise).
   * Now, set `REWARD_CONTROL_CONTRACT_ADDRESS` to the magic string `0xb73da094d60aa93ac4fa8ae41df5d8c13925b0bd` (you don't need the contract deployed at this point)
   * Set `PRIMARY_ACCOUNT` to an account with a suitable number of ZIL (one of the isolated server accounts will do).
   * Run `npx hardhat set-rewards` with
      * `--coinbaserewardperds <NNN>`
      * `--baserewardscaledpercent <NNN>`
      * `--lookuprewardsscaledpercent <NNN>`
+     * `--rewardeachmillis <NNN>`
+     * `--baserewardmillis <NNN>`
   * Verify that the changed rewards are correctly implemented.
 
 `npx hardhat set-rewards` will auto-deploy the contract (with the
@@ -32,6 +36,10 @@ well-known `0xb73..` address) and then call any transitions you've
 asked for - in series, since with low values of
 `NUM_FINAL_BLOCK_FOR_ROW`, issuing transactions ahead doesn't seem to
 work.
+
+## Testing diagnostic file output
+
+
 
 ## Upgrades
 

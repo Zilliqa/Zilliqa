@@ -113,6 +113,8 @@ struct RewardInformation {
   uint128_t sig_count;
   uint128_t node_count;
   uint128_t node_reward;
+  uint128_t base_reward_mul_in_millis;
+  uint128_t reward_each_mul_in_millis;
 };
 
 /// Implements Directory Service functionality including PoW verification, DS,

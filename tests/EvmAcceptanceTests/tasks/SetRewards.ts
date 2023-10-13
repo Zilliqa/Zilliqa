@@ -145,6 +145,8 @@ task('set-rewards', 'Sets the chain reward parameters')
   .addOptionalParam("coinbaserewardperds", "Set the coinbase reward to .. ")
   .addOptionalParam("baserewardscaledpercent", "Set the base reward to (DANGER! Check the percent_precision first!)")
   .addOptionalParam("lookuprewardscaledpercent", "Set the lookup (SSN) reward (DANGER! Check percent_precision first!)")
+  .addOptionalParam("rewardeachmillis", "Set the fast miner reward ratio, in millis")
+  .addOptionalParam("baserewardmillis", "Set the base miner reward ratio, in millis")
   .setAction(async (taskArgs, hre) => {
     let context = await ensureContractDeployment(hre);
     let percentPrecision = await context.contract.getSubState("percent_precision");
@@ -169,5 +171,18 @@ task('set-rewards', 'Sets the chain reward parameters')
       let result = await connected.ChangeLookupReward(newReward);
       console.log(clc.green(`${JSON.stringify(result)}`));
     }
+    if (taskArgs.rewardeachmillis !== undefined) {
+      let newReward = taskArgs.rewardeachmillis;
+      console.log(clc.yellow(`Changing fast miner reward ratio in millis to ${newReward}`));
+      let result = await connected.ChangeRewardEachMulInMillis(newReward);
+      console.log(clc.green(`${JSON.stringify(result)}`));
+    }
+    if (taskArgs.baserewardmillis !== undefined) {
+      let newReward = taskArgs.baserewardmillis;
+      console.log(clc.yellow(`Changing base miner reward ratio in millis to ${newReward}`));
+      let result = await connected.ChangeBaseRewardMulInMillis(newReward);
+      console.log(clc.green(`${JSON.stringify(result)}`));
+    }
+    
   });
 

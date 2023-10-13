@@ -469,6 +469,9 @@ extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
 extern const uint64_t EVM_RPC_TIMEOUT_SECONDS;
+extern const bool ENABLE_REWARD_DEBUG_FILE;
+extern const unsigned int REWARD_EACH_MUL_IN_MILLIS;
+extern const unsigned int BASE_REWARD_MUL_IN_MILLIS;
 
 // TxBlockAux constants
 constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";

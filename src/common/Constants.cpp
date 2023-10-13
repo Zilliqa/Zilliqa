@@ -720,6 +720,12 @@ const double BLOOM_FILTER_FALSE_RATE{
     ReadConstantDouble("BLOOM_FILTER_FALSE_RATE", "node.transactions.")};
 const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT{
     ReadConstantNumeric("TXN_DISPATCH_ATTEMPT_LIMIT", "node.transactions.")};
+const bool ENABLE_REWARD_DEBUG_FILE{
+    ReadConstantString("ENABLE_REWARD_DEBUG_FILE", "node.transactions.") == "true"};
+const unsigned int REWARD_EACH_MUL_IN_MILLIS{
+  ReadConstantNumeric("REWARD_EACH_MUL_IN_MILLIS", "node.transactions.", 1668) };
+const unsigned int BASE_REWARD_MUL_IN_MILLIS{
+  ReadConstantNumeric("BASE_REWARD_MUL_IN_MILLIS", "node.transactions.", 4726) };
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
