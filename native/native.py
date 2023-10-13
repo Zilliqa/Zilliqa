@@ -120,9 +120,13 @@ def main():
     cwd = os.getcwd()
 
     generate_nodes(args, data, 'lookup', 0, args.l)
+    os.chdir(cwd)
     generate_nodes(args, data, 'dsguard', 0, args.ds_guard)
+    os.chdir(cwd)
     generate_nodes(args, data, 'normal', 0, args.d - args.ds_guard)
+    os.chdir(cwd)
     generate_nodes(args, data, 'multiplier', 0, len(data.get_multiplier()))
+    os.chdir(cwd)
     generate_nodes(args, data, 'seedpub', 0, sum(args.multiplier_fanout))
 
     return 0

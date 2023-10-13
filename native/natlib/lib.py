@@ -668,7 +668,7 @@ def generate_files(args, data, pod_name):
 def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
     cwd = os.getcwd()
     scripts_dir = os.path.abspath(os.path.join(cwd, '../scripts'))
-    zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../..',  'Zilliqa'))
+    zilliqa_dir = os.path.abspath(os.path.join(scripts_dir, '../'))
     scilla_dir = os.path.abspath(os.path.join(scripts_dir, '../..',  'scilla'))
     for index in range(first_index, first_index + count):
         try:
@@ -698,11 +698,15 @@ def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
             if (node_type == 'normal'):
                 generate_ip_mapping_file(zil_data)
 
+            print(f'Generated files for pod_path: {pod_path}')
+            print(f'Generated files for scripts_dir: {scripts_dir}')
+
+
             sed_extra_arg = '-i ""' if sys.platform == "darwin" else '-i'
             os.system(
                 f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
 
-            if (node_type != 'multiplier'):
+../s            if (node_type != 'multiplier'):
                 try:
                     os.system(
                         f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
