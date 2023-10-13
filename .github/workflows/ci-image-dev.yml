@@ -50,7 +50,7 @@ jobs:
       with:
         token_format: "access_token"
         workload_identity_provider: "${{ secrets.GCP_PRD_GITHUB_WIF }}"
-        service_account: "${{ secrets.GCP_STG_GITHUB_SA_DOCKER_REGISTRY }}"
+        service_account: "${{ secrets.GCP_PRD_GITHUB_SA_DOCKER_REGISTRY }}"
         create_credentials_file: true
     - name: Login to the GCP registry
       uses: docker/login-action@v2
