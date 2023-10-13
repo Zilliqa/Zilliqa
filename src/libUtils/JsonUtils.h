@@ -24,6 +24,7 @@
 #include <sstream>
 #include <string>
 
+#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 class JSONUtils {
@@ -50,6 +51,32 @@ class JSONUtils {
   static JSONUtils& GetInstance() {
     static JSONUtils jsonutils;
     return jsonutils;
+  }
+
+  bool getUint128FromObject(const Json::Value& obj, const std::string& key, uint128_t &result) const {
+    return this->getUint128FromObject(obj, key.c_str(), result);
+  }
+  
+  /// Get an object value as a uint128_t.
+  /// @return false if we failed, true if we succeeded.
+  bool getUint128FromObject(const Json::Value& obj, const char* key, uint128_t &result) const {
+    if (obj.isObject() &&
+        obj.isMember(key)) {
+      Json::Value member = obj[key];
+      if (member.isString()) {
+        // Parse it.
+        try {
+          result = DataConversion::ConvertStrToInt<uint128_t>(member.asString());
+          return true;
+        } catch (...) {
+          return false;
+        }
+      } else if (member.isIntegral()) {
+        result = member.asUInt64();
+      }
+      return true;
+    }
+    return false;
   }
 
   /// Convert a string to Json object
