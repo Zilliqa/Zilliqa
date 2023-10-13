@@ -1,6 +1,14 @@
 #!/bin/bash
+set -e
+BUILD_DIR=$(pwd)/../build
+RUNDIR=$(pwd)/rundirs
+NODES=6
+DSMEMBERS=5
+LOOKUPMEMBERS=1
+PORT=30303
+GUARD=4
 
-export BUILD_DIR=../build
-export RUNDIR=rundirs
-python3 native.py -n 6 -d 5 -l 1 --port 30303 --websocket= --transaction-sender=0 --ds-guard=4 --shard-guard=0 --bucket=zilliqa-devnet  --origin-server=$RUNDIRS --multiplier-fanout=1 --out-dir=$RUNDIRS  --build-dir=$BUILD_DIR
+
+
+python3 native.py -n ${NODES} -d $DSMEMBERS -l ${LOOKUPMEMBERS} --port ${PORT} --websocket= --transaction-sender=0 --ds-guard=4 --shard-guard=0 --bucket=zilliqa-devnet  --origin-server=${RUNDIR} --multiplier-fanout=1 --out-dir=$RUNDIR  --build-dir=${BUILD_DIR}
 
