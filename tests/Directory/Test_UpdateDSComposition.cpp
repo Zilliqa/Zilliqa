@@ -129,9 +129,10 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
   UpdateDSCommitteeCompositionCore(selfPubKey, dsComm, block);
 
   // Check updated commmitee size.
-  BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE,
+  BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE + NUM_OF_ELECTED,
                       "Updated DS Committee size wrong. Actual: "
-                          << dsComm.size() << ". Expected: " << COMMITTEE_SIZE);
+                          << dsComm.size()
+                          << ". Expected: " << COMMITTEE_SIZE + NUM_OF_ELECTED);
 
   // Check the result.
   for (int i = 0; i < COMMITTEE_SIZE; ++i) {
@@ -254,9 +255,10 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
   UpdateDSCommitteeCompositionCore(selfPubKey, dsComm, block);
 
   // Check updated commmitee size.
-  BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE,
+  BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE + NUM_OF_ELECTED,
                       "Updated DS Committee size wrong. Actual: "
-                          << dsComm.size() << ". Expected: " << COMMITTEE_SIZE);
+                          << dsComm.size()
+                          << ". Expected: " << COMMITTEE_SIZE + NUM_OF_ELECTED);
 
   // Check the result.
   for (int i = 0; i < COMMITTEE_SIZE; ++i) {

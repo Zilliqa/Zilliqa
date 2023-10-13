@@ -156,7 +156,7 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Total base reward: " << base_reward);
 
   uint128_t base_reward_each = 0;
-  uint128_t node_count = m_mediator.m_DSCommittee->size() + m_shards.size();
+  uint128_t node_count = m_mediator.m_DSCommittee->size();
   LOG_GENERAL(INFO, "Total num of node: " << node_count);
   if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
     LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
@@ -304,9 +304,19 @@ void DirectoryService::InitCoinbase() {
 
   file << "Starting Base reward section for epoch: "
        << m_mediator.m_currentEpochNum << '\n';
-  file << "Old base_reward_each is: " << base_reward_each
-       << ", base_reward_each_desharded: " << base_reward_each_desharded
+  file << "RewardStruct information:" << '\n';
+  file << "base_reward: " << rewardInformation->base_reward << '\n';
+  file << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
+  file << "each_reward: " << rewardInformation->each_reward << '\n';
+  file << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
+  file << "lookup_each_reward: " << rewardInformation->lookup_each_reward
        << '\n';
+  file << "lookup_count: " << rewardInformation->lookup_count << '\n';
+  file << "total_reward: " << rewardInformation->total_reward << '\n';
+  file << "sig_count: " << rewardInformation->sig_count << '\n';
+  file << "node_count: " << rewardInformation->node_count << '\n';
+  file << "node_reward: " << rewardInformation->node_reward << '\n';
+
   file << "[CNBSE] Rewarding base reward to DS nodes..." << '\n';
   // DS nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");

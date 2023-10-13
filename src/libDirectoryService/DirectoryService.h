@@ -306,7 +306,6 @@ class DirectoryService : public Executable {
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
-  void ComputeMembersInShard(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers,
                           const std::vector<PubKey>& removeDSNodePubkeys);
@@ -485,6 +484,8 @@ class DirectoryService : public Executable {
   std::atomic<Mode> m_mode{};
 
   // Sharding committee members
+  // These values are kept for compatibility reasons - otherwise desharding
+  // change would have been much bigger
   std::mutex mutable m_mutexShards;
   DequeOfShardMembers m_shards;
 
