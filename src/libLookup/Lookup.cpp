@@ -2710,7 +2710,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "First epoch, and message sender pubkey: "
                     << senderPubKey << " is not in DS guard list.");
-      return false;
     } else {
       LOG_GENERAL(INFO, "Not present");
     }
