@@ -2696,7 +2696,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(
                    DSCOMMITTEE_VERSION);
     return false;
   }
-
+  LOG_GENERAL(
+      INFO, "m_currentEpochNum =" << m_mediator.m_currentEpochNum
+                                  << " LOOKUP_NODE_MODE = " << LOOKUP_NODE_MODE
+                                  << " SyncType::NO_SYNC = " << GetSyncType()
+                                  << " GUARD_MODE = " << GUARD_MODE
+                                  <<" Sender key = "<<senderPubKey);
   // If first epoch and I'm a lookup and I am not syncing right now
   if ((m_mediator.m_currentEpochNum <= 1) && LOOKUP_NODE_MODE &&
       (GetSyncType() == SyncType::NO_SYNC)) {
@@ -2706,6 +2711,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(
                 "First epoch, and message sender pubkey: "
                     << senderPubKey << " is not in DS guard list.");
       return false;
+    } else {
+      LOG_GENERAL(INFO, "Not present");
     }
   }
   // If not first epoch or I'm not a lookup
@@ -2716,6 +2723,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(
                 "The message sender pubkey: "
                     << senderPubKey << " is not in my lookup node list.");
       return false;
+    } else {
+      LOG_GENERAL(INFO, "Not present1");
     }
   }
 
