@@ -54,8 +54,8 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   }
 
   // Assemble DS block header
-  unsigned int numOfElectedDSMembers =
-      min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
+  unsigned int numOfElectedDSMembers = min(
+      sortedDSPoWSolns.size(), (size_t)MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM);
   unsigned int counter = 0;
   for (const auto& submitter : sortedDSPoWSolns) {
     if (counter >= numOfElectedDSMembers) {
@@ -107,68 +107,6 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   return numOfElectedDSMembers;
 }
 
-void DirectoryService::ComputeMembersInShard(
-    const VectorOfPoWSoln& sortedPoWSolns) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::ComputeMembersInShard not expected to be "
-                "called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  LOG_EXTRA("Shards cleared " << m_shards.size());
-  m_shards.clear();
-
-  // Cap the number of nodes based on MAX_SHARD_NODE_NUM
-  const uint32_t numNodesForSharding =
-      sortedPoWSolns.size() > MAX_SHARD_NODE_NUM ? MAX_SHARD_NODE_NUM
-                                                 : sortedPoWSolns.size();
-
-  LOG_GENERAL(INFO, "Number of PoWs received     = " << sortedPoWSolns.size());
-  LOG_GENERAL(INFO, "Number of PoWs for sharding = " << numNodesForSharding);
-
-  // Push all the sorted PoW submissions into an ordered map with key =
-  // H(last_block_hash, pow_hash)
-  map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
-  zbytes lastBlockHash(BLOCK_HASH_SIZE);
-
-  if (m_mediator.m_currentEpochNum > 1) {
-    lastBlockHash =
-        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
-  }
-
-  zbytes hashVec(BLOCK_HASH_SIZE + POW_SIZE);
-  copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
-  for (const auto& kv : sortedPoWSolns) {
-    const PubKey& key = kv.second;
-    const auto& powHash = kv.first;
-    copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-
-    const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
-    array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
-    copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
-    sortedPoWs.emplace(sortHash, key);
-  }
-
-  for (const auto& kv : sortedPoWs) {
-    // Move to next shard counter if current shard already filled up
-    if (DEBUG_LEVEL >= 5) {
-      string hashStr;
-      if (!DataConversion::charArrToHexStr(kv.first, hashStr)) {
-        LOG_GENERAL(WARNING, "[DSSORT] "
-                                 << " unable to convert hash to string");
-      } else {
-        LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " " << hashStr << endl);
-      }
-    }
-    // Put the node into the shard
-    const PubKey& key = kv.second;
-    m_shards.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
-  }
-}
-
 void DirectoryService::InjectPoWForDSNode(
     VectorOfPoWSoln& sortedPoWSolns, unsigned int numOfProposedDSMembers,
     const std::vector<PubKey>& removeDSNodePubkeys) {
@@ -176,29 +114,6 @@ void DirectoryService::InjectPoWForDSNode(
 
   unsigned int numOfRemovedMembers = removeDSNodePubkeys.size();
   unsigned int numOfExpiring = numOfProposedDSMembers - numOfRemovedMembers;
-
-  // Check the computed parameters for correctness.
-  if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
-    LOG_GENERAL(WARNING,
-                "FATAL: number of proposed ds member is larger than current ds "
-                "committee. numOfProposedDSMembers: "
-                    << numOfProposedDSMembers << " m_DSCommittee size: "
-                    << m_mediator.m_DSCommittee->size());
-    return;
-  }
-
-  // the number of removed members for non-performance has to be strictly less
-  // than the total number of new incoming members because the field only
-  // contains members that were removed for non-performance and not the expired
-  // ones.
-  if (numOfRemovedMembers > numOfProposedDSMembers) {
-    LOG_GENERAL(WARNING,
-                "FATAL: number of ds members to be removed is larger than the "
-                "number of proposed ds members. numOfRemovedMembers: "
-                    << numOfRemovedMembers
-                    << " numOfProposedDSMembers: " << numOfProposedDSMembers);
-    return;
-  }
 
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
@@ -943,7 +858,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 
   ClearReputationOfNodeWithoutPoW();
-  ComputeMembersInShard(sortedPoWSolns);
+
+  m_shards.clear();
 
   GovDSShardVotesMap govProposalMap;
   for (const auto& dsnode : powDSWinners) {
@@ -1448,7 +1364,11 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
     const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
-
+  LOG_GENERAL(INFO, "numOfProposedDSMembers = "
+                        << numOfProposedDSMembers << " removeDSNodePubkeys = "
+                        << removeDSNodePubkeys.size()
+                        << " performanceThreshold = " << performanceThreshold
+                        << " maxByzantineRemoved = " << maxByzantineRemoved);
   // Do not determine Byzantine nodes on the first epoch when performance cannot
   // be measured.
   if (currentEpochNum <= 1) {
