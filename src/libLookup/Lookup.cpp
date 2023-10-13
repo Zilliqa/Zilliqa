@@ -2696,6 +2696,11 @@ bool Lookup::ProcessSetDSInfoFromSeed(
                    DSCOMMITTEE_VERSION);
     return false;
   }
+  LOG_GENERAL(
+      INFO, "m_currentEpochNum =" << m_mediator.m_currentEpochNum
+                                  << " LOOKUP_NODE_MODE = " << LOOKUP_NODE_MODE
+                                  << " SyncType::NO_SYNC = " << GetSyncType()
+                                  << " GUARD_MODE = " << GUARD_MODE);
 
   // If first epoch and I'm a lookup and I am not syncing right now
   if ((m_mediator.m_currentEpochNum <= 1) && LOOKUP_NODE_MODE &&
