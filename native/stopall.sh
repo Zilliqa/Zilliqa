@@ -32,7 +32,7 @@ function stop_webserver {
 
 function stop_asio_multipplier {
   echo "Stopping asio multiplier..."
-  kill -s SIGTERM $(ps aux | grep '[a]sio_multiplier' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[a]sio_multiplier' | awk '{print $2}')
   echo "Done"
 }
 
