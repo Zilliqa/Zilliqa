@@ -312,20 +312,21 @@ void DirectoryService::InitCoinbase() {
   // DS nodes
 
   if (file.has_value()) {
-    file << "Starting Base reward section for epoch: "
+    auto& fileval = file.value();
+    fileval << "Starting Base reward section for epoch: "
          << m_mediator.m_currentEpochNum << '\n';
-    file << "RewardStruct information:" << '\n';
-    file << "base_reward: " << rewardInformation->base_reward << '\n';
-    file << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
-    file << "each_reward: " << rewardInformation->each_reward << '\n';
-    file << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
-    file << "lookup_each_reward: " << rewardInformation->lookup_each_reward
+    fileval << "RewardStruct information:" << '\n';
+    fileval << "base_reward: " << rewardInformation->base_reward << '\n';
+    fileval << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
+    fileval << "each_reward: " << rewardInformation->each_reward << '\n';
+    fileval << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
+    fileval << "lookup_each_reward: " << rewardInformation->lookup_each_reward
          << '\n';
-    file << "lookup_count: " << rewardInformation->lookup_count << '\n';
-    file << "total_reward: " << rewardInformation->total_reward << '\n';
-    file << "sig_count: " << rewardInformation->sig_count << '\n';
-    file << "node_count: " << rewardInformation->node_count << '\n';
-    file << "node_reward: " << rewardInformation->node_reward << '\n';
+    fileval << "lookup_count: " << rewardInformation->lookup_count << '\n';
+    fileval << "total_reward: " << rewardInformation->total_reward << '\n';
+    fileval << "sig_count: " << rewardInformation->sig_count << '\n';
+    fileval << "node_count: " << rewardInformation->node_count << '\n';
+    fileval << "node_reward: " << rewardInformation->node_reward << '\n';
   }
     // DS nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");
