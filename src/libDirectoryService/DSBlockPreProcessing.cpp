@@ -115,34 +115,6 @@ void DirectoryService::InjectPoWForDSNode(
   unsigned int numOfRemovedMembers = removeDSNodePubkeys.size();
   unsigned int numOfExpiring = numOfProposedDSMembers - numOfRemovedMembers;
 
-  // Check the computed parameters for correctness.
-  // if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
-  //   LOG_GENERAL(WARNING,
-  //               "FATAL: number of proposed ds member is larger than current ds "
-  //               "committee. numOfProposedDSMembers: "
-  //                   << numOfProposedDSMembers << " m_DSCommittee size: "
-  //                   << m_mediator.m_DSCommittee->size());
-  //   // return;
-  // }
-
-  // the number of removed members for non-performance has to be strictly less
-  // than the total number of new incoming members because the field only
-  // contains members that were removed for non-performance and not the expired
-  // ones.
-  // if (numOfRemovedMembers > numOfProposedDSMembers) {
-  //   LOG_GENERAL(WARNING,
-  //               "FATAL: number of ds members to be removed is larger than the "
-  //               "number of proposed ds members. numOfRemovedMembers: "
-  //                   << numOfRemovedMembers
-  //                   << " numOfProposedDSMembers: " << numOfProposedDSMembers);
-  //   //return;
-  // }
-  LOG_GENERAL(INFO,
-              "CP : number of ds members to be removed is larger than the "
-              "number of proposed ds members. numOfRemovedMembers: "
-                  << numOfRemovedMembers
-                    << " numOfProposedDSMembers: " << numOfProposedDSMembers<<" COMM_SIZE = "<<COMM_SIZE);
-  
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
   SHA256Calculator sha2;
@@ -798,17 +770,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   {
     std::lock_guard<std::mutex> g(m_mutexAllPOW);
     allPoWs = m_allPoWs;
-    for (const auto& pow : m_allPoWs) {
-      LOG_GENERAL(INFO, "m_allPoWs first = " << pow.first);
-    }
   }
 
   {
     std::lock_guard<std::mutex> g(m_mutexAllDSPOWs);
     allDSPoWs = m_allDSPoWs;
-    for (const auto& pow : allDSPoWs) {
-      LOG_GENERAL(INFO, "allDSPoWs first = " << pow.first);
-    }
   }
 
   if (allPoWs.size() > MAX_SHARD_NODE_NUM) {
@@ -878,7 +844,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers,
                      removeDSNodePubkeys);
 
-  if (DEBUG_LEVEL >= 3) {
+  if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
       string powHashStr;
       if (!DataConversion::charArrToHexStr(pairPoWKey.first, powHashStr)) {
@@ -1398,12 +1364,11 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     unsigned int maxByzantineRemoved, const DequeOfNode& dsComm,
     const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
-  LOG_GENERAL(INFO,
-              "Chetan DetermineByzantineNodesCore  numOfProposedDSMembers = "
-                  << numOfProposedDSMembers
-                  << " removeDSNodePubkeys = " << removeDSNodePubkeys.size()
-                  << " performanceThreshold = " << performanceThreshold
-                  << " maxByzantineRemoved = " << maxByzantineRemoved);
+  LOG_GENERAL(INFO, "numOfProposedDSMembers = "
+                        << numOfProposedDSMembers << " removeDSNodePubkeys = "
+                        << removeDSNodePubkeys.size()
+                        << " performanceThreshold = " << performanceThreshold
+                        << " maxByzantineRemoved = " << maxByzantineRemoved);
   // Do not determine Byzantine nodes on the first epoch when performance cannot
   // be measured.
   if (currentEpochNum <= 1) {
