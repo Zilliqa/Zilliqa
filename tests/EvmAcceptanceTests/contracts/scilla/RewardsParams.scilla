@@ -29,7 +29,7 @@ let make_error =
 let twenty = Uint32 2000
 let forty = Uint32 4000
 let one_hundred = Uint32 100
-let coinbase_default = Uint128 20400000000000000
+let coinbase_default = Uint128 204000000000000000
 
 let reward_each_mul_default_in_millis = Uint32 1668
 let base_reward_mul_default_in_millis = Uint32 4726
