@@ -706,7 +706,7 @@ def generate_nodes(args, zil_data, node_type, first_index, count) -> bool:
             os.system(
                 f'sed {sed_extra_arg} -e "s,/run/zilliqa,{pod_path}," -e "s,/zilliqa/scripts,{scripts_dir}," start.sh')
 
-../s            if (node_type != 'multiplier'):
+            if (node_type != 'multiplier'):
                 try:
                     os.system(
                         f'sed {sed_extra_arg} -e "s,<SCILLA_ROOT>.*</SCILLA_ROOT>,<SCILLA_ROOT>{scilla_dir}</SCILLA_ROOT>," -e "s,<EVM_SERVER_BINARY>.*</EVM_SERVER_BINARY>,<EVM_SERVER_BINARY>{zilliqa_dir}/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>," -e "s,<EVM_LOG_CONFIG>.*</EVM_LOG_CONFIG>,<EVM_LOG_CONFIG>{zilliqa_dir}/evm-ds/log4rs.yml</EVM_LOG_CONFIG>," -e "s,\.sock\>,-{node_type}.{index}.sock," constants.xml')
