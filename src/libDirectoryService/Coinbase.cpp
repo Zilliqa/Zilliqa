@@ -202,7 +202,9 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
                            .total_reward = total_reward,
                            .sig_count = sig_count,
                            .node_count = node_count,
-                           .node_reward = nodeReward};
+                           .node_reward = nodeReward,
+                           .base_reward_mul_in_millis = parsed_state.base_reward_mul_in_millis,
+                           .reward_each_mul_in_millis = parsed_state.reward_each_mul_in_millis};
 }
 
 void DirectoryService::InitCoinbase() {
@@ -283,42 +285,50 @@ void DirectoryService::InitCoinbase() {
   // repeated checking of guard list
   unordered_map<PubKey, bool> pubKeyAndIsGuard;
 
-  std::ofstream file;
   constexpr auto FILE_PATH = "rewards.txt";
-  file.open(FILE_PATH, std::ios::out | std::ios::app);
+  std::optional<std::ofstream> file;
+  if (ENABLE_REWARD_DEBUG_FILE) {
+    LOG_GENERAL(INFO, "Writing reward data to rewards.txt");
+    file.emplace(std::ofstream());
+    file.value().open(FILE_PATH, std::ios::out | std::ios::app);
+  }
 
-  const uint128_t BASE_REWARD_MULTIPLIER = 4726;
+  const uint128_t ONE_THOUSAND = 1000;
   uint128_t base_reward_each_desharded;
 
-  if (!SafeMath<uint128_t>::mul(base_reward_each, BASE_REWARD_MULTIPLIER,
+  if (!SafeMath<uint128_t>::mul(base_reward_each,
+                                rewardInformation->base_reward_mul_in_millis,
                                 base_reward_each_desharded)) {
     LOG_GENERAL(WARNING, "base_reward_desharded multiplication unsafe!");
     return;
   }
 
-  if (!SafeMath<uint128_t>::div(base_reward_each_desharded, 1000,
+  if (!SafeMath<uint128_t>::div(base_reward_each_desharded, ONE_THOUSAND,
                                 base_reward_each_desharded)) {
     LOG_GENERAL(WARNING, "base_reward_desharded division unsafe!");
     return;
   }
 
-  file << "Starting Base reward section for epoch: "
-       << m_mediator.m_currentEpochNum << '\n';
-  file << "RewardStruct information:" << '\n';
-  file << "base_reward: " << rewardInformation->base_reward << '\n';
-  file << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
-  file << "each_reward: " << rewardInformation->each_reward << '\n';
-  file << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
-  file << "lookup_each_reward: " << rewardInformation->lookup_each_reward
-       << '\n';
-  file << "lookup_count: " << rewardInformation->lookup_count << '\n';
-  file << "total_reward: " << rewardInformation->total_reward << '\n';
-  file << "sig_count: " << rewardInformation->sig_count << '\n';
-  file << "node_count: " << rewardInformation->node_count << '\n';
-  file << "node_reward: " << rewardInformation->node_reward << '\n';
-
-  file << "[CNBSE] Rewarding base reward to DS nodes..." << '\n';
   // DS nodes
+
+  if (file.has_value()) {
+    auto& fileval = file.value();
+    fileval << "Starting Base reward section for epoch: "
+         << m_mediator.m_currentEpochNum << '\n';
+    fileval << "RewardStruct information:" << '\n';
+    fileval << "base_reward: " << rewardInformation->base_reward << '\n';
+    fileval << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
+    fileval << "each_reward: " << rewardInformation->each_reward << '\n';
+    fileval << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
+    fileval << "lookup_each_reward: " << rewardInformation->lookup_each_reward
+         << '\n';
+    fileval << "lookup_count: " << rewardInformation->lookup_count << '\n';
+    fileval << "total_reward: " << rewardInformation->total_reward << '\n';
+    fileval << "sig_count: " << rewardInformation->sig_count << '\n';
+    fileval << "node_count: " << rewardInformation->node_count << '\n';
+    fileval << "node_reward: " << rewardInformation->node_reward << '\n';
+  }
+    // DS nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");
   for (const auto& ds : *m_mediator.m_DSCommittee) {
     const auto& pk = ds.first;
@@ -351,8 +361,10 @@ void DirectoryService::InitCoinbase() {
                               << base_reward_each_desharded << "] base reward");
       }
     }
-    file << "[CNBSE] Rewarding account: " << addr.hex()
-         << ", with value: " << base_reward_each_desharded << '\n';
+    if (file.has_value()) {
+      file.value() << "[CNBSE] Rewarding account: " << addr.hex()
+                   << ", with value: " << base_reward_each_desharded << '\n';
+    }
     LOG_GENERAL(WARNING,
                 "Rewarding Base address: "
                     << addr.hex() << ", with value: "
@@ -364,16 +376,15 @@ void DirectoryService::InitCoinbase() {
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
 
-  const uint128_t REWARD_EACH_MULTIPLIER = 1668;
   uint128_t reward_each_desharded;
 
-  if (!SafeMath<uint128_t>::mul(reward_each, REWARD_EACH_MULTIPLIER,
+  if (!SafeMath<uint128_t>::mul(reward_each, rewardInformation->reward_each_mul_in_millis,
                                 reward_each_desharded)) {
     LOG_GENERAL(WARNING, "reward_each_desharded multiplication unsafe!");
     return;
   }
 
-  if (!SafeMath<uint128_t>::div(reward_each_desharded, 1000,
+  if (!SafeMath<uint128_t>::div(reward_each_desharded, ONE_THOUSAND,
                                 reward_each_desharded)) {
     LOG_GENERAL(WARNING, "reward_each_desharded division unsafe!");
     return;
@@ -383,10 +394,12 @@ void DirectoryService::InitCoinbase() {
       INFO,
       "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes...");
 
-  file << "Old reward_each is: " << reward_each
+  if (file.has_value()) {
+    file.value() << "Old reward_each is: " << reward_each
        << ", reward_each_desharded: " << reward_each_desharded << '\n';
-  file << "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes..."
-       << '\n';
+    file.value() << "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes..."
+                 << '\n';
+  }
 
   LOG_GENERAL(WARNING, "Rewardees has size: " << m_coinbaseRewardees.size());
   for (const auto& epochNumShardRewardee : m_coinbaseRewardees) {
@@ -441,15 +454,19 @@ void DirectoryService::InitCoinbase() {
               }
               suc_counter++;
             }
-            file << "[CNBSE] Rewarding account: " << addr.hex()
-                 << ", with value: " << reward_each_desharded << '\n';
+            if (file.has_value()) {
+              file.value() << "[CNBSE] Rewarding account: " << addr.hex()
+                           << ", with value: " << reward_each_desharded << '\n';
+            }
           }
         }
       }
     }
   }
-
-  file.close();
+  if (file.has_value()) {
+    file.value().close();
+    file.reset();
+  }
 
   uint128_t balance_left = rewardInformation->total_reward -
                            (suc_counter * reward_each) -
