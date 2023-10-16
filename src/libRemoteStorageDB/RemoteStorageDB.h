@@ -65,7 +65,7 @@ class RemoteStorageDB : boost::noncopyable {
   std::unique_ptr<mongocxx::instance> m_inst;
   bool m_initialized;
   bool m_bulkWriteEmpty;
-  const std::string m_dbName;
+  std::string m_dbName;
   const std::string m_txnCollectionName;
   std::unique_ptr<mongocxx::bulk_write> m_bulkWrite;
   std::mutex m_mutexBulkWrite;
@@ -76,7 +76,6 @@ class RemoteStorageDB : boost::noncopyable {
   RemoteStorageDB(std::string txnCollectionName = "TransactionStatus")
       : m_initialized(false),
         m_bulkWriteEmpty(true),
-        m_dbName(REMOTESTORAGE_DB_NAME),
         m_txnCollectionName(std::move(txnCollectionName)) {}
 
   void Init(bool reset = false);
