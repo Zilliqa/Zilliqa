@@ -16,9 +16,10 @@ async function sendTransaction(tx: TransactionRequest): Promise<Transaction> {
 
 async function main() {
   /*
-   * 1. Copy this file to something like MyScript.ts
-   * 2. Put your code inside this main function. Use `deployContract` or `sendTransaction` helper functions
-   * 3. Run it like: `npx hardhat run scripts/MyScript.ts`
+   * 1. Copy this file to something like MyScript.ts.
+   * 2. Put your contract inside `contracts` folder.
+   * 3. Put your code inside this main function. Use `deployContract` or `sendTransaction` helper functions.
+   * 4. Run it like: `npx hardhat run scripts/MyScript.ts --network yournetwork`
    */
   console.log("IT WORKS!");
 }
