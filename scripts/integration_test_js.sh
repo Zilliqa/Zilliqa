@@ -49,16 +49,21 @@ else
     curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
 
     ## Creating apt sources list file for the NodeSource Node.js 14.x repo...
-
-    echo 'deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_14.x jammy main' > /etc/apt/sources.list.d/nodesource.list
-    echo 'deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_14.x jammy main' >> /etc/apt/sources.list.d/nodesource.list
+    NODE_MAJOR=20
+    echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" > /etc/apt/sources.list.d/nodesource.list
+    echo "deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" >> /etc/apt/sources.list.d/nodesource.list
 
     apt update
     apt -y install nodejs
     node --version
 
+    # Install pnpm
+    export SHELL=bash
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
+    source ~/.bashrc
+    
+    
     # We need scilla-fmt in the PATH
-    cp /scilla/0/_build/install/default/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-checker /usr/local/bin
     cp /scilla/0/bin/scilla-server /usr/local/bin
@@ -117,7 +122,7 @@ else
     sleep 10
 
     cd tests/EvmAcceptanceTests/
-    npm install
+    npm install --ignore-scripts
     npx hardhat run scripts/FundAccountsFromEth.ts
     DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test --bail 2>&1 > npx.out
 

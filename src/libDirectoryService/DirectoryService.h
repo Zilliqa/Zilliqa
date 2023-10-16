@@ -89,12 +89,18 @@ struct DSGuardUpdateStruct {
 
 namespace CoinbaseReward {
 const int FINALBLOCK_REWARD = -1;
+
+// LOOKUP_REWARD is in fact used to reward stakers - the funds are drained from the
+// lookup accounts by the staking scripts and then fed back to the SSNs.
 const int LOOKUP_REWARD = -2;
+
 }  // namespace CoinbaseReward
 
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
 using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
+
+
 
 struct RewardInformation {
   uint128_t base_reward;
@@ -300,7 +306,6 @@ class DirectoryService : public Executable {
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
-  void ComputeMembersInShard(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers,
                           const std::vector<PubKey>& removeDSNodePubkeys);
@@ -479,6 +484,8 @@ class DirectoryService : public Executable {
   std::atomic<Mode> m_mode{};
 
   // Sharding committee members
+  // These values are kept for compatibility reasons - otherwise desharding
+  // change would have been much bigger
   std::mutex mutable m_mutexShards;
   DequeOfShardMembers m_shards;
 

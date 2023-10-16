@@ -458,6 +458,10 @@ const unsigned int SHARD_SIZE_TOLERANCE_HI{ReadConstantNumeric(
     "SHARD_SIZE_TOLERANCE_HI", "node.network_composition.")};
 const unsigned int STORE_DS_COMMITTEE_INTERVAL{ReadConstantNumeric(
     "STORE_DS_COMMITTEE_INTERVAL", "node.network_composition.")};
+const unsigned int MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM{ReadConstantNumeric(
+    "MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM", "node.network_composition.", 30)};
+
+
 
 // P2PComm constants
 const unsigned int BROADCAST_INTERVAL{
@@ -660,6 +664,8 @@ const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 
 // Transaction constants
+const string REWARD_CONTROL_CONTRACT_ADDRESS{
+    ReadConstantString("REWARD_CONTROL_CONTRACT_ADDRESS", "node.transactions.")};
 const uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
 const uint128_t COINBASE_REWARD_PER_DS{

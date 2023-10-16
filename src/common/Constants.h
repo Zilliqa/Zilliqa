@@ -325,6 +325,7 @@ extern const unsigned int NUM_DS_BYZANTINE_REMOVED;
 extern const unsigned int SHARD_SIZE_TOLERANCE_LO;
 extern const unsigned int SHARD_SIZE_TOLERANCE_HI;
 extern const unsigned int STORE_DS_COMMITTEE_INTERVAL;
+extern const unsigned int MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM;
 
 // P2PComm constants
 extern const unsigned int BROADCAST_INTERVAL;
@@ -440,6 +441,7 @@ extern const unsigned int PREGEN_ACCOUNT_TIMES;
 extern const std::string PREGENED_ACCOUNTS_FILE;
 
 // Transaction constants
+extern const std::string REWARD_CONTROL_CONTRACT_ADDRESS;
 extern const uint128_t TOTAL_COINBASE_REWARD;
 extern const uint128_t COINBASE_REWARD_PER_DS;
 extern const uint128_t TOTAL_GENESIS_TOKEN;

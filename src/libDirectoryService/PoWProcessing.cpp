@@ -329,7 +329,6 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
   LOG_GENERAL(INFO, "Block = " << blockNumber);
-
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
   uint8_t expectedShardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
@@ -353,12 +352,21 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   } else {
     bool difficultyCorrect = true;
     if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey)) {
-      if (difficultyLevel != expectedShardGuardDiff) {
+      if (difficultyLevel != expectedDSDiff) {
         difficultyCorrect = false;
       }
+      LOG_GENERAL(INFO,
+                  "CP difficultylevel = " << static_cast<int>(difficultyLevel)
+                                          << " expectedDSDiff = "
+                                          << static_cast<int>(expectedDSDiff));
     } else if (difficultyLevel != expectedDSDiff &&
                difficultyLevel != expectedDiff) {
       difficultyCorrect = false;
+      LOG_GENERAL(
+          INFO, "CP difficultylevel = "
+                    << static_cast<int>(difficultyLevel)
+                    << " expectedDSDiff = " << static_cast<int>(expectedDSDiff)
+                    << " expectedDiff = " << static_cast<int>(expectedDiff));
     }
 
     if (!difficultyCorrect) {

@@ -23,6 +23,7 @@
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountStore/AccountStore.h"
+#include "libData/CoinbaseData/RewardControlContractState.h"
 #include "libNetwork/Guard.h"
 #include "libUtils/SafeMath.h"
 
@@ -138,23 +139,24 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  uint128_t total_reward = COINBASE_REWARD_PER_DS;
-
+  RewardControlContractState parsed_state = RewardControlContractState::GetCurrentRewards();
+  uint128_t total_reward = parsed_state.coinbase_reward_per_ds;
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
   uint128_t base_reward = 0;
 
-  if (!SafeMath<uint128_t>::mul(total_reward, BASE_REWARD_IN_PERCENT,
+  if (!SafeMath<uint128_t>::mul(total_reward, parsed_state.base_reward_in_percent,
                                 base_reward)) {
     LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
     return std::nullopt;
   }
-  base_reward /= 100;
+  // @TODO we should really do this division just once - rrw 2023-10-03
+  base_reward /= 100 * parsed_state.percent_prec;
 
   LOG_GENERAL(INFO, "Total base reward: " << base_reward);
 
   uint128_t base_reward_each = 0;
-  uint128_t node_count = m_mediator.m_DSCommittee->size() + m_shards.size();
+  uint128_t node_count = m_mediator.m_DSCommittee->size();
   LOG_GENERAL(INFO, "Total num of node: " << node_count);
   if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
     LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
@@ -164,13 +166,13 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
 
   uint128_t lookupReward = 0;
-  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
+  if (!SafeMath<uint128_t>::mul(total_reward, parsed_state.lookup_reward_in_percent,
                                 lookupReward)) {
     LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
     return std::nullopt;
     ;
   }
-  lookupReward /= 100;
+  lookupReward /= 100 * parsed_state.percent_prec;
 
   uint128_t nodeReward = total_reward - lookupReward - base_reward;
   uint128_t reward_each = 0;
@@ -302,9 +304,19 @@ void DirectoryService::InitCoinbase() {
 
   file << "Starting Base reward section for epoch: "
        << m_mediator.m_currentEpochNum << '\n';
-  file << "Old base_reward_each is: " << base_reward_each
-       << ", base_reward_each_desharded: " << base_reward_each_desharded
+  file << "RewardStruct information:" << '\n';
+  file << "base_reward: " << rewardInformation->base_reward << '\n';
+  file << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
+  file << "each_reward: " << rewardInformation->each_reward << '\n';
+  file << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
+  file << "lookup_each_reward: " << rewardInformation->lookup_each_reward
        << '\n';
+  file << "lookup_count: " << rewardInformation->lookup_count << '\n';
+  file << "total_reward: " << rewardInformation->total_reward << '\n';
+  file << "sig_count: " << rewardInformation->sig_count << '\n';
+  file << "node_count: " << rewardInformation->node_count << '\n';
+  file << "node_reward: " << rewardInformation->node_reward << '\n';
+
   file << "[CNBSE] Rewarding base reward to DS nodes..." << '\n';
   // DS nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");
@@ -385,6 +397,9 @@ void DirectoryService::InitCoinbase() {
       const auto& shardId = shardIdRewardee.first;
       const auto& rewardees = shardIdRewardee.second;
       LOG_GENERAL(INFO, "[CNBSE] Rewarding shard " << shardId);
+
+      // These are in fact the SSNs in disguise - rewards are disbursed to lookups, and
+      // then funneled by external scripts back to the SSNs - rrw 2023-10-02
       if (shardId == CoinbaseReward::LOOKUP_REWARD) {
         for (const auto& pk : rewardees) {
           const auto& addr = Account::GetAddressFromPublicKey(pk);

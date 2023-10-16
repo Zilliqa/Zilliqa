@@ -741,16 +741,16 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
-           "-n", "20",
-           "-d", "5",
+           "-n", "15",
+           "-s", "15",
+           "-d", "15",
            "-l", "1",
-           "--guard", "4/10",
+           "--guard", "11/0",
            "--gentxn", "false",
-           "--multiplier-fanout", "1",
+           "--multiplier-fanout", "1,1",
            "--host-network", "false",
            "--https", "localdomain",
            "--seed-multiplier", "true",
-           "--skip-non-guard-ds", "true",
            "--localstack", "true"]
     cmd = cmd + ([ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else [])
     cmd = cmd + [ "-f" ]
