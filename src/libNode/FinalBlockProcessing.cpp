@@ -1244,9 +1244,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                          << "][" << txBlock.GetHeader().GetBlockNum()
                          << "] LAST");
   }
-  // Clear STL memory cache
-  DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
-
   // Assumption: New PoW done after every block committed
   // If I am not a DS committee member (and since I got this FinalBlock message,
   // then I know I'm not), I can start doing PoW again

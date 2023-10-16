@@ -3620,9 +3620,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
       }
-      if (txBlkNum % RELEASE_CACHE_INTERVAL == 0) {
-        DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
-      }
       if (!BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta)) {
         LOG_GENERAL(WARNING, "BlockStorage::PutStateDelta failed");
         return false;
