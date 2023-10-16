@@ -21,8 +21,6 @@
 #include "common/BaseType.h"
 
 namespace CommonUtils {
-void ReleaseSTLMemoryCache();
-
 bool IsVacuousEpoch(const uint64_t& epochNum);
 }  // namespace CommonUtils
 

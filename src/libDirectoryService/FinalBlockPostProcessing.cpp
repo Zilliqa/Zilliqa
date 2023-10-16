@@ -276,9 +276,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     }
   }
 
-  // Clear STL memory cache
-  DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
-
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 

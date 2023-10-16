@@ -401,8 +401,6 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
     if (ENABLE_MEMORY_STATS) {
       startMem = DisplayPhysicalMemoryStats("After FetchStateJson", startMem);
     }
-    // Clear STL memory cache
-    DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
   }
 
   if ((vname.empty() && indices.empty()) || vname == "_balance") {
