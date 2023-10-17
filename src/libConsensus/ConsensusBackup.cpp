@@ -348,6 +348,9 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Unicast to the leader
     // =====================
     LOG_GENERAL(WARNING, "Uni-casting response to leader (message challenge)");
+    LOG_GENERAL(INFO, "Sending response to = "
+                          << GetCommitteeMember(m_leaderID).second);
+
     zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                         response);
 
