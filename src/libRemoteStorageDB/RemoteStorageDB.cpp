@@ -84,6 +84,36 @@ tuple<string, unsigned int, string> getConnDetails() {
   return make_tuple(host, port, dbName);
 }
 
+optional<string> getConnStr() {
+  optional<string> result;
+  if (const char* env_p = getenv("REMOTESTORAGE_DB_CONN_STRING")) {
+    result = env_p;
+  } else if (!REMOTESTORAGE_DB_CONN_STRING.empty()) {
+    result = REMOTESTORAGE_DB_CONN_STRING;
+  }
+
+  return result;
+}
+
+optional<string_view> extractDbName(const string& connStr) {
+  const constexpr auto scheme = "mongodb://";
+  if (connStr.find(scheme) != 0) {
+    return nullopt;
+  }
+
+  auto dbNamePos = connStr.find('/', string_view{scheme}.size());
+  if (dbNamePos == string::npos) {
+    return nullopt;
+  }
+
+  // could be string::npos if there are no args
+  auto argsPos = connStr.find('?', dbNamePos + 1);
+
+  return std::string_view{
+      connStr.data() + dbNamePos + 1,
+      (argsPos == string::npos ? connStr.size() : argsPos) - dbNamePos - 1};
+}
+
 }  // namespace
 
 void RemoteStorageDB::Init(bool reset) {
@@ -93,25 +123,42 @@ void RemoteStorageDB::Init(bool reset) {
       m_inst = std::move(instance);
     }
 
-    auto [host, port, dbName] = getConnDetails();
-    auto [username, password] = getCreds();
-    auto uri = "mongodb://" +
-               ((username.empty() || password.empty())
-                    ? ""
-                    : username + ":" + password + "@") +
-               host + ":" + to_string(port) + "/" + dbName;
-    m_dbName = dbName;
-    LOG_GENERAL(INFO, "Connecting to MongoDB...");
-    uri += "?serverSelectionTimeoutMS=" +
-           to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
-    if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
-        std::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
-      uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
-             REMOTESTORAGE_DB_TLS_FILE;
+    string uri;
+    auto uriConnStr = getConnStr();
+    if (uriConnStr) {
+      auto dbName = extractDbName(*uriConnStr);
+      if (!dbName) {
+        // caught below
+        throw std::runtime_error{"Couldn't extract MongoDB database name"};
+      }
+
+      LOG_GENERAL(INFO,
+                  "Using the configured MongoDB connection string (database = "
+                      << *dbName << ")");
+      m_dbName = *dbName;
+      uri = *uriConnStr;
+    } else {
+      auto [host, port, dbName] = getConnDetails();
+      auto [username, password] = getCreds();
+      uri = "mongodb://" +
+            ((username.empty() || password.empty())
+                 ? ""
+                 : username + ":" + password + "@") +
+            host + ":" + to_string(port) + "/" + dbName;
+      m_dbName = dbName;
+      uri += "?serverSelectionTimeoutMS=" +
+             to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
+      if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
+          std::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
+        uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
+               REMOTESTORAGE_DB_TLS_FILE;
+      }
+
+      uri +=
+          "&socketTimeoutMS=" + to_string(REMOTESTORAGE_DB_SOCKET_TIMEOUT_MS);
     }
 
-    uri += "&socketTimeoutMS=" + to_string(REMOTESTORAGE_DB_SOCKET_TIMEOUT_MS);
-
+    LOG_GENERAL(INFO, "Connecting to MongoDB...");
     mongocxx::uri URI(uri);
     if (URI.tls()) {
       LOG_GENERAL(INFO, "Connecting using TLS");

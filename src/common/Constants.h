@@ -174,6 +174,7 @@ extern const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT;
 extern const unsigned int FETCH_DS_BLOCK_LIMIT;
 
 // RemoteStorageDB
+extern const std::string REMOTESTORAGE_DB_CONN_STRING;
 extern const std::string REMOTESTORAGE_DB_HOST;
 extern const std::string REMOTESTORAGE_DB_NAME;
 extern const unsigned int REMOTESTORAGE_DB_PORT;
