@@ -197,6 +197,8 @@ const unsigned int FETCH_DS_BLOCK_LIMIT{
     ReadConstantNumeric("FETCH_DS_BLOCK_LIMIT", "node.seed.")};
 
 // RemotestorageDB constants
+const string REMOTESTORAGE_DB_CONN_STRING{
+    ReadConstantString("REMOTESTORAGE_DB_CONN_STRING", "node.remotestorageDB.")};
 const string REMOTESTORAGE_DB_HOST{
     ReadConstantString("REMOTESTORAGE_DB_HOST", "node.remotestorageDB.")};
 const string REMOTESTORAGE_DB_NAME{
