@@ -1,4 +1,18 @@
-# Testing reward control
+# Reward control
+
+The reward control contract manages rewards on chain - see ZIP-24 for details.
+
+## Deploying in production
+
+In production:
+
+ * Clone `zilliqa-developer`.
+ * Deploy the contracts in `zilliqa-developer/contracts/reward_control`
+ * Use the IDE (or other tool) to change ownership of the multisig to the custodian addresses (available on the wiki if you're in Zilliqa)
+ * List the address of the reward contract (*NOT* the multisig) in `constants.xml`
+ * You're good to go.
+
+## Testing reward control
 
 Zilliqa 1 now comes with built-in reward control. It works like this:
 
@@ -39,6 +53,9 @@ work.
 
 ## Testing diagnostic file output
 
+Turn `ENABLE_REWARD_DEBUG_FILE` on; observe that output is generated.
+
+Turn `ENABLE_REWARD_DEBUG_FILE` off; observe that it isn't any longer.
 
 
 ## Upgrades
