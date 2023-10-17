@@ -560,8 +560,7 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
-                                                   << " peer = " << peer);
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size <<" peer = "<< peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
