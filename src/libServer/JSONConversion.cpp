@@ -683,17 +683,30 @@ const Json::Value JSONConversion::convertTxtoEthJson(
  retJson["hash"] = "0x" + tx.GetTranID().hex();
 
  // Concatenated Code and CallData form input entry in response json
- std::string inputField = "0x0";
+ std::string inputField;
 
  if (!tx.GetCode().empty()) {
-   inputField = DataConversion::Uint8VecToHexStrRet(StripEVM(tx.GetCode()));
+   inputField =
+       "0x" + DataConversion::Uint8VecToHexStrRet(StripEVM(tx.GetCode()));
  }
 
  if (!tx.GetData().empty()) {
-   inputField += DataConversion::Uint8VecToHexStrRet(tx.GetData());
+   const auto callData = DataConversion::Uint8VecToHexStrRet(tx.GetData());
+   // Append extra '0x' prefix iff GetCode() gave empty string
+   if (inputField.empty()) {
+     inputField += "0x" + callData;
+   } else {
+     inputField += callData;
+   }
+ } else {
+   // Append extra '0x' prefix if GetCode() gave empty string
+   if (inputField.empty()) {
+     inputField = "0x";
+   }
  }
 
  retJson["input"] = inputField;
+ // ethers also expects 'data' field
  retJson["data"] = inputField;
 
  // NOTE: Nonce is decremented since the internal representation is +1 due to
