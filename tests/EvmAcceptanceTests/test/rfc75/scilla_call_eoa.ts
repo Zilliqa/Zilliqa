@@ -137,8 +137,7 @@ describe("RFC75 ScillaCallEOA", function () {
     expect(await scillaContract.value()).to.be.eq(0);
   });
 
-  // Disabled in q4-working-branch
-  xit("Should deduct the same amount from account as advertised in receipt", async function () {
+  it("Should deduct the same amount from account as advertised in receipt", async function () {
     const CALL_MODE = 0;
     const admin = await solidityContract.signer;
     const initialBalance = await admin.getBalance();
@@ -147,7 +146,9 @@ describe("RFC75 ScillaCallEOA", function () {
       .callScilla(scillaContractAddress, "call", CALL_MODE, solidityContract.address, VAL);
     tx = await tx.wait();
     expect(await scillaContract.value()).to.be.eq(VAL);
-    const gasCost = tx.effectiveGasPrice.mul(tx.gasUsed);
+    let gasCost = tx.effectiveGasPrice.mul(tx.gasUsed);
+    const ZIL_ETH_SCALING_FACTOR = 1000000;
+    gasCost = gasCost.div(ZIL_ETH_SCALING_FACTOR).mul(ZIL_ETH_SCALING_FACTOR);
     const finalBalance = await admin.getBalance();
     expect(finalBalance).to.be.eq(initialBalance.sub(gasCost));
   });
