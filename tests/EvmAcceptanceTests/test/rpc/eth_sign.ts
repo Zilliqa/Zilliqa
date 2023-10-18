@@ -1,7 +1,6 @@
-import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import {assert} from "chai";
-import hre from "hardhat";
+import { assert } from "chai";
 import logDebug from "../../helpers/DebugHelper";
+import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 
 const METHOD = "eth_sign";
 
