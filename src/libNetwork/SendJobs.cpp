@@ -311,8 +311,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    LOG_GENERAL(INFO, "Connecting to " << m_peer);
-
     WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
       m_socket.cancel();
       OnConnected(TIMED_OUT);
@@ -376,12 +374,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     assert(!m_queue.empty());
 
     auto& msg = m_queue.front().msg;
-
-    if (msg.size >= 2) {
-      auto* p = (const unsigned char*)msg.data.get();
-      LOG_EXTRA(FormatMessageName(p[0], p[1])
-                << " of size " << msg.size << " to " << m_peer);
-    }
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),

@@ -35,8 +35,6 @@ void CommonUtils::ReleaseSTLMemoryCache() {
   if (relMemoryCacheMutex.try_lock()) {
     malloc_trim(0);
     relMemoryCacheMutex.unlock();
-  } else {
-    LOG_GENERAL(WARNING, "MemoryCache cleanup already in progress!");
   }
 #endif
 }
