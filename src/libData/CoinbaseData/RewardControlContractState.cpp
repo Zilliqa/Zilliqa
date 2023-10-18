@@ -43,6 +43,8 @@ RewardControlContractState RewardControlContractState::GetCurrentRewards() {
       COINBASE_REWARD_PER_DS,
       BASE_REWARD_IN_PERCENT,
       LOOKUP_REWARD_IN_PERCENT,
+      REWARD_EACH_MUL_IN_MILLIS,
+      BASE_REWARD_MUL_IN_MILLIS,
       1);
 
   LOG_GENERAL(INFO, "RCA " << REWARD_CONTROL_CONTRACT_ADDRESS);
@@ -70,22 +72,24 @@ RewardControlContractState RewardControlContractState::GetCurrentRewards() {
     LOG_GENERAL(INFO, "RCA is not an address");
   }
   LOG_GENERAL(INFO, "Reward control state "
-              << "B:" << parsed_state.base_reward_in_percent
+              << " B:" << parsed_state.base_reward_in_percent
               << " L:" << parsed_state.lookup_reward_in_percent
               << " P: " << parsed_state.percent_prec
-              << " T:" << parsed_state.coinbase_reward_per_ds);
+              << " T:" << parsed_state.coinbase_reward_per_ds
+              << " RE: " << parsed_state.reward_each_mul_in_millis
+              << " RB: " << parsed_state.base_reward_mul_in_millis);
   return parsed_state;
 }
 
 bool RewardControlContractState::FromAccount(Account& account) {
   // Must be an object.
   bool ok = true;
-  const JSONUtils& utils = JSONUtils::GetInstance();
-
   ok = ok && GetUint128FromState(account, "base_reward_in_percent", base_reward_in_percent);
   ok = ok && GetUint128FromState(account, "lookup_reward_in_percent", lookup_reward_in_percent);
   ok = ok && GetUint128FromState(account, "coinbase_reward_per_ds", coinbase_reward_per_ds);
   ok = ok && GetUint128FromState(account, "percent_precision", percent_prec);
+  ok = ok && GetUint128FromState(account, "reward_each_mul_in_millis", reward_each_mul_in_millis);
+  ok = ok && GetUint128FromState(account, "base_reward_mul_in_millis", base_reward_mul_in_millis);
   return ok;
 }
 

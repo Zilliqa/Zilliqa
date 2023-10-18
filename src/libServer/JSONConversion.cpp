@@ -698,7 +698,13 @@ const Json::Value JSONConversion::convertTxtoEthJson(
    } else {
      inputField += callData;
    }
+ } else {
+   // Append extra '0x' prefix if GetCode() gave empty string
+   if (inputField.empty()) {
+     inputField = "0x";
+   }
  }
+
  retJson["input"] = inputField;
  // ethers also expects 'data' field
  retJson["data"] = inputField;

@@ -45,6 +45,8 @@ ModificationState RemoteStorageDB::GetModificationState(
   }
 }
 
+namespace {
+
 pair<string, string> getCreds() {
   string username, password;
   if (const char* env_p = getenv("ZIL_DB_USERNAME")) {
@@ -57,6 +59,63 @@ pair<string, string> getCreds() {
   return make_pair(username, password);
 }
 
+tuple<string, unsigned int, string> getConnDetails() {
+  string host, dbName;
+  unsigned int port = 27017;
+  if (const char* env_p = getenv("REMOTESTORAGE_DB_NAME")) {
+    dbName = env_p;
+  } else {
+    dbName = REMOTESTORAGE_DB_NAME;
+  }
+
+  if (const char* env_p = getenv("REMOTESTORAGE_DB_HOST")) {
+    host = env_p;
+  } else {
+    host = REMOTESTORAGE_DB_HOST;
+  }
+
+  if (const char* env_p = getenv("REMOTESTORAGE_DB_PORT")) {
+    // bad conversation will throw an exception that will be caught in Init
+    port = stoul(env_p);
+  } else {
+    port = REMOTESTORAGE_DB_PORT;
+  }
+
+  return make_tuple(host, port, dbName);
+}
+
+optional<string> getConnStr() {
+  optional<string> result;
+  if (const char* env_p = getenv("REMOTESTORAGE_DB_CONN_STRING")) {
+    result = env_p;
+  } else if (!REMOTESTORAGE_DB_CONN_STRING.empty()) {
+    result = REMOTESTORAGE_DB_CONN_STRING;
+  }
+
+  return result;
+}
+
+optional<string_view> extractDbName(const string& connStr) {
+  const constexpr auto scheme = "mongodb://";
+  if (connStr.find(scheme) != 0) {
+    return nullopt;
+  }
+
+  auto dbNamePos = connStr.find('/', string_view{scheme}.size());
+  if (dbNamePos == string::npos) {
+    return nullopt;
+  }
+
+  // could be string::npos if there are no args
+  auto argsPos = connStr.find('?', dbNamePos + 1);
+
+  return std::string_view{
+      connStr.data() + dbNamePos + 1,
+      (argsPos == string::npos ? connStr.size() : argsPos) - dbNamePos - 1};
+}
+
+}  // namespace
+
 void RemoteStorageDB::Init(bool reset) {
   try {
     if (!reset) {
@@ -64,28 +123,42 @@ void RemoteStorageDB::Init(bool reset) {
       m_inst = std::move(instance);
     }
 
-    auto creds = getCreds();
     string uri;
-    if (creds.first.empty() || creds.second.empty()) {
-      uri = "mongodb://" + REMOTESTORAGE_DB_HOST + ":" +
-            to_string(REMOTESTORAGE_DB_PORT) + "/" + REMOTESTORAGE_DB_NAME;
+    auto uriConnStr = getConnStr();
+    if (uriConnStr) {
+      auto dbName = extractDbName(*uriConnStr);
+      if (!dbName) {
+        // caught below
+        throw std::runtime_error{"Couldn't extract MongoDB database name"};
+      }
+
+      LOG_GENERAL(INFO,
+                  "Using the configured MongoDB connection string (database = "
+                      << *dbName << ")");
+      m_dbName = *dbName;
+      uri = *uriConnStr;
     } else {
-      uri = "mongodb://" + creds.first + ":" + creds.second + "@" +
-            REMOTESTORAGE_DB_HOST + ":" + to_string(REMOTESTORAGE_DB_PORT) +
-            "/" + REMOTESTORAGE_DB_NAME;
+      auto [host, port, dbName] = getConnDetails();
+      auto [username, password] = getCreds();
+      uri = "mongodb://" +
+            ((username.empty() || password.empty())
+                 ? ""
+                 : username + ":" + password + "@") +
+            host + ":" + to_string(port) + "/" + dbName;
+      m_dbName = dbName;
+      uri += "?serverSelectionTimeoutMS=" +
+             to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
+      if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
+          std::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
+        uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
+               REMOTESTORAGE_DB_TLS_FILE;
+      }
 
-      LOG_GENERAL(INFO, "Authenticating.. found env variables");
+      uri +=
+          "&socketTimeoutMS=" + to_string(REMOTESTORAGE_DB_SOCKET_TIMEOUT_MS);
     }
-    uri += "?serverSelectionTimeoutMS=" +
-           to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
-    if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
-        std::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
-      uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
-             REMOTESTORAGE_DB_TLS_FILE;
-    }
 
-    uri += "&socketTimeoutMS=" + to_string(REMOTESTORAGE_DB_SOCKET_TIMEOUT_MS);
-
+    LOG_GENERAL(INFO, "Connecting to MongoDB...");
     mongocxx::uri URI(uri);
     if (URI.tls()) {
       LOG_GENERAL(INFO, "Connecting using TLS");
@@ -264,7 +337,8 @@ Json::Value RemoteStorageDB::QueryTxnHash(const dev::h256& txnhash) {
       return _json;
     }
     auto txnCollection = conn.value()->database(m_dbName)[m_txnCollectionName];
-    auto cursor = txnCollection.find_one(make_document(kvp("ID", txnhash.hex())));
+    auto cursor =
+        txnCollection.find_one(make_document(kvp("ID", txnhash.hex())));
     if (cursor) {
       const auto& json_string = bsoncxx::to_json(cursor.value());
       Json::Reader reader;

@@ -61,13 +61,15 @@ else
     export SHELL=bash
     curl -fsSL https://get.pnpm.io/install.sh | sh -
     source ~/.bashrc
-    
-    
+
     # We need scilla-fmt in the PATH
     cp /scilla/0/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-checker /usr/local/bin
     cp /scilla/0/bin/scilla-server /usr/local/bin
 
+    # And tell scilla-hardhat-plugin to use it
+    export USE_NATIVE_SCILLA=1
+    
     pkill -9 isolatedServer
     pkill -9 evm-ds
 
