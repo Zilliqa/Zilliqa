@@ -12,7 +12,7 @@ contract GasTransferTest {
     count += 1;
   }
   
-  function sendback(uint amount) public {
+  function sendBack(uint amount) public {
     owner.transfer(amount);
     count += 2;
   }
@@ -20,5 +20,4 @@ contract GasTransferTest {
   function blowUp() public {
     selfdestruct(owner);
   }
-   
 }

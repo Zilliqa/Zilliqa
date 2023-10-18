@@ -12,25 +12,13 @@ class TestCase {
   transferIntoContract: BigNumber = BigNumber.from(0);
   transferOutOfContract: BigNumber = BigNumber.from(0);
   expectedContractInitial: BigNumber = BigNumber.from(0);
-  expectedContractAfterTransferIn: BigNumber = BigNumber.from(0);
-  expectedContractAfterTransferOut: BigNumber = BigNumber.from(0);
 
-  constructor(
-    name: string,
-    constructWith: BigNumber,
-    into: BigNumber,
-    outOf: BigNumber,
-    expectInitial: BigNumber,
-    expectAfterTransfer: BigNumber,
-    expectFinal: BigNumber
-  ) {
+  constructor(name: string, constructWith: BigNumber, into: BigNumber, outOf: BigNumber, expectInitial: BigNumber) {
     this.name = name;
     this.constructContractWith = constructWith;
     this.transferIntoContract = into;
     this.transferOutOfContract = outOf;
     this.expectedContractInitial = expectInitial;
-    this.expectedContractAfterTransferIn = expectAfterTransfer;
-    this.expectedContractAfterTransferOut = expectFinal;
   }
 }
 
@@ -39,15 +27,7 @@ describe("GasTransferTest", function () {
   const ONE_MWEI = BigNumber.from(1_000_000);
   const testCases = [
     // Values less than 1MWei (10^(18-12)) won't show up because of rounding.
-    new TestCase(
-      "0",
-      BigNumber.from(ONE_GWEI),
-      BigNumber.from(0),
-      BigNumber.from(0),
-      BigNumber.from(ONE_GWEI),
-      BigNumber.from(ONE_GWEI),
-      BigNumber.from(ONE_GWEI)
-    )
+    new TestCase("0", BigNumber.from(ONE_GWEI), BigNumber.from(ONE_GWEI), BigNumber.from(0), BigNumber.from(ONE_GWEI))
     //   new TestCase( ONE_GWEI, BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)),
     //   new TestCase( ONE_GWEI, ONE_GWEI, BigNumber.from(0), BigNumber.from(0)),
   ];
@@ -63,16 +43,13 @@ describe("GasTransferTest", function () {
 
   // @todo use parallelizer to stop this being serial.
   testCases.forEach(function (testCase) {
-    let accountBalance: BigNumber;
-    let contractBalance: BigNumber;
     let totalGas: BigNumber;
     let contract: Contract;
     let cumulativeGas = BigNumber.from(0);
     let startOfRoundBalance: BigNumber;
 
     it(`Should run case ${testCase.name}`, async function () {
-      logDebug("-----------------------");
-      accountBalance = await provider.getBalance(myAddress);
+      let accountBalance = await provider.getBalance(myAddress);
       startOfRoundBalance = accountBalance;
 
       contract = await hre.deployContract("GasTransferTest", {value: testCase.constructContractWith});
@@ -100,30 +77,20 @@ describe("GasTransferTest", function () {
     });
 
     it(`My balance should be accountBalance - (testCase.constructContractWith + totalGas)`, async function () {
-      let expectedBalance = accountBalance.sub(testCase.constructContractWith.add(totalGas));
+      let expectedBalance = startOfRoundBalance.sub(testCase.constructContractWith.add(totalGas));
       let currentBalance = await provider.getBalance(myAddress);
-      logDebug(`[1] expect ${expectedBalance.toBigInt()} got ${currentBalance.toBigInt()}`);
-      {
-        let iWonGross = currentBalance.sub(expectedBalance);
-        let iWonNet = iWonGross.sub(totalGas);
-        logDebug(`[1.5] I won ${iWonGross} Qa - that's my gas plus ${iWonNet}!`);
-        // All the money should be accounted for.
-        expect(iWonGross).to.equal(0);
-      }
-      contractBalance = await provider.getBalance(contract.address);
-      accountBalance = await provider.getBalance(myAddress);
 
-      logDebug(
-        `[2] Contract has ${contractBalance} of ${testCase.constructContractWith}; account has ${accountBalance}`
-      );
-      logDebug(`[2] Contract is ${contract.address}`);
-      logDebug(`[2] contract has ${contractBalance}, expected ${testCase.expectedContractInitial}`);
+      expect(expectedBalance).to.be.eq(currentBalance);
+    });
+
+    it(`Contract balance should be ${testCase.expectedContractInitial}`, async function () {
+      const contractBalance = await provider.getBalance(contract.address);
       expect(contractBalance).to.equal(testCase.expectedContractInitial);
     });
 
     it("Send some money to the contract", async function () {
-      const prevContractBalance = contractBalance;
-      const prevAccountBalance = accountBalance;
+      const prevContractBalance = await provider.getBalance(contract.address);
+      const prevAccountBalance = await provider.getBalance(myAddress);
       const tx = await contract.takeAllMyMoney({value: testCase.transferIntoContract}); // gasLimit: 50000000 } );
       const receipt = await tx.wait();
       logDebug(`Tx: ${JSON.stringify(tx)}`);
@@ -132,52 +99,31 @@ describe("GasTransferTest", function () {
       const gasUsed = receipt.gasUsed;
       const totalGas = gasPrice.mul(gasUsed);
       cumulativeGas = cumulativeGas.add(totalGas);
-      contractBalance = await provider.getBalance(contract.address);
-      accountBalance = await provider.getBalance(myAddress);
-      logDebug(
-        `[2.5] transfer in ${testCase.transferIntoContract} => contract now has ${contractBalance}, account ${accountBalance}, gas ${totalGas}`
-      );
+      const contractBalance = await provider.getBalance(contract.address);
+      const accountBalance = await provider.getBalance(myAddress);
       const transferredIntoContract = contractBalance.sub(prevContractBalance);
 
       const expectedBalance = prevAccountBalance.sub(totalGas).sub(transferredIntoContract);
-      const won = accountBalance.sub(expectedBalance);
-      logDebug(`[2.5] expected balance ${expectedBalance}, actual ${accountBalance}`);
-      logDebug(
-        `[2.5] contract expected balance ${testCase.expectedContractAfterTransferIn}, actual ${contractBalance}`
-      );
-      logDebug(`[2.5] I won ${won}`);
-      // All the money should be accounted for.
-      expect(won).to.equal(0);
-      // And the contract should have the expected balance.
-      expect(contractBalance).to.equal(testCase.expectedContractAfterTransferIn);
+      expect(accountBalance).to.be.eq(expectedBalance);
+      expect(contractBalance).to.equal(testCase.constructContractWith.add(testCase.transferIntoContract));
     });
 
     it("Now send it back", async function () {
-      const prevContractBalance = contractBalance;
-      const prevAccountBalance = accountBalance;
-      const tx = await contract.sendback(testCase.transferOutOfContract);
+      const prevContractBalance = await provider.getBalance(contract.address);
+      const prevAccountBalance = await provider.getBalance(myAddress);
+      const tx = await contract.sendBack(testCase.transferOutOfContract);
       const receipt = await tx.wait();
       const gasPrice = receipt.effectiveGasPrice;
       const gasUsed = receipt.gasUsed;
       const totalGas = gasPrice.mul(gasUsed);
       cumulativeGas = cumulativeGas.add(totalGas);
-      contractBalance = await provider.getBalance(contract.address);
-      accountBalance = await provider.getBalance(myAddress);
-      logDebug(
-        `[2.75] transfer out ${testCase.transferOutOfContract} => contract now has ${contractBalance}, account ${accountBalance}, gas ${totalGas}`
-      );
+      const contractBalance = await provider.getBalance(contract.address);
+      const accountBalance = await provider.getBalance(myAddress);
       const contractDiff = prevContractBalance.sub(contractBalance);
       const expectedBalance = prevAccountBalance.sub(totalGas).add(contractDiff);
-      const won = accountBalance.sub(expectedBalance);
 
-      logDebug(`[2.5] expected balance ${expectedBalance}, actual ${accountBalance}`);
-      logDebug(
-        `[2.5] contract expected balance ${testCase.expectedContractAfterTransferOut}, actual ${contractBalance}`
-      );
-      logDebug(`[2.5] I won ${won}`);
-
-      expect(won).to.equal(0);
-      expect(contractBalance).to.equal(testCase.expectedContractAfterTransferOut);
+      expect(accountBalance).to.equal(expectedBalance);
+      expect(contractDiff).to.equal(testCase.transferOutOfContract);
     });
 
     it("Now destroy the contract", async () => {
@@ -196,7 +142,7 @@ describe("GasTransferTest", function () {
 
       // We expect the account to have the previous amount, plus the balance in the contract,
       // minus the amount of gas used to destroy the contract
-      let expectedBalance = accountBalance.add(contractBalance).sub(destructTotalGas);
+      let expectedBalance = myBalanceBeforeDestroy.add(contractBalanceBeforeDestroy).sub(destructTotalGas);
       let currentBalance = await provider.getBalance(myAddress);
       const actualDestructGas = myBalanceBeforeDestroy.sub(currentBalance).sub(contractBalanceBeforeDestroy);
       logDebug(`[3] I expected destruction to cost ${destructTotalGas}; it actually cost ${actualDestructGas}`);
