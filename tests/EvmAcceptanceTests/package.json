@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "cd ../../ && npx husky install .husky/ && cd - && npx husky add ../../.husky/pre-commit \"cd ./tests/EvmAcceptanceTests && npx lint-staged\"",
     "lint": "eslint --fix && prettier --write ."
   },
   "engines": {
@@ -41,7 +40,6 @@
     "hardhat": "^2.18.0",
     "hardhat-gas-reporter": "^1.0.9",
     "hardhat-scilla-plugin": "3.7.1",
-    "husky": "^8.0.3",
     "jest-circus": "^29.7.0",
     "lint-staged": "^13.3.0",
     "prettier": "^2.8.8",
