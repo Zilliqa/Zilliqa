@@ -60,8 +60,8 @@ Json::Value populateReceiptHelper(
     const Json::Value &logs, const Json::Value &logsBloom,
     const Json::Value &transactionIndex, const Transaction &txn);
 
-EthFields parseEip2930Transaction(zbytes asBytes);
-EthFields parseEip1559Transaction(zbytes asBytes);
+EthFields parseEip2930Transaction(zbytes const& asBytes);
+EthFields parseEip1559Transaction(zbytes const& asBytes);
 EthFields parseRawTxFields(std::string const &message);
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,

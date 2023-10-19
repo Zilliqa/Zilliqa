@@ -729,7 +729,8 @@ const Json::Value JSONConversion::convertTxtoEthJson(
  }
  switch (tx.GetVersionIdentifier()) {
   case TRANSACTION_VERSION:
-    retJson["type"] = "0x0"; // FIXME?
+    // Return a type of 0 for native Zilliqa transactions too.
+    retJson["type"] = "0x0";
     break;
   case TRANSACTION_VERSION_ETH_LEGACY:
     retJson["type"] = "0x0";

@@ -821,11 +821,11 @@ bool ProtobufToTransactionCoreInfo(
   }
   txnCoreInfo.accessList.reserve(protoTxnCoreInfo.accesslist_size());
   for (const auto& item : protoTxnCoreInfo.accesslist()) {
-    dev::h160 address = dev::h160(item.address(), dev::h160::ConstructFromStringType::FromBinary);
+    dev::h160 address(item.address(), dev::h160::ConstructFromStringType::FromBinary);
     std::vector<dev::h256> storageKeys;
     storageKeys.reserve(item.storagekeys_size());
     for (const auto& key : item.storagekeys()) {
-      dev::h256 storageKey = dev::h256(key, dev::h256::ConstructFromStringType::FromBinary);
+      dev::h256 storageKey(key, dev::h256::ConstructFromStringType::FromBinary);
       storageKeys.push_back(storageKey);
     }
     auto accessListItem = std::make_pair(address, storageKeys);

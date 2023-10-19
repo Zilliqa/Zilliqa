@@ -75,7 +75,8 @@ Json::Value populateReceiptHelper(
 
   switch (tx.GetVersionIdentifier()) {
     case TRANSACTION_VERSION:
-      ret["type"] = "0x0"; // FIXME?
+      // Return a type of 0 for native Zilliqa transactions too.
+      ret["type"] = "0x0";
       break;
     case TRANSACTION_VERSION_ETH_LEGACY:
       ret["type"] = "0x0";
@@ -94,7 +95,7 @@ Json::Value populateReceiptHelper(
   return ret;
 }
 
-EthFields parseLegacyTransaction(zbytes asBytes) {
+EthFields parseLegacyTransaction(zbytes const& asBytes) {
   EthFields ret;
 
   dev::RLP rlpStream1(asBytes,
@@ -159,7 +160,7 @@ EthFields parseLegacyTransaction(zbytes asBytes) {
   return ret;
 }
 
-EthFields parseEip2930Transaction(zbytes asBytes) {
+EthFields parseEip2930Transaction(zbytes const& asBytes) {
   EthFields ret;
 
   dev::RLP rlpStream1(asBytes,
@@ -175,51 +176,50 @@ EthFields parseEip2930Transaction(zbytes asBytes) {
   ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_2930);
 
   // RLP TX contains: chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, signatureYParity, signatureR, signatureS
-  for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
-    auto byteIt = (*it).operator zbytes();
+  for (const auto& it : rlpStream1) {
+    auto byteIt = it.operator zbytes();
 
     switch (i) {
       case 0: // Chain ID - validated earlier
         break;
       case 1:
-        ret.nonce = uint32_t(*it);
+        ret.nonce = uint32_t(it);
         break;
       case 2:
-        ret.gasPrice = uint128_t{*it};
+        ret.gasPrice = uint128_t{it};
         break;
       case 3:
-        ret.gasLimit = uint64_t{*it};
+        ret.gasLimit = uint64_t{it};
         break;
       case 4:
         ret.toAddr = byteIt;
         break;
       case 5:
-        ret.amount = uint128_t(*it);
+        ret.amount = uint128_t(it);
         break;
       case 6:
         ret.code = byteIt;
         break;
       case 7:
-        ret.accessList = AccessList(*it);
+        ret.accessList = AccessList(it);
         break;
       case 8:  // signatureYParity - only needed for pub sig recovery
         break;
       case 9:  // signatureR
       {
-        zbytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       case 10:  // signatureS
       {
-        zbytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       default:
         LOG_GENERAL(WARNING, "too many fields received in rlp!");
     }
 
-    i++;
-    it++;
+    ++i;
   }
 
   // Because of the way Zil handles nonces, we increment the nonce here
@@ -228,7 +228,7 @@ EthFields parseEip2930Transaction(zbytes asBytes) {
   return ret;
 }
 
-EthFields parseEip1559Transaction(zbytes asBytes) {
+EthFields parseEip1559Transaction(zbytes const& asBytes) {
   EthFields ret;
 
   dev::RLP rlpStream1(asBytes,
@@ -244,54 +244,53 @@ EthFields parseEip1559Transaction(zbytes asBytes) {
   ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_1559);
 
   // RLP TX contains: chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, amount, data, access_list, signature_y_parity, signature_r, signature_s
-  for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
-    auto byteIt = (*it).operator zbytes();
+  for (const auto& it : rlpStream1) {
+    auto byteIt = it.operator zbytes();
 
     switch (i) {
       case 0: // Chain ID - validated earlier
         break;
       case 1:
-        ret.nonce = uint32_t(*it);
+        ret.nonce = uint32_t(it);
         break;
       case 2:
-        ret.maxPriorityFeePerGas = uint128_t{*it};
+        ret.maxPriorityFeePerGas = uint128_t{it};
         break;
       case 3:
-        ret.maxFeePerGas = uint128_t{*it};
+        ret.maxFeePerGas = uint128_t{it};
         break;
       case 4:
-        ret.gasLimit = uint64_t{*it};
+        ret.gasLimit = uint64_t{it};
         break;
       case 5:
         ret.toAddr = byteIt;
         break;
       case 6:
-        ret.amount = uint128_t(*it);
+        ret.amount = uint128_t(it);
         break;
       case 7:
         ret.code = byteIt;
         break;
       case 8:
-        ret.accessList = AccessList(*it);
+        ret.accessList = AccessList(it);
         break;
       case 9:  // signatureYParity - only needed for pub sig recovery
         break;
       case 10:  // signatureR
       {
-        zbytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       case 11:  // signatureS
       {
-        zbytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       default:
         LOG_GENERAL(WARNING, "too many fields received in rlp!");
     }
 
-    i++;
-    it++;
+    ++i;
   }
 
   // Set gas price now, based on `maxPriorityFeePerGas` and `maxFeePerGas`. This gas price is what will actually be
