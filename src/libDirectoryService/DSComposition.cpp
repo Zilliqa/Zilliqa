@@ -128,10 +128,6 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
   // Remove that many members so that new dsComm.size() == COMM_SIZE
   const auto toRemoveCount =
       dsComm.size() > COMM_SIZE ? dsComm.size() - COMM_SIZE : 0;
-  LOG_GENERAL(INFO,
-              "Since new dsComm might not equal expected COMM_SIZE, number of "
-              "nodes to be trimmed is: "
-                  << toRemoveCount);
   for (uint32_t i = 0; i < toRemoveCount; ++i) {
     // One item is always removed every winner, with removal priority given to
     // 'loser' candidates before expiring nodes.
