@@ -414,6 +414,7 @@ npx hardhat run scripts/FundAccountsFromZil.ts --network testnet
 ```
 
 Similarly you can do the same job if your initial accounts have funds in their eth addresses:
+
 ```bash
 npx hardhat run scripts/FundAccountsFromEth.ts --network your_network
 ```

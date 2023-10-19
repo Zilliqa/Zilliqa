@@ -29,7 +29,7 @@ describe("Manual nonce #parallel", function () {
       // This test doesn't work on iso server, but does on a devnet
       this.skip();
     }
-  
+
     let result = await hre.zilliqaSetup.zilliqa.blockchain.getBalance(signer.address);
 
     const NONCE = result.result.nonce;
