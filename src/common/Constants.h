@@ -174,6 +174,7 @@ extern const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT;
 extern const unsigned int FETCH_DS_BLOCK_LIMIT;
 
 // RemoteStorageDB
+extern const std::string REMOTESTORAGE_DB_CONN_STRING;
 extern const std::string REMOTESTORAGE_DB_HOST;
 extern const std::string REMOTESTORAGE_DB_NAME;
 extern const unsigned int REMOTESTORAGE_DB_PORT;
@@ -469,6 +470,9 @@ extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
 extern const uint64_t EVM_RPC_TIMEOUT_SECONDS;
+extern const bool ENABLE_REWARD_DEBUG_FILE;
+extern const unsigned int REWARD_EACH_MUL_IN_MILLIS;
+extern const unsigned int BASE_REWARD_MUL_IN_MILLIS;
 
 // TxBlockAux constants
 constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";

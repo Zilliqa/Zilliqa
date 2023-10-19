@@ -5319,6 +5319,16 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
       LOG_GENERAL(INFO, "No txns to send to ds shard");
       return;
     }
+    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+      for (const auto& tx : transactions) {
+        LOG_GENERAL(INFO, "InsertTxn " << tx.GetTranID().hex() << " fromAddr "
+                                       << tx.GetSenderAddr()
+                                       << ", nonce: " << tx.GetNonce());
+        RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
+                                                 m_mediator.m_currentEpochNum);
+      }
+      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+    }
 
     result = Messenger::SetNodeForwardTxnBlock(
         msg, MessageOffset::BODY, epoch,

@@ -29,7 +29,10 @@ let make_error =
 let twenty = Uint32 2000
 let forty = Uint32 4000
 let one_hundred = Uint32 100
-let coinbase_default = Uint128 20400000000000000
+let coinbase_default = Uint128 204000000000000000
+
+let reward_each_mul_default_in_millis = Uint32 1668
+let base_reward_mul_default_in_millis = Uint32 4726
 
 (***************************************************)
 (*             The contract definition             *)
@@ -43,10 +46,17 @@ contract RewardsParams
 (* Mutable fields *)
 field contractadmin: ByStr20  = init_admin
 field stagingcontractadmin: Option ByStr20 = None {ByStr20}
+
+field coinbase_reward_per_ds: Uint128 = coinbase_default
+
+(* Reward percentages, scaled by percent_precision - 100 means % * 100 *)
 field base_reward_in_percent : Uint32 = twenty
 field lookup_reward_in_percent : Uint32 = forty
-field coinbase_reward_per_ds: Uint128 = coinbase_default
 field percent_precision : Uint32 = one_hundred
+
+(* The denominator here is a fixed 1000 *)
+field reward_each_mul_in_millis : Uint32 = reward_each_mul_default_in_millis
+field base_reward_mul_in_millis : Uint32 = base_reward_mul_default_in_millis
 
 (* Procedures *)
 
@@ -130,10 +140,30 @@ end
 
 (* @dev: Change the coinbase reward percent *)
 (* @dev: Can be called only by the contractadmin *)
-(* @param base_reward: The coinbase reward percent to change to *)
+(* @param coinbase_reward_val: The coinbase reward to change to, in Qa *)
 
 (* @multi-sig *)
 transition ChangeCoinbaseReward(coinbase_reward_val: Uint128)
     IsAdmin _sender;
     coinbase_reward_per_ds := coinbase_reward_val
+end
+
+(* @dev: Change the reward ratio awarded to fast miners per ZIP-23 *)
+(* @dev: Can be called only by the contract admin *)
+(* @param reward_in_millis: The amount to multiply fast miner rewards multiplied by 1000, so 1.6 is represented as 1600 *)
+
+(* @multi-sig *)
+transition ChangeRewardEachMulInMillis(reward_in_millis: Uint32)
+  IsAdmin _sender;
+  reward_each_mul_in_millis := reward_in_millis
+end
+
+(* @dev: Change the reward ratio awarded to fast miners per ZIP-23 *)
+(* @dev: Can be called only by the contract admin *)
+(* @param reward_in_millis: The amount to multiply base miner rewards multiplied by 1000, so 1.6 is represented as 1600 *)
+
+(* @multi-sig *)
+transition ChangeBaseRewardMulInMillis(reward_in_millis: Uint32)
+  IsAdmin _sender;
+  base_reward_mul_in_millis := reward_in_millis
 end

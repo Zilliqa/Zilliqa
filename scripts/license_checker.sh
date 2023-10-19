@@ -60,6 +60,8 @@ scope=$(find . -type f \( \
             ! -path "./.local/*" \
             ! -path "./.husky/*" \
             ! -path "./_localdev/*" \
+            ! -path "./native/*" \
+            ! -path "./venv/*" \
 	          ! -path "./vcpkg/*" \
             ! -path "./scripts/depends/*")
 
