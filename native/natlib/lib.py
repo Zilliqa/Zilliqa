@@ -286,24 +286,11 @@ def create_constants_xml(args, data):
         scilla.find('ENABLE_SCILLA_MULTI_VERSION').text = "false"
         scilla.find('LOG_SC').text = "true"
 
-    ''' specifically configure network_composition to overcome stupid default values '''
-
-    network_composition =  root.find('network_composition')
-    if network_composition:
-        network_composition.find('COMM_SIZE').text = str(args.n*2)
-        network_composition.find('NUM_DS_ELECTION').text = str(4)
-        network_composition.find('SHARD_SIZE_TOLERANCE_LO').text = str(1)
-        network_composition.find('SHARD_SIZE_TOLERANCE_HI').text = str(1)
-        network_composition.find('DS_PERFORMANCE_THRESHOLD_PERCENT').text = "0.05"
-        network_composition.find('NUM_DS_BYZANTINE_REMOVED').text = str(1)
-        network_composition.find('STORE_DS_COMMITTEE_INTERVAL').text = str(2)
-        network_composition.find('MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM').text = str(1)
-
-    ''' specifically configure metrics off for native '''
 
     metrics = root.find('metrics')
     if metrics:
         metrics.find('ENABLE_METRICS').text = "false"
+        metrics.find('METRIC_ZILLIQA_PROVIDER').text = "NONE"
 
 
 
@@ -542,18 +529,22 @@ def create_start_sh(args, zil_data):
 
 
     if is_non_ds(args):
+
         cmd_startpow = ' '.join([
-            './sendcmd',
+            'sendcmd',
             '--port {}'.format(my_port),
             '--cmd cmd',
-            '--cmdarg 0200' + block0 + ds_diff + diff + rand1 + rand2 + ''.join(
+            '--cmdarg 0200{0}{1}{2}{3}{4}{5}'.format(block0, ds_diff, diff, rand1, rand2, ''.join(
                 [
-                    ds[zil_data.PUBLIC].split(' ')[0] + ip_to_hex(ds[zil_data.IP]) + '{0:08X}'.format(ds[zil_data.PORT]) for ds in zil_data.get_normal()
+                    str(ds[2]).split(' ')[0] + ip_to_hex(ds[0]) + '{0:08X}'.format(ds[1])
+                    for ds in (zil_data.get_normal() + zil_data.get_guard())
                 ]
-            )
+            ))
         ])
     else:
         cmd_startpow = ''
+
+    print("generated start command" + cmd_startpow)
 
     start_sh = [
         '#!/bin/bash',
@@ -592,8 +583,8 @@ def create_start_sh(args, zil_data):
         gen_bucket_sed_string(args, "/run/zilliqa/download_static_DB.py"),
         'export AWS_ENDPOINT_URL=http://0.0.0.0:4566',
         'export PATH=/run/zilliqa:$PATH',
-        defer_cmd(cmd_setprimaryds, 20) if is_ds(args) and not args.recover_from_testnet else '',
-        defer_cmd(cmd_startpow, 40) if is_non_ds(args) and not args.recover_from_testnet else '',
+        defer_cmd(cmd_setprimaryds, 15) if is_ds(args) else '',
+        defer_cmd(cmd_startpow, 25) if is_non_ds(args) else '',
         cmd_zilliqa_daemon(args, resume=args.resume),
         '[ "$1" != "--recovery" ] && exit 1',
         '# The followings are recovery sequences'
@@ -756,7 +747,7 @@ def create_multiplier_start_sh(listen_port, lookupips_url):
         'echo "Listening on port {}"'.format(listen_port),
         'echo "Lookup IPs URL: {}"'.format(lookupips_url),
         'echo "Starting multiplier"',
-        './asio_multiplier -l "{}" -s "{}" 2>1 & > multiplier.logfile'.format(listen_port, lookupips_url),
+        '(./asio_multiplier -l "{}" -s "{}" &)'.format(listen_port, lookupips_url),
     ]
 
     with open('start.sh', 'w') as f:

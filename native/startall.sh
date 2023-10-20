@@ -28,7 +28,7 @@ function start_task {
   for dir in $dirs; do
     if [ -f "$dir/start.sh" ]; then
       echo "Running start.sh in $dir..."
-      (cd "$dir" &&  chmod +x start.sh && ./start.sh &)
+      (cd "$dir" &&  chmod +x start.sh && ./start.sh&)
     else
       echo "No start.sh found in $dir"
     fi
@@ -36,31 +36,19 @@ function start_task {
   echo "Done"
 }
 
-function start_webserver {
-  echo "Starting webserver..."
-  (cd rundirs &&  python3 -m http.server& )
-  echo "Done"
-}
-
-function start_localstack {
-  echo "Starting localstack..."
-  localstack start -d
-  echo "Done"
-}
-
+echo "starting multiplier..."
+(cd rundirs/native-multiplier-0 &&  bash start.sh)
 echo "starting web server..."
 (cd rundirs &&  python3 -m http.server& )
-echo "starting localstack ..."
-#result=$(start_localstack)
 echo "starting lookups..."
 result=$(start_task "*native-lookup*")
+echo "starting seedpubs..."
+result=$(start_task "*native-seedpub*")
 echo "starting guards..."
 result=$(start_task "*native-dsguard*")
 echo "starting normal..."
 result=$(start_task "*native-normal*")
-echo "starting seedpubs..."
-result=$(start_task "*native-seedpub*")
-echo "starting multiplier..."
-result=$(start_task "*native-multiplier*")
+
+
 echo "$result"
 

@@ -26,7 +26,7 @@ function stop_localstack {
 
 function stop_webserver {
   echo "Stopping webserver..."
-  kill -9 $(ps aux | grep '[P]ython -m http.server' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[p]ython3 -m http.server' | awk '{print $2}')
   echo "Done"
 }
 
@@ -38,13 +38,13 @@ function stop_asio_multipplier {
 
 function stop_zilliqad {
   echo "Stopping zilliqad..."
-  kill -s SIGTERM $(ps aux | grep '[z]illiqad' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[z]illiqad' | awk '{print $2}')
   echo "Done"
 }
 
 function stop_zilliqa {
   echo "Stopping zilliqa..."
-  kill -s SIGTERM $(ps aux | grep '[z]illiqa' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[z]illiqa' | awk '{print $2}')
   kill -9 $(ps aux | grep '[s]cilla-server' | awk '{print $2}')
   kill -9 $(ps aux | grep '[e]vm-ds' | awk '{print $2}')
   echo "Done"
@@ -53,6 +53,12 @@ function stop_zilliqa {
 function stop_upload_incr_DB {
   echo "Stopping upload_incr_DB..."
   kill -9 $(ps aux | grep '[u]pload_incr_DB' | awk '{print $2}')
+  echo "Done"
+}
+
+function stop_sciilla_server {
+  echo "Stopping upload_incr_DB..."
+  kill -9 $(ps aux | grep '[s]scilla-server' | awk '{print $2}')
   echo "Done"
 }
 
@@ -74,10 +80,11 @@ function stop_download_static_DB {
 echo "Halting processes .."
 
 result=$(stop_asio_multipplier)
+result=$(stop_sciilla_server)
 result=$(stop_zilliqad)
 result=$(stop_zilliqa)
 result=$(stop_webserver)
-#ßresult=$(stop_localstack)
+#result=$(stop_localstack)
 result=$(stop_upload_incr_DB)
 result=$(stop_download_incr_DB)
 result=$(stop_download_static_DB)

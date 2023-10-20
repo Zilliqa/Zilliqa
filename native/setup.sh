@@ -24,7 +24,7 @@ DSMEMBERS=5
 LOOKUPMEMBERS=1
 DSGUARDS=4
 PORT=30300
-GUARD=4
+
 
 function cleanup {
 echo "Cleaning up..."
