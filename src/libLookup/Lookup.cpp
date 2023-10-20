@@ -5497,7 +5497,7 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
   // TODO: this should be reworked once we drop support for Lookup nodes
   // I'm either upper seed (archival lookup) for external node or a Lookup for
   // private seed nodes
-  if (ARCHIVAL_LOOKUP) {
+  if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
     // I'm seed/external-seed - forward message to next layer of 'lookups'
     SendMessageToRandomSeedNode(message);
   } else {
@@ -5508,6 +5508,8 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                   "Unable to deserialize message from by Lookup from Seed");
       return false;
     }
+    std::this_thread::sleep_for(
+        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
     SenderTxnBatchThread(std::move(transactions));
   }
 

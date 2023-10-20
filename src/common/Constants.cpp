@@ -284,7 +284,7 @@ const unsigned int RECOVERY_SYNC_TIMEOUT{
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
 const unsigned int EXTRA_TX_DISTRIBUTE_TIME_IN_MS{ReadConstantNumeric(
-    "EXTRA_TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
+    "EXTRA_TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.",7000)};
 const unsigned int DS_TX_PROCESSING_TIMEOUT{
     ReadConstantNumeric("DS_TX_PROCESSING_TIMEOUT", "node.epoch_timing.")};
 const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
