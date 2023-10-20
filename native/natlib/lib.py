@@ -286,9 +286,24 @@ def create_constants_xml(args, data):
         scilla.find('ENABLE_SCILLA_MULTI_VERSION').text = "false"
         scilla.find('LOG_SC').text = "true"
 
+    ''' specifically configure network_composition to overcome stupid default values '''
+
+    network_composition =  root.find('network_composition')
+    if network_composition:
+        network_composition.find('COMM_SIZE').text = str(args.n*2)
+        network_composition.find('NUM_DS_ELECTION').text = str(4)
+        network_composition.find('SHARD_SIZE_TOLERANCE_LO').text = str(1)
+        network_composition.find('SHARD_SIZE_TOLERANCE_HI').text = str(1)
+        network_composition.find('DS_PERFORMANCE_THRESHOLD_PERCENT').text = "0.05"
+        network_composition.find('NUM_DS_BYZANTINE_REMOVED').text = str(1)
+        network_composition.find('STORE_DS_COMMITTEE_INTERVAL').text = str(2)
+        network_composition.find('MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM').text = str(1)
+
     ''' specifically configure metrics off for native '''
 
     metrics = root.find('metrics')
+    if metrics:
+        metrics.find('ENABLE_METRICS').text = "false"
 
 
 
@@ -514,12 +529,13 @@ def create_start_sh(args, zil_data):
         ])
 
     if is_normal(args) or is_dsguard(args):
-        primary_ds_ip = zil_data.get_normal()[0][zil_data.IP]
+        primary_ds_ip = zil_data.get_normal()[args.index][zil_data.IP] if is_normal(args) else zil_data.get_guard()[args.index][zil_data.IP]
+        primary_ds_port = zil_data.get_normal()[args.index][zil_data.PORT] if is_normal(args) else zil_data.get_guard()[args.index][zil_data.PORT]
         cmd_setprimaryds = ' '.join([
             './sendcmd',
             '--port {}'.format(my_port),
             '--cmd cmd',
-            '--cmdarg 0100' + ip_to_hex(zil_data.get_normal()[0][zil_data.IP]) + '{0:08X}'.format(zil_data.get_normal()[0][zil_data.PORT])
+            '--cmdarg 0100' + ip_to_hex(primary_ds_ip) + '{0:08X}'.format(primary_ds_port)
         ])
     else:
         cmd_setprimaryds = ''

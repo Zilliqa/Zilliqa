@@ -26,7 +26,7 @@ function stop_localstack {
 
 function stop_webserver {
   echo "Stopping webserver..."
-  kill -9 $(ps aux | grep '[p]ython3 -m http.server' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[P]ython -m http.server' | awk '{print $2}')
   echo "Done"
 }
 
@@ -45,6 +45,8 @@ function stop_zilliqad {
 function stop_zilliqa {
   echo "Stopping zilliqa..."
   kill -s SIGTERM $(ps aux | grep '[z]illiqa' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[s]cilla-server' | awk '{print $2}')
+  kill -9 $(ps aux | grep '[e]vm-ds' | awk '{print $2}')
   echo "Done"
 }
 
@@ -75,7 +77,7 @@ result=$(stop_asio_multipplier)
 result=$(stop_zilliqad)
 result=$(stop_zilliqa)
 result=$(stop_webserver)
-result=$(stop_localstack)
+#ßresult=$(stop_localstack)
 result=$(stop_upload_incr_DB)
 result=$(stop_download_incr_DB)
 result=$(stop_download_static_DB)

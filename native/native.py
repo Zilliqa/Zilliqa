@@ -109,6 +109,8 @@ def main():
     if not data.get_ips_list_from_pseudo_origin(args):
         print("Generating data from the command line arguments failed")
         return 0
+    else:
+        data.print_details()
 
     args.restart = False
 

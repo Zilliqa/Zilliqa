@@ -51,7 +51,7 @@ function start_localstack {
 echo "starting web server..."
 (cd rundirs &&  python3 -m http.server& )
 echo "starting localstack ..."
-result=$(start_localstack)
+#result=$(start_localstack)
 echo "starting lookups..."
 result=$(start_task "*native-lookup*")
 echo "starting guards..."

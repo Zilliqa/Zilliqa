@@ -22,7 +22,8 @@ RUNDIR=$(pwd)/rundirs
 NODES=6
 DSMEMBERS=5
 LOOKUPMEMBERS=1
-PORT=30303
+DSGUARDS=4
+PORT=30300
 GUARD=4
 
 function cleanup {
@@ -34,5 +35,5 @@ echo "Cleaning up..."
 
 
 result=$(cleanup)
-python3 native.py -n ${NODES} -d $DSMEMBERS -l ${LOOKUPMEMBERS} --port ${PORT} --websocket= --transaction-sender=0 --ds-guard=4 --shard-guard=0 --bucket=zilliqa-devnet  --origin-server=${RUNDIR} --multiplier-fanout=1 --out-dir=$RUNDIR  --build-dir=${BUILD_DIR}
+python3 native.py -n ${NODES} -d $DSMEMBERS -l ${LOOKUPMEMBERS} --port ${PORT} --websocket= --transaction-sender=0 --ds-guard=$DSGUARDS --shard-guard=0 --bucket=zilliqa-devnet  --origin-server=${RUNDIR} --multiplier-fanout=1 --out-dir=$RUNDIR  --build-dir=${BUILD_DIR}
 echo "$result"

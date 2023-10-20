@@ -95,6 +95,25 @@ class Data:
         keypairs.sort()
         return keypairs
 
+    def print_details(self):
+        print("\n\nIP,Port and address Allocations")
+        print("normal")
+        for line in self.normal_ips_from_origin:
+            print(line)
+        print("lookup")
+        for line in self.lookup_ips_from_origin:
+            print(line)
+        print("multiplier")
+        for line in self.multiplier_ips_from_origin:
+            print(line)
+        print("seedpub")
+        for line in self.seedpub_ips_from_origin:
+            print(line)
+        print("guard")
+        for line in self.guard_ips_from_origin:
+            print(line)
+        print("")
+
     def get_ips_list_from_pseudo_origin(self, arg) -> bool:
         try:
             ''' Allocate the ports sequentitally '''
@@ -105,6 +124,7 @@ class Data:
             self.multiplier_port = self.seedpub_port + (sum(arg.multiplier_fanout)*5) + 1
             self.nextfreeport = self.multiplier_port + (len(arg.multiplier_fanout)*5) + 1
             self.my_ip = get_real_ip()
+            self.my_ip = "127.0.0.1"
 
         except Exception as _:
             print("We suspect the arguments are suspect")
