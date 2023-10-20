@@ -829,7 +829,7 @@ bool ProtobufToTransactionCoreInfo(
       storageKeys.push_back(storageKey);
     }
     auto accessListItem = std::make_pair(address, storageKeys);
-    txnCoreInfo.accessList.push_back(accessListItem);
+    txnCoreInfo.accessList.push_back(std::move(accessListItem));
   }
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoTxnCoreInfo.maxpriorityfeepergas(),
                                                      txnCoreInfo.maxPriorityFeePerGas);

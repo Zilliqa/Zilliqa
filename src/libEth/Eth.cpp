@@ -177,8 +177,6 @@ EthFields parseEip2930Transaction(zbytes const& asBytes) {
 
   // RLP TX contains: chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, signatureYParity, signatureR, signatureS
   for (const auto& it : rlpStream1) {
-    auto byteIt = it.operator zbytes();
-
     switch (i) {
       case 0: // Chain ID - validated earlier
         break;
@@ -192,13 +190,13 @@ EthFields parseEip2930Transaction(zbytes const& asBytes) {
         ret.gasLimit = uint64_t{it};
         break;
       case 4:
-        ret.toAddr = byteIt;
+        ret.toAddr = zbytes(it);
         break;
       case 5:
         ret.amount = uint128_t(it);
         break;
       case 6:
-        ret.code = byteIt;
+        ret.code = zbytes(it);
         break;
       case 7:
         ret.accessList = AccessList(it);
@@ -245,8 +243,6 @@ EthFields parseEip1559Transaction(zbytes const& asBytes) {
 
   // RLP TX contains: chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, amount, data, access_list, signature_y_parity, signature_r, signature_s
   for (const auto& it : rlpStream1) {
-    auto byteIt = it.operator zbytes();
-
     switch (i) {
       case 0: // Chain ID - validated earlier
         break;
@@ -263,13 +259,13 @@ EthFields parseEip1559Transaction(zbytes const& asBytes) {
         ret.gasLimit = uint64_t{it};
         break;
       case 5:
-        ret.toAddr = byteIt;
+        ret.toAddr = zbytes(it);;
         break;
       case 6:
         ret.amount = uint128_t(it);
         break;
       case 7:
-        ret.code = byteIt;
+        ret.code = zbytes(it);
         break;
       case 8:
         ret.accessList = AccessList(it);
