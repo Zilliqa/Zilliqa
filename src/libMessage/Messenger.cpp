@@ -7596,9 +7596,6 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
 
   // For Non-DS Shard
   for (const auto& mb : microblocks) {
-    if (mb.GetHeader().GetShardId() == numberOfShards) {
-      continue;  // use txBlk for ds shard
-    }
     ProtoCosigsRewardsStructure* proto_CosigsRewardsStructure =
         result.mutable_data()->add_cosigsrewards();
 
