@@ -38,8 +38,6 @@ def main():
     parser.add_argument('-l', type=int, help='number of lookup nodes', required=True)
     parser.add_argument('--ds-guard', type=int, default=0, help='number of ds guards')
     parser.add_argument('--shard-guard', type=int, default=0, help='number of shard guards')
-    parser.add_argument('--skip-non-guard-ds', action='store_true', default=False,
-                        help='do not create pods for non-guard DS nodes')
     parser.add_argument('--out-dir', help='The output directory')
     parser.add_argument('--build-dir', help='The build directory')
     parser.add_argument('--block-number-size', default=64, type=int, choices=[64, 256],
@@ -74,6 +72,8 @@ def main():
     group3 = parser.add_argument_group('Native mode settings', 'for defining how native will behave')
     group3.add_argument('--isolated-server-accounts', action='store_true',
                         help='use the isolated server accounts file from zilliqa directory')
+    group4 =parser.add_argument_group('Native mode settings', 'for defining how native will behave')
+    group4.add_argument('--daemon', default=False, help='If we should use the ZilliqaDaemon or lanuch zilliqa directly')
 
     args = parser.parse_args()
 

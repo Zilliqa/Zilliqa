@@ -17,23 +17,19 @@
 # This script will start an isolated server and run the python API against it
 #
 set -e
-BUILD_DIR=$(pwd)/../build
-RUNDIR=$(pwd)/rundirs
-NODES=6
-DSMEMBERS=5
-LOOKUPMEMBERS=1
-DSGUARDS=4
-PORT=40000
-
-
-function cleanup {
-echo "Cleaning up..."
-  rm -rf $RUNDIR
-  mkdir -p $RUNDIR
-  echo "Done"
-}
-
-
-result=$(cleanup)
-python3 native.py -n ${NODES} -d $DSMEMBERS -l ${LOOKUPMEMBERS} --port ${PORT} --websocket= --transaction-sender=0 --ds-guard=$DSGUARDS --shard-guard=0 --bucket=zilliqa-devnet  --origin-server=${RUNDIR} --multiplier-fanout=1 --out-dir=$RUNDIR  --build-dir=${BUILD_DIR}
-echo "$result"
+echo 1
+(cd rundirs/native-lookup-0 &&  bash start.sh& )
+echo 2
+(cd rundirs/native-dsguard-0 &&  bash start.sh& )
+echo 3
+(cd rundirs/native-dsguard-1 &&  bash start.sh& )
+echo 4
+(cd rundirs/native-dsguard-2 &&  bash start.sh& )
+echo 5
+(cd rundirs/native-dsguard-3 &&  bash start.sh& )
+echo 6
+(cd rundirs/native-seedpub-0 &&  bash start.sh& )
+echo 7
+(cd rundirs/native-normal-0 &&  bash start.sh& )
+echo 8
+(cd rundirs/native-multiplier-0 &&  bash start.sh& )

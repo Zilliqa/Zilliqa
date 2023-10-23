@@ -113,23 +113,14 @@ def is_ds(args):
         return True
 
     if args.type == 'normal':
-        # If non-guard DS nodes are skipped, all normal nodes fall into non-DS
-        if args.skip_non_guard_ds:
-            return False
-        # Else, check the index to see if it's DS node
         return args.index < args.d - args.ds_guard
 
-    # other types are definitely not DS
     return False
 
 
 def is_non_ds(args):
     if args.type == 'normal':
-        # if non-guard DS nodes are skipped, all normal nodes fall into non-DS
-        if args.skip_non_guard_ds:
-            return True
-        # Else, check the index
-        return args.index >= args.d - args.ds_guard
+        return True
 
     return False
 
@@ -140,7 +131,7 @@ def is_dsguard(args):
 
 def is_shard_guard(args):
     if args.type == 'normal':
-        offset = args.d if args.skip_non_guard_ds else args.ds_guard
+        offset = args.ds_guard
         return offset + args.index >= args.d and offset + args.index < args.d + args.shard_guard
 
     return False
@@ -451,6 +442,7 @@ def create_start_sh(args, zil_data):
 
     # FIXME(#313): Before Zilliqa daemon is integrated, there's no way to recover a DS node
     def cmd_zilliqa_daemon(args, recovery=False, resume=False):
+        isZilliqaDaemon : bool = args.daemon
         """generate the command for invoking zilliqa binary
 
         Arguments:
@@ -462,7 +454,10 @@ def create_start_sh(args, zil_data):
         - the string with the right binary and its options
         """
 
-        binary_name = 'zilliqad'
+        if isZilliqaDaemon:
+            binary_name = 'zilliqad'
+        else:
+            binary_name = 'zilliqa'
 
         # SyncType, 0 for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 6 for seedprv
         opt_recovery = '0'
@@ -501,7 +496,11 @@ def create_start_sh(args, zil_data):
             elif recovery:
                 opt_recovery = '1'
 
-        return ' '.join([
+        '''
+        If we wish to use the ZilliqaDaemon, we need to add the following options:
+        '''
+
+        if isZilliqaDaemon: return ' '.join([
             binary_name,
             '--privk {}'.format(my_private_key),
             '--pubk {}'.format(my_public_key),
@@ -514,6 +513,23 @@ def create_start_sh(args, zil_data):
             '--logpath {}'.format(args.log_path) if args.log_path is not None else '',
             '--killnone'
         ])
+        else:
+            '''
+            Otherwise, we need to add the following
+            '''
+            return ' '.join([
+                binary_name,
+                '--privk {}'.format(my_private_key),
+                '--pubk {}'.format(my_public_key),
+                '--address {}'.format(my_ip),
+                '--port {}'.format(my_port),
+                '--synctype {}'.format(opt_sync_type),
+                '--identity {0}-{1}'.format(args.type,args.index),
+                '--logpath {}'.format(args.log_path) if args.log_path is not None else ''])
+
+    '''
+    This is the commands that we send to thae nodes once they have started.
+    '''
 
     if is_normal(args) or is_dsguard(args):
         primary_ds_ip = zil_data.get_normal()[args.index][zil_data.IP] if is_normal(args) else zil_data.get_guard()[args.index][zil_data.IP]

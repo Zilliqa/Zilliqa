@@ -15,16 +15,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <algorithm>
-#include <chrono>
+
+#include <atomic>
 #include <iostream>
 #include <set>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
-#include <atomic>
 
 #include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+
 #include <cpr/cpr.h>
 #include <boost/asio.hpp>
 #include <boost/asio/signal_set.hpp>
@@ -35,10 +41,10 @@
 #include "libMetrics/Tracing.h"
 #include "libNetwork/P2P.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/IPConverter.h"
+
+#include "libNetwork/P2PMessage.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
-#include "libNetwork/P2PMessage.h"
 
 using namespace zil::p2p;
 std::chrono::high_resolution_clock::time_point startTime;
@@ -100,14 +106,17 @@ bool fetchDownstreams(const std::string downstreamURL,
   if (r.status_code == 200) {
     std::string contents = r.text;
     std::vector<std::string> oldAddresses = mirrorAddresses;
-    std::vector<std::string> newAddresses = removeEmptyAddr(split(contents, '\n'));
-    std::set<std::string> diffAddresses = reportDifference(newAddresses, oldAddresses, addressStore);
+    std::vector<std::string> newAddresses =
+        removeEmptyAddr(split(contents, '\n'));
+    std::set<std::string> diffAddresses =
+        reportDifference(newAddresses, oldAddresses, addressStore);
     for (const std::string& address : diffAddresses) {
       mirrorAddresses.push_back(address);
     }
   } else {
-    LOG_GENERAL(INFO,"DownstreamURL " << downstreamURL
-              << " may not be available at this moment" );
+    LOG_GENERAL(INFO, "DownstreamURL "
+                          << downstreamURL
+                          << " may not be available at this moment");
     return false;
   }
   return true;
@@ -160,14 +169,68 @@ void process_message(std::shared_ptr<zil::p2p::Message> message,
                                            (time_span.count() * 1024 * 1024)
                                     << " MBps");
   }
-  zil::p2p::GetInstance().SendBroadcastMessage(peers.getPeers(), message->msg,false);
+  zil::p2p::GetInstance().SendBroadcastMessage(peers.getPeers(), message->msg,
+                                               false);
 }
 
 namespace po = boost::program_options;
 
+void daemonize() {
+  pid_t pid, sid;
+
+  // Fork the parent process
+  pid = fork();
+
+  if (pid < 0) {
+    exit(EXIT_FAILURE);
+  }
+
+  // If we got a good PID, then we can exit the parent process
+  if (pid > 0) {
+    exit(EXIT_SUCCESS);
+  }
+
+  // Change the file mode mask
+  umask(0);
+
+  // Create a new SID for the child process
+  sid = setsid();
+  if (sid < 0) {
+    exit(EXIT_FAILURE);
+  }
+
+  // Fork again to ensure that the daemon is not a session leader
+  pid = fork();
+  if (pid < 0) {
+    exit(EXIT_FAILURE);
+  }
+
+  if (pid > 0) {
+    exit(EXIT_SUCCESS);
+  }
+
+  // Change the current working directory to the root directory
+  if ((chdir("/")) < 0) {
+    exit(EXIT_FAILURE);
+  }
+
+  // Close all open file descriptors
+  for (int i = sysconf(_SC_OPEN_MAX); i >= 0; i--) {
+    close(i);
+  }
+
+  // Redirect standard input, output, and error to /dev/null
+  int fd = open("/dev/null", O_RDWR);
+  dup(fd);
+  dup(fd);
+}
+
 int main(int argc, char* argv[]) {
   using namespace zil::multiplier::utils;
   Peer my_network_info;
+
+  // Daemonize the program
+  daemonize();
 
   std::string url;
   std::string logpath(std::filesystem::absolute("./").string());
@@ -175,7 +238,7 @@ int main(int argc, char* argv[]) {
   std::set<std::string> addressStore;
   std::vector<std::string> mirrorAddresses;
   int port;
-  std::atomic<bool> execution_continues{true };
+  std::atomic<bool> execution_continues{true};
   std::mutex lock_addressStore;
 
   po::options_description desc("Options");
@@ -207,37 +270,38 @@ int main(int argc, char* argv[]) {
 
     if ((port < 0) || (port > 65535)) {
       SWInfo::LogBrandBugReport();
-      LOG_GENERAL( INFO, "ERROR: Invalid port" );
+      LOG_GENERAL(INFO, "ERROR: Invalid port");
       return ERROR_IN_COMMAND_LINE;
     }
     if (url.empty()) {
       SWInfo::LogBrandBugReport();
-      LOG_GENERAL( INFO, "ERROR: url empty" );
+      LOG_GENERAL(INFO, "ERROR: url empty");
       return ERROR_IN_COMMAND_LINE;
     }
   } catch (boost::program_options::required_option& e) {
     SWInfo::LogBrandBugReport();
-    LOG_GENERAL( INFO, "ERROR: " << e.what() );
-    LOG_GENERAL( INFO, "ERROR: " << desc );
+    LOG_GENERAL(INFO, "ERROR: " << e.what());
+    LOG_GENERAL(INFO, "ERROR: " << desc);
     return ERROR_IN_COMMAND_LINE;
   } catch (boost::program_options::error& e) {
     SWInfo::LogBrandBugReport();
-    LOG_GENERAL( INFO, "ERROR: " << e.what() );
+    LOG_GENERAL(INFO, "ERROR: " << e.what());
     return ERROR_IN_COMMAND_LINE;
   }
 
   INIT_FILE_LOGGER("asio_multiplier", std::filesystem::current_path());
   LOG_DISPLAY_LEVEL_ABOVE(INFO);
 
-
-  auto func = [&execution_continues, &our_peers,&port,&lock_addressStore]() mutable -> void {
+  auto func = [&execution_continues, &our_peers, &port,
+               &lock_addressStore]() mutable -> void {
     boost::asio::io_context ctx(1);
     boost::asio::signal_set sig(ctx, SIGINT, SIGTERM);
     sig.async_wait([&](const boost::system::error_code&, int) {
       ctx.stop();
       execution_continues.store(false);
     });
-    auto dispatcher = [&our_peers,&lock_addressStore](std::shared_ptr<zil::p2p::Message> message) {
+    auto dispatcher = [&our_peers, &lock_addressStore](
+                          std::shared_ptr<zil::p2p::Message> message) {
       lock_addressStore.lock();
       process_message(std::move(message), our_peers);
       lock_addressStore.unlock();
@@ -254,7 +318,7 @@ int main(int argc, char* argv[]) {
         std::vector<std::string> address_pair;
         address_pair = split(address, ':');
         if (address_pair.size() != 2) {
-          LOG_GENERAL(INFO, "Invalid address: " << address );
+          LOG_GENERAL(INFO, "Invalid address: " << address);
           continue;
         }
 
@@ -263,7 +327,7 @@ int main(int argc, char* argv[]) {
           struct in_addr ip_addr {};
           inet_pton(AF_INET, address_pair[0].c_str(), &ip_addr);
           {
-            LOG_GENERAL( INFO, "Updating downstream Addresses: " );
+            LOG_GENERAL(INFO, "Updating downstream Addresses: ");
             lock_addressStore.lock();
             our_peers.addPeer({ip_addr.s_addr, static_cast<u_int32_t>(std::stoi(
                                                    address_pair[1]))});

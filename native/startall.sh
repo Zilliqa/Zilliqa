@@ -17,18 +17,19 @@
 # This script will start an isolated server and run the python API against it
 
 # Find all directories containing "native"
-set -e
+#set -e
 
 
 function start_task {
   local taskname=$1
   echo "Starting task "$taskname"..."
-  dirs=$(find . -type d -name "$taskname" )
+  dirs=$(find . -type d -name $taskname )
   # Loop through each directory and run "start.sh"
+  echo $dirs
   for dir in $dirs; do
     if [ -f "$dir/start.sh" ]; then
       echo "Running start.sh in $dir..."
-      (cd "$dir" &&  chmod +x start.sh && ./start.sh&)
+      (cd "$dir" &&  bash start.sh)
     else
       echo "No start.sh found in $dir"
     fi
@@ -41,13 +42,13 @@ echo "starting multiplier..."
 echo "starting web server..."
 (cd rundirs &&  python3 -m http.server& )
 echo "starting lookups..."
-result=$(start_task "*native-lookup*")
+result=$(start_task "*lookup*")
 echo "starting seedpubs..."
-result=$(start_task "*native-seedpub*")
+result=$(start_task "*seedpub*")
 echo "starting guards..."
-result=$(start_task "*native-dsguard*")
+result=$(start_task "*dsguard*")
 echo "starting normal..."
-result=$(start_task "*native-normal*")
+result=$(start_task "*normal*")
 
 
 echo "$result"
