@@ -122,9 +122,6 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
     minerInfo.m_dsNodesEjected.clear();
   }
 
-  LOG_GENERAL(INFO, "Current dsComm size is: "
-                        << dsComm.size() << ", expected size: " << COMM_SIZE);
-
   // Remove that many members so that new dsComm.size() == COMM_SIZE
   const auto toRemoveCount =
       dsComm.size() > COMM_SIZE ? dsComm.size() - COMM_SIZE : 0;

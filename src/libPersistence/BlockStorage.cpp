@@ -2019,9 +2019,6 @@ bool BlockStorage::RefreshAll() {
 
 shared_ptr<LevelDB> BlockStorage::GetMicroBlockDB(const uint64_t& epochNum) {
   const unsigned int dbindex = epochNum / NUM_EPOCHS_PER_PERSISTENT_DB;
-  LOG_EXTRA("BlockStorage::GetMicroBlockDB(): dbindex: "
-            << dbindex
-            << ", m_microBlockDBs.size(): " << m_microBlockDBs.size());
   while (m_microBlockDBs.size() <= dbindex) {
     m_microBlockDBs.emplace_back(std::make_shared<LevelDB>(
         string("microBlocks_") + to_string(m_microBlockDBs.size())));
