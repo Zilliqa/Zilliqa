@@ -378,6 +378,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
         [self = shared_from_this()](const ErrorCode& ec, size_t) {
+          if (ec) {
+            LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+          }
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
           }
@@ -415,7 +418,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
 
-    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS}, [this]() { Reconnect(); });
+    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS},
+              [this]() { Reconnect(); });
   }
 
   void Reconnect() {
@@ -493,7 +497,8 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size <<" peer = "<< peer);
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
+                                                   << " peer = " << peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread

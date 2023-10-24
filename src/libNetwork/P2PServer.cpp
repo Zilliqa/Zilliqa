@@ -202,9 +202,10 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
   throw std::runtime_error(error_msg);
 }
 
-P2PServerConnection::P2PServerConnection(
-    std::weak_ptr<P2PServerImpl> owner, uint64_t this_id, Peer&& remote_peer,
-    TcpSocket socket, size_t max_message_size)
+P2PServerConnection::P2PServerConnection(std::weak_ptr<P2PServerImpl> owner,
+                                         uint64_t this_id, Peer&& remote_peer,
+                                         TcpSocket socket,
+                                         size_t max_message_size)
     : m_owner(std::move(owner)),
       m_id(this_id),
       m_remotePeer(std::move(remote_peer)),
@@ -229,6 +230,9 @@ void P2PServerConnection::ReadNextMessage() {
         if (!ec) {
           assert(n == HDR_LEN);
         }
+        if (ec) {
+          LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+        }
         if (ec != OPERATION_ABORTED) {
           self->OnHeaderRead(ec);
         }
@@ -237,10 +241,8 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    if (ec != END_OF_FILE) {
-      LOG_GENERAL(INFO,
-                  "Peer " << m_remotePeer << " read error: " << ec.message());
-    }
+    LOG_GENERAL(INFO,
+                "Peer " << m_remotePeer << " read error: " << ec.message());
     OnConnectionClosed();
     return;
   }
@@ -254,7 +256,9 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
                              << " Adding sending node "
                              << m_remotePeer.GetPrintableIPAddress()
                              << " as strictly blacklisted");
-    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),m_remotePeer.GetListenPortHost(),m_remotePeer.GetNodeIndentifier()});
+    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),
+                                  m_remotePeer.GetListenPortHost(),
+                                  m_remotePeer.GetNodeIndentifier()});
 
     CloseSocket();
     OnConnectionClosed();
@@ -268,6 +272,9 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
       [self = shared_from_this()](const ErrorCode& ec, size_t n) {
         if (!ec) {
           assert(n == self->m_readBuffer.size() - HDR_LEN);
+        }
+        if (ec) {
+          LOG_GENERAL(WARNING, "Got error code: " << ec.message());
         }
         if (ec != OPERATION_ABORTED) {
           self->OnBodyRead(ec);
@@ -288,7 +295,9 @@ void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (state != ReadState::SUCCESS) {
     LOG_GENERAL(WARNING, "Message deserialize error: blacklisting "
                              << m_remotePeer.GetPrintableIPAddress());
-    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),m_remotePeer.GetListenPortHost(),m_remotePeer.GetNodeIndentifier()});
+    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),
+                                  m_remotePeer.GetListenPortHost(),
+                                  m_remotePeer.GetNodeIndentifier()});
 
     CloseSocket();
     OnConnectionClosed();
