@@ -26,7 +26,7 @@ ulimit -Sc unlimited;
 ulimit -Hc unlimited;
 ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_local.py start 5
+python tests/zilliqa/test_zilliqa_local.py start 5
 
 sleep 40
 echo "starting..."

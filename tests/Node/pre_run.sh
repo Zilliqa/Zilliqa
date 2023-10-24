@@ -29,12 +29,12 @@ ulimit -Sc unlimited;
 ulimit -Hc unlimited;
 ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_local.py stop
-python tests/Zilliqa/test_zilliqa_local.py setup 10
-python tests/Zilliqa/test_zilliqa_local.py prestart 5
+python tests/zilliqa/test_zilliqa_local.py stop
+python tests/zilliqa/test_zilliqa_local.py setup 10
+python tests/zilliqa/test_zilliqa_local.py prestart 5
 
 # clean up persistence storage
 rm -rf lookup_local_run/node*
 
-python tests/Zilliqa/test_zilliqa_lookup.py setup 1
+python tests/zilliqa/test_zilliqa_lookup.py setup 1
 

@@ -21,11 +21,12 @@ add_subdirectory (Server)
 add_subdirectory (EvmFiltersAPI)
 add_subdirectory (EthRpcMethods)
 add_subdirectory (Utils)
-#add_subdirectory (Zilliqa)
+add_subdirectory (Zilliqa)
 #add_subdirectory (RemoteStorageDB) Works only if you have a local mongo server running
 
 file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR})
-#FIXME: constants.xml is not used for local_run, thus shouldn't be copied
 # presently, it's a workaround to silence the error thrown by tests_zilliqa_local.py
 file(COPY ${CMAKE_SOURCE_DIR}/constants.xml DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY Node DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/tests/Zilliqa/test_zilliqa_local.py DESTINATION ${CMAKE_SOURCE_DIR}/build/tests/zilliqa)
+file(COPY ${CMAKE_SOURCE_DIR}/tests/Zilliqa/test_zilliqa_lookup.py DESTINATION ${CMAKE_SOURCE_DIR}/build/tests/zilliqa)
