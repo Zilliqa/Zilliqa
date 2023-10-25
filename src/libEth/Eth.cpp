@@ -259,7 +259,7 @@ EthFields parseEip1559Transaction(zbytes const& asBytes) {
         ret.gasLimit = uint64_t{it};
         break;
       case 5:
-        ret.toAddr = zbytes(it);;
+        ret.toAddr = zbytes(it);
         break;
       case 6:
         ret.amount = uint128_t(it);
