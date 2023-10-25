@@ -139,7 +139,8 @@ bool ResolveDNS(const std::string& url, const uint32_t& port,
             "Milliseconds it took to resolve dns name: "
                 << (std::chrono::duration_cast<std::chrono::milliseconds>(
                         end_time - start))
-                       .count());
+                       .count()
+                << " for name: " << url);
         return ToNumericalIPFromStr(endpoint.address().to_string(), ipInt);
       }
     }

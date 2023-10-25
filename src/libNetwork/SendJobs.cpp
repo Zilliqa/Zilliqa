@@ -389,9 +389,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void OnWritten(const ErrorCode& ec) {
     if (!ec && !m_closed) {
-      LOG_GENERAL(INFO, "Successfully sent message to: "
-                            << m_peer.GetPrintableIPAddress()
-                            << " with size: " << m_queue.front().msg.size);
+      // LOG_GENERAL(INFO, "Successfully sent message to: "
+      //                       << m_peer.GetPrintableIPAddress()
+      //                       << " with size: " << m_queue.front().msg.size);
     }
     if (m_closed) {
       return;
