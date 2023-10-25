@@ -379,7 +379,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
         [self = shared_from_this()](const ErrorCode& ec, size_t) {
           if (ec) {
-            LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+            // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
           }
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);

@@ -231,7 +231,7 @@ void P2PServerConnection::ReadNextMessage() {
           assert(n == HDR_LEN);
         }
         if (ec) {
-          LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
         }
         if (ec != OPERATION_ABORTED) {
           self->OnHeaderRead(ec);
@@ -274,7 +274,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
           assert(n == self->m_readBuffer.size() - HDR_LEN);
         }
         if (ec) {
-          LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
         }
         if (ec != OPERATION_ABORTED) {
           self->OnBodyRead(ec);

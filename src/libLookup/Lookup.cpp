@@ -632,7 +632,7 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
   // try resolving ip from hostname
   string url = peer.GetHostname();
   auto resolved_ip = peer.GetIpAddress();  // existing one
-  /*if (!url.empty()) {
+  if (!url.empty()) {
     uint128_t tmpIp;
     if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(), tmpIp)) {
       resolved_ip = tmpIp;  // resolved one
@@ -640,7 +640,6 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
       LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
     }
   }
-  */
   return resolved_ip;
 }
 
