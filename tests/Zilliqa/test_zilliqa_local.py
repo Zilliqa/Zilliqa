@@ -354,7 +354,7 @@ def run_start_validateBackupDB():
     os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[0] + '; echo \"' + keypair[0] + ' ' + keypair[
         1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' +
               keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(
-        NODE_LISTEN_PORT + 0) + ' --synctype 5 --recovery 1 > ./error_log_zilliqa 2>&1 &')
+        NODE_LISTEN_PORT + 0) + ' --synctype 5 --recovery 1 '+ ' --identity normal-' + str(x) + '> ./error_log_zilliqa 2>&1 &')
 
 
 def run_connect(numnodes):
