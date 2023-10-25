@@ -209,7 +209,7 @@ def run_prestart(numdsnodes, guard_mode=False):
     dsnodes = ET.Element("dsnodes");
 
     # Store sorted keys list in text file
-    keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+    keys_file = open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "w")
     for x in range(0, count):
         keys_file.write(keypairs[x] + '\n')
         keypair = keypairs[x].split(" ")
@@ -235,7 +235,7 @@ def run_prestart(numdsnodes, guard_mode=False):
     nodes.clear()
 
     # ds_whitelist.xml generation
-    keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+    keys_file = open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "w")
     for x in range(0, count):
         keys_file.write(keypairs[x] + '\n')
         keypair = keypairs[x].split(" ")
@@ -254,7 +254,7 @@ def run_prestart(numdsnodes, guard_mode=False):
 
     address_nodes = ET.Element("address")
     # shard_whitelist.xml generation
-    keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+    keys_file = open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "w")
     for x in range(0, count):
         keys_file.write(keypairs[x] + '\n')
         keypair = keypairs[x].split(" ")
@@ -272,7 +272,7 @@ def run_start(numdsnodes):
 
     # Load the keypairs
     keypairs = []
-    with open(LOCAL_RUN_FOLDER + 'keys.txt', "r") as f:
+    with open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "r") as f:
         keypairs = f.readlines()
     keypairs = [x.strip() for x in keypairs]
 
@@ -340,7 +340,7 @@ def run_start_validateBackupDB():
 
     # Load the keypairs
     keypairs = []
-    with open(LOCAL_RUN_FOLDER + 'keys.txt', "r") as f:
+    with open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "r") as f:
         keypairs = f.readlines()
     keypairs = [x.strip() for x in keypairs]
 
@@ -365,7 +365,7 @@ def run_connect(numnodes):
 
     # Load the keypairs
     keypairs = []
-    with open(LOCAL_RUN_FOLDER + 'keys.txt', "r") as f:
+    with open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "r") as f:
         keypairs = f.readlines()
     keypairs = [x.strip() for x in keypairs]
 
@@ -434,7 +434,7 @@ def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 
     # Load the keypairs
     keypairs = []
-    with open(LOCAL_RUN_FOLDER + 'keys.txt', "r") as f:
+    with open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "r") as f:
         keypairs = f.readlines()
     keypairs = [x.strip() for x in keypairs]
 
