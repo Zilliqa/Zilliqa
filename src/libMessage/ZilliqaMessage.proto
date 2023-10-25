@@ -396,6 +396,15 @@ message ProtoTransactionCoreInfo
     uint64 gaslimit        = 7;
     oneof oneof8 { bytes code = 8; }
     oneof oneof9 { bytes data = 9; }
+    repeated AccessListItem accessList = 10;
+    ByteArray maxpriorityfeepergas = 11;
+    ByteArray maxfeepergas = 12;
+}
+
+message AccessListItem
+{
+    bytes address = 1;
+    repeated bytes storagekeys = 2;
 }
 
 message ProtoTransaction

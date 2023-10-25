@@ -49,7 +49,7 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
                          const uint64_t &gasLimit, const zbytes &code,
                          const zbytes &data)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
-                 gasLimit, code, data) {
+                 gasLimit, code, data, {}, 0, 0) {
   zbytes txnData;
   SerializeCoreFields(txnData, 0);
 
@@ -85,7 +85,7 @@ Transaction::Transaction(const TxnHash &tranID, const uint32_t &version,
                          const Signature &signature)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
-                 gasLimit, code, data),
+                 gasLimit, code, data, {}, 0, 0),
       m_signature(signature) {}
 
 Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
@@ -93,9 +93,26 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
                          const uint128_t &amount, const uint128_t &gasPrice,
                          const uint64_t &gasLimit, const zbytes &code,
                          const zbytes &data, const Signature &signature)
+    : Transaction(version, nonce, toAddr, senderPubKey, amount, gasPrice, gasLimit, code, data, signature, {}) {}
+
+
+Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
+                         const Address &toAddr, const PubKey &senderPubKey,
+                         const uint128_t &amount, const uint128_t &gasPrice,
+                         const uint64_t &gasLimit, const zbytes &code,
+                         const zbytes &data, const Signature &signature, const AccessList &accessList)
+    : Transaction(version, nonce, toAddr, senderPubKey, amount, gasPrice, gasLimit, code, data, signature, accessList, 0, 0) {}
+
+Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
+            const Address& toAddr, const PubKey& senderPubKey,
+            const uint128_t& amount, const uint128_t& gasPrice,
+            const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
+            const Signature& signature, const AccessList &accessList, const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
-                 gasLimit, code, data),
+                 gasLimit, code, data, accessList, maxPriorityFeePerGas, maxFeePerGas),
       m_signature(signature) {
+  LOG_MARKER();
+  LOG_GENERAL(WARNING, "eth addr of this txn is " << Account::GetAddressFromPublicKeyEth(senderPubKey))
   zbytes txnData;
   SerializeCoreFields(txnData, 0);
 
@@ -154,12 +171,11 @@ uint32_t Transaction::GetVersionIdentifier() const {
   return DataConversion::UnpackB(this->GetVersion());
 }
 
-// Check if the version is 1 or 2 - the only valid ones for now
-// this will look like 65538 or 65537
+// Check if the version is 1, 2, 3 or 4
 bool Transaction::VersionCorrect() const {
   auto const version = GetVersionIdentifier();
 
-  return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
+  return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH_LEGACY || version == TRANSACTION_VERSION_ETH_EIP_2930 || version == TRANSACTION_VERSION_ETH_EIP_1559);
 }
 
 const uint64_t &Transaction::GetNonce() const { return m_coreInfo.nonce; }
@@ -182,7 +198,7 @@ Address Transaction::GetSenderAddr() const {
 bool Transaction::IsEth() const {
   auto const version = GetVersionIdentifier();
 
-  return version == TRANSACTION_VERSION_ETH;
+  return IsEthTransactionVersion(version);
 }
 
 const uint128_t &Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
@@ -261,8 +277,8 @@ bool Transaction::IsSignedECDSA() const {
   if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
     pubKeyStr = pubKeyStr.substr(2);
   }
-  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID),
-                              sigString, pubKeyStr);
+  auto hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID);
+  return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }
 
 // Set what the hash of the transaction is, depending on its type
@@ -301,7 +317,7 @@ bool Transaction::SetHash(zbytes const &txnData) {
 // Function to return whether the TX is signed
 bool Transaction::IsSigned(zbytes const &txnData) const {
   // Use the version number to tell which signature scheme it is using
-  // If a V2 TX
+  // If this is an Ethereum TX
   if (IsEth()) {
     return IsSignedECDSA();
   }

@@ -727,7 +727,28 @@ const Json::Value JSONConversion::convertTxtoEthJson(
                   txn.GetTransaction().GetNonce() - 1, txn.GetTransaction().GetVersionIdentifier())
                   .hex();
  }
- retJson["type"] = "0x0";
+ switch (tx.GetVersionIdentifier()) {
+  case TRANSACTION_VERSION:
+    // Return a type of 0 for native Zilliqa transactions too.
+    retJson["type"] = "0x0";
+    break;
+  case TRANSACTION_VERSION_ETH_LEGACY:
+    retJson["type"] = "0x0";
+    break;
+  case TRANSACTION_VERSION_ETH_EIP_2930:
+    retJson["type"] = "0x1";
+    retJson["accessList"] = convertAccessList(tx.GetCoreInfo().accessList);
+    break;
+  case TRANSACTION_VERSION_ETH_EIP_1559:
+    retJson["type"] = "0x2";
+    retJson["accessList"] = convertAccessList(tx.GetCoreInfo().accessList);
+    retJson["maxPriorityFeePerGas"] = (boost::format("0x%x") % tx.GetCoreInfo().maxPriorityFeePerGas).str();
+    retJson["maxFeePerGas"] = (boost::format("0x%x") % tx.GetCoreInfo().maxFeePerGas).str();
+    break;
+  default:
+    LOG_GENERAL(WARNING, "Invalid transaction type");
+    break;
+ }
 
  std::string sig{tx.GetSignature()};
  retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
@@ -736,6 +757,26 @@ const Json::Value JSONConversion::convertTxtoEthJson(
 
  retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
  return retJson;
+}
+
+const Json::Value JSONConversion::convertAccessList(const AccessList& accessList) {
+  Json::Value result = Json::arrayValue;
+
+  for (const auto& item : accessList) {
+    Json::Value resultItem = Json::objectValue;
+
+    resultItem["address"] = "0x" + item.first.hex();
+
+    Json::Value resultItemKeys = Json::arrayValue;
+    for (const auto& key : item.second) {
+      resultItemKeys.append("0x" + key.hex());
+    }
+    resultItem["storageKeys"] = resultItemKeys;
+    
+    result.append(resultItem);
+  }
+
+  return result;
 }
 
 const Json::Value JSONConversion::convertNode(const PairOfNode& node) {

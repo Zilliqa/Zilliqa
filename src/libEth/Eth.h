@@ -47,6 +47,9 @@ struct EthFields {
   zbytes code;
   zbytes data;
   zbytes signature;
+  AccessList accessList;
+  uint128_t maxPriorityFeePerGas;
+  uint128_t maxFeePerGas;
 };
 
 Json::Value populateReceiptHelper(
@@ -57,6 +60,8 @@ Json::Value populateReceiptHelper(
     const Json::Value &logs, const Json::Value &logsBloom,
     const Json::Value &transactionIndex, const Transaction &txn);
 
+EthFields parseEip2930Transaction(zbytes const& asBytes);
+EthFields parseEip1559Transaction(zbytes const& asBytes);
 EthFields parseRawTxFields(std::string const &message);
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,

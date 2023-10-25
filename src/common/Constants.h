@@ -148,8 +148,10 @@ extern const bool AUTO_UPGRADE;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
-extern const unsigned int TRANSACTION_VERSION;
-extern const unsigned int TRANSACTION_VERSION_ETH;
+const unsigned int TRANSACTION_VERSION = 1;
+const unsigned int TRANSACTION_VERSION_ETH_LEGACY = 2;
+const unsigned int TRANSACTION_VERSION_ETH_EIP_2930 = 3;
+const unsigned int TRANSACTION_VERSION_ETH_EIP_1559 = 4;
 extern const unsigned int DSBLOCK_VERSION;
 extern const unsigned int TXBLOCK_VERSION;
 extern const unsigned int MICROBLOCK_VERSION;
