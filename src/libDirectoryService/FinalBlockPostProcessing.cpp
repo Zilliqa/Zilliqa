@@ -30,11 +30,11 @@
 #include "libNetwork/Guard.h"
 #include "libNode/Node.h"
 #include "libPersistence/ContractStorage.h"
+#include "libScilla/ScillaClient.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libScilla/ScillaClient.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -205,8 +205,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     m_mediator.m_node->UpdateProcessedTransactions();
   }
 
-  // StoreMicroBlocksToDisk();
-
   auto resumeBlackList = []() mutable -> void {
     this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
     Blacklist::GetInstance().Enable(true);
@@ -358,7 +356,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
           m_mediator.m_node->CommitTxnPacketBuffer();
         };
         DetachedFunction(1, func1);
-
+        SetState(FINALBLOCK_CONSENSUS_PREP);
         RunConsensusOnFinalBlock();
       }
     }
