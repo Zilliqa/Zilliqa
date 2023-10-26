@@ -2631,7 +2631,18 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
 
   const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
   std::vector<MicroBlock> microblocks;
+  constexpr auto LEGACY_DS_SHARD_ID = 3;
+  constexpr auto MIN_NUM_OF_LEGACY_MBLOCKS_IN_TXBLOCK = 1;
   for (const auto& mbInfo : microblockInfos) {
+    // Legacy mode: sizeof(mblocks) == 4
+    if (std::size(microblockInfos) > MIN_NUM_OF_LEGACY_MBLOCKS_IN_TXBLOCK) {
+      if (mbInfo.m_shardId == LEGACY_DS_SHARD_ID) {  // ignore ds microblock
+        continue;
+      }
+    } else {
+      // In desharded mode there's only on mb per txblock
+      continue;
+    }
     MicroBlockSharedPtr mbptr;
     retryCount = MAX_FETCH_BLOCK_RETRIES;
     while (retryCount > 0) {
