@@ -632,15 +632,14 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
   // try resolving ip from hostname
   string url = peer.GetHostname();
   auto resolved_ip = peer.GetIpAddress();  // existing one
-  if (!url.empty()) {
+  /*if (!url.empty()) {
     uint128_t tmpIp;
     if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(), tmpIp)) {
       resolved_ip = tmpIp;  // resolved one
     } else {
       LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
     }
-  }
-
+  }*/
   return resolved_ip;
 }
 
@@ -2631,7 +2630,18 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
 
   const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
   std::vector<MicroBlock> microblocks;
+  constexpr auto LEGACY_DS_SHARD_ID = 3;
+  constexpr auto MIN_NUM_OF_LEGACY_MBLOCKS_IN_TXBLOCK = 1;
   for (const auto& mbInfo : microblockInfos) {
+    // Legacy mode: sizeof(mblocks) == 4
+    if (std::size(microblockInfos) > MIN_NUM_OF_LEGACY_MBLOCKS_IN_TXBLOCK) {
+      if (mbInfo.m_shardId == LEGACY_DS_SHARD_ID) {  // ignore ds microblock
+        continue;
+      }
+    } else {
+      // In desharded mode there's only on mb per txblock
+      continue;
+    }
     MicroBlockSharedPtr mbptr;
     retryCount = MAX_FETCH_BLOCK_RETRIES;
     while (retryCount > 0) {
@@ -5357,11 +5367,15 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
                             m_mediator.m_dsBlockChain.GetLastBlock(),
                             *m_mediator.m_DSCommittee, dsLeader)) {
         toSend.push_back(dsLeader.second);
+        LOG_GENERAL(INFO, "peer LEADER = " << dsLeader.second);
       }
+      LOG_GENERAL(INFO,
+                  "NUM_NODES_TO_SEND_LOOKUP =  " << NUM_NODES_TO_SEND_LOOKUP);
 
       for (auto const& i : *m_mediator.m_DSCommittee) {
         if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
             i.second != dsLeader.second) {
+          LOG_GENERAL(INFO, "peer toSend = " << i.second);
           toSend.push_back(i.second);
         }
 
@@ -5370,6 +5384,10 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
         }
       }
     }
+    for (const auto& peer : toSend) {
+      LOG_GENERAL(INFO, " peer SendTxnPacketToShard = " << peer);
+    }
+
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
