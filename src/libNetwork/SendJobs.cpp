@@ -215,6 +215,8 @@ class GracefulCloseImpl
             LOG_GENERAL(DEBUG,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
+          ErrorCode ignored;
+          self->m_socket.close(ignored);
         });
   }
 };
@@ -226,10 +228,12 @@ void CloseGracefully(Socket&& socket) {
   }
   socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
+    socket.close(ec);
     return;
   }
   size_t unread = socket.available(ec);
   if (ec) {
+    socket.close(ec);
     return;
   }
   if (unread > 0) {
@@ -239,6 +243,8 @@ void CloseGracefully(Socket&& socket) {
   }
   if (!ec) {
     std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
+  } else {
+    socket.close(ec);
   }
 }
 

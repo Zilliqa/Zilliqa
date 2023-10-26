@@ -243,6 +243,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
     LOG_GENERAL(INFO,
                 "Peer " << m_remotePeer << " read error: " << ec.message());
+    CloseSocket();
     OnConnectionClosed();
     return;
   }
@@ -285,6 +286,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
     LOG_GENERAL(INFO, "Read error: " << ec.message());
+    CloseSocket();
     OnConnectionClosed();
     return;
   }
