@@ -1338,6 +1338,11 @@ void DirectoryService::RunConsensusOnFinalBlock() {
       RejoinAsDS();
     }
 
+    // We've been already here, don't do the same thing again
+    if (m_mediator.m_node->m_txn_distribute_window_open) {
+      return;
+    }
+
     m_mediator.m_node->m_txn_distribute_window_open = true;
 
     m_mediator.m_node->PrepareGoodStateForFinalBlock();
