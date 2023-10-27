@@ -443,7 +443,7 @@
         <peer>
             <hostname/>
             <ip>127.0.0.1</ip>
-            <port>4008</port>
+            <port>4001</port>
             <pubkey/>
         </peer>
     </lookups>
