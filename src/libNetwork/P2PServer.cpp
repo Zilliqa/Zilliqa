@@ -322,8 +322,23 @@ void P2PServerConnection::Close() {
 
 void P2PServerConnection::CloseSocket() {
   ErrorCode ec;
+  LOG_GENERAL(INFO, "Shutting Down "
+                           << m_remotePeer.GetPrintableIPAddress());
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
+  LOG_GENERAL(INFO, "Draining "
+                        << m_remotePeer.GetPrintableIPAddress());
+
+  m_readBuffer.resize(1024);
+  do {
+    m_socket.read_some(boost::asio::buffer(m_readBuffer), ec);
+  } while (!ec);
+  LOG_GENERAL(INFO, "CLosing "
+                        << m_remotePeer.GetPrintableIPAddress());
+
   m_socket.close(ec);
+  LOG_GENERAL(INFO, "Closed "
+                        << m_remotePeer.GetPrintableIPAddress());
+
 }
 
 void P2PServerConnection::OnConnectionClosed() {

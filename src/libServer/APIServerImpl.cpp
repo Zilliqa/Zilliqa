@@ -94,6 +94,7 @@ class APIServerImpl::Connection
       // server is closed
       m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       m_stream.socket().close(ec);
+      OnClosed();
       return;
     }
 
@@ -102,6 +103,7 @@ class APIServerImpl::Connection
         LOG_GENERAL(DEBUG, "Read error: " << ec.message());
         m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       }
+      m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       m_stream.socket().close(ec);
       OnClosed();
       return;
@@ -208,6 +210,7 @@ class APIServerImpl::Connection
       beast::error_code ec;
       m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       m_stream.socket().close(ec);
+      OnClosed();
       return;
     }
 
