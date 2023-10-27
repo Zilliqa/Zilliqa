@@ -84,6 +84,16 @@ class DataConversion {
     return true;
   }
 
+  template <size_t SIZE>
+  static std::string charArrToHexStrRet(const std::array<uint8_t, SIZE>& hex_arr) {
+    std::string str;
+    if (!charArrToHexStr(hex_arr, str)) {
+      LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
+      return str;
+    }
+    return str;
+  }
+
   /// Converts a serializable object to alphanumeric hex string.
   static bool SerializableToHexStr(const Serializable& input, std::string& str);
 

@@ -33,7 +33,7 @@ using namespace jsonrpc;
 // Helper functions
 //////////////////////////////////////////////////
 
-static ethash_mining_result_t FAIL_RESULT = {"", "", 0, false};
+static ethash_mining_result_t FAIL_RESULT = {"", "", 0, {}, false};
 
 namespace {
 
@@ -186,7 +186,8 @@ ethash_mining_result_t GetWorkServer::GetResult(int waitTime) {
 ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
                                                    const string& header,
                                                    const string& mixdigest,
-                                                   const string& boundary) {
+                                                   const string& boundary,
+                                                   const zbytes& extraData) {
   auto winning_nonce = DataConversion::HexStringToUint64(nonce);
   if (!winning_nonce) {
     LOG_GENERAL(WARNING, "Invalid nonce: " << nonce);
@@ -194,6 +195,11 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
   }
 
   lock_guard<mutex> g(m_mutexWork);
+
+  if (extraData.size() > 32) {
+    LOG_GENERAL(WARNING, "Invalid extraData size. Size is " << extraData.size());
+    return FAIL_RESULT;
+  }
 
   // check the header and boundary is same with current work
   if (header != m_curWork.header) {
@@ -218,8 +224,9 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
     return FAIL_RESULT;
   }
 
+  // TODO: Extra data
   return ethash_mining_result_t{POW::BlockhashToHexString(final_result),
-                                mixdigest, *winning_nonce, true};
+                                mixdigest, *winning_nonce, extraData, true};
 }
 
 // UpdateCurrentResult check and update new result
@@ -277,6 +284,42 @@ Json::Value GetWorkServer::getWork() {
   return result;
 }
 
+// Serves `zil_getWorkWithHeaderParams`
+Json::Value GetWorkServer::getWorkWithHeaderParams() {
+  LOG_MARKER();
+  Json::Value result;
+
+  lock_guard<mutex> g(m_mutexWork);
+
+  zbytes pubKeyData;
+  m_curWork.headerParams.pubKey.Serialize(pubKeyData, 0);
+  result.append(m_isMining ? "0x" + DataConversion::Uint8VecToHexStrRet(pubKeyData) : "");
+
+  result.append(m_isMining ? "0x" + DataConversion::charArrToHexStrRet(m_curWork.headerParams.rand1) : "");
+
+  result.append(m_isMining ? "0x" + DataConversion::charArrToHexStrRet(m_curWork.headerParams.rand2) : "");
+  
+  zbytes peerData;
+  m_curWork.headerParams.peer.Serialize(peerData, 0);
+  result.append(m_isMining ? "0x" + DataConversion::Uint8VecToHexStrRet(peerData) : "");
+
+  auto strLookupId = DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(m_curWork.headerParams.lookupId);
+  result.append(m_isMining ? "0x" + strLookupId : "");
+
+  auto strGasPrice = DataConversion::IntegerToHexString<uint128_t, sizeof(uint128_t)>(m_curWork.headerParams.gasPrice);
+  result.append(m_isMining ? "0x" + strGasPrice : "");
+
+  result.append(m_isMining ? m_curWork.seed : "");
+
+  result.append(m_isMining ? m_curWork.boundary : "");
+
+  result.append(m_isMining.load());
+
+  result.append(GetSecondsToNextPoW());
+
+  return result;
+}
+
 bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
                                const string& _mixdigest,
                                const string& _boundary,
@@ -310,7 +353,55 @@ bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
     return false;
   }
 
-  auto result = VerifySubmit(nonce, header, mixdigest, boundary);
+  auto result = VerifySubmit(nonce, header, mixdigest, boundary, {});
+
+  return UpdateCurrentResult(result, difficulty);
+  ;
+}
+
+// Serves `zil_submitWorkWithExtraData`
+bool GetWorkServer::submitWorkWithExtraData(const string& _nonce, const string& _extraData,
+                                            const string& _mixdigest,
+                                            const string& _boundary,
+                                            [[gnu::unused]] const string& _miner_wallet,
+                                            [[gnu::unused]] const string& _worker) {
+  LOG_MARKER();
+
+  if (!m_isMining) {
+    LOG_GENERAL(WARNING, "PoW is not running, ignore submit");
+    return false;
+  }
+
+  const uint8_t difficulty = m_currentTargetDifficulty;
+
+  string nonce = _nonce;
+  string extraData = _extraData;
+  string mixdigest = _mixdigest;
+  string boundary = _boundary;
+
+  LOG_GENERAL(INFO, "Got PoW Result: ");
+  LOG_GENERAL(INFO, "    nonce: " << nonce);
+  LOG_GENERAL(INFO, "    extraData: " << extraData);
+  LOG_GENERAL(INFO, "    mixdigest: " << mixdigest);
+  LOG_GENERAL(INFO, "    boundary: " << boundary);
+
+  if (!DataConversion::NormalizeHexString(nonce) ||
+      !DataConversion::NormalizeHexString(extraData) ||
+      !DataConversion::NormalizeHexString(mixdigest) ||
+      !DataConversion::NormalizeHexString(boundary)) {
+    LOG_GENERAL(WARNING, "Invalid input parameters");
+    return false;
+  }
+
+  zbytes extraDataBytes = DataConversion::HexStrToUint8VecRet(extraData);
+
+  auto headerHash = POW::GenHeaderHash(m_curWork.headerParams.rand1, m_curWork.headerParams.rand2,
+                                         m_curWork.headerParams.peer, m_curWork.headerParams.pubKey,
+                                         m_curWork.headerParams.lookupId, m_curWork.headerParams.gasPrice,
+                                         extraDataBytes);
+  std::string headerHashStr = POW::BlockhashToHexString(headerHash);
+
+  auto result = VerifySubmit(nonce, headerHashStr, mixdigest, boundary, extraDataBytes);
 
   return UpdateCurrentResult(result, difficulty);
   ;

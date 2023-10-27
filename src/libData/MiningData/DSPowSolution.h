@@ -31,6 +31,7 @@ class DSPowSolution {
   uint64_t m_nonce{};
   std::string m_resultingHash;
   std::string m_mixHash;
+  zbytes m_extraData;
   uint32_t m_lookupId{};
   uint128_t m_gasPrice;
   GovProposalIdVotePair
@@ -50,7 +51,7 @@ class DSPowSolution {
                 const Peer& submitterPeerInput, const PubKey& submitterKeyInput,
                 const uint64_t& nonceInput,
                 const std::string& resultingHashInput,
-                const std::string& mixHashInput, const uint32_t& lookupIdInput,
+                const std::string& mixHashInput, const zbytes& extraDataInput, const uint32_t& lookupIdInput,
                 const uint128_t& gasPriceInput,
                 const std::pair<uint32_t, uint32_t>& govProposalInput,
                 const Signature& signatureInput);
@@ -78,6 +79,8 @@ class DSPowSolution {
 
   /// Returns mix hash
   const std::string& GetMixHash() const;
+
+  const zbytes& GetExtraData() const;
 
   /// Returns lookupid
   const uint32_t& GetLookupId() const;

@@ -41,6 +41,11 @@ class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer> {
         &AbstractStubServer::getWorkI);
 
     this->bindAndAddMethod(
+        jsonrpc::Procedure("zil_getWorkWithHeaderParams", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_ARRAY, NULL),
+        &AbstractStubServer::getWorkWithHeaderParamsI);
+
+    this->bindAndAddMethod(
         jsonrpc::Procedure("eth_submitHashrate", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_BOOLEAN, "Hashrate",
                            jsonrpc::JSON_STRING, "miner_wallet",
@@ -56,12 +61,25 @@ class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer> {
             jsonrpc::JSON_STRING, "miner_wallet", jsonrpc::JSON_STRING,
             "worker", jsonrpc::JSON_STRING, NULL),
         &AbstractStubServer::submitWorkI);
+
+    this->bindAndAddMethod(
+        jsonrpc::Procedure(
+            "zil_submitWorkWithExtraData", jsonrpc::PARAMS_BY_POSITION,
+            jsonrpc::JSON_BOOLEAN, "nonce", jsonrpc::JSON_STRING, "extradata",
+            jsonrpc::JSON_STRING, "mixdigest", jsonrpc::JSON_STRING, "boundary",
+            jsonrpc::JSON_STRING, "miner_wallet", jsonrpc::JSON_STRING,
+            "worker", jsonrpc::JSON_STRING, NULL),
+        &AbstractStubServer::submitWorkWithExtraDataI);
   }
 
   inline virtual void getWorkI(const Json::Value &request,
                                Json::Value &response) {
     (void)request;
     response = this->getWork();
+  }
+  inline virtual void getWorkWithHeaderParamsI(const Json::Value &request, Json::Value &response) {
+    (void)request;
+    response = this->getWorkWithHeaderParams();
   }
   inline virtual void submitHashrateI(const Json::Value &request,
                                       Json::Value &response) {
@@ -74,12 +92,24 @@ class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer> {
                                 request[2u].asString(), request[3u].asString(),
                                 request[4u].asString(), request[5u].asString());
   }
+  inline virtual void submitWorkWithExtraDataI(const Json::Value &request,
+                                  Json::Value &response) {
+    response = this->submitWorkWithExtraData(request[0u].asString(), request[1u].asString(),
+                                request[2u].asString(), request[3u].asString(),
+                                request[4u].asString(), request[5u].asString());
+  }
 
   virtual Json::Value getWork() = 0;
+  virtual Json::Value getWorkWithHeaderParams() = 0;
   virtual bool submitHashrate(const std::string &hashrate,
                               const std::string &miner_wallet,
                               const std::string &worker) = 0;
   virtual bool submitWork(const std::string &nonce, const std::string &header,
+                          const std::string &mixdigest,
+                          const std::string &boundary,
+                          const std::string &miner_wallet,
+                          const std::string &worker) = 0;
+  virtual bool submitWorkWithExtraData(const std::string &nonce, const std::string &extraData,
                           const std::string &mixdigest,
                           const std::string &boundary,
                           const std::string &miner_wallet,
@@ -91,12 +121,13 @@ struct PoWWorkPackage {
 
   template <typename HeaderT, typename SeedT, typename BoundaryT>
   PoWWorkPackage(HeaderT &&hdr, SeedT &&sd, BoundaryT &&bndry, uint64_t blknum,
-                 uint8_t diff)
+                 uint8_t diff, const HeaderHashParams& hdrParams)
       : header{std::forward<HeaderT>(hdr)},
         seed{std::forward<SeedT>(sd)},
         boundary{std::forward<BoundaryT>(bndry)},
         blocknum{blknum},
-        difficulty{diff} {}
+        difficulty{diff},
+        headerParams{hdrParams} {}
 
   std::string header;
   std::string seed;
@@ -104,6 +135,7 @@ struct PoWWorkPackage {
 
   uint64_t blocknum{};
   uint8_t difficulty{};
+  HeaderHashParams headerParams;
 };
 
 // Implement AbstractStubServer
@@ -153,7 +185,8 @@ class GetWorkServer : public AbstractStubServer {
   ethash_mining_result_t VerifySubmit(const std::string &nonce,
                                       const std::string &header,
                                       const std::string &mixdigest,
-                                      const std::string &boundary);
+                                      const std::string &boundary,
+                                      const zbytes &extraData);
 
   // Protocol for GetResult
   ethash_mining_result_t GetResult(int waitTime);
@@ -163,10 +196,16 @@ class GetWorkServer : public AbstractStubServer {
 
   // RPC methods
   virtual Json::Value getWork();
+  virtual Json::Value getWorkWithHeaderParams();
   virtual bool submitHashrate(const std::string &hashrate,
                               const std::string &miner_wallet,
                               const std::string &worker);
   virtual bool submitWork(const std::string &nonce, const std::string &header,
+                          const std::string &mixdigest,
+                          const std::string &boundary,
+                          const std::string &miner_wallet,
+                          const std::string &worker);
+  virtual bool submitWorkWithExtraData(const std::string &nonce, const std::string &extraData,
                           const std::string &mixdigest,
                           const std::string &boundary,
                           const std::string &miner_wallet,

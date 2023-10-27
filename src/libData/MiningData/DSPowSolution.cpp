@@ -39,7 +39,7 @@ DSPowSolution::DSPowSolution(
     const uint64_t& blockNumberInput, const uint8_t& difficultyLevelInput,
     const Peer& submitterPeerInput, const PubKey& submitterKeyInput,
     const uint64_t& nonceInput, const std::string& resultingHashInput,
-    const std::string& mixHashInput, const uint32_t& lookupIdInput,
+    const std::string& mixHashInput, const zbytes& extraDataInput, const uint32_t& lookupIdInput,
     const uint128_t& gasPriceInput,
     const std::pair<uint32_t, uint32_t>& govProposalInput,
     const Signature& signatureInput)
@@ -50,6 +50,7 @@ DSPowSolution::DSPowSolution(
       m_nonce(nonceInput),
       m_resultingHash(resultingHashInput),
       m_mixHash(mixHashInput),
+      m_extraData(extraDataInput),
       m_lookupId(lookupIdInput),
       m_gasPrice(gasPriceInput),
       m_govProposal(govProposalInput),
@@ -79,6 +80,8 @@ const std::string& DSPowSolution::GetResultingHash() const {
 
 /// Returns mix hash
 const std::string& DSPowSolution::GetMixHash() const { return m_mixHash; }
+
+const zbytes& DSPowSolution::GetExtraData() const { return m_extraData; }
 
 /// Returns lookupid
 const uint32_t& DSPowSolution::GetLookupId() const { return m_lookupId; }

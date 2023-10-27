@@ -231,7 +231,8 @@ bool DirectoryService::VerifyPoWWinner(
 
         auto headerHash = POW::GenHeaderHash(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer,
-            DSPowWinner.first, dsPowSoln.m_lookupId, dsPowSoln.m_gasPrice);
+            DSPowWinner.first, dsPowSoln.m_lookupId, dsPowSoln.m_gasPrice,
+            dsPowSoln.m_extraData);
 
         string resultStr, mixHashStr;
         if (!DataConversion::charArrToHexStr(dsPowSoln.m_result, resultStr)) {
@@ -521,7 +522,7 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
                                            const PoWSolution& powSoln) {
   auto headerHash =
       POW::GenHeaderHash(m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
-                         peer, pubKey, powSoln.m_lookupId, powSoln.m_gasPrice);
+                         peer, pubKey, powSoln.m_lookupId, powSoln.m_gasPrice, powSoln.m_extraData);
 
   auto difficulty =
       (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pubKey))

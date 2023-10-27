@@ -356,6 +356,7 @@ message ProtoPoWSolution
     oneof oneof4 { uint32 lookupid     = 4; }
     ByteArray gasprice  = 5;
     GovernanceData govdata  = 6;
+    bytes extradata     = 7;
 }
 
 message ProtoCommittee
@@ -516,6 +517,7 @@ message DSPoWSubmission
         ByteArray gasprice          = 9;
         GovernanceData govdata      = 10;
         string version              = 11;
+        bytes extraData             = 12;
     }
     Data data                       = 1;
     ByteArray signature             = 2;
