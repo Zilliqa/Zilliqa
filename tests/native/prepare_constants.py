@@ -45,7 +45,6 @@ def update_xml_files(source_file, target_file):
         jsonrpc.find('EVM_SERVER_BINARY').text = DEV_TREE_ROOT + '/Zilliqa/evm-ds/target/release/evm-ds'
         jsonrpc.find('ENABLE_STATUS_RPC').text = 'false'
 
-
     metric = root.find('metric/zilliqa')
     if metric:
         metric.find('METRIC_ZILLIQA_PROVIDER').text = 'NONE'
