@@ -14,9 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-export DEV_TREE_ROOT=`readlink -f $(pwd)/../../..`
+export DEV_TREE_ROOT=`readlink -f $(pwd)/../..`
 
 
 echo "DEV_TREE_ROOT: $DEV_TREE_ROOT"
+
+# takes a copy of constants.xml and constants_local.xml and prepares new versions with .native extension
+
+python ./tests/native/prepare_constants.py $DEV_TREE_ROOT/Zilliqa/constants.xml $DEV_TREE_ROOT/Zilliqa/constants.xml.native
+python ./tests/native/prepare_constants.py $DEV_TREE_ROOT/Zilliqa/constants_local.xml $DEV_TREE_ROOT/Zilliqa/constants_local.xml.native
 
 ./tests/Node/pre_run.sh && ./tests/Node/test_node_lookup.sh && ./tests/Node/test_node_simple.sh

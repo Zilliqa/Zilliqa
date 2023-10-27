@@ -124,35 +124,7 @@ def run_setup(numnodes, printnodes):
 
 
 def patch_constants_xml(filepath, read_txn=False):
-    DEV_TREE_ROOT=os.environ.get('DEV_TREE_ROOT')
-
-    if not DEV_TREE_ROOT:
-        print("DEV_TREE_ROOT is not set")
-        os.abort()
-
-    root = ET.parse(filepath).getroot()
-
-    td = root.find('dispatcher')
-    td.find('TXN_PATH').text = TXN_PATH
-    if read_txn:
-        td.find('USE_REMOTE_TXN_CREATOR').text = 'true'
-
-    general = root.find('general')
-    general.find('LOOKUP_NODE_MODE').text = 'false'
-
-    scilla_root = root.find('SCILLA_ROOT')
-    if scilla_root:
-        scilla_root.find('SCILLA_ROOT').text = DEV_TREE_ROOT + '/scilla'
-        scilla_root.find('LOC_SC').text = 'true'
-        scilla_root.find('ENABLE_SCILLA_MULTI_VERSION').text = 'false'
-
-    jsonrpc = root.find('jsonrpc')
-    if jsonrpc:
-        jsonrpc.find('EVM_SERVER_BINARY').text = DEV_TREE_ROOT + '/Zilliqa/evm-ds/target/release/evm-ds'
-
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
-
+    return
 
 def run_gentxn(batch=100):
     if not os.path.exists(TXN_PATH):
@@ -198,6 +170,19 @@ def patch_seed_pubkey(filepath, keypairs, count):
 def run_start():
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
+    dev_root = os.getenv("DEV_TREE_ROOT")
+    if dev_root is None:
+        print("DEV_TREE_ROOT is not set")
+        return
+
+    dev_root += "/Zilliqa"
+    fp = dev_root + "/" + "constants_local.xml.native"
+
+    if not os.path.exists(fp):
+        print( fp +" not found")
+        return
+
+
 
     # Load the keypairs
     keypairs = []
@@ -207,7 +192,7 @@ def run_start():
 
     for x in range(0, count):
         shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
-        shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+        shutil.copyfile(fp, LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
         shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
         # FIXME: every lookup node has the option USE_REMOTE_TXN_CREATOR set to true, which seemingly
         # enable transaction dispatching on every lookup running locally. However, the truth is only the

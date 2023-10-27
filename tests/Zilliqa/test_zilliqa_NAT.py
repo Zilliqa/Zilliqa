@@ -84,6 +84,19 @@ def run_start():
 	count = len(testfolders_list)
 	keypairs = []
 
+	dev_root = os.getenv("DEV_TREE_ROOT")
+	if dev_root is None:
+		print("DEV_TREE_ROOT is not set")
+		return
+
+	dev_root += "/Zilliqa"
+	fp = dev_root + "/" + "constants_local.xml.native"
+
+	if not os.path.exists(fp):
+		print( fp +" not found")
+		return
+
+
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
 		process = Popen(["./bin/genkeypair"], stdout=PIPE, universal_newlines=True)
@@ -97,7 +110,7 @@ def run_start():
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
-		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+		shutil.copyfile(fp, LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 	keys_file.close()
 
 	

@@ -270,6 +270,18 @@ def run_start(numdsnodes):
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
 
+    dev_root = os.getenv("DEV_TREE_ROOT")
+    if dev_root is None:
+        print("DEV_TREE_ROOT is not set")
+        return
+
+    dev_root += "/Zilliqa"
+    fp = dev_root + "/" + "constants_local.xml.native"
+
+    if not os.path.exists(fp):
+        print( fp +" not found")
+        return
+
     # Load the keypairs
     keypairs = []
     with open(LOCAL_RUN_FOLDER + 'normal_keys.txt', "r") as f:
@@ -281,7 +293,7 @@ def run_start(numdsnodes):
         keypair = keypairs[x].split(" ")
         shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
         shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
-        shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+        shutil.copyfile(fp, LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
         ipc_path = "/tmp/zilliqa" + str(NODE_LISTEN_PORT + x) + ".sock"
         status_server_port = str(STATUS_SERVER_LISTEN_PORT + x)
         patch_param_in_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, status_server_port)
@@ -301,32 +313,16 @@ def run_start(numdsnodes):
                 NODE_LISTEN_PORT + x) + ' --identity normal-' + str(x) + ' > ./error_log_zilliqa 2>&1 &')
 
 
+
+
 def patch_param_in_xml(filepath, ipc_path, status_server_port):
+
     root = ET.parse(filepath).getroot()
 
     td = root.find('jsonrpc')
+    ''' TODO will need extending for other params'''
     td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
     td.find('STATUS_RPC_PORT').text = status_server_port
-
-
-    DEV_TREE_ROOT=os.environ.get('DEV_TREE_ROOT')
-
-    if not DEV_TREE_ROOT:
-        print("DEV_TREE_ROOT is not set")
-        os.abort()
-
-    general = root.find('general')
-    general.find('LOOKUP_NODE_MODE').text = 'false'
-
-    scilla_root = root.find('SCILLA_ROOT')
-    if scilla_root:
-        scilla_root.find('SCILLA_ROOT').text = DEV_TREE_ROOT +'/scilla'
-        scilla_root.find('LOC_SC').text = 'true'
-        scilla_root.find('ENABLE_SCILLA_MULTI_VERSION').text = 'false'
-
-    jsonrpc = root.find('jsonrpc')
-    if jsonrpc:
-        jsonrpc.find('EVM_SERVER_BINARY').text = DEV_TREE_ROOT + '/Zilliqa/evm-ds/target/release/evm-ds'
 
     tree = ET.ElementTree(root)
     tree.write(filepath)
@@ -339,7 +335,7 @@ def run_start_dsguard2():
 
     for x in range(0, count):
         shutil.copyfile('dsnodes.xml', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
-        shutil.copyfile('constants_local.xml', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+        shutil.copyfile('constants_local.xml.native', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 
     # These keys are non critical and are only used for testing purposes
     keypairs = "021D99F2E5ACBA39ED5ACC5DCA5EE2ADDE780FFD998E1DBF440FE364C3BE360A7B 50C26000FCC08867FC3B9C03385015179E4B63282CB356014233BB1877FCDBDD"
@@ -368,7 +364,7 @@ def run_start_validateBackupDB():
     keypair = keypairs[0].split(" ")
     shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/ds_whitelist.xml')
     shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/shard_whitelist.xml')
-    shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/constants.xml')
+    shutil.copyfile('constants_local.xml.native', LOCAL_RUN_FOLDER + testfolders_list[0] + '/constants.xml')
     shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/dsnodes.xml')
     shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/config.xml')
     os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[0] + '; echo \"' + keypair[0] + ' ' + keypair[

@@ -352,7 +352,7 @@ bool APIServerImpl::DoListen() {
 
 #define CHECK_EC()                                                   \
   if (ec) {                                                          \
-    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message()); \
+    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message() << " port " << m_options.port); \
     return false;                                                    \
   }
 

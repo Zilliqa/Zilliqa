@@ -46,7 +46,7 @@ bool LocalAPIServer::StartListening() {
 
 #define CHECK_EC()                                                     \
   if (ec) {                                                            \
-    LOG_GENERAL(WARNING, "Cannot start API server: " << ec.message()); \
+    LOG_GENERAL(WARNING, "Cannot start API server: " << ec.message() << " port =" << m_port); \
     return false;                                                      \
   }
 
