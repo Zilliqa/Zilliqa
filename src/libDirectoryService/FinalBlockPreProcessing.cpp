@@ -236,7 +236,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
       !m_mediator.GetIsVacuousEpoch()) {
     std::this_thread::sleep_for(
-        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS * 2));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
@@ -1187,7 +1187,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
       !m_mediator.GetIsVacuousEpoch()) {
     std::this_thread::sleep_for(
-        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS * 2));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;

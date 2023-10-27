@@ -5520,7 +5520,7 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
       return false;
     }
     std::this_thread::sleep_for(
-        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     SenderTxnBatchThread(std::move(transactions));
   }
 
