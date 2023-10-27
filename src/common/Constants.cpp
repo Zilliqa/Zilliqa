@@ -266,7 +266,7 @@ const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
 const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
     ReadConstantNumeric("FETCHING_MISSING_DATA_TIMEOUT", "node.epoch_timing.")};
 const unsigned int DS_ANNOUNCEMENT_DELAY_IN_MS{
-    ReadConstantNumeric("DS_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
+    ReadConstantNumeric("DS_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.", 2000)};
 const unsigned int SHARD_ANNOUNCEMENT_DELAY_IN_MS{ReadConstantNumeric(
     "SHARD_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
 const unsigned int MICROBLOCK_TIMEOUT{
@@ -282,7 +282,7 @@ const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{ReadConstantNumeric(
 const unsigned int RECOVERY_SYNC_TIMEOUT{
     ReadConstantNumeric("RECOVERY_SYNC_TIMEOUT", "node.epoch_timing.")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
-    ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
+    ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.",6000)};
 const unsigned int EXTRA_TX_DISTRIBUTE_TIME_IN_MS{ReadConstantNumeric(
     "EXTRA_TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.",7000)};
 const unsigned int DS_TX_PROCESSING_TIMEOUT{
