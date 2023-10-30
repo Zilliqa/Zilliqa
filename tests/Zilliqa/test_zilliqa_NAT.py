@@ -68,7 +68,7 @@ def run_setup(numnodes, printnodes):
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
 		os.makedirs(testsubdir)
-		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/latezilliqa')
+		shutil.copyfile('./bin/zilliqa', testsubdir + '/latezilliqa')
 
 		st = os.stat(testsubdir + '/latezilliqa')
 		os.chmod(testsubdir + '/latezilliqa', st.st_mode | stat.S_IEXEC)
@@ -84,9 +84,22 @@ def run_start():
 	count = len(testfolders_list)
 	keypairs = []
 
+	dev_root = os.getenv("DEV_TREE_ROOT")
+	if dev_root is None:
+		print("DEV_TREE_ROOT is not set")
+		return
+
+	dev_root += "/Zilliqa"
+	fp = dev_root + "/" + "constants_local.xml.native"
+
+	if not os.path.exists(fp):
+		print( fp +" not found")
+		return
+
+
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
-		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE, universal_newlines=True)
+		process = Popen(["./bin/genkeypair"], stdout=PIPE, universal_newlines=True)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output.strip())
@@ -97,7 +110,7 @@ def run_start():
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
-		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+		shutil.copyfile(fp, LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 	keys_file.close()
 
 	
@@ -105,7 +118,7 @@ def run_start():
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
 		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./latezilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + 'NAT' + ' '  + str(NODE_LISTEN_PORT + x) + ' 0 1 0 > ./error_log_zilliqa 2>&1 &')
-                os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./latezilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + 'NAT' + ' --port '  + str(NODE_LISTEN_PORT + x) + '--synctype 1 ' + '> ./error_log_zilliqa 2>&1 &')
+                os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./latezilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + 'NAT' + ' --port '  + str(NODE_LISTEN_PORT + x) + '--synctype 1 ' + ' --identity normal-' + str(x) + ' > ./error_log_zilliqa 2>&1 &')
 
 
 if __name__ == "__main__":

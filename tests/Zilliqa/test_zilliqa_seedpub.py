@@ -22,8 +22,10 @@ import stat
 from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
 
-NODE_LISTEN_PORT = 40092
-LOCAL_RUN_FOLDER = './lookup_local_run/'
+
+NODE_LISTEN_PORT = 4201
+
+LOCAL_RUN_FOLDER = './seedpub_local_run/'
 LOCAL_FOLDER = "./"
 
 GENTXN_WORKING_DIR = os.path.join(LOCAL_RUN_FOLDER, 'gentxn')
@@ -75,7 +77,7 @@ def get_immediate_subdirectories(a_dir):
 # ========================
 
 def run_setup(numnodes, printnodes):
-    os.system('killall lzilliqa')
+    os.system('killall seedpub')
     if os.path.exists(LOCAL_RUN_FOLDER) is not True:
         # shutil.rmtree(LOCAL_RUN_FOLDER)
         os.makedirs(LOCAL_RUN_FOLDER)
@@ -83,10 +85,10 @@ def run_setup(numnodes, printnodes):
         testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x + 1).zfill(4)
         if os.path.exists(testsubdir) is not True:
             os.makedirs(testsubdir)
-        shutil.copyfile('./bin/zilliqa', testsubdir + '/lzilliqa')
+        shutil.copyfile('./bin/zilliqa', testsubdir + '/seedpub')
 
-        st = os.stat(testsubdir + '/lzilliqa')
-        os.chmod(testsubdir + '/lzilliqa', st.st_mode | stat.S_IEXEC)
+        st = os.stat(testsubdir + '/seedpub')
+        os.chmod(testsubdir + '/seedpub', st.st_mode | stat.S_IEXEC)
 
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
@@ -105,17 +107,11 @@ def run_setup(numnodes, printnodes):
         keypairs.append(output.strip())
     keypairs.sort()
 
-    ''' Only deals with one instance for now '''
-
-    patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
-    patch_lookup_port(LOCAL_FOLDER + "/constants_local.xml", NODE_LISTEN_PORT, count)
-    patch_seed_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
-    patch_seed_port(LOCAL_FOLDER + "/constants_local.xml", NODE_LISTEN_PORT, count)
 
     nodes = ET.Element("nodes")
 
     # Store sorted keys list in text file
-    keys_file = open(LOCAL_RUN_FOLDER + 'lookup_keys.txt', "w")
+    keys_file = open(LOCAL_RUN_FOLDER + 'seedpub_keys.txt', "w")
     for x in range(0, count):
         keys_file.write(keypairs[x] + '\n')
         keypair = keypairs[x].split(" ")
@@ -128,14 +124,7 @@ def run_setup(numnodes, printnodes):
 
 
 def patch_constants_xml(filepath, read_txn=False):
-    root = ET.parse(filepath).getroot()
-
-    general = root.find('general')
-    general.find('LOOKUP_NODE_MODE').text = 'true'
-
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
-
+    return
 
 def run_gentxn(batch=100):
     if not os.path.exists(TXN_PATH):
@@ -176,27 +165,11 @@ def patch_seed_pubkey(filepath, keypairs, count):
         elems[x].text = keypair[0]
     tree = ET.ElementTree(root)
     tree.write(filepath)
-def patch_lookup_port(filepath, port, count):
-    root = ET.parse(filepath).getroot()
-    td = root.find('lookups')
-    elems = td.findall('peer/port')
-    for x in range(0, count):
-        elems[x].text = str(port)
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
-def patch_seed_port(filepath, port, count):
-    root = ET.parse(filepath).getroot()
-    td = root.find('upper_seed')
-    elems = td.findall('peer/port')
-    for x in range(0, count):
-        elems[x].text = str(port)
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
+
 
 def run_start():
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
-
     dev_root = os.getenv("DEV_TREE_ROOT")
     if dev_root is None:
         print("DEV_TREE_ROOT is not set")
@@ -210,9 +183,10 @@ def run_start():
         return
 
 
+
     # Load the keypairs
     keypairs = []
-    with open(LOCAL_RUN_FOLDER + 'lookup_keys.txt', "r") as f:
+    with open(LOCAL_RUN_FOLDER + 'seedpub_keys.txt', "r") as f:
         keypairs = f.readlines()
     keypairs = [x.strip() for x in keypairs]
 
@@ -231,9 +205,9 @@ def run_start():
     for x in range(0, count):
         keypair = keypairs[x].split(" ")
         os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[
-            1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/lzilliqa ' +
+            1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/seedpub ' +
                   ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' +
-                  str(NODE_LISTEN_PORT + x) + ' --identity ' + 'lookup-' + str(x) + ' > ./error_log_zilliqa 2>&1 &')
+                  str(NODE_LISTEN_PORT + x) + ' --identity ' + 'seedpub-' + str(x) + ' > ./error_log_zilliqa 2>&1 &')
 
 
 if __name__ == "__main__":

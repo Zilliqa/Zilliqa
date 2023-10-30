@@ -23,6 +23,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/container/small_vector.hpp>
 
 #include "Blacklist.h"
 #include "libUtils/Logger.h"
@@ -202,9 +203,10 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
   throw std::runtime_error(error_msg);
 }
 
-P2PServerConnection::P2PServerConnection(
-    std::weak_ptr<P2PServerImpl> owner, uint64_t this_id, Peer&& remote_peer,
-    TcpSocket socket, size_t max_message_size)
+P2PServerConnection::P2PServerConnection(std::weak_ptr<P2PServerImpl> owner,
+                                         uint64_t this_id, Peer&& remote_peer,
+                                         TcpSocket socket,
+                                         size_t max_message_size)
     : m_owner(std::move(owner)),
       m_id(this_id),
       m_remotePeer(std::move(remote_peer)),
@@ -229,6 +231,9 @@ void P2PServerConnection::ReadNextMessage() {
         if (!ec) {
           assert(n == HDR_LEN);
         }
+        if (ec) {
+          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+        }
         if (ec != OPERATION_ABORTED) {
           self->OnHeaderRead(ec);
         }
@@ -237,10 +242,9 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    if (ec != END_OF_FILE) {
-      LOG_GENERAL(INFO,
-                  "Peer " << m_remotePeer << " read error: " << ec.message());
-    }
+    LOG_GENERAL(INFO,
+                "Peer " << m_remotePeer << " read error: " << ec.message());
+    CloseSocket();
     OnConnectionClosed();
     return;
   }
@@ -254,7 +258,9 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
                              << " Adding sending node "
                              << m_remotePeer.GetPrintableIPAddress()
                              << " as strictly blacklisted");
-    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),m_remotePeer.GetListenPortHost(),m_remotePeer.GetNodeIndentifier()});
+    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),
+                                  m_remotePeer.GetListenPortHost(),
+                                  m_remotePeer.GetNodeIndentifier()});
 
     CloseSocket();
     OnConnectionClosed();
@@ -269,6 +275,9 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
         if (!ec) {
           assert(n == self->m_readBuffer.size() - HDR_LEN);
         }
+        if (ec) {
+          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+        }
         if (ec != OPERATION_ABORTED) {
           self->OnBodyRead(ec);
         }
@@ -278,17 +287,19 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
     LOG_GENERAL(INFO, "Read error: " << ec.message());
+    CloseSocket();
     OnConnectionClosed();
     return;
   }
-
   ReadMessageResult result;
   auto state = TryReadMessage(m_readBuffer.data(), m_readBuffer.size(), result);
 
   if (state != ReadState::SUCCESS) {
     LOG_GENERAL(WARNING, "Message deserialize error: blacklisting "
                              << m_remotePeer.GetPrintableIPAddress());
-    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),m_remotePeer.GetListenPortHost(),m_remotePeer.GetNodeIndentifier()});
+    Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),
+                                  m_remotePeer.GetListenPortHost(),
+                                  m_remotePeer.GetNodeIndentifier()});
 
     CloseSocket();
     OnConnectionClosed();
@@ -298,6 +309,7 @@ void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   auto owner = m_owner.lock();
   if (!owner || !owner->OnMessage(m_id, m_remotePeer, result)) {
     CloseSocket();
+    OnConnectionClosed();
     return;
   }
 
@@ -311,8 +323,44 @@ void P2PServerConnection::Close() {
 
 void P2PServerConnection::CloseSocket() {
   ErrorCode ec;
+  // both close and shutdown should be none blocking calls certainly on current linux
+  // shutdown marks the socket as blocked for both read and write
+  // shutdown tells the OS to begin the graceful closedown of the TCP connection.
+  // close() is a blocking call that waits for the OS to complete the closedown.
+  // close also frees the OS resources from the program so should be called even if
+  // an error condition is encountered
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
+  if (ec) {
+    m_socket.close(ec);
+    if (ec) {
+      LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: " << ec.message());
+    }
+    return;
+  }
+  size_t unread = m_socket.available(ec);
+  if (ec) {
+    m_socket.close(ec);
+    return;
+  }
+  // On Linux, the  close()  function for sockets does not necessarily wait
+  // for the operating system to complete the operation before returning.
+  // It typically marks the socket as closed and releases any resources
+  // associated with it immediately. However, this does not guarantee that all
+  // pending data has been sent or received. It is important to handle any
+  // necessary error checking and ensure all data transmission is complete
+  // before calling  close()  on a socket.
+  if (unread > 0) {
+    do {
+      boost::container::small_vector<uint8_t, 4096> buf;
+      buf.resize(unread);
+      m_socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
+      LOG_GENERAL(INFO, "Draining remaining IO before close"  << m_remotePeer.GetPrintableIPAddress());
+    } while (!ec && (unread = m_socket.available(ec)) > 0);
+  }
   m_socket.close(ec);
+  if (ec) {
+    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: " << ec.message());
+  }
 }
 
 void P2PServerConnection::OnConnectionClosed() {
