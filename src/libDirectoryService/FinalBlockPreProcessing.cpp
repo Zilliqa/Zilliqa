@@ -236,7 +236,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
       !m_mediator.GetIsVacuousEpoch()) {
     std::this_thread::sleep_for(
-        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS * 2));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
@@ -1187,7 +1187,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
       !m_mediator.GetIsVacuousEpoch()) {
     std::this_thread::sleep_for(
-        chrono::milliseconds(EXTRA_TX_DISTRIBUTE_TIME_IN_MS));
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS * 2));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
@@ -1338,8 +1338,9 @@ void DirectoryService::RunConsensusOnFinalBlock() {
       RejoinAsDS();
     }
 
-    if (m_state != FINALBLOCK_CONSENSUS_PREP) {
-      SetState(FINALBLOCK_CONSENSUS_PREP);
+    // We've been already here, don't do the same thing again in this round
+    if (m_mediator.m_node->m_txn_distribute_window_open) {
+      return;
     }
 
     m_mediator.m_node->m_txn_distribute_window_open = true;

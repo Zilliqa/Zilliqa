@@ -878,7 +878,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   auto extra_time =
       (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
           ? 0
-          : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
+          : (TX_DISTRIBUTE_TIME_IN_MS * 2);
   if (!VerifyTimestamp(txBlock.GetTimestamp(),
                        CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
                            (TX_DISTRIBUTE_TIME_IN_MS + extra_time +

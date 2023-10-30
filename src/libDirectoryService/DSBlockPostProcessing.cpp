@@ -433,6 +433,7 @@ void DirectoryService::StartNextTxEpoch() {
     LOG_GENERAL(
         INFO,
         "No other shards. So no other microblocks expected to be received");
+    SetState(FINALBLOCK_CONSENSUS_PREP);
     RunConsensusOnFinalBlock();
   }
 }
