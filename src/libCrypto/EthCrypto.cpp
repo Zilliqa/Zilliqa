@@ -318,7 +318,7 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   // to chain_id, 0, 0 in order to recreate what was signed
   dev::RLP rlpStream1(transaction,
                       dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
-  dev::RLPStream rlpStreamRecreated(9);
+  dev::RLPStream rlpStreamRecreated;
 
   if (rlpStream1.isNull()) {
     LOG_GENERAL(WARNING, "Failed to parse raw TX RLP");
@@ -328,6 +328,7 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   int i = 0;
   int v = 0;
   zbytes rs;
+  bool beforeEip155Tx = false;
 
   // Iterate through the RLP message and build up what the message was before
   // it was hashed and signed. That is, same size, same fields, except
@@ -342,13 +343,18 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
 
     // Field V
     if (i == 6) {
-      rlpStreamRecreated << chain_id;
       v = uint32_t(item);
+      if (v == 27 || v == 28) {
+        beforeEip155Tx = true;
+      } else {
+        rlpStreamRecreated << chain_id;
+      }
     }
 
     // Fields R and S
     if (i == 7 || i == 8) {
-      rlpStreamRecreated << zbytes{};
+      if (beforeEip155Tx == false)
+        rlpStreamRecreated << zbytes{};
       zbytes b = dev::toBigEndian(dev::u256(item));
       rs.insert(rs.end(), b.begin(), b.end());
     }
@@ -356,9 +362,15 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   }
 
   // Determine whether the rcid is 0,1 based on the V
-  int vSelect = (v - (chain_id * 2));
-  vSelect = vSelect == 35 ? 0 : vSelect;
-  vSelect = vSelect == 36 ? 1 : vSelect;
+  int vSelect = 0;
+  if (beforeEip155Tx) {
+    vSelect = v == 27 ? 0 : vSelect;
+    vSelect = v == 28 ? 1 : vSelect;
+  } else {
+    vSelect = (v - (chain_id * 2));
+    vSelect = vSelect == 35 ? 0 : vSelect;
+    vSelect = vSelect == 36 ? 1 : vSelect;
+  }
 
   // Chain ID of sender is a mismatch. Attempt to determine what it was
   if (!(vSelect >= 0 && vSelect <= 3)) {
@@ -484,11 +496,11 @@ zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
 }
 
 // nonce, gasprice, startgas, to, value, data, chainid, 0, 0
-zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
+zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId, uint32_t v) {
   uint16_t version = DataConversion::UnpackB(info.version);
   switch (version) {
     case TRANSACTION_VERSION_ETH_LEGACY: {
-      dev::RLPStream rlpStreamRecreated(9);
+      dev::RLPStream rlpStreamRecreated;
 
       rlpStreamRecreated << info.nonce - 1;
       rlpStreamRecreated << info.gasPrice;
@@ -505,9 +517,11 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
         rlpStreamRecreated << info.data;
       }
 
-      rlpStreamRecreated << chainId;
-      rlpStreamRecreated << zbytes{};
-      rlpStreamRecreated << zbytes{};
+      if (v != 27 && v != 28) {
+        rlpStreamRecreated << chainId;
+        rlpStreamRecreated << zbytes{};
+        rlpStreamRecreated << zbytes{};
+      }
 
       auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
                                                 rlpStreamRecreated.out().size());
@@ -575,7 +589,7 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
 zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                         std::string signature, uint64_t& recid) {
+                         std::string signature, uint64_t& recid, uint32_t v) {
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
@@ -617,15 +631,13 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
           rlpStreamRecreated << info.data;
         }
 
-        // i is the parity, either 0 or 1
-        int v = (chainId * 2) + 35 + i;
-
         rlpStreamRecreated << v;
         rlpStreamRecreated << dev::u256("0x" + signature);
         rlpStreamRecreated << dev::u256("0x" + s);
 
         zbytes data = rlpStreamRecreated.out();
         auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
+        printf("-----------------------------------------------\n%s\n------------------------------------------\n", asString.c_str());
         auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
         if (!PubKeysSame(pubK, info.senderPubKey)) {

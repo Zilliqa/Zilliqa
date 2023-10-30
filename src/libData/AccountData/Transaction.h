@@ -66,6 +66,7 @@ class Transaction : public SerializableDataBlock {
   TxnHash m_tranID;
   TransactionCoreInfo m_coreInfo;
   Signature m_signature;
+  uint32_t m_signature_validation;
 
   bool IsSignedECDSA() const;
   bool SetHash(const zbytes& txnData);
@@ -108,7 +109,9 @@ class Transaction : public SerializableDataBlock {
               const Address& toAddr, const PubKey& senderPubKey,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
-              const Signature& signature, const AccessList &accessList, const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas);
+              const Signature& signature, const AccessList &accessList,
+              const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas,
+              uint32_t signature_validation = 0);
 
   /// Constructor with core information.
   Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,
