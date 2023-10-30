@@ -637,7 +637,6 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
         zbytes data = rlpStreamRecreated.out();
         auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
-        printf("-----------------------------------------------\n%s\n------------------------------------------\n", asString.c_str());
         auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
         if (!PubKeysSame(pubK, info.senderPubKey)) {
