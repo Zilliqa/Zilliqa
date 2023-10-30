@@ -42,6 +42,7 @@ TESTNET_NAME= "TEST_NET_NAME"
 AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
 SYNC_INTERVAL = 1
 AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
+CDN_ENDPOINT_URL=os.getenv("CDN_ENDPOINT_URL")
 
 FORMATTER = logging.Formatter(
     "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
@@ -57,7 +58,9 @@ rootLogger.addHandler(std_handler)
 def isGCP():
 	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
 
-def awsS3Url():
+def getURL():
+	if CDN_ENDPOINT_URL:
+		return f"{CDN_ENDPOINT_URL}"
 	if isGCP():
 		return "http://"+BUCKET_NAME+".storage.googleapis.com"
 	elif AWS_ENDPOINT_URL:
@@ -97,7 +100,7 @@ def getBucketString(subFolder):
 	return "s3://"+BUCKET_NAME+"/"+subFolder+"/"+TESTNET_NAME
 
 def CreateTempPersistence():
-	static_folders = GetStaticFoldersFromS3(awsS3Url(), AWS_BLOCKCHAINDATA_FOLDERNAME)
+	static_folders = GetStaticFoldersFromS3(getURL(), AWS_BLOCKCHAINDATA_FOLDERNAME)
 	exclusion_string = ' '.join(['--exclude ' + s for s in static_folders])
 	bashCommand = "rsync --recursive --inplace --delete -a " + exclusion_string + " persistence temp"
 	logging.info("Command = " + bashCommand)	
@@ -134,7 +137,7 @@ def SetCurrentTxBlkNum(txBlkNum):
 
 def SetLock():
 	Path(".lock").touch()
-	bashCommand = awsCli() + " s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
+	bashCommand = awsCli() + " s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"+' --metadata "cache-control=no-store"'
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	logging.info("[" + str(datetime.datetime.now()) + "] SetLock for uploading process")
