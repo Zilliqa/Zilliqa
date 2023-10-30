@@ -30,11 +30,11 @@
 #include "libNetwork/Guard.h"
 #include "libNode/Node.h"
 #include "libPersistence/ContractStorage.h"
+#include "libScilla/ScillaClient.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libScilla/ScillaClient.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -358,7 +358,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
           m_mediator.m_node->CommitTxnPacketBuffer();
         };
         DetachedFunction(1, func1);
-
+        SetState(FINALBLOCK_CONSENSUS_PREP);
         RunConsensusOnFinalBlock();
       }
     }
