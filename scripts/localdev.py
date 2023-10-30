@@ -742,11 +742,6 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         print(f"Removing old testnet configuration ..")
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
-
-    # IMPORTANT: if you change any of the flags make sure to update the count returned
-    #            by this function so that prometheus_up knows how many pods to wait for.
-    # 20 normal pods (i.e. 5 ds + 15 non-ds), 1 lookup, 2 seedpubs, 1 seedprv.
-    count = 20 + 1 + 2 + 1
     if desk:
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
@@ -776,6 +771,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
                "--host-network", "false",
                "--https", "localdomain",
                "--seed-multiplier", "true",
+               "--bucket", bucket_name,
                "--localstack", "true"]
 
     cmd = cmd + ([ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else [])
@@ -802,8 +798,6 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     output_config = config_file.toprettyxml(newl='')
     with open(constants_xml_target_path, 'w') as f:
         f.write(output_config)
-
-    return count 
 
 def kill_mitmweb(config, pidfile_name):
     pidfile = Pidfile(config, pidfile_name)
@@ -900,7 +894,7 @@ def build_native_to_workspace(config):
     build_env['SCILLA_REPO_ROOT'] = SCILLA_DIR
     # Let's start off by building Scilla, in case it breaks.
     run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env)
-    run_or_die(config, ["./build.sh", "ninja", "debug"], in_dir = ZILLIQA_DIR)
+    run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
     run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
     # OK. That worked. Now copy the relevant bits to our workspace
@@ -1123,29 +1117,6 @@ def build_zilliqa(config, driver, scilla_image, tag):
                capture_output = False)
     return image_name
 
-def build_native_zilliqa(config):
-    build_env = os.environ.copy()
-    build_env.update(config.default_env)
-
-    if not build_env.get("VCPKG_ROOT"):
-        raise GiveUp("Environment variable VCPKG_ROOT must be defined to point to vcpkg")
-
-    #  vcpkg_triplet = run_or_die(config, ["scripts/vcpkg_triplet.sh"], in_dir = ZILLIQA_DIR, env = build_env,
-               #  capture_output = True).decode('utf-8')
-
-    # Cleanup
-    build_dir = os.path.join(ZILLIQA_DIR, ".build.vcpkg")
-    shutil.rmtree(os.path.join(build_dir, "vcpkg_installed"), ignore_errors = True)
-    shutil.rmtree(os.path.join(build_dir, "CMakeFiles"), ignore_errors = True)
-    try:
-        os.remove(os.path.join(build_dir, "CMakeCache.txt"))
-    except:
-        pass
-
-    run_or_die(config, ["./build.sh", "ninja", "debug"], in_dir = ZILLIQA_DIR)
-    run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
-               os.path.join(ZILLIQA_DIR, "evm-ds"))
-
 @click.command("build-zilliqa")
 @click.option("--driver",
               required=True,
@@ -1153,39 +1124,17 @@ def build_native_zilliqa(config):
               show_default=True,
               help="The minikube driver to use")
 @click.option("--scilla-image",
-              required=False,
+              required=True,
               help="the scilla image to use when building the zilliqa image (i.e. scilla:<tag>)")
 @click.option("--tag",
               help="The zilliqa image tag. Will be generated if not given.")
-@click.option("--native",
-              is_flag=True,
-              default=False,
-              show_default=True,
-              help="Build Scilla natively.")
 @click.pass_context
-def build_zilliqa_cmd(ctx, driver, scilla_image, tag, native):
+def build_zilliqa_cmd(ctx, driver, scilla_image, tag):
     """
     Builds a zilliqa image.
     """
-    if native:
-        if tag:
-            raise GiveUp("--native and --tag can't be specified together")
-        elif ctx.params["driver"]:
-            print("ignoring --driver since --native is specified; building natively...")
-    else:
-        if not scilla_image:
-            raise GiveUp("--scilla-image must be specified")
-
-        if not driver:
-            driver = default_driver()
-        ctx.params["driver"] = driver
-
-
     config = get_config(ctx)
-    if native:
-       build_native_zilliqa(config)
-    else:
-       build_zilliqa(config, driver, scilla_image, tag)
+    build_zilliqa(config, driver, scilla_image, tag)
 
 def get_pod_names(config, node_type = None):
     cmd =  ["kubectl",
