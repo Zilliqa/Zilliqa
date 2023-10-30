@@ -16,6 +16,9 @@
 
 export DEV_TREE_ROOT=`readlink -f $(pwd)/../..`
 
+# This script and following scripts use DEV_TREE_ROOT to find the root of the dev tree
+# this is also referenced in the python code to allow moving trees and OSes
+
 
 echo "DEV_TREE_ROOT: $DEV_TREE_ROOT"
 
