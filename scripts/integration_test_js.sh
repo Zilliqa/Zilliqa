@@ -46,8 +46,8 @@ else
     apt update
     apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
 
-    # Install node 20
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    # Install node 18
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
     apt install -y nodejs npm
 
     apt update
