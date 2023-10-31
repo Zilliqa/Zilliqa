@@ -48,7 +48,7 @@ else
 
     # Install node 18
     curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    apt install -y nodejs npm
+    apt install -y nodejs
 
     # Install pnpm
     export SHELL=bash
