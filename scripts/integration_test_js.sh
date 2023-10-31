@@ -124,8 +124,8 @@ else
     sleep 10
 
     cd tests/EvmAcceptanceTests/
-    npm install --ignore-scripts
-    npx hardhat run scripts/FundAccountsFromEth.ts
+    pnpm install --ignore-scripts
+    pnpm hardhat run scripts/FundAccountsFromEth.ts
     DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test --bail 2>&1 > npx.out
 
     retVal=$?
