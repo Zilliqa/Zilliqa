@@ -45,12 +45,17 @@ else
     # install dependencies
     apt update
     apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
+    ## Adding the NodeSource signing key to your keyring...
+    curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
 
-    sudo apt update && sudo apt install -y ca-certificates gnupg
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+    ## Creating apt sources list file for the NodeSource Node.js 14.x repo...
     NODE_MAJOR=20
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    sudo apt update && sudo apt install nodejs -y
+    echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" > /etc/apt/sources.list.d/nodesource.list
+    echo "deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" >> /etc/apt/sources.list.d/nodesource.list
+
+    apt update
+    apt -y install nodejs
+    node --version
 
     # Install pnpm
     export SHELL=bash
