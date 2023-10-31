@@ -96,10 +96,12 @@ void UnixDomainSocketServer::WorkerThread() {
       boost::system::error_code ec;
       m_acceptor->accept(socket, ec);
       if (ec && m_started) {
+        socket.close(ec);
         throw std::runtime_error(ec.message());
       }
 
       if (!m_started) {
+        socket.close(ec);
         break;
       }
 
@@ -115,6 +117,7 @@ void UnixDomainSocketServer::WorkerThread() {
       }
 
       if (!m_started) {
+        socket.close(ec);
         break;
       }
 
@@ -130,6 +133,7 @@ void UnixDomainSocketServer::WorkerThread() {
       }
 
       if (!m_started) {
+        socket.close(ec);
         break;
       }
 
@@ -147,6 +151,7 @@ void UnixDomainSocketServer::WorkerThread() {
       if (ec) {
         LOG_GENERAL(WARNING,
                     "Write to " << m_path << " failed: " << ec.message());
+        socket.close(ec);
         continue;
       }
 
@@ -154,6 +159,7 @@ void UnixDomainSocketServer::WorkerThread() {
           boost::asio::local::stream_protocol::socket::shutdown_both, ec);
       if (ec) {
         LOG_GENERAL(WARNING, "Shutdown failed: " << ec.message());
+        socket.close(ec);
         continue;
       }
     }

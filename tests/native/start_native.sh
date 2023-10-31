@@ -14,22 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+export DEV_TREE_ROOT=`readlink -f $(pwd)/../..`
+
+# This script and following scripts use DEV_TREE_ROOT to find the root of the dev tree
+# this is also referenced in the python code to allow moving trees and OSes
 
 
-rm -rf local_run/node*
+echo "DEV_TREE_ROOT: $DEV_TREE_ROOT"
 
-ulimit -n 65535;
-ulimit -Sc unlimited; 
-ulimit -Hc unlimited;
-ulimit -s unlimited; 
+# takes a copy of constants.xml and constants_local.xml and prepares new versions with .native extension
 
-python tests/zilliqa/test_zilliqa_local.py stop
-python tests/zilliqa/test_zilliqa_local.py setup 10
-python tests/zilliqa/test_zilliqa_local.py prestart 5
+python ./tests/native/prepare_constants.py constants.xml constants.xml
 
-# clean up persistence storage
-rm -rf lookup_local_run/node*
-
-python tests/zilliqa/test_zilliqa_lookup.py setup 1
-#python tests/zilliqa/test_zilliqa_seedpub.py setup 1
-
+./tests/Node/pre_run.sh && ./tests/Node/test_node_lookup.sh && ./tests/Node/test_node_simple.sh
