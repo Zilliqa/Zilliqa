@@ -1665,13 +1665,6 @@ bool Node::ProcessMBnForwardTransaction(
 bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
                          uint32_t shardId, const zbytes& txnListHash) {
   {
-    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards, pubkey)) {
-      LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
-      return false;
-    }
-  }
-  {
     // DS Committee
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {

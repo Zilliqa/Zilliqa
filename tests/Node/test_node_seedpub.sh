@@ -16,20 +16,6 @@
 
 
 
-rm -rf local_run/node*
+python tests/zilliqa/test_zilliqa_seedpub.py start
 
-ulimit -n 65535;
-ulimit -Sc unlimited; 
-ulimit -Hc unlimited;
-ulimit -s unlimited; 
-
-python tests/zilliqa/test_zilliqa_local.py stop
-python tests/zilliqa/test_zilliqa_local.py setup 10
-python tests/zilliqa/test_zilliqa_local.py prestart 5
-
-# clean up persistence storage
-rm -rf lookup_local_run/node*
-
-python tests/zilliqa/test_zilliqa_lookup.py setup 1
-#python tests/zilliqa/test_zilliqa_seedpub.py setup 1
-
+echo "end"
