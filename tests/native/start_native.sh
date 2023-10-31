@@ -24,7 +24,6 @@ echo "DEV_TREE_ROOT: $DEV_TREE_ROOT"
 
 # takes a copy of constants.xml and constants_local.xml and prepares new versions with .native extension
 
-python ./tests/native/prepare_constants.py $DEV_TREE_ROOT/Zilliqa/constants.xml $DEV_TREE_ROOT/Zilliqa/constants.xml.native
-python ./tests/native/prepare_constants.py $DEV_TREE_ROOT/Zilliqa/constants_local.xml $DEV_TREE_ROOT/Zilliqa/constants_local.xml.native
+python ./tests/native/prepare_constants.py constants.xml constants.xml
 
 ./tests/Node/pre_run.sh && ./tests/Node/test_node_lookup.sh && ./tests/Node/test_node_simple.sh

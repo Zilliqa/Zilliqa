@@ -22,7 +22,7 @@ import stat
 from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
 
-NODE_LISTEN_PORT = 40092
+NODE_LISTEN_PORT = 23456
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 LOCAL_FOLDER = "./"
 
@@ -91,6 +91,8 @@ def run_setup(numnodes, printnodes):
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
 
+
+
     if printnodes:
         for x in range(0, count):
             print('[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER +
@@ -105,12 +107,8 @@ def run_setup(numnodes, printnodes):
         keypairs.append(output.strip())
     keypairs.sort()
 
-    ''' Only deals with one instance for now '''
-
-    patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
-    patch_lookup_port(LOCAL_FOLDER + "/constants_local.xml", NODE_LISTEN_PORT, count)
-    patch_seed_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
-    patch_seed_port(LOCAL_FOLDER + "/constants_local.xml", NODE_LISTEN_PORT, count)
+    patch_lookup_pubkey(LOCAL_FOLDER + "constants.xml", keypairs)
+    patch_seed_pubkey(LOCAL_FOLDER + "constants.xml", keypairs)
 
     nodes = ET.Element("nodes")
 
@@ -118,14 +116,7 @@ def run_setup(numnodes, printnodes):
     keys_file = open(LOCAL_RUN_FOLDER + 'lookup_keys.txt', "w")
     for x in range(0, count):
         keys_file.write(keypairs[x] + '\n')
-        keypair = keypairs[x].split(" ")
-        if x < count:
-            peer = ET.SubElement(nodes, "peer")
-            ET.SubElement(peer, "pubk").text = keypair[0]
-            ET.SubElement(peer, "ip").text = '127.0.0.1'
-            ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
     keys_file.close()
-
 
 def patch_constants_xml(filepath, read_txn=False):
     root = ET.parse(filepath).getroot()
@@ -156,40 +147,36 @@ def run_gentxn(batch=100):
     os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn --begin 0 --end {}'.format(batch))
 
 
-def patch_lookup_pubkey(filepath, keypairs, count):
+def patch_lookup_pubkey(filepath, keypairs):
     root = ET.parse(filepath).getroot()
     td = root.find('lookups')
-    elems = td.findall('peer/pubkey')
-    for x in range(0, count):
-        keypair = keypairs[x].split(" ")
-        elems[x].text = keypair[0]
+    if td:
+        root.remove(td)
+    root.append(ET.Element('lookups'))
+    td = root.find('lookups')
+    p = ET.SubElement(td, "peer")
+    ET.SubElement(p, "pubkey").text = keypairs[0].split(" ")[0]
+    ET.SubElement(p, "ip").text = '127.0.0.1'
+    ET.SubElement(p, "port").text = str(NODE_LISTEN_PORT)
+    ET.SubElement(p, "hostname").text = None
+
     tree = ET.ElementTree(root)
     tree.write(filepath)
 
 
-def patch_seed_pubkey(filepath, keypairs, count):
+def patch_seed_pubkey(filepath, keypairs):
     root = ET.parse(filepath).getroot()
     td = root.find('upper_seed')
-    elems = td.findall('peer/pubkey')
-    for x in range(0, count):
-        keypair = keypairs[x].split(" ")
-        elems[x].text = keypair[0]
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
-def patch_lookup_port(filepath, port, count):
-    root = ET.parse(filepath).getroot()
-    td = root.find('lookups')
-    elems = td.findall('peer/port')
-    for x in range(0, count):
-        elems[x].text = str(port)
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
-def patch_seed_port(filepath, port, count):
-    root = ET.parse(filepath).getroot()
+    if td:
+        root.remove(td)
+    root.append(ET.Element('upper_seed'))
     td = root.find('upper_seed')
-    elems = td.findall('peer/port')
-    for x in range(0, count):
-        elems[x].text = str(port)
+    p = ET.SubElement(td, "peer")
+    ET.SubElement(p, "pubkey").text = keypairs[0].split(" ")[0]
+    ET.SubElement(p, "ip").text = '127.0.0.1'
+    ET.SubElement(p, "port").text = str(NODE_LISTEN_PORT)
+    ET.SubElement(p, "hostname").text = None
+
     tree = ET.ElementTree(root)
     tree.write(filepath)
 
@@ -202,13 +189,12 @@ def run_start():
         print("DEV_TREE_ROOT is not set")
         return
 
-    dev_root += "/Zilliqa"
-    fp = dev_root + "/" + "constants_local.xml.native"
+
+    fp = LOCAL_FOLDER + "constants.xml"
 
     if not os.path.exists(fp):
         print( fp +" not found")
         return
-
 
     # Load the keypairs
     keypairs = []
@@ -230,6 +216,8 @@ def run_start():
     # Launch node zilliqa process
     for x in range(0, count):
         keypair = keypairs[x].split(" ")
+        start_str = ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' --identity ' + 'lookup-' + str(x)
+        print(start_str)
         os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[
             1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/lzilliqa ' +
                   ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' +
