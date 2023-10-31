@@ -631,7 +631,13 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
           rlpStreamRecreated << info.data;
         }
 
-        rlpStreamRecreated << v;
+        if (v == 27 || v == 28) {
+          rlpStreamRecreated << v;
+        } else {
+          v = (chainId * 2) + 35 + i;
+          rlpStreamRecreated << v;
+        }
+
         rlpStreamRecreated << dev::u256("0x" + signature);
         rlpStreamRecreated << dev::u256("0x" + s);
 
