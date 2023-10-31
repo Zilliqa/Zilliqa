@@ -215,6 +215,8 @@ class GracefulCloseImpl
             LOG_GENERAL(DEBUG,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
+          ErrorCode ignored;
+          self->m_socket.close(ignored);
         });
   }
 };
@@ -226,10 +228,12 @@ void CloseGracefully(Socket&& socket) {
   }
   socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
+    socket.close(ec);
     return;
   }
   size_t unread = socket.available(ec);
   if (ec) {
+    socket.close(ec);
     return;
   }
   if (unread > 0) {
@@ -239,6 +243,8 @@ void CloseGracefully(Socket&& socket) {
   }
   if (!ec) {
     std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
+  } else {
+    socket.close(ec);
   }
 }
 
@@ -378,6 +384,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
         [self = shared_from_this()](const ErrorCode& ec, size_t) {
+          if (ec) {
+            // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
+          }
           if (ec != OPERATION_ABORTED) {
             self->OnWritten(ec);
           }
@@ -385,6 +394,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void OnWritten(const ErrorCode& ec) {
+    if (!ec && !m_closed) {
+      // LOG_GENERAL(INFO, "Successfully sent message to: "
+      //                       << m_peer.GetPrintableIPAddress()
+      //                       << " with size: " << m_queue.front().msg.size);
+    }
     if (m_closed) {
       return;
     }
@@ -415,11 +429,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
 
-    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS}, [this]() { Reconnect(); });
+    WaitTimer(m_timer, Milliseconds{RECONNECT_INTERVAL_IN_MS},
+              [this]() { Reconnect(); });
   }
 
   void Reconnect() {
-    LOG_GENERAL(DEBUG, "Peer " << m_peer << " reconnects");
+    LOG_GENERAL(INFO, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Connect();
@@ -493,7 +508,8 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size);
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
+                                                   << " peer = " << peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
