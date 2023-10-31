@@ -50,6 +50,7 @@ else
 
     ## Creating apt sources list file for the NodeSource Node.js 14.x repo...
     NODE_MAJOR=20
+    echo Installing node
     echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" > /etc/apt/sources.list.d/nodesource.list
     echo "deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" >> /etc/apt/sources.list.d/nodesource.list
 
