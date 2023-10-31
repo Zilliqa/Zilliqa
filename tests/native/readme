@@ -1,0 +1,22 @@
+This is a very simple guide to get the native code up and running fro minimum set of tasks, a bunch of nodes and a lookup
+server, its WIP and is been added to as we use it to debug more and more of the platform.
+
+use build.sh tests debug to build the native code, it will create a directory called build and put the binaries in there.
+
+from the zilliqa/build directory
+
+./tests/native/start_native.sh
+
+That's it, more coming soon, this will fire up a system with ten nodes and a lookup server using the constants.xml in the root of Zilliqa.
+
+The software makes a copy and overrides all the values it specifically needs.
+
+The software currently creates subdirectories under the build directory, these are local_run - contains the normal nodes , lookup_local_run contains the lookup server.
+
+Each directory has one directory per node, the node directory contains the node specific files, the lookup directory contains the lookup specific files.
+
+This is where you will find the relevant logs and other useful files for debugging.
+
+More coming soon.
+
+Steve.
