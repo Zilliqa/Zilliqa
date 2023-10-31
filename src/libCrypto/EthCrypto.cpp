@@ -803,13 +803,43 @@ std::string GetS(std::string signature) {
   return "0x" + s;
 }
 
-std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
+std::string GetSAndV(std::string signature, std::string& v) {
+  int v_value = 27;
+
+  if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
+    signature.erase(0, 2);
+  }
+
+  if (signature.size() != 128) {
+    LOG_GENERAL(WARNING, "Received bad signature size: " << signature.size());
+    return "";
+  }
+
+  // S is second half
+  std::string s = signature.substr(64, std::string::npos);
+  // This is a bit inefficient, but safe.
+  auto unhexed = DataConversion::HexStrToUint8VecRet(s);
+  if (unhexed.size() > 0 && unhexed[0] >= 0x80) {
+    // Flip
+    unhexed[0] = unhexed[0] & 0x7f;
+    v_value = 28;
+  }
+  auto rehexed = DataConversion::Uint8VecToHexStrRet(unhexed);
+  v = (boost::format("0x%x") % v_value).str();
+  return "0x" + rehexed;
+}
+
+std::optional<std::string> GetV(TransactionCoreInfo const& info, uint64_t chainId,
                  std::string signature) {
-  uint64_t recid;
+  uint64_t recid = (uint64_t)-1;
 
   GetTransmittedRLP(info, chainId, signature, recid);
-
-  return (boost::format("0x%x") % recid).str();
+  // If recid comes back as -1, we were invalid.
+  if (recid == (uint64_t)-1) {
+    return {};
+  } else {
+    return (boost::format("0x%x") % recid).str();
+  }
 }
 
 // Get Address from public key, eth stye.

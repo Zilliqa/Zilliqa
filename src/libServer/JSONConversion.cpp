@@ -727,6 +727,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
                   txn.GetTransaction().GetNonce() - 1, txn.GetTransaction().GetVersionIdentifier())
                   .hex();
  }
+
  switch (tx.GetVersionIdentifier()) {
   case TRANSACTION_VERSION:
     // Return a type of 0 for native Zilliqa transactions too.
@@ -751,9 +752,18 @@ const Json::Value JSONConversion::convertTxtoEthJson(
  }
 
  std::string sig{tx.GetSignature()};
- retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
- retJson["r"] = GetR(sig);
- retJson["s"] = GetS(sig);
+ auto v = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+ if (v) {
+   retJson["v"] = v.value();
+   retJson["r"] = GetR(sig);
+   retJson["s"] = GetS(sig);
+ } else {
+   // We couldn't determine v and now need to set the signature up properly.
+   std::string v_value;
+   retJson["s"] = GetSAndV(sig, v_value);
+   retJson["r"] = GetR(sig);
+   retJson["v"] = v_value;
+ }
 
  retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
  return retJson;

@@ -70,7 +70,8 @@ Address CreateAddr(zbytes const& publicKey);
 
 std::string GetR(std::string signature);
 std::string GetS(std::string signature);
-std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
+std::optional<std::string> GetV(TransactionCoreInfo const& info, uint64_t chainId,
                  std::string signature);
+std::string GetSAndV(std::string signature, std::string& v);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

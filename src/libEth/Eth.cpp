@@ -69,9 +69,18 @@ Json::Value populateReceiptHelper(
   ret["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
 
   std::string sig{tx.GetSignature()};
-  ret["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
-  ret["r"] = GetR(sig);
-  ret["s"] = GetS(sig);
+  auto v = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  if (v) {
+    ret["v"] = v.value();
+    ret["r"] = GetR(sig);
+    ret["s"] = GetS(sig);
+  } else {
+   // We couldn't determine v and now need to set the signature up properly.
+   std::string v_value;
+   ret["s"] = GetSAndV(sig, v_value);
+   ret["r"] = GetR(sig);
+   ret["v"] = v_value;
+  }
 
   switch (tx.GetVersionIdentifier()) {
     case TRANSACTION_VERSION:
