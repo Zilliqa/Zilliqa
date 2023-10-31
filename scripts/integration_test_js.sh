@@ -50,10 +50,6 @@ else
     curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
     apt install -y nodejs npm
 
-    apt update
-    apt -y install nodejs
-    node --version
-
     # Install pnpm
     export SHELL=bash
     curl -fsSL https://get.pnpm.io/install.sh | sh -
