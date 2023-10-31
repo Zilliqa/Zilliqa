@@ -45,13 +45,10 @@ else
     # install dependencies
     apt update
     apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
-    ## Adding the NodeSource signing key to your keyring...
-    curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
 
-    ## Creating apt sources list file for the NodeSource Node.js 14.x repo...
-    NODE_MAJOR=20
-    echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" > /etc/apt/sources.list.d/nodesource.list
-    echo "deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" >> /etc/apt/sources.list.d/nodesource.list
+    # Install node 20
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    apt install -y nodejs npm
 
     apt update
     apt -y install nodejs
@@ -124,8 +121,8 @@ else
     sleep 10
 
     cd tests/EvmAcceptanceTests/
-    pnpm install --ignore-scripts
-    pnpm hardhat run scripts/FundAccountsFromEth.ts
+    npm install --ignore-scripts
+    npx hardhat run scripts/FundAccountsFromEth.ts
     DEBUG=true MOCHA_TIMEOUT=40000 npx hardhat test --bail 2>&1 > npx.out
 
     retVal=$?
