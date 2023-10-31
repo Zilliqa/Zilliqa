@@ -196,6 +196,8 @@ def print_config_advice(config):
                         "localdev-l2api",
                         "localdev-newapi",
                         "localdev-origin",
+                        "localdev-api-fireblocks",
+                        "localdev-evm-filter"
                         "localdev-origin-internal" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
     print(f"Minikube is at {ip}")
@@ -826,7 +828,9 @@ def get_mitm_instances(testnet_name):
              "l2api" : { "host" : f"{testnet_name}-l2api.localdomain", "port" : 5302 },
              "newapi" : { "host" : f"{testnet_name}-newapi.localdomain", "port" : 5303 },
              "origin" : { "host" : f"{testnet_name}-origin.localdomain", "port" : 5304 },
-             "grafana" : { "host" : f"{testnet_name}-grafana.localdomain", "port" : 5305 } }
+             "grafana" : { "host" : f"{testnet_name}-grafana.localdomain", "port" : 5305 },
+             "fireblocks" : { "host" : f"{testnet_name}-api-fireblocks.localdomain", "port" : 5306 },
+            }
 
 def stop_proxy(config, testnet_name):
     mitm_instances = get_mitm_instances(testnet_name)
