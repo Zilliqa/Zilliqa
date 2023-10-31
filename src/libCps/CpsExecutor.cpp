@@ -68,6 +68,8 @@ CpsExecuteResult CpsExecutor::PreValidateScillaRun(
               context.amount.convert_to<std::string>())
 
   if (!mAccountStore.AccountExistsAtomic(context.origin)) {
+    LOG_GENERAL(WARNING,
+                "It looks the sender doesn't exist in atomic account store");
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
   }
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(context.origin);
@@ -116,6 +118,9 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     if (!mAccountStore.TransferBalanceAtomic(
             clientContext.origin, clientContext.recipient,
             Amount::fromQa(clientContext.amount))) {
+      LOG_GENERAL(WARNING,
+                  "Insufficient funds to transfer from sender to recipient in "
+                  "non-contract call");
       mAccountStore.IncreaseNonceForAccount(cpsCtx.origSender);
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
@@ -157,8 +162,12 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   const auto gasRemainedCore = GetRemainedGasCore(execResult);
 
   const bool isFailure = !m_queue.empty() || !execResult.isSuccess;
+
+  LOG_GENERAL(INFO, "Scilla CPS run is completed with status: "
+                        << (isFailure ? "failure" : "success"));
   span.SetAttribute("Failure", isFailure);
   if (isFailure) {
+    LOG_GENERAL(INFO, "TxnStatus for failed run: " << execResult.txnStatus);
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
     mTxReceipt.RemoveAllTransitions();
@@ -207,13 +216,19 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     mTxReceipt.AddError(RUNNER_FAILED);
     mTxReceipt.SetCumGas(0);
     mTxReceipt.update();
-    mAccountStore.IncreaseNonceForAccount(ProtoToAddress(clientContext.GetEvmArgs().origin()));
-    LOG_GENERAL(WARNING, "RunFromEvm: Precondition for running transaction failed");
+    mAccountStore.IncreaseNonceForAccount(
+        ProtoToAddress(clientContext.GetEvmArgs().origin()));
+    LOG_GENERAL(WARNING,
+                "RunFromEvm: Precondition for running transaction failed");
     return preValidateResult;
   }
 
-  LOG_GENERAL(WARNING, "CpsExecutor::RunFromEvm(): From " << ProtoToAddress(clientContext.GetEvmArgs().origin()).hex()
-              << " , to: " << ProtoToAddress(clientContext.GetEvmArgs().address()).hex());
+  LOG_GENERAL(
+      WARNING,
+      "CpsExecutor::RunFromEvm(): From "
+          << ProtoToAddress(clientContext.GetEvmArgs().origin()).hex()
+          << " , to: "
+          << ProtoToAddress(clientContext.GetEvmArgs().address()).hex());
 
   TakeGasFromAccount(clientContext);
 
@@ -226,9 +241,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
       CpsUtils::FromEvmContext(clientContext)};
   const auto destAddress = ProtoToAddress(clientContext.GetEvmArgs().address());
   const auto runType =
-      IsNullAddress(destAddress)
-          ? CpsRun::Create
-          : CpsRun::Call;
+      IsNullAddress(destAddress) ? CpsRun::Create : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
                                             cpsCtx, runType);
   this->TxTraceClear();
@@ -236,7 +249,6 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   auto runResult = processLoop(cpsCtx);
   TRACE_EVENT("EvmCpsRun", "processLoop", "completed");
-  LOG_GENERAL(INFO, "Process loop completed");
 
   // right. There is a long and tedious discussion about this in slack
   // https://zilliqa-team.slack.com/archives/C042YP854RZ/p1682094771583839
@@ -257,6 +269,9 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   const bool isEstimate = !clientContext.GetCommit();
   const bool isEthCall = cpsCtx.isStatic;
 
+  LOG_GENERAL(INFO, "Evm CPS run is completed with status: "
+                        << (isFailure ? "failure" : "success"));
+
   span.SetAttribute("Estimate", isEstimate);
   span.SetAttribute("EthCall", isEthCall);
   span.SetAttribute("Failure", isFailure);
@@ -272,7 +287,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
     // This will get converted back up again before we report it.
     mTxReceipt.SetCumGas(usedGasCore);
     if (isFailure) {
-      LOG_GENERAL(INFO, "Call failed");
+      LOG_GENERAL(INFO, "TxnStatus for failed run: " << runResult.txnStatus);
       if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
         auto const& result = std::get<evm::EvmResult>(runResult.result);
         LOG_GENERAL(INFO, EvmUtils::ExitReasonString(result.exit_reason()));

@@ -37,6 +37,7 @@ STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
 TESTNET_NAME= 'TEST_NET_NAME'
 AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
+CDN_ENDPOINT_URL=os.getenv("CDN_ENDPOINT_URL")
 CHUNK_SIZE = 4096
 EXPEC_LEN = 2
 MAX_WORKER_JOBS = 50
@@ -60,6 +61,8 @@ def isGCP():
 	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
 
 def getURL():
+	if CDN_ENDPOINT_URL:
+		return f"{CDN_ENDPOINT_URL}"
 	if isGCP():
 		return "http://"+BUCKET_NAME+".storage.googleapis.com"
 	elif AWS_ENDPOINT_URL:

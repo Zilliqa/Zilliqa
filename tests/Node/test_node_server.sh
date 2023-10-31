@@ -15,12 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # This script will run 20 DS and 60 nodes. This script should be run on a high performance machine. 
 
-sudo sysctl net.core.somaxconn=102400; 
-sudo sysctl net.core.netdev_max_backlog=65536; 
-sudo sysctl net.ipv4.tcp_tw_reuse=1; 
-sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
-sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
-sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
+
 
 python tests/Zilliqa/test_zilliqa_local.py stop
 python tests/Zilliqa/test_zilliqa_local.py clean

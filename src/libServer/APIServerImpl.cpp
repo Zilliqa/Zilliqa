@@ -93,6 +93,8 @@ class APIServerImpl::Connection
     if (!owner) {
       // server is closed
       m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+      m_stream.socket().close(ec);
+      OnClosed();
       return;
     }
 
@@ -101,6 +103,8 @@ class APIServerImpl::Connection
         LOG_GENERAL(DEBUG, "Read error: " << ec.message());
         m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       }
+      m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+      m_stream.socket().close(ec);
       OnClosed();
       return;
     }
@@ -205,6 +209,8 @@ class APIServerImpl::Connection
     if (sz == 0 && m_owner.expired()) {
       beast::error_code ec;
       m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+      m_stream.socket().close(ec);
+      OnClosed();
       return;
     }
 
@@ -346,7 +352,7 @@ bool APIServerImpl::DoListen() {
 
 #define CHECK_EC()                                                   \
   if (ec) {                                                          \
-    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message()); \
+    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message() << " port " << m_options.port); \
     return false;                                                    \
   }
 
