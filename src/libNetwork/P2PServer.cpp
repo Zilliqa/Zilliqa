@@ -231,9 +231,6 @@ void P2PServerConnection::ReadNextMessage() {
         if (!ec) {
           assert(n == HDR_LEN);
         }
-        if (ec) {
-          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
-        }
         if (ec != OPERATION_ABORTED) {
           self->OnHeaderRead(ec);
         }
@@ -275,9 +272,6 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
         if (!ec) {
           assert(n == self->m_readBuffer.size() - HDR_LEN);
         }
-        if (ec) {
-          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
-        }
         if (ec != OPERATION_ABORTED) {
           self->OnBodyRead(ec);
         }
@@ -286,7 +280,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO, "Read error: " << ec.message());
+    LOG_GENERAL(WARNING, "Read error: " << ec.message());
     CloseSocket();
     OnConnectionClosed();
     return;
@@ -333,7 +327,7 @@ void P2PServerConnection::CloseSocket() {
   if (ec) {
     m_socket.close(ec);
     if (ec) {
-      LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: " << ec.message());
+      LOG_GENERAL(DEBUG, "Informational, not an issue - Error closing socket: " << ec.message());
     }
     return;
   }
@@ -354,12 +348,12 @@ void P2PServerConnection::CloseSocket() {
       boost::container::small_vector<uint8_t, 4096> buf;
       buf.resize(unread);
       m_socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
-      LOG_GENERAL(INFO, "Draining remaining IO before close"  << m_remotePeer.GetPrintableIPAddress());
+      LOG_GENERAL(DEBUG, "Draining remaining IO before close"  << m_remotePeer.GetPrintableIPAddress());
     } while (!ec && (unread = m_socket.available(ec)) > 0);
   }
   m_socket.close(ec);
   if (ec) {
-    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: " << ec.message());
+    LOG_GENERAL(DEBUG, "Informational, not an issue - Error closing socket: " << ec.message());
   }
 }
 
