@@ -318,7 +318,7 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   // to chain_id, 0, 0 in order to recreate what was signed
   dev::RLP rlpStream1(transaction,
                       dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
-  dev::RLPStream rlpStreamRecreatedBeforeEip155(6);
+  dev::RLPStream rlpStreamRecreatedBeforeEip155;
   dev::RLPStream rlpStreamRecreated(9);
 
   if (rlpStream1.isNull()) {
@@ -503,7 +503,8 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId, uint32
   const bool beforeEip155Tx = v == 27 || v == 28;
   switch (version) {
     case TRANSACTION_VERSION_ETH_LEGACY: {
-      dev::RLPStream rlpStreamRecreated(beforeEip155Tx ? 6 : 9);
+//      dev::RLPStream rlpStreamRecreated(beforeEip155Tx ? 6 : 9);
+      dev::RLPStream rlpStreamRecreated = beforeEip155Tx ? dev::RLPStream() : dev::RLPStream(9);
 
       rlpStreamRecreated << info.nonce - 1;
       rlpStreamRecreated << info.gasPrice;
@@ -616,7 +617,7 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     switch (version) {
       case TRANSACTION_VERSION_ETH_LEGACY: {
         bool beforeEip155Tx = v == 27 || v == 28;
-        dev::RLPStream rlpStreamRecreated(beforeEip155Tx ? 6 : 9);
+        dev::RLPStream rlpStreamRecreated = beforeEip155Tx ? dev::RLPStream() : dev::RLPStream(9);
 
         // Note: the nonce is decremented because of the difference between Zil and
         // Eth TXs
