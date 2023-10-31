@@ -30,6 +30,7 @@ NODE_LOOKUP_PORT = 23456
 STATUS_SERVER_LISTEN_PORT = 4301
 LOCAL_RUN_FOLDER = './local_run/'
 REJOIN_DS_GUARD_RUN_FOLDER = './dsguard_rejoin_local_run/'
+SCILLA_SOCKET_NAME = "/tmp/scilla-ipc-socket"
 
 
 def print_usage():
@@ -289,13 +290,15 @@ def run_start(numdsnodes):
         shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
         shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
         shutil.copyfile(fp, LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-        ipc_path = "/tmp/zilliqa" + str(NODE_LISTEN_PORT + x) + ".sock"
+        ipc_path = LOCAL_RUN_FOLDER + testfolders_list[x] + "/scilla" + ".sock"
+        scilla_server_path = LOCAL_RUN_FOLDER + testfolders_list[x] + "/scilla-server" + ".sock"
         status_server_port = str(STATUS_SERVER_LISTEN_PORT + x)
 
         '''patch_lookup_pubkey(LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml', keypairs)'''
         '''patch_seed_pubkey(LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml', keypairs)'''
 
-        patch_param_in_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, status_server_port)
+        patch_param_in_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, scilla_server_path,
+                           status_server_port)
 
         shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 
@@ -314,14 +317,17 @@ def run_start(numdsnodes):
 
 
 
-def patch_param_in_xml(filepath, ipc_path, status_server_port):
+def patch_param_in_xml(filepath, ipc_path, scilla_server_path, status_server_port):
 
     root = ET.parse(filepath).getroot()
 
     td = root.find('jsonrpc')
     ''' TODO will need extending for other params'''
-    td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
-    td.find('STATUS_RPC_PORT').text = status_server_port
+    if td:
+        print("Setting SCILLA_IPC_SOCKET_PATH to " + ipc_path + " and STATUS_RPC_PORT to " + status_server_port )
+        td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
+        td.find('SCILLA_SERVER_SOCKET_PATH').text = scilla_server_path
+        td.find('STATUS_RPC_PORT').text = status_server_port
 
     tree = ET.ElementTree(root)
     tree.write(filepath)

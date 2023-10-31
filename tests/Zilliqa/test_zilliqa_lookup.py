@@ -25,6 +25,7 @@ import xml.etree.cElementTree as ET
 NODE_LISTEN_PORT = 23456
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 LOCAL_FOLDER = "./"
+STATUS_SERVER_LISTEN_PORT = 5555
 
 GENTXN_WORKING_DIR = os.path.join(LOCAL_RUN_FOLDER, 'gentxn')
 
@@ -91,8 +92,6 @@ def run_setup(numnodes, printnodes):
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
 
-
-
     if printnodes:
         for x in range(0, count):
             print('[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER +
@@ -118,11 +117,19 @@ def run_setup(numnodes, printnodes):
         keys_file.write(keypairs[x] + '\n')
     keys_file.close()
 
-def patch_constants_xml(filepath, read_txn=False):
+
+def patch_constants_xml(filepath, ipc_path, scilla_server_path, status_server_port):
     root = ET.parse(filepath).getroot()
 
     general = root.find('general')
     general.find('LOOKUP_NODE_MODE').text = 'true'
+
+    td = root.find('jsonrpc')
+    if td:
+        print("Setting SCILLA_IPC_SOCKET_PATH to " + ipc_path + " and STATUS_RPC_PORT to " + status_server_port)
+        td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
+        td.find('SCILLA_SERVER_SOCKET_PATH').text = scilla_server_path
+        td.find('STATUS_RPC_PORT').text = status_server_port
 
     tree = ET.ElementTree(root)
     tree.write(filepath)
@@ -180,6 +187,7 @@ def patch_seed_pubkey(filepath, keypairs):
     tree = ET.ElementTree(root)
     tree.write(filepath)
 
+
 def run_start():
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
@@ -189,11 +197,10 @@ def run_start():
         print("DEV_TREE_ROOT is not set")
         return
 
-
     fp = LOCAL_FOLDER + "constants.xml"
 
     if not os.path.exists(fp):
-        print( fp +" not found")
+        print(fp + " not found")
         return
 
     # Load the keypairs
@@ -201,6 +208,10 @@ def run_start():
     with open(LOCAL_RUN_FOLDER + 'lookup_keys.txt', "r") as f:
         keypairs = f.readlines()
     keypairs = [x.strip() for x in keypairs]
+
+    ipc_path = "ipc.socket"
+    scilla_server_path = "scilla-server.socket"
+    status_server_port = str(STATUS_SERVER_LISTEN_PORT)
 
     for x in range(0, count):
         shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
@@ -211,12 +222,18 @@ def run_start():
         # one with the jsonrpc server running will do the transaction dispatching and coincidentally there
         # will be only one as there is an unknown issue that multiple lookup nodes are having port collision
         # on 4201 and eventually only one will get the port and others won't be able to start jsonrpc server
-        patch_constants_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', True)
+        ipc_path = LOCAL_RUN_FOLDER + testfolders_list[x] + "/scilla" + ".sock"
+        scilla_server_path = LOCAL_RUN_FOLDER + testfolders_list[x] + "/scilla-server" + ".sock"
+        status_server_port = str(STATUS_SERVER_LISTEN_PORT + x)
+
+    patch_constants_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, scilla_server_path,
+                        status_server_port)
 
     # Launch node zilliqa process
     for x in range(0, count):
         keypair = keypairs[x].split(" ")
-        start_str = ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' --identity ' + 'lookup-' + str(x)
+        start_str = ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(
+            NODE_LISTEN_PORT + x) + ' --identity ' + 'lookup-' + str(x)
         print(start_str)
         os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[
             1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/lzilliqa ' +
