@@ -66,7 +66,7 @@ def getURL():
 	elif AWS_ENDPOINT_URL:
 		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
 	else:
-		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+		return "http://"+BUCKET_NAME+".storage.googleapis.com"
 
 def awsCli():
     if AWS_ENDPOINT_URL:

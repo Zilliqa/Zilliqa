@@ -68,7 +68,7 @@ def getURL():
 	elif AWS_ENDPOINT_URL:
 		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
 	else:
-		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+		return "http://"+BUCKET_NAME+".storage.googleapis.com"
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
@@ -161,7 +161,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 	failed_list_of_keyurls = []
 	prefix = ""
 	if folderName:
-		prefix = folderName+"/"+TESTNET_NAME
+		prefix = folderName+"/"+TESTNET_NAME+"/"
 	# Try get the entire persistence keys.
 	# S3 limitation to get only max 1000 keys. so work around using marker.
 	while True:
