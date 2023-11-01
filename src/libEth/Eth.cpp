@@ -135,6 +135,7 @@ EthFields parseLegacyTransaction(zbytes const& asBytes) {
         ret.code = byteIt;
         break;
       case 6:  // V - only needed for pub sig recovery
+        ret.signature_validation = uint32_t(*it);
         break;
       case 7:  // R
       {
@@ -624,7 +625,8 @@ Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
                  Signature(fields.signature, 0),
                  fields.accessList,
                  fields.maxPriorityFeePerGas,
-                 fields.maxFeePerGas};
+                 fields.maxFeePerGas,
+                 fields.signature_validation };
 
   hash = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 
