@@ -42,13 +42,14 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return transaction hash for a legacy transaction (before EIP-155)", async function() {
-    const rawTransaction = "0xf8a88088016345785d8a0000830186a08080b853604580600e600039806000f350fe" + 
-                           "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601" + 
-                           "600081602082378035828234f58015156039578182fd5b8082525050506014600cf31b" + 
-                           "a02222222222222222222222222222222222222222222222222222222222222222a022" + 
-                           "22222222222222222222222222222222222222222222222222222222222222"
-                          
+  it("should return transaction hash for a legacy transaction (before EIP-155)", async function () {
+    const rawTransaction =
+      "0xf8a88088016345785d8a0000830186a08080b853604580600e600039806000f350fe" +
+      "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601" +
+      "600081602082378035828234f58015156039578182fd5b8082525050506014600cf31b" +
+      "a02222222222222222222222222222222222222222222222222222222222222222a022" +
+      "22222222222222222222222222222222222222222222222222222222222222";
+
     const transactionHash = "0xdfdd1d0595b01e91fbe2ca1e03cfd5ad7c54fe5323e0bdffb062fe30c522ae14";
     await sendJsonRpcRequest(METHOD, 1, [rawTransaction], (result, status) => {
       logDebug("Result:", result);
@@ -64,6 +65,5 @@ describe("Calling " + METHOD, function () {
         "has result:" + result.result + ", expected transaction hash:" + transactionHash
       );
     });
-
-  })
+  });
 });
