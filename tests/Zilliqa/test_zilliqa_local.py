@@ -26,6 +26,7 @@ from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
 
 NODE_LISTEN_PORT = 5001
+NODE_LOOKUP_PORT = 23456
 STATUS_SERVER_LISTEN_PORT = 4301
 LOCAL_RUN_FOLDER = './local_run/'
 REJOIN_DS_GUARD_RUN_FOLDER = './dsguard_rejoin_local_run/'
@@ -270,13 +271,7 @@ def run_start(numdsnodes):
     testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
     count = len(testfolders_list)
 
-    dev_root = os.getenv("DEV_TREE_ROOT")
-    if dev_root is None:
-        print("DEV_TREE_ROOT is not set")
-        return
-
-    dev_root += "/Zilliqa"
-    fp = dev_root + "/" + "constants_local.xml.native"
+    fp = "constants.xml"
 
     if not os.path.exists(fp):
         print( fp +" not found")
@@ -296,6 +291,10 @@ def run_start(numdsnodes):
         shutil.copyfile(fp, LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
         ipc_path = "/tmp/zilliqa" + str(NODE_LISTEN_PORT + x) + ".sock"
         status_server_port = str(STATUS_SERVER_LISTEN_PORT + x)
+
+        '''patch_lookup_pubkey(LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml', keypairs)'''
+        '''patch_seed_pubkey(LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml', keypairs)'''
+
         patch_param_in_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, status_server_port)
 
         shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
@@ -328,6 +327,40 @@ def patch_param_in_xml(filepath, ipc_path, status_server_port):
     tree.write(filepath)
 
 
+def patch_lookup_pubkey(filepath, keypairs):
+    root = ET.parse(filepath).getroot()
+    td = root.find('lookups')
+    if td:
+        root.remove(td)
+    root.append(ET.Element('lookups'))
+    td = root.find('lookups')
+    p = ET.SubElement(td, "peer")
+    ET.SubElement(p, "pubkey").text = keypairs[0].split(" ")[0]
+    ET.SubElement(p, "ip").text = '127.0.0.1'
+    ET.SubElement(p, "port").text = str(NODE_LISTEN_PORT)
+    ET.SubElement(p, "hostname").text = None
+
+    tree = ET.ElementTree(root)
+    tree.write(filepath)
+
+
+def patch_seed_pubkey(filepath, keypairs):
+    root = ET.parse(filepath).getroot()
+    td = root.find('upper_seed')
+    if td:
+        root.remove(td)
+    root.append(ET.Element('upper_seed'))
+    td = root.find('upper_seed')
+    p = ET.SubElement(td, "peer")
+    ET.SubElement(p, "pubkey").text = keypairs[0].split(" ")[0]
+    ET.SubElement(p, "ip").text = '127.0.0.1'
+    ET.SubElement(p, "port").text = str(NODE_LISTEN_PORT)
+    ET.SubElement(p, "hostname").text = None
+
+    tree = ET.ElementTree(root)
+    tree.write(filepath)
+
+
 # To rejoin ds guard index 2
 def run_start_dsguard2():
     testfolders_list = get_immediate_subdirectories(REJOIN_DS_GUARD_RUN_FOLDER)
@@ -335,7 +368,7 @@ def run_start_dsguard2():
 
     for x in range(0, count):
         shutil.copyfile('dsnodes.xml', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
-        shutil.copyfile('constants_local.xml.native', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+        shutil.copyfile('constants.xml', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 
     # These keys are non critical and are only used for testing purposes
     keypairs = "021D99F2E5ACBA39ED5ACC5DCA5EE2ADDE780FFD998E1DBF440FE364C3BE360A7B 50C26000FCC08867FC3B9C03385015179E4B63282CB356014233BB1877FCDBDD"
@@ -364,7 +397,7 @@ def run_start_validateBackupDB():
     keypair = keypairs[0].split(" ")
     shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/ds_whitelist.xml')
     shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/shard_whitelist.xml')
-    shutil.copyfile('constants_local.xml.native', LOCAL_RUN_FOLDER + testfolders_list[0] + '/constants.xml')
+    shutil.copyfile('constants.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/constants.xml')
     shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/dsnodes.xml')
     shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/config.xml')
     os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[0] + '; echo \"' + keypair[0] + ' ' + keypair[

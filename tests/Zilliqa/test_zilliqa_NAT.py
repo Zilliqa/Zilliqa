@@ -90,7 +90,7 @@ def run_start():
 		return
 
 	dev_root += "/Zilliqa"
-	fp = dev_root + "/" + "constants_local.xml.native"
+	fp = dev_root + "/" + "constants.xml"
 
 	if not os.path.exists(fp):
 		print( fp +" not found")
