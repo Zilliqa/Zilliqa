@@ -757,8 +757,13 @@ const Json::Value JSONConversion::convertTxtoEthJson(
    retJson["v"] = v.value();
    retJson["r"] = GetR(sig);
    retJson["s"] = GetS(sig);
+ } else if (IsEthTransactionVersion(tx.GetVersionIdentifier())) {
+     // It's an eth transaction - we should preserve the signature just as it was.
+     retJson["s"] = GetS(sig);
+     retJson["r"] = GetR(sig);
+     retJson["v"] = 0;
  } else {
-   // We couldn't determine v and now need to set the signature up properly.
+     // It's a Zilliqa native transaction - create a canonical signature for it.
    std::string v_value;
    retJson["s"] = GetSAndV(sig, v_value);
    retJson["r"] = GetR(sig);

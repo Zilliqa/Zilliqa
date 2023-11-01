@@ -74,12 +74,17 @@ Json::Value populateReceiptHelper(
     ret["v"] = v.value();
     ret["r"] = GetR(sig);
     ret["s"] = GetS(sig);
+  } else if (tx.IsEth()) {
+    // This is an eth transaction - preserve the signature just as it was.
+    ret["v"] = 0;
+    ret["r"] = GetR(sig);
+    ret["s"] = GetS(sig);
   } else {
-   // We couldn't determine v and now need to set the signature up properly.
-   std::string v_value;
-   ret["s"] = GetSAndV(sig, v_value);
-   ret["r"] = GetR(sig);
-   ret["v"] = v_value;
+    // This is a Zilliqa native transaction and we should generate a canonical signature for it.
+    std::string v_value;
+    ret["s"] = GetSAndV(sig, v_value);
+    ret["r"] = GetR(sig);
+    ret["v"] = v_value;
   }
 
   switch (tx.GetVersionIdentifier()) {
