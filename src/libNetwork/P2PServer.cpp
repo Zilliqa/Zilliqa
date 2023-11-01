@@ -239,8 +239,10 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO,
-                "Peer " << m_remotePeer << " read error: " << ec.message());
+    // Only report the error if it's not a connection reset caused by the peer closing.
+    if (ec != END_OF_FILE) {
+      LOG_GENERAL(WARNING, "Read error: " << ec.message());
+    }
     CloseSocket();
     OnConnectionClosed();
     return;
