@@ -48,14 +48,25 @@ else
     ## Adding the NodeSource signing key to your keyring...
     curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
 
-    ## Creating apt sources list file for the NodeSource Node.js 14.x repo...
-    NODE_MAJOR=18
-    echo Installing node
-    echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" > /etc/apt/sources.list.d/nodesource.list
-    echo "deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x jammy main" >> /etc/apt/sources.list.d/nodesource.list
+    # Install nodejs
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 
-    apt update
-    apt -y install nodejs
+    if ! command -v nvm &> /dev/null
+    then
+	    echo "<<<<< nvm could not be found. >>>>>"
+	    exit 1
+    fi
+
+    nvm install --lts
+
+    if ! command -v node &> /dev/null
+    then
+	    echo "<<<<< node could not be found. >>>>>"
+	    exit 1
+    fi
+
     node --version
 
     # Install pnpm
