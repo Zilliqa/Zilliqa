@@ -43,6 +43,7 @@ DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 CREATED_FOLDER_LIST = []
 AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
+CDN_ENDPOINT_URL=os.getenv("CDN_ENDPOINT_URL")
 
 def isGCP():
 	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
@@ -172,7 +173,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 	failed_list_of_keyurls = []
 	prefix = ""
 	if folderName:
-		prefix = folderName+"/"+TESTNET_NAME
+		prefix = folderName+"/"+TESTNET_NAME+"/"
 	# Try get the entire persistence keys.
 	# S3 limitation to get only max 1000 keys. so work around using marker.
 	while True:
