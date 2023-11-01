@@ -56,6 +56,12 @@ else
 
     apt update
     apt -y install nodejs
+    if ! command -v node &> /dev/null
+    then
+	    echo "node could not be found."
+	    exit 1
+    fi
+
     node --version
 
     # Install pnpm
