@@ -92,7 +92,8 @@ bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    RewardControlContractState control_state = RewardControlContractState::GetCurrentRewards();
+    RewardControlContractState control_state =
+        RewardControlContractState::GetCurrentRewards();
     rewards = control_state.coinbase_reward_per_ds;
   } else {
     rewards = m_txnFees;
@@ -438,35 +439,37 @@ void Node::ProcessTransactionWhenShardLeader(
       break;
     }
 
-    Transaction t;
-    TransactionReceipt tr;
+    Transaction txn;
+    TransactionReceipt txnReceipt;
 
     // check m_addrNonceTxnMap contains any txn meets right nonce,
     // if contains, process it
-    if (findOneFromAddrNonceTxnMap(t, t_addrNonceTxnMap)) {
+    if (findOneFromAddrNonceTxnMap(txn, t_addrNonceTxnMap)) {
       count_addrNonceTxnMap++;
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
-      t_createdTxns.findSameNonceButHigherGas(t);
+      t_createdTxns.findSameNonceButHigherGas(txn);
 
-      if (m_gasUsedTotal + t.GetGasLimitZil() > microblock_gas_limit) {
-        LOG_GENERAL(WARNING, "Gas limit exceeded = " << t.GetTranID());
+      if (m_gasUsedTotal + txn.GetGasLimitZil() > microblock_gas_limit) {
+        LOG_GENERAL(WARNING, "Gas limit exceeded = " << txn.GetTranID());
         LOG_GENERAL(WARNING, "m_gasUsedTotal     = " << m_gasUsedTotal);
-        LOG_GENERAL(WARNING, "t.GetGasLimitZil      = " << t.GetGasLimitZil());
-        gasLimitExceededTxnBuffer.emplace_back(t);
+        LOG_GENERAL(WARNING,
+                    "t.GetGasLimitZil      = " << txn.GetGasLimitZil());
+        gasLimitExceededTxnBuffer.emplace_back(txn);
         continue;
       }
       TxnStatus error_code;
-      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code)) {
-        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+      if (m_mediator.m_validator->CheckCreatedTransaction(txn, txnReceipt,
+                                                          error_code)) {
+        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, txnReceipt.GetCumGas(),
                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
         uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
-                                      txnFee)) {
+        if (!SafeMath<uint128_t>::mul(txnReceipt.GetCumGas(),
+                                      txn.GetGasPriceQa(), txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
@@ -474,74 +477,77 @@ void Node::ProcessTransactionWhenShardLeader(
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
-        appendOne(t, tr);
+        appendOne(txn, txnReceipt);
 
         continue;
       } else {
-        droppedTxns.emplace_back(t.GetTranID(), error_code);
+        LOG_GENERAL(WARNING,
+                    "Adding to dropped Txns failed transaction with id: "
+                        << txn.GetTranID());
+        droppedTxns.emplace_back(txn.GetTranID(), error_code);
       }
     }
     // if no txn in u_map meet right nonce process new come-in transactions
-    else if (t_createdTxns.findOne(t)) {
+    else if (t_createdTxns.findOne(txn)) {
       count_createdTxns++;
       // LOG_GENERAL(INFO, "findOneFromCreated");
 
-      Address senderAddr = t.GetSenderAddr();
+      Address senderAddr = txn.GetSenderAddr();
       // check nonce, if nonce larger than expected, put it into
       // m_addrNonceTxnMap
-      if (t.GetNonce() >
+      if (txn.GetNonce() >
           AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
         LOG_GENERAL(
             INFO, "High nonce: "
-                      << t.GetNonce() << " cur sender " << senderAddr.hex()
+                      << txn.GetNonce() << " cur sender " << senderAddr.hex()
                       << " nonce: "
                       << AccountStore::GetInstance().GetNonceTemp(senderAddr));
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
-          auto it2 = it1->second.find(t.GetNonce());
+          auto it2 = it1->second.find(txn.GetNonce());
           if (it2 != it1->second.end()) {
             // found the txn with same addr and same nonce
             // then compare the gasprice and remains the higher one
-            if (t.GetGasPriceQa() > it2->second.GetGasPriceQa()) {
-              it2->second = t;
+            if (txn.GetGasPriceQa() > it2->second.GetGasPriceQa()) {
+              it2->second = txn;
             }
             continue;
           }
         }
-        t_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
+        t_addrNonceTxnMap[senderAddr].insert({txn.GetNonce(), txn});
       }
       // if nonce too small, ignore it
-      else if (t.GetNonce() <
+      else if (txn.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
         LOG_GENERAL(
             INFO,
             "Nonce too small"
                 << " Expected "
                 << AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1
-                << " Found " << t.GetNonce() << " for " << t.GetTranID());
-        droppedTxns.emplace_back(t.GetTranID(), TxnStatus::NONCE_TOO_LOW);
+                << " Found " << txn.GetNonce() << " for " << txn.GetTranID());
+        droppedTxns.emplace_back(txn.GetTranID(), TxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
-        if (m_gasUsedTotal + t.GetGasLimitZil() > microblock_gas_limit) {
-          LOG_GENERAL(WARNING, "Gas limit exceeded = " << t.GetTranID());
+        if (m_gasUsedTotal + txn.GetGasLimitZil() > microblock_gas_limit) {
+          LOG_GENERAL(WARNING, "Gas limit exceeded = " << txn.GetTranID());
           LOG_GENERAL(WARNING, "m_gasUsedTotal     = " << m_gasUsedTotal);
           LOG_GENERAL(WARNING,
-                      "t.GetGasLimitZil      = " << t.GetGasLimitZil());
-          gasLimitExceededTxnBuffer.emplace_back(t);
+                      "t.GetGasLimitZil      = " << txn.GetGasLimitZil());
+          gasLimitExceededTxnBuffer.emplace_back(txn);
           continue;
         }
         TxnStatus error_code;
-        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr,
+        if (m_mediator.m_validator->CheckCreatedTransaction(txn, txnReceipt,
                                                             error_code)) {
-          if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+          if (!SafeMath<uint64_t>::add(m_gasUsedTotal, txnReceipt.GetCumGas(),
                                        m_gasUsedTotal)) {
             LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
             break;
           }
           uint128_t txnFee;
-          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
-                                        txnFee)) {
+          if (!SafeMath<uint128_t>::mul(txnReceipt.GetCumGas(),
+                                        txn.GetGasPriceQa(), txnFee)) {
             LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
             continue;
           }
@@ -549,9 +555,12 @@ void Node::ProcessTransactionWhenShardLeader(
             LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
             break;
           }
-          appendOne(t, tr);
+          appendOne(txn, txnReceipt);
         } else {
-          droppedTxns.emplace_back(t.GetTranID(), error_code);
+          LOG_GENERAL(WARNING,
+                      "Adding to dropped Txns failed transaction with id: "
+                          << txn.GetTranID());
+          droppedTxns.emplace_back(txn.GetTranID(), error_code);
         }
       }
     } else {
@@ -1366,7 +1375,8 @@ bool Node::CheckMicroBlockHashes(zbytes& errorMsg) {
     if (m_mediator.GetIsVacuousEpoch() &&
         m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
       // Check COINBASE_REWARD_PER_DS
-      RewardControlContractState reward_state = RewardControlContractState::GetCurrentRewards();
+      RewardControlContractState reward_state =
+          RewardControlContractState::GetCurrentRewards();
       uint128_t rewards = reward_state.coinbase_reward_per_ds;
 
       if (rewards != m_microblock->GetHeader().GetRewards()) {

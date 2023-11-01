@@ -29,35 +29,49 @@ def update_xml_files(source_file, target_file):
     if not DEV_TREE_ROOT:
         print("DEV_TREE_ROOT is not set")
         os.abort()
+    else:
+        print("DEV_TREE_ROOT: " + DEV_TREE_ROOT)
 
     general = root.find('general')
     if general:
         general.find('LOOKUP_NODE_MODE').text = 'false'
         general.find('DEBUG_LEVEL').text = '4'
+    else:
+        print("Failed to find general")
 
     scilla_root = root.find('smart_contract')
     if scilla_root:
         scilla_root.find('SCILLA_ROOT').text = DEV_TREE_ROOT +'/scilla'
         scilla_root.find('ENABLE_SCILLA_MULTI_VERSION').text = 'false'
-
+    else:
+        print("Failed to find smart_contract")
     jsonrpc = root.find('jsonrpc')
     if jsonrpc:
         jsonrpc.find('EVM_SERVER_BINARY').text = DEV_TREE_ROOT + '/Zilliqa/evm-ds/target/release/evm-ds'
         jsonrpc.find('ENABLE_STATUS_RPC').text = 'false'
+        jsonrpc.find('LOOKUP_RPC_PORT').text = "4201"
+    else:
+        print("Failed to find jsonrpc")
 
     metric = root.find('metric/zilliqa')
     if metric:
         metric.find('METRIC_ZILLIQA_PROVIDER').text = 'NONE'
         metric.find('METRIC_ZILLIQA_MASK').text = 'NONE'
+    else:
+        print("Failed to find metric")
 
     trace = root.find('trace/zilliqa')
     if trace:
         trace.find('TRACE_ZILLIQA_PROVIDER').text = 'NONE'
         trace.find('TRACE_ZILLIQA_MASK').text = 'NONE'
+    else:
+        print("Failed to find trace")
 
     logging = root.find('logging/zilliqa')
     if logging:
         logging.find('LOGGING_ZILLIQA_PROVIDER').text = 'NONE'
+    else:
+        print("Failed to find logging")
 
     tree = ET.ElementTree(root)
     tree.write(target_file)
