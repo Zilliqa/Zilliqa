@@ -747,13 +747,12 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
-           "-n", "15",
-           "-s", "15",
-           "-d", "15",
+           "-n", "6",
+           "-d", "5",
            "-l", "1",
-           "--guard", "11/0",
+           "--guard", "4/0",
            "--gentxn", "false",
-           "--multiplier-fanout", "1,1",
+           "--multiplier-fanout", "1",
            "--host-network", "false",
            "--https", "localdomain",
            "--seed-multiplier", "true",
@@ -792,8 +791,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
         xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
         xml_replace_element(config_file, config_file.documentElement, "SEND_RESPONSE_FOR_LAZY_PUSH", "false")
-        xml_replace_element(config_file, config_file.documentElement, "MAX_NEIGHBORS_PER_ROUND", "3")
-        xml_replace_element(config_file, config_file.documentElement, "NUM_GOSSIP_RECEIVERS", "3")
+        xml_replace_element(config_file, config_file.documentElement, "MAX_NEIGHBORS_PER_ROUND", "5")
+        xml_replace_element(config_file, config_file.documentElement, "NUM_GOSSIP_RECEIVERS", "5")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "0")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "NONE")
