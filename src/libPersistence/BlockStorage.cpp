@@ -176,7 +176,7 @@ bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
   if (!m_txEpochDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -530,6 +530,11 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
   const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
@@ -537,7 +542,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   if (!m_txEpochDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -572,7 +577,7 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   if (!m_txEpochDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -687,11 +692,22 @@ bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
     return false;
   }
 
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
   if (!key) {
     LOG_GENERAL(WARNING, "Setting with a zero hash is not allowed");
     return false;
   }
 
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode?");
+    return false;
+  }
   // First we retrieve the struct at the null location as it tells us what to
   // delete, and we need to add this hash
   auto baseStruct = GetTxTraceInfoStruct(*this);
@@ -712,7 +728,7 @@ bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
   if (!m_txTraceDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -734,7 +750,7 @@ bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
   if (!m_txTraceDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -803,7 +819,7 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
   if (!m_extSeedPubKeysDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -840,7 +856,7 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
   if (!m_extSeedPubKeysDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -871,7 +887,7 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
   if (!m_extSeedPubKeysDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -1560,7 +1576,7 @@ bool BlockStorage::PutMinerInfoDSComm(const uint64_t& dsBlockNum,
   if (!m_minerInfoDSCommDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -1580,7 +1596,7 @@ bool BlockStorage::GetMinerInfoDSComm(const uint64_t& dsBlockNum,
   if (!m_minerInfoDSCommDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -1616,7 +1632,7 @@ bool BlockStorage::PutMinerInfoShards(const uint64_t& dsBlockNum,
   if (!m_minerInfoShardsDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -1636,7 +1652,7 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
   if (!m_minerInfoShardsDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -2092,6 +2108,11 @@ bool BlockStorage::PutOtterTrace(const dev::h256& key,
     return false;
   }
 
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
   if (!key) {
     LOG_GENERAL(WARNING, "Setting with a zero hash is not allowed");
     return false;
@@ -2107,7 +2128,7 @@ bool BlockStorage::PutOtterTrace(const dev::h256& key,
   if (!m_otterTraceDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -2129,7 +2150,7 @@ bool BlockStorage::GetOtterTrace(const dev::h256& key, std::string& trace) {
   if (!m_otterTraceDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return false;
   }
 
@@ -2156,12 +2177,24 @@ bool BlockStorage::PutOtterTxAddressMapping(
     return false;
   }
 
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
   if (!txId) {
     LOG_GENERAL(WARNING, "Setting with a zero txid is not allowed");
     return false;
   }
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_otterAddressNonceLookup) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode?");
+    return false;
+  }
 
   // for each address, add to the tx hashes and block number that touched them
   for (auto address : addresses) {
@@ -2216,7 +2249,7 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(
   if (!m_otterTxAddressMappingDB) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return {};
   }
 
@@ -2296,6 +2329,11 @@ bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId,
     return false;
   }
 
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
   if (!txId) {
     LOG_GENERAL(WARNING, "Setting with a zero txid is not allowed");
     return false;
@@ -2318,6 +2356,13 @@ bool BlockStorage::PutOtterAddressNonceLookup(const dev::h256& txId,
 
   lock_guard<mutex> g(m_mutexTxBody);
 
+  if (!m_otterAddressNonceLookup) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode?");
+    return {};
+  }
+
   ZilliqaMessage::OtterscanAddressNonceLookup insert;
   insert.set_hash("0x" + txId.hex());
 
@@ -2334,7 +2379,7 @@ std::string BlockStorage::GetOtterAddressNonceLookup(std::string address,
   if (!m_otterAddressNonceLookup) {
     LOG_GENERAL(
         WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
+        "Attempt to access non initialized DB! Are you in lookup mode?");
     return {};
   }
 

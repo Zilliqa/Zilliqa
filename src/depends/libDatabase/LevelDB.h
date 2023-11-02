@@ -15,12 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef __LEVELDB_H__
 #define __LEVELDB_H__
 
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -29,134 +27,132 @@
 #include "depends/common/Common.h"
 #include "depends/common/FixedHash.h"
 
-
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num);
 
 /// Utility class for providing database-type storage.
-class LevelDB
-{
-    std::string m_dbName;
+class LevelDB {
+  std::string m_dbName;
+  std::string m_subdirectory;
+  std::shared_ptr<leveldb::DB> m_db;
+  leveldb::Options m_options;
+  std::string m_open_db_path;
 
-    std::string m_subdirectory;
+ public:
+  /// Constructor.
+  explicit LevelDB(const std::string& dbName,
+                   const std::string& subdirectory = "",
+                   bool diagnostic = false);
+  explicit LevelDB(const std::string& dbName, const std::string& path,
+                   const std::string& subdirectory = "");
+  /// Destructor.
+  ~LevelDB() = default;
 
-    std::shared_ptr<leveldb::DB> m_db;
+  /// manually compact, might be helpful in future
+  void compact() { m_db->CompactRange(NULL, NULL); }
 
-    leveldb::Options m_options;
+  /// Reopen the leveldb object to trigger compact and cleaning of LOG/MANIFEST
+  /// files
+  void Reopen();
 
-    std::string m_open_db_path;
+  /// Returns the reference to the leveldb database instance.
+  auto GetDB() { return m_db /*.get()*/; }
 
-    void log_error(leveldb::Status status) const;
+  /// Returns the DB Name
+  std::string GetDBName();
 
-public:
+  /// Returns the value at the specified key.
+  std::string Lookup(const std::string& key) const;
 
-    /// Constructor.
-    explicit LevelDB(const std::string & dbName, const std::string& subdirectory = "", bool diagnostic = false);
-    explicit LevelDB(const std::string& dbName, const std::string& path, const std::string& subdirectory = "");
-    /// Destructor.
-    ~LevelDB() = default;
+  /// Returns the value at the specified key.
+  std::string Lookup(const std::vector<unsigned char>& key) const;
 
-    /// manually compact, might be helpful in future
-    void compact () {
-        m_db->CompactRange(NULL, NULL);
-    }
+  /// Returns the value at the specified key.
+  std::string Lookup(const boost::multiprecision::uint256_t& blockNum) const;
 
-    /// Reopen the leveldb object to trigger compact and cleaning of LOG/MANIFEST files
-    void Reopen();
+  /// Returns the value at the specified key and also mark if key was found or
+  /// not
+  std::string Lookup(const boost::multiprecision::uint256_t& blockNum,
+                     bool& found) const;
 
-    /// Returns the reference to the leveldb database instance.
-    std::shared_ptr<leveldb::DB> GetDB();
+  /// Returns the value at the specified key.
+  std::string Lookup(const dev::h256& key) const;
 
-    /// Returns the DB Name
-    std::string GetDBName();
+  /// Returns the value at the specified key.
+  std::string Lookup(const dev::zbytesConstRef& key) const;
 
-    /// Returns the value at the specified key.
-    std::string Lookup(const std::string & key) const;
+  /// Sets the value at the specified key.
+  int Insert(const dev::h256& key, dev::zbytesConstRef value);
 
-    /// Returns the value at the specified key.
-    std::string Lookup(const std::vector<unsigned char>& key) const;
+  /// Sets the value at the specified key.
+  int Insert(const std::vector<unsigned char>& key,
+             const std::vector<unsigned char>& body);
 
-    /// Returns the value at the specified key.
-    std::string Lookup(const boost::multiprecision::uint256_t & blockNum) const;
+  /// Sets the value at the specified key.
+  int Insert(const boost::multiprecision::uint256_t& blockNum,
+             const std::vector<unsigned char>& body);
 
-    /// Returns the value at the specified key and also mark if key was found or not
-    std::string Lookup(const boost::multiprecision::uint256_t & blockNum, bool &found) const;
+  /// Sets the value at the specified key.
+  int Insert(const boost::multiprecision::uint256_t& blockNum,
+             const std::string& body);
 
-    /// Returns the value at the specified key.
-    std::string Lookup(const dev::h256 & key) const;
+  /// Sets the value at the specified key.
+  int Insert(const std::string& key, const std::vector<unsigned char>& body);
 
-    /// Returns the value at the specified key.
-    std::string Lookup(const dev::zbytesConstRef & key) const;
+  /// Sets the value at the specified key.
+  int Insert(const leveldb::Slice& key, dev::zbytesConstRef value);
 
-    /// Sets the value at the specified key.
-    int Insert(const dev::h256 & key, dev::zbytesConstRef value);
+  /// Sets the value at the specified key.
+  int Insert(const dev::h256& key, const std::string& value);
 
-    /// Sets the value at the specified key.
-    int Insert(const std::vector<unsigned char>& key,
-               const std::vector<unsigned char>& body);
+  /// Sets the value at the specified key.
+  int Insert(const dev::h256& key, const std::vector<unsigned char>& body);
 
-    /// Sets the value at the specified key.
-    int Insert(const boost::multiprecision::uint256_t & blockNum,
-               const std::vector<unsigned char> & body);
+  /// Sets the value at the specified key.
+  int Insert(const leveldb::Slice& key, const leveldb::Slice& value);
 
-    /// Sets the value at the specified key.
-    int Insert(const boost::multiprecision::uint256_t & blockNum,
-               const std::string & body);
+  /// Sets the value at the specified key for multiple such pairs.
+  bool BatchInsert(
+      const std::unordered_map<dev::h256, std::pair<std::string, unsigned>>&
+          m_main,
+      const std::unordered_map<dev::h256, std::pair<dev::zbytes, bool>>& m_aux,
+      std::unordered_set<dev::h256>& inserted);
+  bool BatchInsert(const std::unordered_map<std::string, std::string>& kv_map);
 
-    /// Sets the value at the specified key.
-    int Insert(const std::string & key, const std::vector<unsigned char> & body);
+  /// Remove the kv pair for multiple specified key.
+  bool BatchDelete(const std::vector<dev::h256>& toDelete);
 
-    /// Sets the value at the specified key.
-    int Insert(const leveldb::Slice & key, dev::zbytesConstRef value);
+  /// Returns true if value corresponding to specified key exists.
+  bool Exists(const dev::h256& key) const;
+  bool Exists(const boost::multiprecision::uint256_t& blockNum) const;
+  bool Exists(const std::string& key) const;
+  bool Exists(const std::vector<unsigned char>& key) const;
 
-    /// Sets the value at the specified key.
-    int Insert(const dev::h256 & key, const std::string & value);
+  /// Deletes the value at the specified key.
+  int DeleteKey(const dev::h256& key);
 
-    /// Sets the value at the specified key.
-    int Insert(const dev::h256 & key, const std::vector<unsigned char> & body);
+  /// Deletes the value at the specified key.
+  int DeleteKey(const boost::multiprecision::uint256_t& blockNum);
 
-    /// Sets the value at the specified key.
-    int Insert(const leveldb::Slice & key, const leveldb::Slice & value);
+  /// Deletes the value at the specified key.
+  int DeleteKey(const std::string& key);
 
-    /// Sets the value at the specified key for multiple such pairs.
-    bool BatchInsert(const std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
-                     const std::unordered_map<dev::h256, std::pair<dev::zbytes, bool>> & m_aux, std::unordered_set<dev::h256>& inserted);
-    bool BatchInsert(const std::unordered_map<std::string, std::string>& kv_map);
+  /// Deletes the value at the specified key.
+  int DeleteKey(const std::vector<unsigned char>& key);
 
-    /// Remove the kv pair for multiple specified key.
-    bool BatchDelete(const std::vector<dev::h256>& toDelete);
+  /// Deletes the entire database.
+  int DeleteDB();
+  int DeleteDBForNormalNode();
+  int DeleteDBForLookupNode();
 
-    /// Returns true if value corresponding to specified key exists.
-    bool Exists(const dev::h256 & key) const;
-    bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
-    bool Exists(const std::string & key) const;
-    bool Exists(const std::vector<unsigned char> & key) const;
+  /// Reset the entire database.
+  bool ResetDB();
 
-    /// Deletes the value at the specified key.
-    int DeleteKey(const dev::h256 & key);
+  /// Refresh the entire database.
+  bool RefreshDB();
 
-    /// Deletes the value at the specified key.
-    int DeleteKey(const boost::multiprecision::uint256_t & blockNum);
-
-    /// Deletes the value at the specified key.
-    int DeleteKey(const std::string & key);
-
-    /// Deletes the value at the specified key.
-    int DeleteKey(const std::vector<unsigned char> & key);
-
-    /// Deletes the entire database.
-    int DeleteDB();
-    int DeleteDBForNormalNode();
-    int DeleteDBForLookupNode();
-
-    /// Reset the entire database.
-    bool ResetDB();
-
-    /// Refresh the entire database.
-    bool RefreshDB();
-
-private:
-    bool ResetDBForNormalNode();
-    bool ResetDBForLookupNode();
+ private:
+  bool ResetDBForNormalNode();
+  bool ResetDBForLookupNode();
 };
 
-#endif // __LEVELDB_H__
+#endif  // __LEVELDB_H__
