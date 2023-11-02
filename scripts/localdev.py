@@ -743,6 +743,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         shutil.rmtree(instance_dir)
     print(f"Generating testnet configuration .. ")
     if desk:
+        print("Using Desktop mode for small configurations logging turned down, telemetry off")
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
@@ -785,14 +786,26 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
 
     constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
     config_file = xml.dom.minidom.parse(constants_xml_target_path)
-    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
-    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
-    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
-    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    if not desk:
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "0")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "NONE")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "NONE")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    else:
+        print("Explicitly disabling all telemetry for desktop testing mode")
+        xml_replace_element(config_file, config_file.documentElement, "DEBUG_MODE", "3")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "0")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "NONE")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "NONE")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)
     output_config = config_file.toprettyxml(newl='')
