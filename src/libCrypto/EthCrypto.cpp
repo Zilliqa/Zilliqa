@@ -319,6 +319,7 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   // to chain_id, 0, 0 in order to recreate what was signed
   dev::RLP rlpStream1(transaction,
                       dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
+  dev::RLPStream rlpStreamRecreatedBeforeEip155;
   dev::RLPStream rlpStreamRecreated(9);
 
   if (rlpStream1.isNull()) {
@@ -329,6 +330,7 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   int i = 0;
   int v = 0;
   zbytes rs;
+  bool beforeEip155Tx = false;
 
   // Iterate through the RLP message and build up what the message was before
   // it was hashed and signed. That is, same size, same fields, except
@@ -339,17 +341,23 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
     // First 6 fields stay the same
     if (i < 6) {
       rlpStreamRecreated << itemBytes;
+      rlpStreamRecreatedBeforeEip155 << itemBytes;
     }
 
     // Field V
     if (i == 6) {
-      rlpStreamRecreated << chain_id;
       v = uint32_t(item);
+      if (v == 27 || v == 28) {
+        beforeEip155Tx = true;
+      } else {
+        rlpStreamRecreated << chain_id;
+      }
     }
 
     // Fields R and S
     if (i == 7 || i == 8) {
-      rlpStreamRecreated << zbytes{};
+      if (beforeEip155Tx == false)
+        rlpStreamRecreated << zbytes{};
       zbytes b = dev::toBigEndian(dev::u256(item));
       rs.insert(rs.end(), b.begin(), b.end());
     }
@@ -357,9 +365,15 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
   }
 
   // Determine whether the rcid is 0,1 based on the V
-  int vSelect = (v - (chain_id * 2));
-  vSelect = vSelect == 35 ? 0 : vSelect;
-  vSelect = vSelect == 36 ? 1 : vSelect;
+  int vSelect = 0;
+  if (beforeEip155Tx) {
+    vSelect = v == 27 ? 0 : vSelect;
+    vSelect = v == 28 ? 1 : vSelect;
+  } else {
+    vSelect = (v - (chain_id * 2));
+    vSelect = vSelect == 35 ? 0 : vSelect;
+    vSelect = vSelect == 36 ? 1 : vSelect;
+  }
 
   // Chain ID of sender is a mismatch. Attempt to determine what it was
   if (!(vSelect >= 0 && vSelect <= 3)) {
@@ -373,7 +387,7 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
     return {};
   }
 
-  auto messageRecreatedBytes = rlpStreamRecreated.out();
+  auto messageRecreatedBytes = beforeEip155Tx ? rlpStreamRecreatedBeforeEip155.out() : rlpStreamRecreated.out();
 
   // Sign original message
   auto signingHash = ethash::keccak256(messageRecreatedBytes.data(),
@@ -485,11 +499,12 @@ zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
 }
 
 // nonce, gasprice, startgas, to, value, data, chainid, 0, 0
-zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
+zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId, uint32_t v) {
   uint16_t version = DataConversion::UnpackB(info.version);
+  const bool beforeEip155Tx = v == 27 || v == 28;
   switch (version) {
     case TRANSACTION_VERSION_ETH_LEGACY: {
-      dev::RLPStream rlpStreamRecreated(9);
+      dev::RLPStream rlpStreamRecreated = beforeEip155Tx ? dev::RLPStream() : dev::RLPStream(9);
 
       rlpStreamRecreated << info.nonce - 1;
       rlpStreamRecreated << info.gasPrice;
@@ -506,9 +521,11 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
         rlpStreamRecreated << info.data;
       }
 
-      rlpStreamRecreated << chainId;
-      rlpStreamRecreated << zbytes{};
-      rlpStreamRecreated << zbytes{};
+      if (beforeEip155Tx == false) {
+        rlpStreamRecreated << chainId;
+        rlpStreamRecreated << zbytes{};
+        rlpStreamRecreated << zbytes{};
+      }
 
       auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
                                                 rlpStreamRecreated.out().size());
@@ -576,7 +593,7 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
 zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                         std::string signature, uint64_t& recid) {
+                         std::string signature, uint64_t& recid, uint32_t v) {
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
@@ -599,6 +616,7 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
     switch (version) {
       case TRANSACTION_VERSION_ETH_LEGACY: {
+        bool beforeEip155Tx = v == 27 || v == 28;
         dev::RLPStream rlpStreamRecreated(9);
 
         // Note: the nonce is decremented because of the difference between Zil and
@@ -618,10 +636,13 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
           rlpStreamRecreated << info.data;
         }
 
-        // i is the parity, either 0 or 1
-        int v = (chainId * 2) + 35 + i;
+        if (beforeEip155Tx) {
+          rlpStreamRecreated << v;
+        } else {
+          v = (chainId * 2) + 35 + i;
+          rlpStreamRecreated << v;
+        }
 
-        rlpStreamRecreated << v;
         rlpStreamRecreated << dev::u256("0x" + signature);
         rlpStreamRecreated << dev::u256("0x" + s);
 
