@@ -786,18 +786,22 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
 
     constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
     config_file = xml.dom.minidom.parse(constants_xml_target_path)
-    if not desk:
-        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
+    if desk:
+        print("Explicitly disabling all telemetry for desktop testing mode")
+        xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
+        xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
+        xml_replace_element(config_file, config_file.documentElement, "SEND_RESPONSE_FOR_LAZY_PUSH", "false")
+        xml_replace_element(config_file, config_file.documentElement, "MAX_NEIGHBORS_PER_ROUND", "5")
+        xml_replace_element(config_file, config_file.documentElement, "NUM_GOSSIP_RECEIVERS", "5")
+        xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "0")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "NONE")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "NONE")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
+        xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
     else:
-        print("Explicitly disabling all telemetry for desktop testing mode")
-        xml_replace_element(config_file, config_file.documentElement, "DEBUG_MODE", "3")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "0")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "NONE")
@@ -907,7 +911,11 @@ def build_native_to_workspace(config):
     build_env['SCILLA_REPO_ROOT'] = SCILLA_DIR
     # Let's start off by building Scilla, in case it breaks.
     run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env)
-    run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
+    global desk
+    if desk:
+        run_or_die(config, ["./build.sh nomark"], in_dir = ZILLIQA_DIR)
+    else:
+        run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
     run_or_die(config, ["cargo", "build", "--release", "--package", "evm-ds"], in_dir =
                os.path.join(ZILLIQA_DIR, "evm-ds"))
     # OK. That worked. Now copy the relevant bits to our workspace

@@ -105,13 +105,17 @@ do
     ;;
     fuzzer)
         CMAKE_EXTRA_OPTIONS="-DLIBFUZZER=ON ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with libfuzzer"
+        echo "Build with libfuzzer"``
     ;;
     style)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_format_fix=1
         echo "Build with LLVM Extra Tools for coding style check (clang-format-fix)"
     ;;
+    nomark)
+          CMAKE_EXTRA_OPTIONS="-DNOMARK=ON ${CMAKE_EXTRA_OPTIONS}"
+          echo "Build with no markers"
+      ;;
     linter)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_tidy_fix=1
