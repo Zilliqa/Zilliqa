@@ -2,8 +2,9 @@ import {BN, Zilliqa, getAddressFromPrivateKey, units} from "@zilliqa-js/zilliqa"
 import {BigNumber} from "ethers";
 import {ethers} from "ethers";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
+import fs from "fs";
 
-/// HRE CAN'T BE IMPORTED, IT SHOULD BE PASSED AS AN ARGUMENT.
+/// HRE CAN'T BE IMPORTED, BECAUSE THIS FUNCTIONS ARE USED IN TASKS, IT SHOULD BE PASSED AS AN ARGUMENT.
 
 export const getEthBalance = async (
   hre: HardhatRuntimeEnvironment,
@@ -35,4 +36,16 @@ export const getZilAddress = (privateKey: string): string => {
 export const getEthAddress = (privateKey: string): string => {
   const wallet = new ethers.Wallet(privateKey);
   return wallet.address;
+};
+
+export const loadFromSignersFile = (network_name: string): string[] => {
+  try {
+    return JSON.parse(fs.readFileSync(`.signers/${network_name}.json`, "utf8"));
+  } catch (error) {
+    return [];
+  }
+};
+
+export const loadSignersFromConfig = (hre: HardhatRuntimeEnvironment): string[] => {
+  return hre.network["config"]["accounts"] as string[];
 };
