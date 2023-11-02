@@ -1,12 +1,10 @@
 import {initZilliqa, ScillaContract} from "hardhat-scilla-plugin";
-import {expect} from "chai";
-import {parallelizer} from "../../helpers";
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import {BN, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
 import {Account} from "@zilliqa-js/account";
 import clc from "cli-color";
-import {ethers} from "ethers";
 import Long from "long";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 const {task} = require("hardhat/config");
 
 const MSG_VERSION = 1; // current msgVersion
@@ -17,7 +15,7 @@ const WELL_KNOWN_CONTRACT_ADDRESS = "0xb73DA094d60aa93AC4fA8Ae41Df5d8c13925b0BD"
 // NB: This test uses a hardwired key. It does this because the address of the contract is hardwired into
 // the constants.xml file, and thus the nonce and identity of the deployer have to be known statically.
 interface ContractContext {
-  contract: ScilaContract;
+  contract: ScillaContract;
   deployerAddress: String;
   zilliqa: Zilliqa;
   version: String;
@@ -25,7 +23,7 @@ interface ContractContext {
   deployerAccount: Account;
 }
 
-async function ensureContractDeployment(hre): ContractContext {
+async function ensureContractDeployment(hre: HardhatRuntimeEnvironment): Promise<ContractContext> {
   // This is just one of the isolated server pubkeys incremented by 1.
   const funderPrivateKey = process.env.PRIMARY_ACCOUNT;
   if (funderPrivateKey == undefined) {

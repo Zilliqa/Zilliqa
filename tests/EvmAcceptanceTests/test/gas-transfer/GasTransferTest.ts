@@ -25,9 +25,9 @@ class TestCase {
 
 const expectBalance = (balance1: BigNumber, balance2: BigNumber) => {
   const diff = balance1.sub(balance2).abs();
-  console.log(clc.red(diff))
-  expect(diff).to.be.at.most("1999999");    // Round error
-}
+  console.log(clc.red(diff));
+  expect(diff).to.be.at.most("1999999"); // Round error
+};
 
 describe("GasTransferTest", function () {
   const ONE_GWEI = BigNumber.from(1_000_000_000);
@@ -75,7 +75,7 @@ describe("GasTransferTest", function () {
         // Our gas pricing shouldn't change (at least, not without updating this test :-) )
         expect(deploymentGas).to.equal(90300);
         totalGas = gasPrice.mul(deploymentGas);
-        logDebug(clc.yellow(`TotalGas: ${totalGas}, DeploymentGas: ${deploymentGas}, GasPrice: ${gasPrice}`))
+        logDebug(clc.yellow(`TotalGas: ${totalGas}, DeploymentGas: ${deploymentGas}, GasPrice: ${gasPrice}`));
         cumulativeGas = cumulativeGas.add(totalGas);
 
         logDebug(
@@ -88,7 +88,11 @@ describe("GasTransferTest", function () {
       let expectedBalance = startOfRoundBalance.sub(testCase.constructContractWith.add(totalGas));
       let currentBalance = await provider.getBalance(myAddress);
 
-      logDebug(clc.yellow(`TotalGas: ${totalGas}, Expected: ${expectedBalance}, Current: ${currentBalance}, initial: ${startOfRoundBalance}`))
+      logDebug(
+        clc.yellow(
+          `TotalGas: ${totalGas}, Expected: ${expectedBalance}, Current: ${currentBalance}, initial: ${startOfRoundBalance}`
+        )
+      );
       expectBalance(expectedBalance, currentBalance);
       // expect(expectedBalance).to.be.eq(currentBalance);
     });
@@ -135,5 +139,5 @@ describe("GasTransferTest", function () {
       expectBalance(accountBalance, expectedBalance);
       expect(contractDiff).to.equal(testCase.transferOutOfContract);
     });
-  })
+  });
 });

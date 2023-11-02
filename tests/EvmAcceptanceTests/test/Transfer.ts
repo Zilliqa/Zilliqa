@@ -58,7 +58,7 @@ describe("Transaction types", function () {
     const {response} = await hre.sendEthTransaction({
       to: payee.address,
       value: FUND,
-      type: 0,
+      type: 0
     });
 
     const receipt = await response.wait();
@@ -70,13 +70,18 @@ describe("Transaction types", function () {
   it("should be possible to send a EIP-2930 ethereum transaction", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    const accessList = [{ address: ethers.Wallet.createRandom().address, storageKeys: ["0x0bcad17ecf260d6506c6b97768bdc2acfb6694445d27ffd3f9c1cfbee4a9bd6d"] }];
+    const accessList = [
+      {
+        address: ethers.Wallet.createRandom().address,
+        storageKeys: ["0x0bcad17ecf260d6506c6b97768bdc2acfb6694445d27ffd3f9c1cfbee4a9bd6d"]
+      }
+    ];
 
     const {response} = await hre.sendEthTransaction({
       to: payee.address,
       value: FUND,
       type: 1,
-      accessList: accessList,
+      accessList: accessList
     });
 
     const receipt = await response.wait();
@@ -89,14 +94,19 @@ describe("Transaction types", function () {
   it("should be possible to send a EIP-1557 ethereum transaction", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    const accessList = [{ address: ethers.Wallet.createRandom().address, storageKeys: ["0x0bcad17ecf260d6506c6b97768bdc2acfb6694445d27ffd3f9c1cfbee4a9bd6d"] }];
+    const accessList = [
+      {
+        address: ethers.Wallet.createRandom().address,
+        storageKeys: ["0x0bcad17ecf260d6506c6b97768bdc2acfb6694445d27ffd3f9c1cfbee4a9bd6d"]
+      }
+    ];
 
     const {response} = await hre.sendEthTransaction({
       to: payee.address,
       value: FUND,
       type: 2,
       accessList: accessList,
-      maxFeePerGas: 100,
+      maxFeePerGas: 100
     });
 
     const receipt = await response.wait();
