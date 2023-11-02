@@ -161,6 +161,8 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
 
 #define LOG_GENERAL(level, msg) \
   { TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
+
+#define NOMARK 1
 #if !defined(NOMARK)
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
