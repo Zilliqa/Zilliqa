@@ -3,7 +3,7 @@ import {task} from "hardhat/config";
 import {ethers} from "ethers";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {units} from "@zilliqa-js/zilliqa";
-import {getZilBalance} from "./helpers";
+import {getZilBalance} from "../helpers/SignersHelper";
 
 task("balances", "A task to get balances of signers in the config")
   .addFlag("zil", "Show balances in zil based addresses of private keys")
