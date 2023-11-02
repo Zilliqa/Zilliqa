@@ -231,6 +231,11 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
     return true;
   }
 
+  LOG_GENERAL(INFO,
+              "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() "
+              "enter, ds_state is: "
+                  << GetStateString());
+
   // No other shards exists, then allow additional time for txns distribution.
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_node->m_myshardId == DEFAULT_SHARD_ID &&
@@ -1159,6 +1164,10 @@ bool DirectoryService::PrePrepFinalBlockValidator(
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   LOG_MARKER();
 
+  LOG_GENERAL(INFO,
+              "DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() enter, "
+              "ds_state is: "
+                  << GetStateString());
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlockWhenDSBackup "
@@ -1321,6 +1330,10 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     return;
   }
 
+  LOG_GENERAL(
+      INFO, "DirectoryService::RunConsensusOnFinalBlock() enter, ds_state is: "
+                << GetStateString());
+
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
@@ -1339,7 +1352,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     }
 
     // We've been already here, don't do the same thing again in this round
-    if (m_mediator.m_node->m_txn_distribute_window_open) {
+    if (m_state == FINALBLOCK_CONSENSUS) {
       return;
     }
 
