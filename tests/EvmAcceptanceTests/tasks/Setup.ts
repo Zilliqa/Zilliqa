@@ -85,11 +85,12 @@ async function prepareToRunTestsSequentially(hre: HardhatRuntimeEnvironment) {
 }
 
 async function prepareToRunTests(hre: HardhatRuntimeEnvironment, needed_signers: number, needed_balance: number) {
+  const balanceInWei = hre.ethers.utils.parseEther(needed_balance.toString());
   const ethBalances = await getEthSignersBalances(hre);
   const zilBalances = await getZilSignersBalances(hre);
   const signersAreEnough = ethBalances.length >= needed_signers;
-  const ethSignersHaveEnoughFund = ethBalances.every(([_, balance]) => balance.gt(needed_balance));
-  const zilSignersHaveEnoughFund = zilBalances.every(([_, balance]) => balance.gt(new BN(needed_balance)));
+  const ethSignersHaveEnoughFund = ethBalances.every(([_, balance]) => balance.gt(balanceInWei));
+  const zilSignersHaveEnoughFund = zilBalances.every(([_, balance]) => balance.gt(new BN(balanceInWei.toString())));
 
   if (signersAreEnough && ethSignersHaveEnoughFund && zilSignersHaveEnoughFund) {
     return;
@@ -108,7 +109,8 @@ async function prepareToRunTests(hre: HardhatRuntimeEnvironment, needed_signers:
       from: sourceAccount.private_key,
       count: (needed_signers - ethBalances.length).toString(),
       balance: needed_balance.toString(),
-      append: false
+      append: false,
+      fromAddressType: sourceAccount.type as string
     });
   }
 }

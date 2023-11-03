@@ -10,8 +10,6 @@ import {
   getEthAddress,
   getEthSignersBalances,
   getZilSignersBalances,
-  loadFromSignersFile,
-  loadSignersFromConfig
 } from "../helpers/SignersHelper";
 
 task("refund-signers", "A task to refund signers")

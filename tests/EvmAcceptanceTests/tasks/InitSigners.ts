@@ -6,19 +6,33 @@ import {join} from "path";
 import clc from "cli-color";
 import ora from "ora";
 import {getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
+import { getEthAddress } from "../helpers/SignersHelper";
 
 task("init-signers", "A task to init signers")
   .addParam("from", "Sender's private key")
+  .addParam(
+    "fromAddressType",
+    "It can be either `eth` or `zil`. If eth is selected, Eth address of private key will be used. Otherwise, the zil address will be used."
+  )
   .addParam("count", "Number of signers to be generated")
   .addParam("balance", "Balance of each newly generated signers")
   .addFlag("append", "Append new signers to the end of the .signer-<network> file")
   .setAction(async (taskArgs, hre) => {
-    const {from, count, balance, append} = taskArgs;
+    const {from, fromAddressType, count, balance, append} = taskArgs;
 
     const spinner = ora();
     spinner.start(`Creating ${count} accounts...`);
-
-    const accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
+  
+    let accounts = [];
+    if (fromAddressType === "eth") {
+      accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
+    } else if (fromAddressType === "zil") {
+      accounts = await createAccountsZil(hre, from, hre.ethers.utils.parseEther(balance), count);
+    } else {
+      console.log(`--from-address-type should be either eth or zil. ${fromAddressType} is not supported`);
+      spinner.fail();
+      return;
+    }
 
     spinner.succeed();
 
@@ -69,9 +83,27 @@ const createAccountsEth = async (
     ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())
   ];
 
+  const value = amount.mul(addresses.length)
+
   await hre.deployContractWithSigner("BatchTransferCtor", wallet, addresses, amount, {
-    value: amount.mul(addresses.length)
+    value
   });
 
   return accounts;
+};
+
+const createAccountsZil = async (
+  hre: HardhatRuntimeEnvironment,
+  privateKey: string,
+  amount: BigNumber,
+  count: number
+) => {
+  await hre.run("transfer", {
+    from: privateKey,
+    to: getEthAddress(privateKey),
+    amount: ethers.utils.formatEther(amount.mul(count * 2)), // Add +amount for the source account itself
+    fromAddressType: "zil"
+  });
+
+  return createAccountsEth(hre, privateKey, amount, count);
 };
