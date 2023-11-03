@@ -4,7 +4,7 @@ import {BN, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
 import {Account} from "@zilliqa-js/account";
 import clc from "cli-color";
 import Long from "long";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
 const {task} = require("hardhat/config");
 
 const MSG_VERSION = 1; // current msgVersion
