@@ -71,19 +71,17 @@ const createAccountsEth = async (
   count: number
 ) => {
   const wallet = new ethers.Wallet(privateKey, hre.ethers.provider);
-
-  if ((await wallet.getBalance()).isZero()) {
-    throw new Error("Sender doesn't have enough fund in its eth address.");
-  }
-
   const accounts = Array.from({length: count}, (v, k) => ethers.Wallet.createRandom().connect(hre.ethers.provider));
-
   const addresses = [
     ...accounts.map((signer) => signer.address),
     ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())
   ];
-
+  
   const value = amount.mul(addresses.length)
+
+  if ((await wallet.getBalance()).lt(value)) {
+    throw new Error(`Sender doesn't have enough fund in its eth address. Needed ${ethers.utils.formatEther(value)} ether`);
+  }
 
   await hre.deployContractWithSigner("BatchTransferCtor", wallet, addresses, amount, {
     value
