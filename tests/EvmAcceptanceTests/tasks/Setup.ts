@@ -89,8 +89,8 @@ async function prepareToRunTests(hre: HardhatRuntimeEnvironment, needed_signers:
   const ethBalances = await getEthSignersBalances(hre);
   const zilBalances = await getZilSignersBalances(hre);
   const signersAreEnough = ethBalances.length >= needed_signers;
-  const ethSignersHaveEnoughFund = ethBalances.every(([_, balance]) => balance.gt(balanceInWei));
-  const zilSignersHaveEnoughFund = zilBalances.every(([_, balance]) => balance.gt(new BN(balanceInWei.toString())));
+  const ethSignersHaveEnoughFund = ethBalances.every(([_, balance]) => balance.gte(balanceInWei));
+  const zilSignersHaveEnoughFund = zilBalances.every(([_, balance]) => balance.gte(new BN(balanceInWei.toString())));
 
   if (signersAreEnough && ethSignersHaveEnoughFund && zilSignersHaveEnoughFund) {
     return;
