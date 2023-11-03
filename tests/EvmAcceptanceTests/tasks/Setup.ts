@@ -11,8 +11,6 @@ enum WhatDoYouWantToDo {
   RunTestsSequentially,
   RunTestsInParallel,
   RefundCurrentSigners,
-  TransferFund,
-  PrintBalances
 }
 
 task("setup", "A task to setup test suite").setAction(async (taskArgs, hre) => {
@@ -29,14 +27,6 @@ task("setup", "A task to setup test suite").setAction(async (taskArgs, hre) => {
 
     case WhatDoYouWantToDo.RunTestsSequentially:
       await prepareToRunTestsSequentially(hre);
-      break;
-
-    case WhatDoYouWantToDo.TransferFund:
-      await transferFund(hre);
-      break;
-
-    case WhatDoYouWantToDo.PrintBalances:
-      await printBalances(hre);
       break;
 
     default:
@@ -62,14 +52,6 @@ const askWhatDoYouWantToDo = async (): Promise<WhatDoYouWantToDo> => {
         name: "Refund current signers",
         value: WhatDoYouWantToDo.RefundCurrentSigners
       },
-      {
-        name: "Transfer fund",
-        value: WhatDoYouWantToDo.TransferFund
-      },
-      {
-        name: "Print signers balances",
-        value: WhatDoYouWantToDo.PrintBalances
-      }
     ]
   });
 };
@@ -129,23 +111,4 @@ async function prepareToRunTests(hre: HardhatRuntimeEnvironment, needed_signers:
       append: false
     });
   }
-}
-
-async function transferFund(hre: HardhatRuntimeEnvironment) {
-  const from = await askForAccount();
-  const to = await askForAddress();
-  const amount = await askAmount("How much to transfer? ");
-
-  await hre.run("transfer", {
-    from: from.private_key,
-    to: to,
-    amount: ethers.utils.formatEther(amount),
-    fromAddressType: from.type as string
-  });
-}
-
-async function printBalances(hre: HardhatRuntimeEnvironment) {
-  const accountType = await askForAccountType("Eth balances or Zil balances?", "ETH", "ZIL");
-
-  await hre.run("balances", {zil: accountType === AccountType.ZilBased, eth: accountType === AccountType.EthBased});
 }
