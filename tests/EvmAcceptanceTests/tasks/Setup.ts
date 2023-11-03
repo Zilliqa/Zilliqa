@@ -89,8 +89,8 @@ async function prepareToRunTestsInParallel(hre: HardhatRuntimeEnvironment) {
   const NEEDED_BALANCE = 1000;
 
   await prepareToRunTests(hre, NEEDED_SIGNERS, NEEDED_BALANCE);
-  console.log(clc.greenBright("\nYou're good to go."));
-  console.log(clc.white.bold("\nrun: npx hardhat test --parallel"));
+  console.log(clc.greenBright("\nYou're good to go!"));
+  console.log(clc.yellowBright.bold("\nrun: npx hardhat test --parallel"));
 }
 
 async function prepareToRunTestsSequentially(hre: HardhatRuntimeEnvironment) {
@@ -99,7 +99,7 @@ async function prepareToRunTestsSequentially(hre: HardhatRuntimeEnvironment) {
 
   await prepareToRunTests(hre, NEEDED_SIGNERS, NEEDED_BALANCE);
   console.log(clc.greenBright("\nYou're good to go."));
-  console.log(clc.white.bold("\nrun: npx hardhat test"));
+  console.log(clc.yellowBright.bold("\nrun: npx hardhat test"));
 }
 
 async function prepareToRunTests(hre: HardhatRuntimeEnvironment, needed_signers: number, needed_balance: number) {
