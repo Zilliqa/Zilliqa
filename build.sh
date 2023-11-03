@@ -174,7 +174,6 @@ echo "Current directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
-jobs=4
 
 echo building using $jobs jobs
 

@@ -801,10 +801,6 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "")
         xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
         xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "SIGN_VERIFY_EMPTY_MSGTYP", "false")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "SIGN_VERIFY_NONEMPTY_MSGTYP", "false")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "ROUND_TIME_IN_MS", "100")
-        xml_replace_element_if_exists(config_file, config_file.documentElement, "SIMULATED_NETWORK_DELAY_IN_MS", "0")
     else:
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
         xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "0")
