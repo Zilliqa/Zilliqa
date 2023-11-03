@@ -1,4 +1,4 @@
-import { assert } from "chai";
+import {assert} from "chai";
 import logDebug from "../../helpers/DebugHelper";
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 

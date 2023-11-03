@@ -15,7 +15,7 @@
     npx hardhat test test/scilla/*    # to run scilla tests only
     SCILLA=false npx hardhat test   # to disable scilla tests. `.env` file can be used as well.
     MOCHA_TIMEOUT=300000 npx hardhat test   # To increase mocha timeout.
-    MOCHA_REPORTER=MOCHA_REPORTER=./BriefMochaReporter.ts npx hardhat test    # To use brief reporter.
+    MOCHA_REPORTER=./BriefMochaReporter.ts npx hardhat test    # To use brief reporter.
 ```
 
 # Start running tests
