@@ -1,9 +1,7 @@
 import clc from "cli-color";
 import {task} from "hardhat/config";
 import {Account, AccountType, getEthSignersBalances, getZilSignersBalances} from "../helpers/SignersHelper";
-import {BN} from "@zilliqa-js/zilliqa";
 import select, {Separator} from "@inquirer/select";
-import input from "@inquirer/input";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {ethers} from "ethers";
 import {askAmount, askForAccount, askForAddress} from "../helpers/UiHelper";
