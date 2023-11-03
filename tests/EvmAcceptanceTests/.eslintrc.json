@@ -6,7 +6,7 @@
     "node": true
   },
   "extends": ["plugin:mocha/recommended", "prettier"],
-  "plugins": ["mocha", "prettier"],
+  "plugins": ["mocha", "prettier", "unused-imports"],
   "parserOptions": {
     "ecmaVersion": "latest"
   },

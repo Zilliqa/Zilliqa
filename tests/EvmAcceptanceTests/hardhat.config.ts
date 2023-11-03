@@ -2,7 +2,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
 import "dotenv/config";
-import { loadFromSignersFile } from "./helpers/SignersHelper";
+import {loadFromSignersFile} from "./helpers/SignersHelper";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 
 if (ENV_VARS.scilla) {
@@ -27,6 +27,16 @@ const config: HardhatUserConfig = {
   defaultNetwork: "isolated_server",
 
   networks: {
+    mauro: {
+      url: "https://api.devnet.zilliqa.com",
+      websocketUrl: "https://api.devnet.zilliqa.com",
+      accounts: ["7498BC4F05582DBA6A5A2C11B86F080C071138B83B05396634A50175BE250D77"],
+      chainId: 0x8269,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
     public_devnet: {
       url: "https://api.devnet.zilliqa.com",
       websocketUrl: "ws://api.devnet.zilliqa.com",
@@ -166,6 +176,7 @@ import "./tasks/Transfer";
 import "./tasks/InitSigners";
 import "./tasks/RefundSigners";
 import "./tasks/SetRewards";
+import "./tasks/Ui";
 
 import {initZilliqa} from "hardhat-scilla-plugin";
 export default config;
