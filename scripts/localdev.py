@@ -195,6 +195,8 @@ def print_config_advice(config):
                         "localdev-explorer",
                         "localdev-l2api",
                         "localdev-newapi",
+                        "localdev-fireblocks",
+                        "localdev-otterscan",
                         "localdev-origin",
                         "localdev-origin-internal" ]
     hosts = "\n".join([ f"{ip} {host}.localdomain" for host in host_names ])
@@ -516,7 +518,8 @@ def tempo_down(config):
 @click.option("--monitoring", help="Start monitoring - when set to false, skips grafana, prometheus, and tempo", default=True,show_default=True)
 @click.option("--desk", is_flag=True, default=False, help="use a small testnet configuration")
 @click.option("--chain-id", help="Set the chain id", default=None)
-def up_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, monitoring, chain_id, desk):
+@click.option("--otterscan", help="Otterscan: disabled, enabled, or local", default="disabled")
+def up_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, monitoring, chain_id, desk, otterscan):
     """
     Build Zilliqa (via a process equivalent to the build-zilliqa & build-scilla commands), write configuration files for a
     testnet named localdev, run `localdev/config.sh up`, and start a proxy to allow the user to monitor traffic
@@ -528,11 +531,11 @@ def up_cmd(ctx, driver, zilliqa_image, testnet_name, isolated_server_accounts, b
     else:
         adjust_config(config, driver)
 
-    up(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, monitoring, chain_id = chain_id, desk=desk)
+    up(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, monitoring, chain_id = chain_id, desk=desk, otterscan=otterscan)
 
-def up(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, monitoring, chain_id, desk):
+def up(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, monitoring, chain_id, desk, otterscan):
     minikube = get_minikube_ip(config)
-    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, chain_id, desk)
+    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, chain_id, desk, otterscan)
     localstack_up(config, bucket_name)
     if monitoring:
         grafana_up(config, testnet_name)
@@ -734,7 +737,7 @@ def stop_testnet(config, testnet_name):
     # tediously, testnet.sh has a habit of returning non-zero error codes when eg. the testnet has already been destroyed :-(
     run_or_die(config, ["sh", "-c", "echo localdev | ./testnet.sh down"], in_dir=os.path.join(TESTNET_DIR, testnet_name), allow_failure = True)
 
-def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, chain_id, desk):
+def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, chain_id, desk, otterscan):
     instance_dir = os.path.join(TESTNET_DIR, testnet_name)
     minikube_ip = get_minikube_ip(config)
 
@@ -756,7 +759,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
            "--https", "localdomain",
            "--seed-multiplier", "true",
            "--bucket", bucket_name,
-           "--localstack", "true"]
+           "--localstack", "true",
+               "--otterscan", otterscan]
     else:
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
                os.path.join(ZILLIQA_DIR, "constants.xml"),
@@ -772,7 +776,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
                "--https", "localdomain",
                "--seed-multiplier", "true",
                "--bucket", bucket_name,
-               "--localstack", "true"]
+               "--localstack", "true",
+               "--otterscan", otterscan]
 
     cmd = cmd + ([ "--isolated-server-accounts", os.path.join(ZILLIQA_DIR, "isolated-server-accounts.json") ] if isolated_server_accounts else [])
     cmd = cmd + [ "-f" ]
@@ -1290,14 +1295,19 @@ def start_proxy_cmd(ctx, testnet_name):
               default=True,
               show_default=True,
               help="Use isolated_server_accounts.json to create accounts when zilliqa is up")
-def write_testnet_config_cmd(ctx, zilliqa_image, testnet_name, isolated_server_accounts):
+@click.option("--bucket-name", help="The name of the bucket", default="zilliqa-devnet")
+@click.option("--persistence", help="A persistence directory to start the network with. Has no effect without also passing `--key-file`.")
+@click.option("--key-file", help="A `.tar.gz` generated by `./testnet.sh back-up auto` containing the keys used to start this network. Has no effect without also passing `--persistence`.")
+@click.option("--chain-id", help="Set the chain id", default=None)
+@click.option("--otterscan", help="Otterscan: disabled, enabled, or local", default="disabled")
+def write_testnet_config_cmd(ctx, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, chain_id, otterscan):
     """
     Write config for the testnet
 
     TAG is the tag for the Zilliqa docker image to run.
     """
     config = get_config(ctx)
-    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts)
+    write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_server_accounts, bucket_name, persistence, key_file, chain_id, otterscan)
 
 @click.command("print-config-advice")
 @click.pass_context
