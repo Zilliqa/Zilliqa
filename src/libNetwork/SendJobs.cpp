@@ -503,9 +503,9 @@ class SendJobsImpl : public SendJobs,
                          bool allow_relaxed_blacklist) override {
     zil::local::variables.AddSendMessageToPeerCount(1);
     if (peer.m_listenPortHost == 0) {
-        LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
-        zil::local::variables.AddSendMessageToPeerFailed(1);
-        return;
+      LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
+      zil::local::variables.AddSendMessageToPeerFailed(1);
+      return;
     }
 
     LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
