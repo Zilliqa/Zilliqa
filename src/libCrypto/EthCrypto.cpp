@@ -267,6 +267,7 @@ bool SignEcdsaSecp256k1(const zbytes& digest, const zbytes& privKey,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
+// A return length of 0 indicates that the function failed.
 zbytes ToUncompressedPubKey(std::string const& pubKey) {
   // Create public key pointer
   std::unique_ptr<EC_KEY, decltype(ekFree)> zPublicKey(
