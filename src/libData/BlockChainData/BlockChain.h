@@ -71,6 +71,23 @@ class BlockChain {
     }
   }
 
+  // Get this block or return empty.
+  std::optional<T> MaybeGetBlock(const uint64_t& blockNum) {
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
+
+    if (m_blocks.size() > 0 &&
+        (m_blocks.back().GetHeader().GetBlockNum() < blockNum)) {
+      LOG_GENERAL(WARNING,
+                  "BlockNum too high " << blockNum << " Dummy block used");
+      return {};
+    } else if (blockNum + m_blocks.capacity() < m_blocks.size() ||
+               m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum) {
+      return GetBlockFromPersistentStorage(blockNum);
+    } else {
+      return m_blocks[blockNum];
+    }
+  }
+
   /// Returns the block at the specified block number.
   T GetBlock(const uint64_t& blockNum) {
     std::lock_guard<std::mutex> g(m_mutexBlocks);
