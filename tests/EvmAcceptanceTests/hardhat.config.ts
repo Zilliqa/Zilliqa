@@ -2,14 +2,8 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
 import "dotenv/config";
+import {loadFromSignersFile} from "./helpers/SignersHelper";
 import {ENV_VARS} from "./helpers/EnvVarParser";
-
-import "./tasks/ZilBalance";
-import "./tasks/Transfer";
-import "./tasks/InitSigners";
-import "./tasks/SetRewards";
-
-import fs from "fs";
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
@@ -27,14 +21,6 @@ declare module "hardhat/types/config" {
     miningState: boolean;
   }
 }
-
-const loadFromSignersFile = (network_name: string): string[] => {
-  try {
-    return JSON.parse(fs.readFileSync(`.signers/${network_name}.json`, "utf8"));
-  } catch (error) {
-    return [];
-  }
-};
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
@@ -64,7 +50,7 @@ const config: HardhatUserConfig = {
         "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
         ...loadFromSignersFile("zblockchain")
       ],
-      chainId: 0x82BC,
+      chainId: 0x82bc,
       web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,
       zilliqaNetwork: true,
@@ -178,5 +164,9 @@ import "./tasks/Test";
 import "./tasks/ZilBalance";
 import "./tasks/Transfer";
 import "./tasks/InitSigners";
+import "./tasks/RefundSigners";
+import "./tasks/SetRewards";
+import "./tasks/Ui";
+
 import {initZilliqa} from "hardhat-scilla-plugin";
 export default config;

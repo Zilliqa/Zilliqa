@@ -1,13 +1,11 @@
 import {initZilliqa, ScillaContract} from "hardhat-scilla-plugin";
-import {expect} from "chai";
-import {parallelizer} from "../../helpers";
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
 import {BN, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
 import {Account} from "@zilliqa-js/account";
 import clc from "cli-color";
-import {ethers} from "ethers";
 import Long from "long";
-const {task} = require("hardhat/config");
+import {HardhatRuntimeEnvironment} from "hardhat/types";
+import { task } from "hardhat/config";
 
 const MSG_VERSION = 1; // current msgVersion
 //const VERSION = bytes.pack(hre.getZilliqaChainId(), msgVersion);
@@ -17,15 +15,15 @@ const WELL_KNOWN_CONTRACT_ADDRESS = "0xb73DA094d60aa93AC4fA8Ae41Df5d8c13925b0BD"
 // NB: This test uses a hardwired key. It does this because the address of the contract is hardwired into
 // the constants.xml file, and thus the nonce and identity of the deployer have to be known statically.
 interface ContractContext {
-  contract: ScilaContract;
-  deployerAddress: String;
+  contract: ScillaContract;
+  deployerAddress: string;
   zilliqa: Zilliqa;
-  version: String;
+  version: string;
   hre: HardhatRuntimeEnvironment;
   deployerAccount: Account;
 }
 
-async function ensureContractDeployment(hre): ContractContext {
+async function ensureContractDeployment(hre: HardhatRuntimeEnvironment): Promise<ContractContext> {
   // This is just one of the isolated server pubkeys incremented by 1.
   const funderPrivateKey = process.env.PRIMARY_ACCOUNT;
   if (funderPrivateKey == undefined) {
@@ -44,7 +42,11 @@ async function ensureContractDeployment(hre): ContractContext {
   if (!contractBalanceResult.error) {
     console.log(clc.green("Contract already deployed. Yay!"));
     const contract = await hre.interactWithScillaContract(WELL_KNOWN_CONTRACT_ADDRESS);
-    return {contract, deployerAddress, zilliqa, version, hre, deployerAccount};
+    if (contract == undefined) {
+      throw Error(clc.bold.red(`Failed to get the contract at ${WELL_KNOWN_CONTRACT_ADDRESS}`));
+    }
+ 
+    return {contract, deployerAddress, zilliqa, version: version.toString(), hre, deployerAccount};
   }
 
   console.log(`Contract not present; deploying .. `);
@@ -112,10 +114,10 @@ async function ensureContractDeployment(hre): ContractContext {
   let contract = await hre.deployScillaContract("RewardsParams", deployerAddress);
   console.log(`Result ${JSON.stringify(contract)}`);
   console.log(`Contract deployed at ${contract.address}`);
-  return {contract, deployerAddress, zilliqa, version, hre, deployerAccount};
+  return {contract, deployerAddress, zilliqa, version: version.toString(), hre, deployerAccount};
 }
 
-async function checkContractDeployment() {
+async function checkContractDeployment(zilliqa: Zilliqa) {
   const contractBalance = await zilliqa.blockchain.getBalance(WELL_KNOWN_CONTRACT_ADDRESS);
   console.log(`Bal ${JSON.stringify(contractBalance)}`);
   if (contractBalance.error !== undefined) {

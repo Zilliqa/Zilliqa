@@ -2161,30 +2161,40 @@ bool EthRpcMethods::HasCode(const std::string &address,
 Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   Json::Value response;
 
-  auto txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNumber);
-  bool isVacuous =
-      CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
-  uint128_t rewards =
-      (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR
-                 : 0);
-  uint128_t fees =
-      (isVacuous ? 0
-                 : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
-  auto jsonBlock = GetEthBlockCommon(txBlock, false);
+   auto maybeBlock = m_sharedMediator.m_txBlockChain.MaybeGetBlock(blockNumber);
+  if (maybeBlock) {
+    auto txBlock = maybeBlock.value();
+     bool isVacuous =
+        CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
+     uint128_t rewards =
+        (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR
+         : 0);
+     uint128_t fees =
+        (isVacuous ? 0
+         : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
+     try {
+      auto jsonBlock = GetEthBlockCommon(txBlock, false);
 
-  if (jsonBlock["gasLimit"].asString() == "0x0") jsonBlock["gasLimit"] = "0x1";
+       if (jsonBlock["gasLimit"].asString() == "0x0") jsonBlock["gasLimit"] = "0x1";
 
-  jsonBlock.removeMember("transactions");
-  jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
-  jsonBlock["logsBloom"] = Json::nullValue;
-  response["block"] = jsonBlock;
+      jsonBlock.removeMember("transactions");
+      jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
+      jsonBlock["logsBloom"] = Json::nullValue;
+      response["block"] = jsonBlock;
 
-  response["issuance"]["blockReward"] = rewards.str();
-  response["issuance"]["uncleReward"] = 0;
-  response["issuance"]["issuance"] = rewards.str();
+      response["issuance"]["blockReward"] = rewards.str();
+      response["issuance"]["uncleReward"] = 0;
+      response["issuance"]["issuance"] = rewards.str();
 
-  response["totalFees"] = fees.str();
-  return response;
+      response["totalFees"] = fees.str();
+      return response;
+    } catch (std::exception &e) {
+      LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumber);
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+    }
+  } else {
+    return Json::nullValue;
+  }
 }
 
 Json::Value EthRpcMethods::GetBlockTransactions(const uint64_t blockNumber,

@@ -447,6 +447,11 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   // The public key must be uncompressed!
   auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
+  if (publicKey.size() != UNCOMPRESSED_SIGNATURE_SIZE) {
+    // Implicitly filled with the zero address - this may not be right, but at least it isn't a segfault.
+    return Address();
+  }
+
   auto const address = CreateAddr(publicKey);
 
   return address;

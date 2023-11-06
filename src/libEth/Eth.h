@@ -50,6 +50,7 @@ struct EthFields {
   AccessList accessList;
   uint128_t maxPriorityFeePerGas;
   uint128_t maxFeePerGas;
+  uint32_t signature_validation;
 };
 
 Json::Value populateReceiptHelper(
