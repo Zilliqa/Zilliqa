@@ -1,67 +1,116 @@
 import clc from "cli-color";
 import {task} from "hardhat/config";
-import {terminal} from "terminal-kit";
+import {AccountType, getEthSignersBalances, getZilSignersBalances} from "../helpers/SignersHelper";
+import {BN} from "@zilliqa-js/zilliqa";
+import select, {Separator} from "@inquirer/select";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {ethers} from "ethers";
+import {askAmount, askForAccount, askForAccountType, askForAddress} from "../helpers/UiHelper";
 
-enum AddressType {
-  EvmBased,
-  ZilBased
+enum WhatDoYouWantToDo {
+  RunTestsSequentially,
+  RunTestsInParallel,
+  RefundCurrentSigners,
 }
 
-const displayTitle = (title: string) => {
-  terminal.white.bold(`${title} ${clc.blackBright("(Press ESC to exit)")}\n`);
-};
-
-const askAddressType = async (): Promise<AddressType | undefined> => {
-  console.clear();
-  var items = [
-    "An account(private key) with some ethers in its ethereum based address",
-    "An account(private key) with some zils in its zilliqa based address"
-  ];
-
-  displayTitle("What do you have?");
-  let out = await terminal.singleColumnMenu(items, {cancelable: true}).promise;
-  return out.canceled ? undefined : out.selectedIndex;
-};
-
-const askAppendNewSignersToFile = async (): Promise<boolean | undefined> => {
-  console.clear();
-  var items = ["Create a new signers file(Replaces the previous ones)", "Append new signers to the previous ones"];
-
-  displayTitle("Create a new signers file?");
-  let out = await terminal.singleColumnMenu(items, {cancelable: true}).promise;
-  return out.canceled ? undefined : out.selectedIndex === 1;
-};
-
-const askPrivateKey = async (): Promise<string | undefined> => {
-  console.clear();
-  displayTitle("Please enter your private key: ");
-  let out = terminal.inputField({cancelable: true});
-  const address = await out.promise;
-
-  return address;
-};
-
 task("setup", "A task to setup test suite").setAction(async (taskArgs, hre) => {
-  const address_type = await askAddressType();
-  if (address_type === undefined) {
-    return;
-  }
+  const task: WhatDoYouWantToDo = await askWhatDoYouWantToDo();
 
-  const private_key = await askPrivateKey();
+  switch (task) {
+    case WhatDoYouWantToDo.RefundCurrentSigners:
+      await refundCurrentSigners(hre);
+      break;
 
-  if (private_key === undefined) {
-    return;
-  }
+    case WhatDoYouWantToDo.RunTestsInParallel:
+      await prepareToRunTestsInParallel(hre);
+      break;
 
-  const append = await askAppendNewSignersToFile();
+    case WhatDoYouWantToDo.RunTestsSequentially:
+      await prepareToRunTestsSequentially(hre);
+      break;
 
-  if (append === undefined) {
-    return;
-  }
-
-  if (address_type == AddressType.EvmBased) {
-    await hre.run("init-signers", {from: private_key, count: "30", balance: "10", append});
-  } else if (address_type == AddressType.ZilBased) {
-    console.log("To be supported");
+    default:
+      console.log(clc.yellow("Selected option is not valid!"));
+      break;
   }
 });
+
+const askWhatDoYouWantToDo = async (): Promise<WhatDoYouWantToDo> => {
+  return await select({
+    message: "What do you want to do?",
+    choices: [
+      {
+        name: "Run tests sequentially",
+        value: WhatDoYouWantToDo.RunTestsSequentially
+      },
+      {
+        name: "Run tests in parallel",
+        value: WhatDoYouWantToDo.RunTestsInParallel
+      },
+      new Separator(),
+      {
+        name: "Refund current signers",
+        value: WhatDoYouWantToDo.RefundCurrentSigners
+      },
+    ]
+  });
+};
+
+const refundCurrentSigners = async (hre: HardhatRuntimeEnvironment) => {
+  let amount = await askAmount();
+  let account = await askForAccount();
+  await hre.run("refund-signers", {
+    from: account.private_key,
+    fromAddressType: account.type as string,
+    amount: amount.toString()
+  });
+};
+
+async function prepareToRunTestsInParallel(hre: HardhatRuntimeEnvironment) {
+  const NEEDED_SIGNERS = 30;
+  const NEEDED_BALANCE = 1000;
+
+  await prepareToRunTests(hre, NEEDED_SIGNERS, NEEDED_BALANCE);
+  console.log(clc.greenBright("\nYou're good to go!"));
+  console.log(clc.yellowBright.bold("\nrun: npx hardhat test --parallel"));
+}
+
+async function prepareToRunTestsSequentially(hre: HardhatRuntimeEnvironment) {
+  const NEEDED_SIGNERS = 4;
+  const NEEDED_BALANCE = 1000;
+
+  await prepareToRunTests(hre, NEEDED_SIGNERS, NEEDED_BALANCE);
+  console.log(clc.greenBright("\nYou're good to go."));
+  console.log(clc.yellowBright.bold("\nrun: npx hardhat test"));
+}
+
+async function prepareToRunTests(hre: HardhatRuntimeEnvironment, needed_signers: number, needed_balance: number) {
+  const balanceInWei = hre.ethers.utils.parseEther(needed_balance.toString());
+  const ethBalances = await getEthSignersBalances(hre);
+  const zilBalances = await getZilSignersBalances(hre);
+  const signersAreEnough = ethBalances.length >= needed_signers;
+  const ethSignersHaveEnoughFund = ethBalances.every(([_, balance]) => balance.gte(balanceInWei));
+  const zilSignersHaveEnoughFund = zilBalances.every(([_, balance]) => balance.gte(new BN(balanceInWei.toString())));
+
+  if (signersAreEnough && ethSignersHaveEnoughFund && zilSignersHaveEnoughFund) {
+    return;
+  }
+
+  const sourceAccount = await askForAccount();
+
+  await hre.run("refund-signers", {
+    from: sourceAccount.private_key,
+    fromAddressType: sourceAccount.type as string,
+    amount: needed_balance.toString()
+  });
+
+  if (signersAreEnough == false) {
+    await hre.run("init-signers", {
+      from: sourceAccount.private_key,
+      count: (needed_signers - ethBalances.length).toString(),
+      balance: needed_balance.toString(),
+      append: false,
+      fromAddressType: sourceAccount.type as string
+    });
+  }
+}

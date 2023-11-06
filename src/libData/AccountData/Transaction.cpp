@@ -56,7 +56,7 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   // Generate the signature
   if (IsEth()) {
     zbytes signature;
-    zbytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
+    zbytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID, m_signature_validation);
     zbytes pk_bytes;
     const PrivKey &privKey{senderKeyPair.first};
     privKey.Serialize(pk_bytes, 0);
@@ -86,7 +86,8 @@ Transaction::Transaction(const TxnHash &tranID, const uint32_t &version,
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data, {}, 0, 0),
-      m_signature(signature) {}
+      m_signature(signature),
+      m_signature_validation(0) {}
 
 Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
                          const Address &toAddr, const PubKey &senderPubKey,
@@ -101,16 +102,19 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
                          const uint128_t &amount, const uint128_t &gasPrice,
                          const uint64_t &gasLimit, const zbytes &code,
                          const zbytes &data, const Signature &signature, const AccessList &accessList)
-    : Transaction(version, nonce, toAddr, senderPubKey, amount, gasPrice, gasLimit, code, data, signature, accessList, 0, 0) {}
+    : Transaction(version, nonce, toAddr, senderPubKey, amount, gasPrice, gasLimit, code, data, signature, accessList, 0, 0, 0) {}
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
             const Address& toAddr, const PubKey& senderPubKey,
             const uint128_t& amount, const uint128_t& gasPrice,
             const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
-            const Signature& signature, const AccessList &accessList, const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas)
+            const Signature& signature, const AccessList &accessList,
+            const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas,
+            uint32_t signature_validation)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data, accessList, maxPriorityFeePerGas, maxFeePerGas),
-      m_signature(signature) {
+      m_signature(signature),
+      m_signature_validation(signature_validation) {
   LOG_MARKER();
   LOG_GENERAL(WARNING, "eth addr of this txn is " << Account::GetAddressFromPublicKeyEth(senderPubKey))
   zbytes txnData;
@@ -277,7 +281,7 @@ bool Transaction::IsSignedECDSA() const {
   if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
     pubKeyStr = pubKeyStr.substr(2);
   }
-  auto hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID);
+  auto hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID, m_signature_validation);
   return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }
 
@@ -286,7 +290,7 @@ bool Transaction::SetHash(zbytes const &txnData) {
   if (IsEth()) {
     uint64_t recid{0};
     auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID,
-                                         std::string(m_signature), recid);
+                                         std::string(m_signature), recid, m_signature_validation);
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {

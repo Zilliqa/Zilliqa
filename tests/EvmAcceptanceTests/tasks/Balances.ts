@@ -2,7 +2,8 @@ import clc from "cli-color";
 import {task} from "hardhat/config";
 import {ethers} from "ethers";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {BN, Zilliqa, getAddressFromPrivateKey, units} from "@zilliqa-js/zilliqa";
+import {units} from "@zilliqa-js/zilliqa";
+import {getZilBalance} from "../helpers/SignersHelper";
 
 task("balances", "A task to get balances of signers in the config")
   .addFlag("zil", "Show balances in zil based addresses of private keys")
@@ -38,20 +39,16 @@ const printEthBalances = async (hre: HardhatRuntimeEnvironment) => {
 };
 
 const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
-  let zilliqa = new Zilliqa(hre.getNetworkUrl());
   const private_keys: string[] = hre.network["config"]["accounts"] as string[];
   let index = 0;
   for (const private_key of private_keys) {
-    const address = getAddressFromPrivateKey(private_key);
-
-    const balanceResult = await zilliqa.blockchain.getBalance(address);
-    let balanceString: string;
+    const [address, balance] = await getZilBalance(hre, private_key);
     let error = false;
-    if (balanceResult.error) {
+    let balanceString = "";
+    if (balance.isZero()) {
       error = true;
-      balanceString = clc.red.bold(balanceResult.error.message);
+      balanceString = clc.red.bold("Account is not created");
     } else {
-      const balance = new BN(balanceResult.result.balance);
       balanceString = units.fromQa(balance, units.Units.Zil);
     }
 

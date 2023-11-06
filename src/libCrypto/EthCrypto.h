@@ -44,12 +44,12 @@ zbytes RecoverECDSAPubKey(std::string const& message, int chain_id);
 
 // Get the hash that was signed in order to create the transaction signature.
 // Note this is different from the transaction hash
-zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
+zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId, uint32_t v);
 
 // Given a native transaction, get the corresponding RLP (that was sent to
 // create it)
 zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                         std::string signature, uint64_t& recid);
+                         std::string signature, uint64_t& recid, uint32_t v = 0);
 
 // As a workaround, code/data strings have an evm prefix to distinguish them,
 // but this must be stripped before it goes to the EVM
