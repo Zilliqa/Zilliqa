@@ -2,7 +2,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import {HardhatUserConfig} from "hardhat/types";
 import "dotenv/config";
-import { loadFromSignersFile } from "./helpers/SignersHelper";
+import {loadFromSignersFile} from "./helpers/SignersHelper";
 import {ENV_VARS} from "./helpers/EnvVarParser";
 
 if (ENV_VARS.scilla) {
@@ -166,6 +166,7 @@ import "./tasks/Transfer";
 import "./tasks/InitSigners";
 import "./tasks/RefundSigners";
 import "./tasks/SetRewards";
+import "./tasks/Ui";
 
 import {initZilliqa} from "hardhat-scilla-plugin";
 export default config;

@@ -1,5 +1,5 @@
 import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
-import {BN, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
+import {BN, Transaction, Zilliqa, bytes, toChecksumAddress} from "@zilliqa-js/zilliqa";
 import clc from "cli-color";
 import {ethers} from "ethers";
 import Long from "long";
@@ -41,7 +41,7 @@ async function main() {
 
   zilliqa.wallet.addByPrivateKey(privateKey);
   const private_keys: string[] = hre.network["config"]["accounts"] as string[];
-  let txs = [];
+  let txs: [address: string, tx: Transaction][] = [];
   let current_nonce = nonce + 1;
   console.log(`Issuing ${private_keys.length} transactions ... `);
   for (const element of private_keys) {
@@ -60,21 +60,21 @@ async function main() {
         false
       )
     );
-    txs.push(tx);
+    txs.push([ethAddrConverted, tx]);
     current_nonce += 1;
     console.log(`${JSON.stringify(tx)}`);
   }
-  for (const tx of txs) {
+  for (const [address, tx] of txs) {
     if (tx.id) {
       const confirmedTxn = await tx.confirm(tx.id);
       const receipt = confirmedTxn.getReceipt();
       if (receipt && receipt.success) {
-        console.log(`${tx.toAddr}` + clc.bold.green(" funded."));
+        console.log(`${address}` + clc.bold.green(" funded."));
         continue;
       }
     }
 
-    console.log(clc.red(`Failed to fund ${tx.toAddr}.`));
+    console.log(clc.red(`Failed to fund ${address}.`));
   }
 }
 
