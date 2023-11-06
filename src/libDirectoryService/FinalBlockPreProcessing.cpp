@@ -1340,6 +1340,8 @@ void DirectoryService::RunConsensusOnFinalBlock() {
 
     // We've been already here, don't do the same thing again in this round
     if (m_state == FINALBLOCK_CONSENSUS) {
+      LOG_GENERAL(WARNING,
+                  "Preventing from running the same round of consensus again");
       return;
     }
 
