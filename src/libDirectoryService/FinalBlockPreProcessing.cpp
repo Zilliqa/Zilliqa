@@ -1339,7 +1339,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     }
 
     // We've been already here, don't do the same thing again in this round
-    if (m_mediator.m_node->m_txn_distribute_window_open) {
+    if (m_state == FINALBLOCK_CONSENSUS) {
       return;
     }
 
