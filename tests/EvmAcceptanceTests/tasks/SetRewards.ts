@@ -5,7 +5,7 @@ import {Account} from "@zilliqa-js/account";
 import clc from "cli-color";
 import Long from "long";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import { task } from "hardhat/config";
+import {task} from "hardhat/config";
 
 const MSG_VERSION = 1; // current msgVersion
 //const VERSION = bytes.pack(hre.getZilliqaChainId(), msgVersion);
@@ -45,7 +45,7 @@ async function ensureContractDeployment(hre: HardhatRuntimeEnvironment): Promise
     if (contract == undefined) {
       throw Error(clc.bold.red(`Failed to get the contract at ${WELL_KNOWN_CONTRACT_ADDRESS}`));
     }
- 
+
     return {contract, deployerAddress, zilliqa, version: version.toString(), hre, deployerAccount};
   }
 
