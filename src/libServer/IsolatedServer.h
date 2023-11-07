@@ -88,6 +88,7 @@ class IsolatedServer : public LookupServer,
     auto const pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
+      response = "0x0";
       return;
     }
 
