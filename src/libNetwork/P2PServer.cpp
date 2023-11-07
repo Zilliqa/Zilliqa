@@ -157,7 +157,7 @@ class P2PServerImpl : public P2PServer,
   void OnConnectionClosed(uint64_t id) {
     m_connections.erase(id);
     // TODO metric about m_connections.size()
-    LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
+    LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
   }
 
  private:
@@ -181,6 +181,7 @@ class P2PServerImpl : public P2PServer,
       conn->StartReading();
 
       m_connections[m_counter] = std::move(conn);
+      LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
       // TODO Metric
     } else {
       LOG_GENERAL(FATAL, "Error in accept : " << ec.message());
@@ -379,7 +380,8 @@ void P2PServerConnection::OnHeartBeat(const zil::p2p::ErrorCode& ec) {
     LOG_GENERAL(WARNING, "Due to inactivity on socket with peer: "
                              << m_remotePeer.GetPrintableIPAddress()
                              << " connection is closed");
-    Close();
+    CloseSocket();
+    OnConnectionClosed();
   }
 }
 
@@ -390,6 +392,7 @@ void P2PServerConnection::Close() {
 }
 
 void P2PServerConnection::CloseSocket() {
+  m_is_marked_as_closed = true;
   ErrorCode ec;
   m_timer.cancel(ec);
   // both close and shutdown should be none blocking calls certainly on current
@@ -398,8 +401,10 @@ void P2PServerConnection::CloseSocket() {
   // is a blocking call that waits for the OS to complete the closedown. close
   // also frees the OS resources from the program so should be called even if an
   // error condition is encountered
+  LOG_GENERAL(INFO, "Attempting to do a shudtown on a socket");
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
+    LOG_GENERAL(INFO, "Shutdown completed with an error: " << ec.message());
     m_socket.close(ec);
     if (ec) {
       LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
@@ -408,6 +413,8 @@ void P2PServerConnection::CloseSocket() {
     return;
   }
   size_t unread = m_socket.available(ec);
+  LOG_GENERAL(INFO, "Number of unread bytes available on socket: "
+                        << unread << ", ec: " << ec.message());
   if (ec) {
     m_socket.close(ec);
     return;
@@ -434,6 +441,8 @@ void P2PServerConnection::CloseSocket() {
     LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
                           << ec.message());
   }
+  LOG_GENERAL(INFO, "Connection completely closed with peer: "
+                        << m_remotePeer.GetPrintableIPAddress());
 }
 
 void P2PServerConnection::OnConnectionClosed() {
