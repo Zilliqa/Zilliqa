@@ -176,6 +176,7 @@ import "./tasks/Transfer";
 import "./tasks/InitSigners";
 import "./tasks/RefundSigners";
 import "./tasks/SetRewards";
+import "./tasks/Ui";
 
 import {initZilliqa} from "hardhat-scilla-plugin";
 export default config;
