@@ -520,7 +520,9 @@ void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
   }
 }
 
-P2P::P2P() : m_rumorManager(std::make_shared<RumorManager>()) {}
+P2P::P2P()
+    : m_rumorManager(std::make_shared<RumorManager>()),
+      m_broadcastCleanupThread([this] { BroadcastCleanupJob(); }) {}
 
 P2P::~P2P() {
   {
