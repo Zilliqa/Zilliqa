@@ -237,15 +237,15 @@ void CloseGracefully(Socket&& socket) {
     return;
   }
   if (unread > 0) {
-    boost::container::small_vector<uint8_t, 4096> buf;
-    buf.resize(unread);
-    socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
+    do {
+      constexpr size_t BUFF_SIZE = 4096;
+      boost::container::small_vector<uint8_t, BUFF_SIZE> buf;
+      buf.resize(std::min(BUFF_SIZE, unread));
+      socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
+      LOG_GENERAL(INFO, "Draining remaining IO before close");
+    } while (!ec && (unread = socket.available(ec)) > 0);
   }
-  if (!ec) {
-    std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
-  } else {
-    socket.close(ec);
-  }
+  socket.close(ec);
 }
 
 constinit std::chrono::milliseconds IDLE_TIMEOUT(120000);
