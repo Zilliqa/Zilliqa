@@ -199,42 +199,77 @@ bool ConsensusCommon::PreProcessMessage(const zbytes& message,
                                         zbytes& reserializedMessage) const {
   if (message.size() > offset) {
     switch (message.at(offset)) {
-      case ConsensusMessageType::ANNOUNCE:
+      case ConsensusMessageType::ANNOUNCE: {
+        LOG_GENERAL(INFO,
+                    "Processing ANNOUNCE Consensus message, internal consensus "
+                    "state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusAnnouncement>(message, offset + 1,
                                                    consensusID, senderPubKey,
                                                    reserializedMessage);
-      case ConsensusMessageType::CONSENSUSFAILURE:
+      }
+      case ConsensusMessageType::CONSENSUSFAILURE: {
+        LOG_GENERAL(INFO,
+                    "Processing CONSENSUSFAILURE Consensus message, internal "
+                    "consensus state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusConsensusFailure>(
             message, offset + 1, consensusID, senderPubKey,
             reserializedMessage);
+      }
       case ConsensusMessageType::COMMIT:
-      case ConsensusMessageType::FINALCOMMIT:
+      case ConsensusMessageType::FINALCOMMIT: {
+        LOG_GENERAL(INFO,
+                    "Processing COMMIT or FINALCOMMIT Consensus message, "
+                    "internal consensus state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<ZilliqaMessage::ConsensusCommit>(
             message, offset + 1, consensusID, senderPubKey,
             reserializedMessage);
-      case ConsensusMessageType::COMMITFAILURE:
+      }
+      case ConsensusMessageType::COMMITFAILURE: {
+        LOG_GENERAL(INFO,
+                    "Processing COMMITFAILURE Consensus message, internal "
+                    "consensus state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusCommitFailure>(message, offset + 1,
                                                     consensusID, senderPubKey,
                                                     reserializedMessage);
+      }
       case ConsensusMessageType::CHALLENGE:
-      case ConsensusMessageType::FINALCHALLENGE:
+      case ConsensusMessageType::FINALCHALLENGE: {
+        LOG_GENERAL(INFO,
+                    "Processing CHALLENGE or FINALCHALLENGE Consensus message, "
+                    "internal consensus state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<ZilliqaMessage::ConsensusChallenge>(
             message, offset + 1, consensusID, senderPubKey,
             reserializedMessage);
+      }
       case ConsensusMessageType::RESPONSE:
-      case ConsensusMessageType::FINALRESPONSE:
+      case ConsensusMessageType::FINALRESPONSE: {
+        LOG_GENERAL(INFO,
+                    "Processing RESPONSE or FINALRESPONSE Consensus message, "
+                    "internal consensus state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<ZilliqaMessage::ConsensusResponse>(
             message, offset + 1, consensusID, senderPubKey,
             reserializedMessage);
+      }
       case ConsensusMessageType::COLLECTIVESIG:
-      case ConsensusMessageType::FINALCOLLECTIVESIG:
+      case ConsensusMessageType::FINALCOLLECTIVESIG: {
+        LOG_GENERAL(INFO,
+                    "Processing COLLECTIVESIG or FINALCOLLECTIVESIG Consensus "
+                    "message, internal consensus state is: "
+                        << GetStateString());
         return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusCollectiveSig>(message, offset + 1,
                                                     consensusID, senderPubKey,
                                                     reserializedMessage);
+      }
       default:
         LOG_GENERAL(WARNING,
                     "Unknown msg type " << (unsigned int)message.at(offset));

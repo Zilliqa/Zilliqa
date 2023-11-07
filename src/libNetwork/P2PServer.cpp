@@ -109,7 +109,6 @@ class P2PServerImpl : public P2PServer,
   void AcceptNextConnection() {
     m_acceptor.async_accept(
         [wptr = weak_from_this()](const ErrorCode& ec, TcpSocket sock) {
-
           if (!wptr.expired()) {
             auto parent = wptr.lock();
             if (!ec) {
@@ -150,7 +149,6 @@ class P2PServerImpl : public P2PServer,
 
       auto maybe_peer = ExtractRemotePeer(socket);
       if (!maybe_peer) {
-        LOG_GENERAL(WARNING, "Couldn't get the IP address from remove socket!");
         return;
       }
 
