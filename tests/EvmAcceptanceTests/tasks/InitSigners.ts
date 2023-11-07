@@ -6,7 +6,7 @@ import {join} from "path";
 import clc from "cli-color";
 import ora from "ora";
 import {getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
-import { getEthAddress } from "../helpers/SignersHelper";
+import {getEthAddress} from "../helpers/SignersHelper";
 
 task("init-signers", "A task to init signers")
   .addParam("from", "Sender's private key")
@@ -22,7 +22,7 @@ task("init-signers", "A task to init signers")
 
     const spinner = ora();
     spinner.start(`Creating ${count} accounts...`);
-  
+
     let accounts = [];
     if (fromAddressType === "eth") {
       accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
@@ -76,11 +76,13 @@ const createAccountsEth = async (
     ...accounts.map((signer) => signer.address),
     ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())
   ];
-  
-  const value = amount.mul(addresses.length)
+
+  const value = amount.mul(addresses.length);
 
   if ((await wallet.getBalance()).lt(value)) {
-    throw new Error(`Sender doesn't have enough fund in its eth address. Needed ${ethers.utils.formatEther(value)} ether`);
+    throw new Error(
+      `Sender doesn't have enough fund in its eth address. Needed ${ethers.utils.formatEther(value)} ether`
+    );
   }
 
   await hre.deployContractWithSigner("BatchTransferCtor", wallet, addresses, amount, {
