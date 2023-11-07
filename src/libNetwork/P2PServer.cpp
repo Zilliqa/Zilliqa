@@ -110,10 +110,14 @@ class P2PServerImpl : public P2PServer,
     m_acceptor.async_accept(
         [wptr = weak_from_this()](const ErrorCode& ec, TcpSocket sock) {
           if (!wptr.expired()) {
+            auto parent = wptr.lock();
             if (!ec) {
-              wptr.lock()->OnAccept(ec, std::move(sock));
+              parent->OnAccept(ec, std::move(sock));
+            } else {
+              LOG_GENERAL(WARNING, "Got an error from Accept in P2P Server: "
+                                       << ec.message());
             }
-            wptr.lock()->AcceptNextConnection();
+            parent->AcceptNextConnection();
           } else {
             LOG_GENERAL(WARNING,
                         "Parent doesn't exist anymore, this may happen only "
@@ -145,6 +149,7 @@ class P2PServerImpl : public P2PServer,
 
       auto maybe_peer = ExtractRemotePeer(socket);
       if (!maybe_peer) {
+        LOG_GENERAL(WARNING, "Couldn't get the IP address from remove socket!");
         return;
       }
 
