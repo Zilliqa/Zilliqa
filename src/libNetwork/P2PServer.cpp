@@ -109,8 +109,15 @@ class P2PServerImpl : public P2PServer,
   void AcceptNextConnection() {
     m_acceptor.async_accept(
         [wptr = weak_from_this()](const ErrorCode& ec, TcpSocket sock) {
-          if (!wptr.expired() && ec != OPERATION_ABORTED) {
-            wptr.lock()->OnAccept(ec, std::move(sock));
+          if (!wptr.expired()) {
+            if (!ec) {
+              wptr.lock()->OnAccept(ec, std::move(sock));
+            }
+            wptr.lock()->AcceptNextConnection();
+          } else {
+            LOG_GENERAL(WARNING,
+                        "Parent doesn't exist anymore, this may happen only "
+                        "during shutdown phase of Zilliqa");
           }
         });
   }
@@ -150,8 +157,6 @@ class P2PServerImpl : public P2PServer,
 
       m_connections[m_counter] = std::move(conn);
       // TODO Metric
-
-      AcceptNextConnection();
     } else {
       LOG_GENERAL(FATAL, "Error in accept : " << ec.message());
     }
@@ -323,17 +328,18 @@ void P2PServerConnection::Close() {
 
 void P2PServerConnection::CloseSocket() {
   ErrorCode ec;
-  // both close and shutdown should be none blocking calls certainly on current linux
-  // shutdown marks the socket as blocked for both read and write
-  // shutdown tells the OS to begin the graceful closedown of the TCP connection.
-  // close() is a blocking call that waits for the OS to complete the closedown.
-  // close also frees the OS resources from the program so should be called even if
-  // an error condition is encountered
+  // both close and shutdown should be none blocking calls certainly on current
+  // linux shutdown marks the socket as blocked for both read and write shutdown
+  // tells the OS to begin the graceful closedown of the TCP connection. close()
+  // is a blocking call that waits for the OS to complete the closedown. close
+  // also frees the OS resources from the program so should be called even if an
+  // error condition is encountered
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
     m_socket.close(ec);
     if (ec) {
-      LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: " << ec.message());
+      LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
+                            << ec.message());
     }
     return;
   }
@@ -354,12 +360,14 @@ void P2PServerConnection::CloseSocket() {
       boost::container::small_vector<uint8_t, 4096> buf;
       buf.resize(unread);
       m_socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
-      LOG_GENERAL(INFO, "Draining remaining IO before close"  << m_remotePeer.GetPrintableIPAddress());
+      LOG_GENERAL(INFO, "Draining remaining IO before close"
+                            << m_remotePeer.GetPrintableIPAddress());
     } while (!ec && (unread = m_socket.available(ec)) > 0);
   }
   m_socket.close(ec);
   if (ec) {
-    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: " << ec.message());
+    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
+                          << ec.message());
   }
 }
 
