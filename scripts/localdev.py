@@ -403,7 +403,10 @@ def grafana_down(config):
 def prometheus_up(config, testnet_name, count = 8):
     """ Let helm deploy prometheus """
     ips = []
-    while True:
+    done = True
+    print("Waiting for all pods to be assigned an IP...3 minutes")
+    time.sleep(3*60)
+    while not done:
         pods = subprocess.Popen([ "kubectl", "get", "pod", "-o", "json" ], env=config.driver_env, stdout=subprocess.PIPE)
         output = sanitise_output(
             subprocess.check_output([ "jq", "-r", f".items[] | select(.metadata.name | test(\"{testnet_name}-\")) | select(.status.phase == \"Running\") | .metadata.name, .status.podIP" ], env=config.driver_env, stdin=pods.stdout)).strip(' ').split('\n')
@@ -413,7 +416,12 @@ def prometheus_up(config, testnet_name, count = 8):
         # Iterate the output until IPs have been assigned to all the testnet pods
         for pod_name, pod_ip in zip(output[::2], output[1::2]):
             if pod_name == 'null':
-                break
+                done = True
+                continue
+
+            if pod_name.find('-origin-') :
+                done = True
+                continue
 
             # Skip the origin/explorer/multiplier pods so we can count the IPs correctly
             if pod_name.find('-origin-') != -1 or pod_name.find('-explorer-') != -1 or pod_name.find('-multiplier-') != -1:
@@ -423,7 +431,8 @@ def prometheus_up(config, testnet_name, count = 8):
             try:
                 ipaddress.IPv4Address(pod_ip)
             except:
-                break
+                done = True
+                continue
 
             ips.append(pod_ip)
 
@@ -435,23 +444,9 @@ def prometheus_up(config, testnet_name, count = 8):
             print(f"Waiting for all pods to be assigned an IP...")
             time.sleep(2)
         else:
-            break
+            done = True
+            continue
 
-    conf = """
-serverFiles:
-  prometheus.yml:
-    scrape_configs:
-      - job_name: prometheus
-        static_configs:
-        - targets:
-""" + '\n'.join(['            - ' + ip + ':8090' for ip in ips])
-
-    print(conf)
-    with tempfile.NamedTemporaryFile() as tmpfile:
-        tmpfile.write(conf.encode('utf-8'))
-        tmpfile.flush()
-        run_or_die(config, ["helm", "upgrade", "--install", "prometheus", "prometheus-community/prometheus", "-f", tmpfile.name])
-        wait_for_helm_pod(config, "prometheus-")
 
 def prometheus_down(config):
     """ Let helm undeploy prometheus """
@@ -749,10 +744,11 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
-           "-n", "6",
-           "-d", "5",
+           "-n", "7",
+           "-s", "7",
+           "-d", "7",
            "-l", "1",
-           "--guard", "4/0",
+           "--guard", "5/0",
            "--gentxn", "false",
            "--multiplier-fanout", "1",
            "--host-network", "false",
@@ -796,8 +792,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)
     output_config = config_file.toprettyxml(newl='')
