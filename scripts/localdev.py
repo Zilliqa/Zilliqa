@@ -40,7 +40,7 @@ ZILLIQA_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SCILLA_DIR = os.path.join(ZILLIQA_DIR, "..", "scilla")
 TESTNET_DIR = os.path.join(ZILLIQA_DIR, "..", "testnet")
 KEEP_WORKSPACE = True
-
+wait_procs = 0
 def get_progress_arg():
     if "NO_COLOR" in os.environ:
         return "--progress=plain"
@@ -400,13 +400,10 @@ def grafana_down(config):
     """ Let helm undeploy grafana """
     helm_remove_repository(config, 'grafana')
 
-def prometheus_up(config, testnet_name, count = 8):
+def prometheus_up(config, testnet_name, count = wait_procs):
     """ Let helm deploy prometheus """
     ips = []
-    done = True
-    print("Waiting for all pods to be assigned an IP...3 minutes")
-    time.sleep(3*60)
-    while not done:
+    while True:
         pods = subprocess.Popen([ "kubectl", "get", "pod", "-o", "json" ], env=config.driver_env, stdout=subprocess.PIPE)
         output = sanitise_output(
             subprocess.check_output([ "jq", "-r", f".items[] | select(.metadata.name | test(\"{testnet_name}-\")) | select(.status.phase == \"Running\") | .metadata.name, .status.podIP" ], env=config.driver_env, stdin=pods.stdout)).strip(' ').split('\n')
@@ -416,12 +413,7 @@ def prometheus_up(config, testnet_name, count = 8):
         # Iterate the output until IPs have been assigned to all the testnet pods
         for pod_name, pod_ip in zip(output[::2], output[1::2]):
             if pod_name == 'null':
-                done = True
-                continue
-
-            if pod_name.find('-origin-') :
-                done = True
-                continue
+                break
 
             # Skip the origin/explorer/multiplier pods so we can count the IPs correctly
             if pod_name.find('-origin-') != -1 or pod_name.find('-explorer-') != -1 or pod_name.find('-multiplier-') != -1:
@@ -431,22 +423,35 @@ def prometheus_up(config, testnet_name, count = 8):
             try:
                 ipaddress.IPv4Address(pod_ip)
             except:
-                done = True
-                continue
+                break
 
             ips.append(pod_ip)
 
-        if len(ips) != count:
+        if len(ips) < count:
             # If for some reason you see the following line repeating indefinitely when
             # bringing up a devnet, it's most likely because the count is incorrect either
             # due to a change in write_testnet_configuration or in the testnet repo (perhaps
             # someone added/removed pods?).
-            print(f"Waiting for all pods to be assigned an IP...")
+            print(f"Waiting for {len(ips)} to equal {count}  {wait_procs} be assigned an IP...", flush=True)
             time.sleep(2)
         else:
-            done = True
-            continue
+            break
 
+    conf = """
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+        - targets:
+""" + '\n'.join(['            - ' + ip + ':8090' for ip in ips])
+
+    print(conf)
+    with tempfile.NamedTemporaryFile() as tmpfile:
+        tmpfile.write(conf.encode('utf-8'))
+        tmpfile.flush()
+        run_or_die(config, ["helm", "upgrade", "--install", "prometheus", "prometheus-community/prometheus", "-f", tmpfile.name])
+        wait_for_helm_pod(config, "prometheus-")
 
 def prometheus_down(config):
     """ Let helm undeploy prometheus """
@@ -757,6 +762,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
            "--bucket", bucket_name,
            "--localstack", "true",
                "--otterscan", otterscan]
+        wait_procs = 7  + 1
     else:
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
                os.path.join(ZILLIQA_DIR, "constants.xml"),
