@@ -1400,7 +1400,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
         ConsensusLeader* cl =
             dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
         if (cl != nullptr) {
-          cl->Audit();
+          cl->Audit(true);
         }
       }
 

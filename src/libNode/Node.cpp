@@ -25,6 +25,7 @@
 #include <boost/process/v2/stdio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "Node.h"
 #include "common/Constants.h"
@@ -1698,9 +1699,14 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
-  LOG_GENERAL(INFO, "Received txns: " << transactions.size() << ", from "
-                                      << from << ", my shardId is: "
-                                      << m_mediator.m_node->m_myshardId);
+  const auto content = boost::algorithm::join(
+      transactions | boost::adaptors::transformed([](const Transaction &txn) {
+        return txn.GetTranID().hex();
+      }),
+      ", ");
+  LOG_GENERAL(INFO, "Received txns: [" << content << "], from " << from
+                                       << ", my shardId is: "
+                                       << m_mediator.m_node->m_myshardId);
 
   {
     // The check here is in case the lookup send the packet

@@ -104,6 +104,7 @@ static SendJobsVariables variables{};
 namespace zil::p2p {
 
 using AsioContext = boost::asio::io_context;
+using Tcp = boost::asio::ip::tcp;
 using Socket = boost::asio::ip::tcp::socket;
 using Endpoint = boost::asio::ip::tcp::endpoint;
 using SteadyTimer = boost::asio::steady_timer;
@@ -237,15 +238,15 @@ void CloseGracefully(Socket&& socket) {
     return;
   }
   if (unread > 0) {
-    boost::container::small_vector<uint8_t, 4096> buf;
-    buf.resize(unread);
-    socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
+    do {
+      constexpr size_t BUFF_SIZE = 4096;
+      boost::container::small_vector<uint8_t, BUFF_SIZE> buf;
+      buf.resize(std::min(BUFF_SIZE, unread));
+      socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
+      LOG_GENERAL(INFO, "Draining remaining IO before close");
+    } while (!ec && (unread = socket.available(ec)) > 0);
   }
-  if (!ec) {
-    std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
-  } else {
-    socket.close(ec);
-  }
+  socket.close(ec);
 }
 
 constinit std::chrono::milliseconds IDLE_TIMEOUT(120000);
@@ -268,6 +269,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         m_doneCallback(done_cb),
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
+        m_resolver(m_asioContext),
         m_timer(m_asioContext),
         m_messageExpireTime(std::max(15000u, TX_DISTRIBUTE_TIME_IN_MS * 5 / 6)),
         m_isMultiplier(is_multiplier),
@@ -283,7 +285,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     item.expires_at = Clock() + m_messageExpireTime;
     if (m_queue.size() == 1) {
       if (!m_connected) {
-        Connect();
+        Resolve();
       } else {
         SendMessage();
       }
@@ -299,6 +301,52 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
  private:
+  void Resolve() {
+    if (!std::empty(m_peer.GetHostname())) {
+      m_resolver.async_resolve(
+          m_peer.GetHostname(), "",
+          [self = shared_from_this()](
+              const ErrorCode& ec,
+              const Tcp::resolver::results_type& endpoints) {
+            if (!ec) {
+              self->OnResolved(endpoints);
+            } else {
+              LOG_GENERAL(WARNING, "Unable to resolve dns name: "
+                                       << self->m_peer.GetHostname());
+              self->Done();
+            }
+          });
+
+    } else {
+      Connect();
+    }
+  }
+
+  void OnResolved(const Tcp::resolver::results_type& endpoints) {
+    ErrorCode ignored;
+    m_timer.cancel(ignored);
+
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
+      m_socket.cancel();
+      OnConnected(TIMED_OUT);
+    });
+
+    boost::asio::async_connect(
+        m_socket, endpoints,
+        [self = shared_from_this()](const ErrorCode& ec,
+                                    const Endpoint& endpoint) {
+          if (ec != OPERATION_ABORTED) {
+            self->m_endpoint = endpoint;
+            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
+                                   << self->m_endpoint << ": " << ec.message()
+                                   << " (" << ec << ')');
+
+            self->m_timer.cancel();
+            self->OnConnected(ec);
+          }
+        });
+  }
+
   void Connect() {
     ErrorCode ec;
 
@@ -322,15 +370,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       OnConnected(TIMED_OUT);
     });
 
-    m_socket.async_connect(m_endpoint, [self = shared_from_this()](
-                                           const ErrorCode& ec) {
-      LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
-                                          << ec.message() << " (" << ec << ')');
-      if (ec != OPERATION_ABORTED) {
-        self->m_timer.cancel();
-        self->OnConnected(ec);
-      }
-    });
+    m_socket.async_connect(
+        m_endpoint, [self = shared_from_this()](const ErrorCode& ec) {
+          LOG_GENERAL(DEBUG, "Connection (via direct ip) to "
+                                 << self->m_endpoint << ": " << ec.message()
+                                 << " (" << ec << ')');
+          if (ec != OPERATION_ABORTED) {
+            self->m_timer.cancel();
+            self->OnConnected(ec);
+          }
+        });
   }
 
   void OnConnected(const ErrorCode& ec) {
@@ -437,7 +486,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     LOG_GENERAL(INFO, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
-    Connect();
+    Resolve();
   }
 
   void Done() {
@@ -462,6 +511,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   // tcp socket
   Socket m_socket;
+
+  // Resolved for asynchronous dns lookups
+  Tcp::resolver m_resolver;
 
   // Timer is used
   SteadyTimer m_timer;
@@ -508,8 +560,7 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
-                                                   << " peer = " << peer);
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size <<" peer = "<< peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
@@ -570,6 +621,9 @@ class SendJobsImpl : public SendJobs,
     }
 
     // explicit Close() because shared_ptr may be reused in async operation
+    LOG_GENERAL(
+        INFO, "Nothing else to be sent to peer, so closing socket with remote: "
+                  << peer.GetPrintableIPAddress());
     it->second->Close();
     m_activePeers.erase(it);
   }

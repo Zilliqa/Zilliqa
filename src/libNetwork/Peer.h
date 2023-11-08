@@ -40,7 +40,8 @@ struct Peer : public Serializable {
   Peer();
 
   /// Constructor with specified IP info.
-  Peer(const uint128_t& ip_address, uint32_t listen_port_host, const std::string& nodeIndentifier="");
+  Peer(const uint128_t& ip_address, uint32_t listen_port_host,
+       const std::string& hostname = "", const std::string& identifier = "");
 
   /// Constructor for loading peer information from a byte stream.
   Peer(const zbytes& src, unsigned int offset);
@@ -80,7 +81,6 @@ struct Peer : public Serializable {
   const uint32_t& GetListenPortHost() const;
   const std::string GetHostname() const;
   const std::string GetNodeIndentifier() const;
-
 };
 namespace IPCHECK {
 static inline bool IsPortValid(const uint32_t listenPort) {
