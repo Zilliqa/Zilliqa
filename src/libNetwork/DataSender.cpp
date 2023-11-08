@@ -38,24 +38,12 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
   vector<Peer> allLookupNodes;
 
   for (auto& node : lookups) {
-    string url = node.second.GetHostname();
-    auto resolved_ip = node.second.GetIpAddress();  // existing one
-    if (!url.empty()) {
-      uint128_t tmpIp;
-      if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                  tmpIp)) {
-        resolved_ip = tmpIp;  // resolved one
-      } else {
-        LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-      }
-    }
-
     Blacklist::GetInstance().Whitelist(
-        {resolved_ip, node.second.GetListenPortHost(),
+        {node.second.GetIpAddress(), node.second.GetListenPortHost(),
          node.second.GetNodeIndentifier()});  // exclude this lookup ip from
                                               // blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost(),
-             node.second.GetNodeIndentifier());
+    Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+             node.second.GetHostname());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);

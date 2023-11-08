@@ -652,11 +652,10 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
       Blacklist::GetInstance().Whitelist(
-          {resolved_ip, node.second.GetListenPortHost(), ""});
-      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+          {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
+      Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+               node.second.GetHostname());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
@@ -679,13 +678,11 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
                   }) != m_multipliers.end()) {
         continue;
       }
-
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
       Blacklist::GetInstance().Whitelist(
-          {resolved_ip, node.second.GetListenPortHost(), ""});
+          {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
 
-      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+      Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+               node.second.GetHostname());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
@@ -721,11 +718,11 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   }
 
   int index = RandomGenerator::GetRandomInt(tmp.size());
-  auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
-
+  const auto& peer = tmp[index].second;
   Blacklist::GetInstance().Whitelist(
-      {resolved_ip, tmp[index].second.GetListenPortHost(), ""});
-  Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
+      {peer.GetIpAddress(), peer.GetListenPortHost(), ""});
+  Peer tmpPeer(peer.GetIpAddress(), peer.GetListenPortHost(),
+               peer.GetHostname());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
   zil::p2p::GetInstance().SendMessage(tmpPeer, message);
 }
@@ -736,11 +733,10 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
     lock_guard<mutex> g(m_mutexSeedNodes);
 
     for (const auto& node : m_seedNodes) {
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
       Blacklist::GetInstance().Whitelist(
-          {resolved_ip, node.second.GetListenPortHost(), ""});
-      Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
+          {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
+      Peer tmpPeer(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+                   node.second.GetHostname());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer);
       seedNodePeer.emplace_back(tmpPeer);
@@ -1256,12 +1252,12 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   }
 
   int index = RandomGenerator::GetRandomInt(m_l2lDataProviders.size());
-  auto resolved_ip = TryGettingResolvedIP(m_l2lDataProviders[index].second);
+  const auto& peer = m_l2lDataProviders[index].second;
 
   Blacklist::GetInstance().Whitelist(
-      {resolved_ip, m_l2lDataProviders[index].second.GetListenPortHost(), ""});
-  Peer tmpPeer(resolved_ip,
-               m_l2lDataProviders[index].second.GetListenPortHost());
+      {peer.GetIpAddress(), peer.GetListenPortHost(), ""});
+  Peer tmpPeer(peer.GetIpAddress(), peer.GetListenPortHost(),
+               peer.GetHostname());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
   unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
   //  TODO Disabled in updated protocol
@@ -1281,14 +1277,14 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
     }
 
     for (const auto& node : m_seedNodes) {
-      auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,
+      if (!Blacklist::GetInstance().Exist({node.second.GetIpAddress(),
                                            node.second.GetListenPortHost(),
                                            node.second.GetNodeIndentifier()}) &&
-          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
-        notBlackListedSeedNodes.push_back(
-            Peer(seedNodeIpToSend, node.second.GetListenPortHost(),
-                 node.second.GetNodeIndentifier()));
+          (m_mediator.m_selfPeer.GetIpAddress() !=
+           node.second.GetIpAddress())) {
+        notBlackListedSeedNodes.push_back(Peer(node.second.GetIpAddress(),
+                                               node.second.GetListenPortHost(),
+                                               node.second.GetHostname()));
       }
     }
   }
@@ -5235,9 +5231,7 @@ void Lookup::RemoveSeedNodesFromBlackList() {
   lock_guard<mutex> lock(m_mutexSeedNodes);
 
   for (auto& node : m_seedNodes) {
-    auto seedNodeIp = TryGettingResolvedIP(node.second);
-
-    Blacklist::GetInstance().Remove({seedNodeIp,
+    Blacklist::GetInstance().Remove({node.second.GetIpAddress(),
                                      node.second.GetListenPortHost(),
                                      node.second.GetNodeIndentifier()});
   }

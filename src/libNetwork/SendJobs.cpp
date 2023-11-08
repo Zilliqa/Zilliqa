@@ -104,6 +104,7 @@ static SendJobsVariables variables{};
 namespace zil::p2p {
 
 using AsioContext = boost::asio::io_context;
+using Tcp = boost::asio::ip::tcp;
 using Socket = boost::asio::ip::tcp::socket;
 using Endpoint = boost::asio::ip::tcp::endpoint;
 using SteadyTimer = boost::asio::steady_timer;
@@ -268,6 +269,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         m_doneCallback(done_cb),
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
+        m_resolver(m_asioContext),
         m_timer(m_asioContext),
         m_messageExpireTime(std::max(15000u, TX_DISTRIBUTE_TIME_IN_MS * 5 / 6)),
         m_isMultiplier(is_multiplier),
@@ -283,7 +285,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     item.expires_at = Clock() + m_messageExpireTime;
     if (m_queue.size() == 1) {
       if (!m_connected) {
-        Connect();
+        Resolve();
       } else {
         SendMessage();
       }
@@ -299,6 +301,52 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
  private:
+  void Resolve() {
+    if (!std::empty(m_peer.GetHostname())) {
+      m_resolver.async_resolve(
+          m_peer.GetHostname(), "",
+          [self = shared_from_this()](
+              const ErrorCode& ec,
+              const Tcp::resolver::results_type& endpoints) {
+            if (!ec) {
+              self->OnResolved(endpoints);
+            } else {
+              LOG_GENERAL(WARNING, "Unable to resolve dns name: "
+                                       << self->m_peer.GetHostname());
+              self->Done();
+            }
+          });
+
+    } else {
+      Connect();
+    }
+  }
+
+  void OnResolved(const Tcp::resolver::results_type& endpoints) {
+    ErrorCode ignored;
+    m_timer.cancel(ignored);
+
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
+      m_socket.cancel();
+      OnConnected(TIMED_OUT);
+    });
+
+    boost::asio::async_connect(
+        m_socket, endpoints,
+        [self = shared_from_this()](const ErrorCode& ec,
+                                    const Endpoint& endpoint) {
+          if (ec != OPERATION_ABORTED) {
+            self->m_endpoint = endpoint;
+            LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
+                                                << ec.message() << " (" << ec
+                                                << ')');
+
+            self->m_timer.cancel();
+            self->OnConnected(ec);
+          }
+        });
+  }
+
   void Connect() {
     ErrorCode ec;
 
@@ -437,7 +485,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     LOG_GENERAL(INFO, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
-    Connect();
+    Resolve();
   }
 
   void Done() {
@@ -462,6 +510,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   // tcp socket
   Socket m_socket;
+
+  // Resolved for asynchronous dns lookups
+  Tcp::resolver m_resolver;
 
   // Timer is used
   SteadyTimer m_timer;
