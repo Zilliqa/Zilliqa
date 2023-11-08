@@ -906,7 +906,7 @@ def build_native_to_workspace(config):
         pass
     build_env = os.environ.copy()
     build_env['SCILLA_REPO_ROOT'] = SCILLA_DIR
-    build_env['EXTRA_BUILD_PARAMS'] = "tests debug"
+    '''build_env['EXTRA_BUILD_PARAMS'] = "tests debug"'''
     # Let's start off by building Scilla, in case it breaks.
     run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env)
     run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
