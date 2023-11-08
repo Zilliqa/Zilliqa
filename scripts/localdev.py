@@ -796,7 +796,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         print("Explicitly disabling all telemetry for desktop testing mode")
         xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
         xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
-
+        xml_replace_element(config_file, config_file.documentElement, "NUM_FINAL_BLOCK_PER_POW", "250")
 
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
