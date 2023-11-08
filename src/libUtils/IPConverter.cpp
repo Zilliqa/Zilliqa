@@ -16,6 +16,7 @@
  */
 
 #include "IPConverter.h"
+#include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
 #include <boost/algorithm/string.hpp>
@@ -121,6 +122,7 @@ bool ToNumericalIPFromStr(const std::string& ipStr, uint128_t& ipInt) {
 
 bool ResolveDNS(const std::string& url, const uint32_t& port,
                 uint128_t& ipInt) {
+  const auto start = std::chrono::steady_clock::now();
   try {
     boost::asio::io_service my_io_service;
     boost::asio::ip::tcp::resolver resolver(my_io_service);
@@ -130,9 +132,14 @@ bool ResolveDNS(const std::string& url, const uint32_t& port,
     boost::asio::ip::tcp::resolver::iterator end;  // End marker.
     while (iter != end) {
       boost::asio::ip::tcp::endpoint endpoint = *iter++;
-      if (endpoint.address().is_v4()) {
-        return ToNumericalIPFromStr(endpoint.address().to_string(), ipInt);
-      }
+      const auto end_time = std::chrono::steady_clock::now();
+      LOG_GENERAL(WARNING,
+                  "Milliseconds it took to resolve dns name: "
+                      << (std::chrono::duration_cast<std::chrono::milliseconds>(
+                              end_time - start))
+                             .count()
+                      << " for name: " << url);
+      return ToNumericalIPFromStr(endpoint.address().to_string(), ipInt);
     }
   } catch (std::exception& e) {
     return false;
