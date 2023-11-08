@@ -1239,12 +1239,8 @@ void ConsensusLeader::Audit(bool checkForResponses) {
       }
     }
   };
-
-  if (checkForResponses) {
-    responseAudit();
-  } else {
-    commitAudit();
-  }
+  commitAudit();
+  responseAudit();
 }
 #define MAKE_LITERAL_PAIR(s) \
   { s, #s }
