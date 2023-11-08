@@ -795,12 +795,12 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     if desk:
         print("Explicitly disabling all telemetry for desktop testing mode")
         xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
-        xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
         xml_replace_element(config_file, config_file.documentElement, "SEND_RESPONSE_FOR_LAZY_PUSH", "false")
         xml_replace_element(config_file, config_file.documentElement, "MAX_NEIGHBORS_PER_ROUND", "5")
         xml_replace_element(config_file, config_file.documentElement, "NUM_GOSSIP_RECEIVERS", "5")
+        xml_replace_element(config_file, config_file.documentElement, "NUM_FINAL_BLOCK_PER_POW", "250")
 
-
+    xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
