@@ -744,8 +744,11 @@ bool ProtobufToShardingStructureAnnouncement(
         govProposalId = proto_member.powsoln().govdata().proposalid();
         govVoteValue = proto_member.powsoln().govdata().votevalue();
       }
-      // Copy 32 bytes of extraData at most. Validation of the PoW solution will fail later if the extraData was longer.
-      zbytes extraData(proto_member.powsoln().extradata().begin(), proto_member.powsoln().extradata().begin() + 32);
+      if (proto_member.powsoln().extradata().size() > 32) {
+        LOG_GENERAL(WARNING, "extra data is too large");
+        return false;
+      }
+      zbytes extraData(proto_member.powsoln().extradata().begin(), proto_member.powsoln().extradata().end());
       allPoWs.emplace(
           key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
                            proto_member.powsoln().lookupid(), gasPrice,
@@ -1070,8 +1073,11 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   const uint64_t& nonce = dsPowSubmission.data().nonce();
   const std::string& resultingHash = dsPowSubmission.data().resultinghash();
   const std::string& mixHash = dsPowSubmission.data().mixhash();
-  // Copy 32 bytes of extraData at most. Validation of the PoW solution will fail later if the extraData was longer.
-  const zbytes extraData(dsPowSubmission.data().extradata().begin(), dsPowSubmission.data().extradata().begin() + 32);
+  if (dsPowSubmission.data().extradata().size() > 32) {
+    LOG_GENERAL(WARNING, "extra data is too large");
+    return false;
+  }
+  zbytes extraData(dsPowSubmission.data().extradata().begin(), dsPowSubmission.data().extradata().end());
   const uint32_t& lookupId = dsPowSubmission.data().lookupid();
   uint128_t gasPrice;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -2544,9 +2550,12 @@ bool Messenger::GetDSPoWSubmission(
   nonce = result.data().nonce();
   resultingHash = result.data().resultinghash();
   mixHash = result.data().mixhash();
+  if (result.data().extradata().size() > 32) {
+    LOG_GENERAL(WARNING, "extra data is too large");
+    return false;
+  }
   extraData.resize(result.data().extradata().size());
-  // Copy 32 bytes of extraData at most. Validation of the PoW solution will fail later if the extraData was longer.
-  std::copy(result.data().extradata().begin(), result.data().extradata().begin() + 32, extraData.begin());
+  std::copy(result.data().extradata().begin(), result.data().extradata().end(), extraData.begin());
   lookupId = result.data().lookupid();
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
@@ -2868,8 +2877,11 @@ bool Messenger::GetDSDSBlockAnnouncement(
       govProposalId = protoDSWinnerPoW.powsoln().govdata().proposalid();
       govVoteValue = protoDSWinnerPoW.powsoln().govdata().votevalue();
     }
-    // Copy 32 bytes of extraData at most. Validation of the PoW solution will fail later if the extraData was longer.
-    zbytes extraData(protoDSWinnerPoW.powsoln().extradata().begin(), protoDSWinnerPoW.powsoln().extradata().begin() + 32);
+    if (protoDSWinnerPoW.powsoln().extradata().size() > 32) {
+      LOG_GENERAL(WARNING, "extra data is too large");
+      return false;
+    }
+    zbytes extraData(protoDSWinnerPoW.powsoln().extradata().begin(), protoDSWinnerPoW.powsoln().extradata().end());
     dsWinnerPoWs.emplace(
         key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
                          protoDSWinnerPoW.powsoln().lookupid(), gasPrice,

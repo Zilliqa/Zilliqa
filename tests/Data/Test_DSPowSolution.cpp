@@ -52,6 +52,7 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   uint64_t nonceInput = TestUtils::DistUint64();
   string resultingHashInput = TestUtils::GenerateRandomString(64);
   string mixHashInput = TestUtils::GenerateRandomString(64);
+  zbytes extraDataInput = TestUtils::GenerateRandomCharVector(32);
   uint32_t lookupIdInput = TestUtils::DistUint32();
   uint128_t gasPriceInput = TestUtils::DistUint128();
   uint32_t proposalIdInput = TestUtils::DistUint32();
@@ -61,7 +62,7 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   dsps = DSPowSolution(
       blockNumberInput, difficultyLevelInput, submitterPeerInput,
       submitterKeyInput, nonceInput, resultingHashInput, mixHashInput,
-      lookupIdInput, gasPriceInput,
+      extraDataInput, lookupIdInput, gasPriceInput,
       std::make_pair(proposalIdInput, voteValueInput), signatureInput);
 
   DSPowSolution dsps2 = dsps;
@@ -74,6 +75,7 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   BOOST_REQUIRE(dsps.GetNonce() == nonceInput);
   BOOST_REQUIRE(dsps.GetResultingHash() == resultingHashInput);
   BOOST_REQUIRE(dsps.GetMixHash() == mixHashInput);
+  BOOST_REQUIRE(dsps.GetExtraData() == extraDataInput);
   BOOST_REQUIRE(dsps.GetLookupId() == lookupIdInput);
   BOOST_REQUIRE(dsps.GetGasPrice() == gasPriceInput);
   BOOST_REQUIRE(dsps.GetGovProposalId() == proposalIdInput);

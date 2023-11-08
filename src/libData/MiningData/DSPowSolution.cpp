@@ -30,6 +30,7 @@ DSPowSolution::DSPowSolution(const DSPowSolution& src)
       m_nonce(src.m_nonce),
       m_resultingHash(src.m_resultingHash),
       m_mixHash(src.m_mixHash),
+      m_extraData(src.m_extraData),
       m_lookupId(src.m_lookupId),
       m_gasPrice(src.m_gasPrice),
       m_govProposal(src.m_govProposal),
@@ -103,7 +104,9 @@ bool DSPowSolution::operator==(const DSPowSolution& sol) const {
           (m_submitterPeer == sol.m_submitterPeer) &&
           (m_submitterKey == sol.m_submitterKey) && (m_nonce == sol.m_nonce) &&
           (m_resultingHash == sol.m_resultingHash) &&
-          (m_mixHash == sol.m_mixHash) && (m_lookupId == sol.m_lookupId) &&
+          (m_mixHash == sol.m_mixHash) &&
+          (m_extraData == sol.m_extraData) &&
+          (m_lookupId == sol.m_lookupId) &&
           (m_gasPrice == sol.m_gasPrice) &&
           (m_govProposal == sol.m_govProposal) &&
           (m_signature == sol.m_signature));
@@ -117,6 +120,7 @@ DSPowSolution& DSPowSolution::operator=(const DSPowSolution& src) {
   m_nonce = src.m_nonce;
   m_resultingHash = src.m_resultingHash;
   m_mixHash = src.m_mixHash;
+  m_extraData = src.m_extraData;
   m_lookupId = src.m_lookupId;
   m_gasPrice = src.m_gasPrice;
   m_govProposal = src.m_govProposal;
