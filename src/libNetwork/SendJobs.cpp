@@ -337,9 +337,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                                     const Endpoint& endpoint) {
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
-            LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
-                                                << ec.message() << " (" << ec
-                                                << ')');
+            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
+                                   << self->m_endpoint << ": " << ec.message()
+                                   << " (" << ec << ')');
 
             self->m_timer.cancel();
             self->OnConnected(ec);
@@ -370,15 +370,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       OnConnected(TIMED_OUT);
     });
 
-    m_socket.async_connect(m_endpoint, [self = shared_from_this()](
-                                           const ErrorCode& ec) {
-      LOG_GENERAL(DEBUG, "Connection to " << self->m_endpoint << ": "
-                                          << ec.message() << " (" << ec << ')');
-      if (ec != OPERATION_ABORTED) {
-        self->m_timer.cancel();
-        self->OnConnected(ec);
-      }
-    });
+    m_socket.async_connect(
+        m_endpoint, [self = shared_from_this()](const ErrorCode& ec) {
+          LOG_GENERAL(DEBUG, "Connection (via direct ip) to "
+                                 << self->m_endpoint << ": " << ec.message()
+                                 << " (" << ec << ')');
+          if (ec != OPERATION_ABORTED) {
+            self->m_timer.cancel();
+            self->OnConnected(ec);
+          }
+        });
   }
 
   void OnConnected(const ErrorCode& ec) {
@@ -621,6 +622,9 @@ class SendJobsImpl : public SendJobs,
     }
 
     // explicit Close() because shared_ptr may be reused in async operation
+    LOG_GENERAL(
+        INFO, "Nothing else to be sent to peer, so closing socket with remote: "
+                  << peer.GetPrintableIPAddress());
     it->second->Close();
     m_activePeers.erase(it);
   }
