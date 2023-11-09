@@ -460,15 +460,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         const auto delay = std::empty(m_peer.GetHostname())
                                ? IDLE_TIMEOUT_IP_ONLY
                                : IDLE_TIMEOUT_DNS;
-        LOG_GENERAL(INFO, "I'll schedule WaitTimer");
         WaitTimer(m_timer, delay, [this]() { OnIdleTimer(); });
       } else {
-        LOG_GENERAL(INFO,
-                    "I'll call Done() now since some conditions are not met");
         Done();
       }
-      LOG_GENERAL(INFO,
-                  "Apparently some conditions are not met so I'll just return");
       return;
     }
 
