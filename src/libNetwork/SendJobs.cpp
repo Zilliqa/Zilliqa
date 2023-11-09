@@ -338,9 +338,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                                     const Endpoint& endpoint) {
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
-            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
-                                   << self->m_endpoint << ": " << ec.message()
-                                   << " (" << ec << ')');
+            LOG_GENERAL(INFO, "Connection (via async resolve) to "
+                                  << self->m_endpoint << ": " << ec.message()
+                                  << " (" << ec << ')');
 
             self->m_timer.cancel();
             self->OnConnected(ec);
@@ -573,7 +573,8 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size <<" peer = "<< peer);
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
+                                                   << " peer = " << peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
