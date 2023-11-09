@@ -360,7 +360,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
             self->m_endpoint = endpoint;
             LOG_GENERAL(INFO, "Connection (via async resolve) to "
                                   << self->m_endpoint << ": " << ec.message()
-                                  << " (" << ec << ')');
+                                  << " (" << ec << ')'
+                                  << ", queue size: " << self->m_queue.size());
 
             self->m_timer.cancel();
             self->OnConnected(ec);
@@ -410,13 +411,19 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void OnConnected(const ErrorCode& ec) {
     if (m_closed) {
+      LOG_GENERAL(INFO,
+                  "It looks the OnConnected was called when socket was already "
+                  "closed, returning");
       return;
     }
     if (!ec) {
+      LOG_GENERAL(INFO, "There's no error, so sending the message from queue");
       m_connected = true;
       m_is_resolving = false;
       SendMessage();
     } else {
+      LOG_GENERAL(INFO, "There was an error: " << ec.message()
+                                               << ", so I'll try to reconnect");
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
@@ -424,9 +431,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   bool FindNotExpiredMessage() {
     auto clock = Clock();
-    // Messages sent to entities having dns name don't expire
-    while (!m_queue.empty() && std::empty(m_peer.GetHostname())) {
-      if (m_queue.front().expires_at < clock) {
+    while (!m_queue.empty()) {
+      // Messages sent to entities having dns name don't expire
+      if (std::empty(m_peer.GetHostname()) &&
+          m_queue.front().expires_at < clock) {
         LOG_GENERAL(INFO, "Dropping P2P message as expired, peer="
                               << m_peer << ", elapsed [ms]: "
                               << (clock - m_queue.front().expires_at).count());
@@ -452,10 +460,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         const auto delay = std::empty(m_peer.GetHostname())
                                ? IDLE_TIMEOUT_IP_ONLY
                                : IDLE_TIMEOUT_DNS;
+        LOG_GENERAL(INFO, "I'll schedule WaitTimer");
         WaitTimer(m_timer, delay, [this]() { OnIdleTimer(); });
       } else {
+        LOG_GENERAL(INFO,
+                    "I'll call Done() now since some conditions are not met");
         Done();
       }
+      LOG_GENERAL(INFO,
+                  "Apparently some conditions are not met so I'll just return");
       return;
     }
 
