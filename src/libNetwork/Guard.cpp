@@ -247,17 +247,6 @@ void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
 
 void Guard::ValidateRunTimeEnvironment() {
   LOG_MARKER();
-
-  unsigned int nodeReplacementLimit = static_cast<unsigned int>(
-      COMM_SIZE - ceil(COMM_SIZE * TOLERANCE_FRACTION));
-
-  if (NUM_DS_ELECTION > nodeReplacementLimit) {
-    LOG_GENERAL(FATAL,
-                "Check constants configuration. nodeReplacementLimit must be "
-                "bigger than NUM_DS_ELECTION. Refer to design documentation. "
-                "nodeReplacementLimit: "
-                    << nodeReplacementLimit);
-  }
 }
 
 void Guard::Init() {
