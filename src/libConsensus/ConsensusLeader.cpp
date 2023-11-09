@@ -325,6 +325,10 @@ bool ConsensusLeader::StartConsensusSubsets() {
   std::mt19937 randomEngine(randomDevice());
   shuffle(peerInfo.begin(), peerInfo.end(), randomEngine);
 
+  for (const auto& peer : peerInfo) {
+    LOG_GENERAL(INFO, "Sending challenge to = " << peer);
+  }
+
   zil::p2p::GetInstance().SendMessage(peerInfo, challenge,
                                       zil::p2p::START_BYTE_NORMAL, true, true);
 
@@ -693,6 +697,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   }
 
   bool guardInOtherSubsets = false;
+  LOG_GENERAL(INFO, "Response sender1 = "<<from);
 
   for (int subsetID = subsetInfo.size() - 1; subsetID >= 0; subsetID--) {
     // Check subset state
@@ -861,6 +866,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                         "= " << m_numForConsensus
                              << " Actual = " << m_commitCounter);
             m_state = ERROR;
+            Audit(false);
             zil::local::variables.SetConsensusState(int(m_state));
             zil::local::variables.AddConsensusError(1);
           } else {
@@ -1165,6 +1171,7 @@ bool ConsensusLeader::ProcessMessage(const zbytes& message, unsigned int offset,
       result = ProcessMessageCommitFailure(message, offset + 1, from);
       break;
     case ConsensusMessageType::RESPONSE:
+      LOG_GENERAL(INFO, "Response sender = "<<from);
       result = ProcessMessageResponse(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALCOMMIT:
@@ -1181,44 +1188,63 @@ bool ConsensusLeader::ProcessMessage(const zbytes& message, unsigned int offset,
   return result;
 }
 
-void ConsensusLeader::Audit() {
+void ConsensusLeader::Audit(bool checkForResponses) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutex);
 
-  for (unsigned int subsetID = 0; subsetID < m_consensusSubsets.size();
-       subsetID++) {
-    ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
+  LOG_GENERAL(INFO, "Leader State = " << GetStateString(m_state.load()));
 
-    LogResponsesStats(subsetID);
+  auto responseAudit = [this]() -> void {
+    for (auto subsetID = 0u; subsetID < m_consensusSubsets.size(); subsetID++) {
+      ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
 
-    if ((subset.state == CHALLENGE_DONE) ||
-        (subset.state == FINALCHALLENGE_DONE)) {
-      if (subset.commitMap.size() != m_committee.size()) {
-        LOG_GENERAL(WARNING, "Wrong commit map size");
-        continue;
-      }
-      if (subset.commitMap.size() != subset.responseMap.size()) {
-        LOG_GENERAL(WARNING, "Wrong response map size");
-        continue;
-      }
+      LogResponsesStats(subsetID);
 
-      LOG_GENERAL(INFO, "[Subset " << subsetID << "] State = "
-                                   << GetStateString(subset.state));
-      LOG_GENERAL(INFO, "Missing responses:");
+      if (subset.state == ConsensusCommon::State::CHALLENGE_DONE ||
+          subset.state == ConsensusCommon::State::FINALCHALLENGE_DONE) {
+        if (subset.commitMap.size() != m_committee.size()) {
+          LOG_GENERAL(WARNING, "Wrong commit map size");
+          LOG_GENERAL(WARNING, "Commit map size: " << subset.commitMap.size());
+          LOG_GENERAL(WARNING, "Committee  size: " << m_committee.size());
+          continue;
+        }
+        if (subset.commitMap.size() != subset.responseMap.size()) {
+          LOG_GENERAL(WARNING, "Wrong response map size");
+          LOG_GENERAL(WARNING,
+                      "Commit   map size: " << subset.commitMap.size());
+          LOG_GENERAL(WARNING,
+                      "Response map  size: " << subset.responseMap.size());
+          continue;
+        }
 
-      for (unsigned int peerIndex = 0; peerIndex < m_committee.size();
-           peerIndex++) {
-        if (subset.commitMap.at(peerIndex) &&
-            !subset.responseMap.at(peerIndex)) {
-          LOG_GENERAL(INFO, "[" << PAD(peerIndex, 3, ' ') << "] "
-                                << m_committee.at(peerIndex).second);
+        LOG_GENERAL(INFO, "[Subset " << subsetID << "] State = "
+                                     << GetStateString(subset.state));
+        LOG_GENERAL(INFO, "Missing responses:");
+
+        for (auto peerIndex = 0u; peerIndex < m_committee.size(); peerIndex++) {
+          if (subset.commitMap.at(peerIndex) &&
+              !subset.responseMap.at(peerIndex)) {
+            LOG_GENERAL(INFO, "[" << PAD(peerIndex, 3, ' ') << "] "
+                                  << m_committee.at(peerIndex).second);
+          }
         }
       }
     }
-  }
-}
+  };
 
+  auto commitAudit = [this]() -> void {
+    LOG_GENERAL(INFO, "Missing commits:");
+    for (auto peerIndex = 0u; peerIndex < m_commitMap.size(); ++peerIndex) {
+      if (!m_commitMap.at(peerIndex)) {
+        LOG_GENERAL(INFO, "Missing   [" << PAD(peerIndex, 3, ' ') << "] "
+                                        << m_committee.at(peerIndex).second);
+      }
+    }
+  };
+  commitAudit();
+  responseAudit();
+}
 #define MAKE_LITERAL_PAIR(s) \
   { s, #s }
 
