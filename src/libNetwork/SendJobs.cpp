@@ -309,7 +309,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!std::empty(m_peer.GetHostname()) && !m_is_resolving) {
       m_is_resolving = true;
       m_resolver.async_resolve(
-          m_peer.GetHostname(), "",
+          m_peer.GetHostname(), std::to_string(m_peer.GetListenPortHost()),
           [self = shared_from_this()](
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
