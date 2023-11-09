@@ -427,12 +427,12 @@ def prometheus_up(config, testnet_name, count = 8):
 
             ips.append(pod_ip)
 
-        if len(ips) != count:
+        if len(ips) < count:
             # If for some reason you see the following line repeating indefinitely when
             # bringing up a devnet, it's most likely because the count is incorrect either
             # due to a change in write_testnet_configuration or in the testnet repo (perhaps
             # someone added/removed pods?).
-            print(f"Waiting for all pods to be assigned an IP...")
+            print(f"Waiting for {count} pods to be assigned an IP... got {len(ips)}")
             time.sleep(2)
         else:
             break
@@ -749,10 +749,11 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
-           "-n", "6",
-           "-d", "5",
+           "-n", "7",
+           "-s", "7",
+           "-d", "7",
            "-l", "1",
-           "--guard", "4/0",
+           "--guard", "5/0",
            "--gentxn", "false",
            "--multiplier-fanout", "1",
            "--host-network", "false",
@@ -769,9 +770,9 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
                "-s", "15",
                "-d", "15",
                "-l", "1",
-               "--guard", "11/0",
+               "--guard", "7/0",
                "--gentxn", "false",
-               "--multiplier-fanout", "1,1",
+               "--multiplier-fanout", "1",
                "--host-network", "false",
                "--https", "localdomain",
                "--seed-multiplier", "true",
@@ -790,14 +791,22 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
 
     constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
     config_file = xml.dom.minidom.parse(constants_xml_target_path)
+
+    if desk:
+        print("Explicitly disabling all telemetry for desktop testing mode")
+        xml_replace_element(config_file, config_file.documentElement, "NUM_FINAL_BLOCK_PER_POW", "250")
+
+    xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
+    xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "COMMIT_WINDOW_IN_SECONDS", "40")
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)
     output_config = config_file.toprettyxml(newl='')
@@ -897,6 +906,7 @@ def build_native_to_workspace(config):
         pass
     build_env = os.environ.copy()
     build_env['SCILLA_REPO_ROOT'] = SCILLA_DIR
+    '''build_env['EXTRA_BUILD_PARAMS'] = "tests debug"'''
     # Let's start off by building Scilla, in case it breaks.
     run_or_die(config, ["make"], in_dir = SCILLA_DIR, env = build_env)
     run_or_die(config, ["./build.sh"], in_dir = ZILLIQA_DIR)
