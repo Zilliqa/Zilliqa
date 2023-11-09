@@ -109,11 +109,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
   auto headerHash = POW::GenHeaderHash(rand1, rand2, m_mediator.m_selfPeer,
                                        m_mediator.m_selfKey.second, lookupId,
-                                       m_proposedGasPrice);
+                                       m_proposedGasPrice, {});
 
+  HeaderHashParams headerParams{rand1, rand2, m_mediator.m_selfPeer, m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice};
   EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
       block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
-      FULL_DATASET_MINE, std::time(0), POW_WINDOW_IN_SECONDS);
+      FULL_DATASET_MINE, std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
 
   if (ds_pow_winning_result.success) {
     LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
@@ -122,6 +123,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                 "nonce   = " << hex << ds_pow_winning_result.winning_nonce);
     LOG_GENERAL(INFO, "result  = " << hex << ds_pow_winning_result.result);
     LOG_GENERAL(INFO, "mixhash = " << hex << ds_pow_winning_result.mix_hash);
+    LOG_GENERAL(INFO, "extraData = " << DataConversion::Uint8VecToHexStrRet(ds_pow_winning_result.extraData));
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       const unsigned int fixedDSNodesPoWTime =
@@ -170,7 +172,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     if (!SendPoWResultToDSComm(
             block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
             ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
-            lookupId, m_proposedGasPrice)) {
+            ds_pow_winning_result.extraData, lookupId, m_proposedGasPrice)) {
       return false;
     } else {
       DetachedFunction(1, checkerThread);
@@ -230,6 +232,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const uint64_t winningNonce,
                                  const string& powResultHash,
                                  const string& powMixhash,
+                                 const zbytes& extraData,
                                  const uint32_t& lookupId,
                                  const uint128_t& gasPrice) {
   LOG_MARKER();
@@ -251,7 +254,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   if (!Messenger::SetDSPoWSubmission(
           powmessage, MessageOffset::BODY, block_num, difficultyLevel,
           m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
-          powResultHash, powMixhash, lookupId, gasPrice, govProposal,
+          powResultHash, powMixhash, extraData, lookupId, gasPrice, govProposal,
           POW_SUBMISSION_VERSION_TAG == "" ? VERSION_TAG
                                            : POW_SUBMISSION_VERSION_TAG)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
