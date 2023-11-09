@@ -211,6 +211,7 @@ bool DataSender::SendDataToOthers(
   }
 
   if (inB2) {
+    LOG_GENERAL(INFO, "I'm in B2 set, so I'll try to send data to others");
     zbytes message;
     if (!(composeMessageForSenderFunc &&
           composeMessageForSenderFunc(message))) {
@@ -236,6 +237,12 @@ bool DataSender::SendDataToOthers(
       if (sendDataToLookupFunc) {
         sendDataToLookupFunc(lookups, message);
       }
+    } else {
+      LOG_GENERAL(WARNING,
+                  "I'm not going to send data to others because: IndexB2 is: "
+                      << indexB2
+                      << ", nodeLookupLo is : " << nodeToSendToLookUpLo
+                      << ", nodeLookupHi is: " << nodeToSendToLookUpHi);
     }
 
     if (!shards.empty()) {
@@ -258,7 +265,15 @@ bool DataSender::SendDataToOthers(
                                       forceMulticast);
         }
       }
+    } else {
+      LOG_GENERAL(WARNING, "Shards size is: " << shards.size()
+                                              << ", so no data was sent there");
     }
+  } else {
+    LOG_GENERAL(WARNING, "I'm NOT in B2 set! "
+                             << "B2 size " << blockwcosigSender.GetB2().size()
+                             << " and committee size "
+                             << sendercommittee.size());
   }
 
   return true;
