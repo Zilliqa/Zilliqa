@@ -704,6 +704,8 @@ void AnnouncementShardingStructureToProtobuf(
       proto_soln->mutable_govdata()->set_votevalue(
           soln->second.m_govProposal.second);
     }
+    proto_soln->set_extradata(soln->second.m_extraData.data(),
+                              soln->second.m_extraData.size());
   }
 }
 
@@ -715,6 +717,7 @@ bool ProtobufToShardingStructureAnnouncement(
   uint128_t gasPrice;
   uint32_t govProposalId{};
   uint32_t govVoteValue{};
+  zbytes extraData;
   for (const auto& proto_shard : protoShardingStructure.shards()) {
     for (const auto& proto_member : proto_shard.members()) {
       PubKey key;
@@ -741,10 +744,16 @@ bool ProtobufToShardingStructureAnnouncement(
         govProposalId = proto_member.powsoln().govdata().proposalid();
         govVoteValue = proto_member.powsoln().govdata().votevalue();
       }
+      if (proto_member.powsoln().extradata().size() > 32) {
+        LOG_GENERAL(WARNING, "extra data is too large");
+        return false;
+      }
+      zbytes extraData(proto_member.powsoln().extradata().begin(), proto_member.powsoln().extradata().end());
       allPoWs.emplace(
           key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
                            proto_member.powsoln().lookupid(), gasPrice,
-                           std::make_pair(govProposalId, govVoteValue)));
+                           std::make_pair(govProposalId, govVoteValue),
+                           extraData));
     }
   }
 
@@ -1034,6 +1043,7 @@ void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
   dsPowSubmission.mutable_data()->set_resultinghash(
       powSolution.GetResultingHash());
   dsPowSubmission.mutable_data()->set_mixhash(powSolution.GetMixHash());
+  dsPowSubmission.mutable_data()->set_extradata(powSolution.GetExtraData().data(), powSolution.GetExtraData().size());
   dsPowSubmission.mutable_data()->set_lookupid(powSolution.GetLookupId());
   if (dsPowSubmission.mutable_data()->govdata().IsInitialized()) {
     dsPowSubmission.mutable_data()->mutable_govdata()->set_proposalid(
@@ -1063,6 +1073,11 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   const uint64_t& nonce = dsPowSubmission.data().nonce();
   const std::string& resultingHash = dsPowSubmission.data().resultinghash();
   const std::string& mixHash = dsPowSubmission.data().mixhash();
+  if (dsPowSubmission.data().extradata().size() > 32) {
+    LOG_GENERAL(WARNING, "extra data is too large");
+    return false;
+  }
+  zbytes extraData(dsPowSubmission.data().extradata().begin(), dsPowSubmission.data().extradata().end());
   const uint32_t& lookupId = dsPowSubmission.data().lookupid();
   uint128_t gasPrice;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -1074,7 +1089,7 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   const uint32_t& govVoteValue = dsPowSubmission.data().govdata().votevalue();
 
   DSPowSolution result(blockNumber, difficultyLevel, submitterPeer,
-                       submitterKey, nonce, resultingHash, mixHash, lookupId,
+                       submitterKey, nonce, resultingHash, mixHash, extraData, lookupId,
                        gasPrice, std::make_pair(govProposalId, govVoteValue),
                        signature);
   powSolution = result;
@@ -2447,7 +2462,7 @@ bool Messenger::SetDSPoWSubmission(
     zbytes& dst, const unsigned int offset, const uint64_t blockNumber,
     const uint8_t difficultyLevel, const Peer& submitterPeer,
     const PairOfKey& submitterKey, const uint64_t nonce,
-    const string& resultingHash, const string& mixHash,
+    const string& resultingHash, const string& mixHash, const zbytes& extraData,
     const uint32_t& lookupId, const uint128_t& gasPrice,
     const GovProposalIdVotePair& govProposal, const string& version) {
   DSPoWSubmission result;
@@ -2463,6 +2478,7 @@ bool Messenger::SetDSPoWSubmission(
   result.mutable_data()->set_nonce(nonce);
   result.mutable_data()->set_resultinghash(resultingHash);
   result.mutable_data()->set_mixhash(mixHash);
+  result.mutable_data()->set_extradata(extraData.data(), extraData.size());
   result.mutable_data()->set_lookupid(lookupId);
 
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
@@ -2508,7 +2524,7 @@ bool Messenger::SetDSPoWSubmission(
 bool Messenger::GetDSPoWSubmission(
     const zbytes& src, const unsigned int offset, uint64_t& blockNumber,
     uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
-    uint64_t& nonce, string& resultingHash, string& mixHash,
+    uint64_t& nonce, string& resultingHash, string& mixHash, zbytes& extraData,
     Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
     uint32_t& govProposalId, uint32_t& govVoteValue, string& version) {
   if (offset >= src.size()) {
@@ -2534,6 +2550,12 @@ bool Messenger::GetDSPoWSubmission(
   nonce = result.data().nonce();
   resultingHash = result.data().resultinghash();
   mixHash = result.data().mixhash();
+  if (result.data().extradata().size() > 32) {
+    LOG_GENERAL(WARNING, "extra data is too large");
+    return false;
+  }
+  extraData.resize(result.data().extradata().size());
+  std::copy(result.data().extradata().begin(), result.data().extradata().end(), extraData.begin());
   lookupId = result.data().lookupid();
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
@@ -2745,6 +2767,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
         soln.m_gasPrice, *proto_soln->mutable_gasprice());
     proto_soln->mutable_govdata()->set_proposalid(soln.m_govProposal.first);
     proto_soln->mutable_govdata()->set_votevalue(soln.m_govProposal.second);
+    proto_soln->set_extradata(soln.m_extraData.data(), soln.m_extraData.size());
   }
 
   if (!dsblock->IsInitialized()) {
@@ -2854,10 +2877,15 @@ bool Messenger::GetDSDSBlockAnnouncement(
       govProposalId = protoDSWinnerPoW.powsoln().govdata().proposalid();
       govVoteValue = protoDSWinnerPoW.powsoln().govdata().votevalue();
     }
+    if (protoDSWinnerPoW.powsoln().extradata().size() > 32) {
+      LOG_GENERAL(WARNING, "extra data is too large");
+      return false;
+    }
+    zbytes extraData(protoDSWinnerPoW.powsoln().extradata().begin(), protoDSWinnerPoW.powsoln().extradata().end());
     dsWinnerPoWs.emplace(
         key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
                          protoDSWinnerPoW.powsoln().lookupid(), gasPrice,
-                         std::make_pair(govProposalId, govVoteValue)));
+                         std::make_pair(govProposalId, govVoteValue), extraData));
   }
 
   // Get the part of the announcement that should be co-signed during the first

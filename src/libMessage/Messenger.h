@@ -194,14 +194,14 @@ class Messenger {
       zbytes& dst, const unsigned int offset, const uint64_t blockNumber,
       const uint8_t difficultyLevel, const Peer& submitterPeer,
       const PairOfKey& submitterKey, const uint64_t nonce,
-      const std::string& resultingHash, const std::string& mixHash,
+      const std::string& resultingHash, const std::string& mixHash, const zbytes& extraData,
       const uint32_t& lookupId, const uint128_t& gasPrice,
       const GovProposalIdVotePair& govProposal, const std::string& version);
 
   static bool GetDSPoWSubmission(
       const zbytes& src, const unsigned int offset, uint64_t& blockNumber,
       uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
-      uint64_t& nonce, std::string& resultingHash, std::string& mixHash,
+      uint64_t& nonce, std::string& resultingHash, std::string& mixHash, zbytes& extraData,
       Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
       uint32_t& proposalId, uint32_t& voteValue, std::string& version);
 
