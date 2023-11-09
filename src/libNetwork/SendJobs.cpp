@@ -249,7 +249,10 @@ void CloseGracefully(Socket&& socket) {
   socket.close(ec);
 }
 
-constinit std::chrono::milliseconds IDLE_TIMEOUT(120000);
+constinit std::chrono::seconds IDLE_TIMEOUT_IP_ONLY(120);
+// We don't want to resolve dns name very often, give more idle time for this
+// type of connections
+constinit std::chrono::seconds IDLE_TIMEOUT_DNS(3600);
 constinit std::chrono::milliseconds SLOW_SEND_TO_REPORT(5000);
 
 }  // namespace
@@ -303,13 +306,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
  private:
   void Resolve() {
-    if (!std::empty(m_peer.GetHostname())) {
+    if (!std::empty(m_peer.GetHostname()) && !m_is_resolving) {
+      m_is_resolving = true;
       m_resolver.async_resolve(
           m_peer.GetHostname(), "",
           [self = shared_from_this()](
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
             if (!ec) {
+              LOG_GENERAL(INFO, "Successfully resolved dns name: " << self->m_peer.GetHostname());
               self->OnResolved(endpoints);
             } else {
               LOG_GENERAL(WARNING, "Unable to resolve dns name: "
@@ -389,6 +394,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
     if (!ec) {
       m_connected = true;
+      m_is_resolving = false;
       SendMessage();
     } else {
       m_connected = false;
@@ -398,7 +404,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   bool FindNotExpiredMessage() {
     auto clock = Clock();
-    while (!m_queue.empty()) {
+    // Messages sent to entities having dns name don't expire
+    while (!m_queue.empty() && std::empty(m_peer.GetHostname())) {
       if (m_queue.front().expires_at < clock) {
         LOG_GENERAL(INFO, "Dropping P2P message as expired, peer="
                               << m_peer << ", elapsed [ms]: "
@@ -422,7 +429,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!FindNotExpiredMessage()) {
       if (m_connected && !m_noWait && !m_isMultiplier) {
         m_inIdleTimeout = true;
-        WaitTimer(m_timer, IDLE_TIMEOUT, [this]() { OnIdleTimer(); });
+        const auto delay = std::empty(m_peer.GetHostname())
+                               ? IDLE_TIMEOUT_IP_ONLY
+                               : IDLE_TIMEOUT_DNS;
+        WaitTimer(m_timer, delay, [this]() { OnIdleTimer(); });
       } else {
         Done();
       }
@@ -543,6 +553,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   // it's hard to determine is an asio socket really connected, so explicit var
   bool m_connected = false;
+
+  // Checks wheter dns resolve call is taking place
+  bool m_is_resolving = false;
 
   bool m_inIdleTimeout = false;
 
