@@ -314,7 +314,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
             if (!ec) {
-              LOG_GENERAL(INFO, "Successfully resolved dns name: " << self->m_peer.GetHostname());
+              LOG_GENERAL(INFO, "Successfully resolved dns name: "
+                                    << self->m_peer.GetHostname());
               self->OnResolved(endpoints);
             } else {
               LOG_GENERAL(WARNING, "Unable to resolve dns name: "
@@ -332,15 +333,29 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     ErrorCode ignored;
     m_timer.cancel(ignored);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
-      m_socket.cancel();
-      OnConnected(TIMED_OUT);
-    });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
+              [self = shared_from_this()]() {
+                LOG_GENERAL(WARNING,
+                            "Unable to connect within "
+                                << CONNECTION_TIMEOUT_IN_MS
+                                << ", canceling any operation on the socket "
+                                   "with remote dns/ip: "
+                                << self->m_peer.GetHostname() << "/"
+                                << self->m_peer.GetPrintableIPAddress());
+                self->m_socket.cancel();
+                self->OnConnected(TIMED_OUT);
+              });
 
+    LOG_GENERAL(INFO,
+                "I'll try to connect to remote IP since the dns name was "
+                "successfully resolved, peer: "
+                    << m_peer.GetHostname());
     boost::asio::async_connect(
         m_socket, endpoints,
         [self = shared_from_this()](const ErrorCode& ec,
                                     const Endpoint& endpoint) {
+          LOG_GENERAL(INFO,
+                      "Async connect handler called with ec: " << ec.message());
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
             LOG_GENERAL(INFO, "Connection (via async resolve) to "
@@ -371,10 +386,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
-      m_socket.cancel();
-      OnConnected(TIMED_OUT);
-    });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
+              [self = shared_from_this()]() {
+                LOG_GENERAL(WARNING,
+                            "Unable to connect within "
+                                << CONNECTION_TIMEOUT_IN_MS
+                                << ", canceling any operation on the socket");
+                self->m_socket.cancel();
+                self->OnConnected(TIMED_OUT);
+              });
 
     m_socket.async_connect(
         m_endpoint, [self = shared_from_this()](const ErrorCode& ec) {
