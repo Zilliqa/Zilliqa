@@ -770,9 +770,9 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
                "-s", "15",
                "-d", "15",
                "-l", "1",
-               "--guard", "11/0",
+               "--guard", "7/0",
                "--gentxn", "false",
-               "--multiplier-fanout", "1,1",
+               "--multiplier-fanout", "1",
                "--host-network", "false",
                "--https", "localdomain",
                "--seed-multiplier", "true",
@@ -794,17 +794,16 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
 
     if desk:
         print("Explicitly disabling all telemetry for desktop testing mode")
-        xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
-        xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
         xml_replace_element(config_file, config_file.documentElement, "NUM_FINAL_BLOCK_PER_POW", "250")
 
+    xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
+    xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
     if chain_id is not None:
