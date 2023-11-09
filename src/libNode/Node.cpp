@@ -1364,7 +1364,8 @@ void Node::WakeupAtTxEpoch() {
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::FINALBLOCK_CONSENSUS_PREP);
     auto func = [this]() mutable -> void {
-      m_mediator.m_ds->RunConsensusOnFinalBlock();
+      constexpr auto AFTER_RECOVERY = true;
+      m_mediator.m_ds->RunConsensusOnFinalBlock(AFTER_RECOVERY);
     };
     DetachedFunction(1, func);
     return;

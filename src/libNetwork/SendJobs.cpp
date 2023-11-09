@@ -250,6 +250,7 @@ void CloseGracefully(Socket&& socket) {
 }
 
 constinit std::chrono::milliseconds IDLE_TIMEOUT(120000);
+constinit std::chrono::milliseconds SLOW_SEND_TO_REPORT(5000);
 
 }  // namespace
 
@@ -399,8 +400,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     auto clock = Clock();
     while (!m_queue.empty()) {
       if (m_queue.front().expires_at < clock) {
+        LOG_GENERAL(INFO, "Dropping P2P message as expired, peer="
+                              << m_peer << ", elapsed [ms]: "
+                              << (clock - m_queue.front().expires_at).count());
         m_queue.pop_front();
-        LOG_GENERAL(INFO, "Dropping P2P message as expired, peer=" << m_peer);
         // TODO metric about message drops
       } else {
         return true;
@@ -432,11 +435,21 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
-        [self = shared_from_this()](const ErrorCode& ec, size_t) {
-          if (ec) {
-            // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
-          }
+        [self = shared_from_this(),
+         start_time = std::chrono::steady_clock::now()](const ErrorCode& ec,
+                                                        size_t) {
           if (ec != OPERATION_ABORTED) {
+            const auto now = std::chrono::steady_clock::now();
+
+            if (now - start_time > SLOW_SEND_TO_REPORT) {
+              LOG_GENERAL(
+                  WARNING,
+                  "Slow send, it took: "
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(
+                             now - start_time)
+                             .count()
+                      << "[ms] to deliver msg");
+            }
             self->OnWritten(ec);
           }
         });

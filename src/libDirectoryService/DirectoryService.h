@@ -90,8 +90,8 @@ struct DSGuardUpdateStruct {
 namespace CoinbaseReward {
 const int FINALBLOCK_REWARD = -1;
 
-// LOOKUP_REWARD is in fact used to reward stakers - the funds are drained from the
-// lookup accounts by the staking scripts and then fed back to the SSNs.
+// LOOKUP_REWARD is in fact used to reward stakers - the funds are drained from
+// the lookup accounts by the staking scripts and then fed back to the SSNs.
 const int LOOKUP_REWARD = -2;
 
 }  // namespace CoinbaseReward
@@ -99,8 +99,6 @@ const int LOOKUP_REWARD = -2;
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
 using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
-
-
 
 struct RewardInformation {
   uint128_t base_reward;
@@ -599,7 +597,7 @@ class DirectoryService : public Executable {
   /// network
   bool FinishRejoinAsDS(bool fetchShardingStruct = false);
 
-  void RunConsensusOnFinalBlock();
+  void RunConsensusOnFinalBlock(bool afterRecover = false);
 
   // Coinbase
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
@@ -703,7 +701,7 @@ class DirectoryService : public Executable {
   std::array<unsigned char, 32> GetDSPoWSoln(const PubKey& Pubk);
   uint32_t GetNumberOfDSPoWSolns();
   void ClearVCBlockVector();
-  bool RunConsensusOnFinalBlockWhenDSPrimary();
+  bool RunConsensusOnFinalBlockWhenDSPrimary(bool afterRecovery);
   bool CheckIfDSNode(const PubKey& submitterPubKey);
   bool RemoveDSMicroBlock();
 

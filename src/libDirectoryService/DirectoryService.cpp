@@ -1078,7 +1078,7 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
 
   if (!m_mediator.m_lookup->VerifySenderNode(
           m_mediator.m_lookup->GetSeedNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+    LOG_EPOCH(DEBUG, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
     return false;
@@ -1123,7 +1123,7 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
 
   if (!m_mediator.m_lookup->VerifySenderNode(
           m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+    LOG_EPOCH(DEBUG, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
     return false;
