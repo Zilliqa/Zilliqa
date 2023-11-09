@@ -23,9 +23,10 @@ export default class SignerPool {
   }
 
   public initSigners(signer: SignerWithAddress[], privateKeys: string[]) {
-    this.releaseEthSigner(...signer);
+    // Let's shuffle signers to use them evenly
+    this.releaseEthSigner(...shuffleArray(signer));
 
-    this.zil_signers.push(...privateKeys.map((key) => new Account(key)));
+    this.zil_signers.push(...shuffleArray(privateKeys).map((key) => new Account(key)));
   }
 
   public releaseEthSigner(...signer: SignerWithAddress[]) {
@@ -46,4 +47,15 @@ export default class SignerPool {
 
   private eth_signers: SignerWithAddress[] = [];
   private zil_signers: Account[] = [];
+}
+
+function shuffleArray(array: any[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+
+    return array;
 }
