@@ -796,8 +796,11 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "OTLPGRPC")
-    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "ALL")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "DS_ANNOUNCEMENT_DELAY_IN_MS", "5")
+    xml_replace_element_if_exists(config_file, config_file.documentElement, "NUM_DS_ELECTION", "2")
+
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)
     output_config = config_file.toprettyxml(newl='')
