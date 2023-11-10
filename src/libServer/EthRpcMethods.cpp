@@ -442,7 +442,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("ots_hasCode", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
+                         "param02", jsonrpc::JSON_INTEGER, NULL),
       &EthRpcMethods::HasCodeI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -2144,7 +2144,7 @@ Json::Value EthRpcMethods::GetHeaderByNumber(const uint64_t blockNumber) {
 }
 
 bool EthRpcMethods::HasCode(const std::string &address,
-                            const std::string & /*block*/) {
+                            const uint64_t /* blockNumber */) {
   // TODO: Respect block parameter - We can probably do this by finding the
   // contract creation transaction and comparing the block numbers.
   Address addr{address, Address::FromHex};
