@@ -3,7 +3,7 @@ import {task} from "hardhat/config";
 import {ethers} from "ethers";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {units} from "@zilliqa-js/zilliqa";
-import {getZilBalance} from "../helpers/SignersHelper";
+import {getEthSignersBalances, getZilBalance, getZilSignersBalances} from "../helpers/SignersHelper";
 
 task("balances", "A task to get balances of signers in the config")
   .addFlag("zil", "Show balances in zil based addresses of private keys")
@@ -24,35 +24,25 @@ task("balances", "A task to get balances of signers in the config")
   });
 
 const printEthBalances = async (hre: HardhatRuntimeEnvironment) => {
-  const {provider} = hre.network;
-
-  const accounts: string[] = await provider.send("eth_accounts");
-  const balances = await Promise.all(
-    accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"]))
-  );
+  const balances = await getEthSignersBalances(hre);
 
   console.log(clc.bold.bgGreen("Eth balances"));
-  accounts.forEach((element, index) => {
-    displayBalance(index, element, ethers.utils.formatEther(balances[index]), "ether");
+  balances.forEach(([address, balance], index) => {
+    displayBalance(index, address, ethers.utils.formatEther(balance), "ether");
   });
   console.log();
 };
 
 const printZilBalances = async (hre: HardhatRuntimeEnvironment) => {
-  const private_keys: string[] = hre.network["config"]["accounts"] as string[];
-  let index = 0;
-  for (const private_key of private_keys) {
-    const [address, balance] = await getZilBalance(hre, private_key);
-    let error = false;
-    let balanceString = "";
-    if (balance.isZero()) {
-      error = true;
-      balanceString = clc.red.bold("Account is not created");
-    } else {
-      balanceString = units.fromQa(balance, units.Units.Zil);
-    }
+  const balances = await getZilSignersBalances(hre);
 
-    displayBalance(++index, address, balanceString, error ? "" : "zil");
+  let index = 1;
+
+  console.log(clc.bold.bgGreen("Zil balances"));
+  for (const [address, balance] of balances) {
+    const balanceString = balance.isZero() ? clc.red("Account is not created") : units.fromQa(balance, units.Units.Zil);
+    const unit = balance.isZero() ? "" : "ZIL";
+    displayBalance(++index, address, balanceString, unit);
   }
 };
 

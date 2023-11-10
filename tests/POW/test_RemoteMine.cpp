@@ -53,15 +53,17 @@ void TestRemoteMineCase_1() {
   PubKey pubKey(privKey);
   std::cout << "Test with pubkey: " << pubKey << std::endl;
   PairOfKey keyPair(privKey, pubKey);
+  zbytes extraData = TestUtils::GenerateRandomCharVector(32);
 
   // Light client mine and verify
   uint8_t difficultyToUse = POW_DIFFICULTY;
   uint64_t blockToUse = 1000;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, extraData);
   auto boundary = POW::DifficultyLevelInIntDevided(difficultyToUse);
 
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result = POWClient.RemoteMine(
-      keyPair, blockToUse, headerHash, boundary, POW_WINDOW_IN_SECONDS);
+      keyPair, blockToUse, headerHash, boundary, POW_WINDOW_IN_SECONDS, headerParams);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -72,7 +74,7 @@ void TestRemoteMineCase_1() {
   boundary = POW::DifficultyLevelInIntDevided(difficultyToUse);
 
   winning_result = POWClient.RemoteMine(keyPair, blockToUse, headerHash,
-                                        boundary, POW_WINDOW_IN_SECONDS);
+                                        boundary, POW_WINDOW_IN_SECONDS, headerParams);
   verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);

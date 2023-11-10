@@ -9,7 +9,7 @@ import {
   AccountType,
   getEthAddress,
   getEthSignersBalances,
-  getZilSignersBalances,
+  getZilSignersBalances
 } from "../helpers/SignersHelper";
 
 task("refund-signers", "A task to refund signers")
