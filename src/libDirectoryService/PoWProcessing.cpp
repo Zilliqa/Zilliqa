@@ -165,6 +165,7 @@ bool DirectoryService::ProcessPoWSubmission(
   uint64_t nonce;
   std::string resultingHash;
   std::string mixHash;
+  zbytes extraData;
   uint32_t lookupId;
   uint128_t gasPrice;
   Signature signature;
@@ -173,7 +174,7 @@ bool DirectoryService::ProcessPoWSubmission(
   string version;
   if (!Messenger::GetDSPoWSubmission(
           message, offset, blockNumber, difficultyLevel, submitterPeer,
-          submitterKey, nonce, resultingHash, mixHash, signature, lookupId,
+          submitterKey, nonce, resultingHash, mixHash, extraData, signature, lookupId,
           gasPrice, govProposalId, govVoteValue, version)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::ProcessPowSubmission failed.");
@@ -231,7 +232,7 @@ bool DirectoryService::ProcessPoWSubmission(
   }
 
   DSPowSolution powSoln(blockNumber, difficultyLevel, submitterPeer,
-                        submitterKey, nonce, resultingHash, mixHash, lookupId,
+                        submitterKey, nonce, resultingHash, mixHash, extraData, lookupId,
                         gasPrice, std::make_pair(govProposalId, govVoteValue),
                         signature);
 
@@ -287,6 +288,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   uint64_t nonce = sol.GetNonce();
   const string& resultingHash = sol.GetResultingHash();
   const string& mixHash = sol.GetMixHash();
+  const zbytes& extraData = sol.GetExtraData();
   uint32_t lookupId = sol.GetLookupId();
   const uint128_t& gasPrice = sol.GetGasPrice();
   const uint32_t& govProposalId = sol.GetGovProposalId();
@@ -382,7 +384,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   // m_timespec = r_timer_start();
 
   auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer,
-                                       submitterPubKey, lookupId, gasPrice);
+                                       submitterPubKey, lookupId, gasPrice, extraData);
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 
@@ -403,7 +405,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       DataConversion::HexStrToStdArray(resultingHash, resultingHashArr);
       DataConversion::HexStrToStdArray(mixHash, mixHashArr);
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice,
-                       std::make_pair(govProposalId, govVoteValue));
+                       std::make_pair(govProposalId, govVoteValue), extraData);
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {

@@ -42,8 +42,19 @@ typedef struct EthashMiningResult {
   std::string result;
   std::string mix_hash;
   uint64_t winning_nonce{};
+  zbytes extraData;
   bool success{};
 } ethash_mining_result_t;
+
+/// The params required to calculate a header hash, excluding the extraData
+struct HeaderHashParams {
+  std::array<unsigned char, UINT256_SIZE> rand1;
+  std::array<unsigned char, UINT256_SIZE> rand2;
+  Peer peer;
+  PubKey pubKey;
+  uint32_t lookupId;
+  uint128_t gasPrice;
+};
 
 /// Implements the proof-of-work functionality.
 class POW {
@@ -75,14 +86,15 @@ class POW {
   static ethash_hash256 GenHeaderHash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
-      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);
+      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice,
+      const zbytes& extraData);
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
                                  const PairOfKey& pairOfKey,
                                  const ethash_hash256& headerHash,
                                  bool fullDataset, uint64_t startNonce,
-                                 int timeWindow);
+                                 int timeWindow, const HeaderHashParams& headerParams);
 
   /// Terminates proof-of-work mining.
   void StopMining();
@@ -95,7 +107,8 @@ class POW {
   static zbytes ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
-      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);
+      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice,
+      const zbytes& extraData);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
   static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
   static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);
@@ -112,15 +125,16 @@ class POW {
                                     uint64_t blockNum,
                                     ethash_hash256 const& headerHash,
                                     ethash_hash256 const& boundary,
-                                    int timeWindow);
+                                    int timeWindow, const HeaderHashParams& headerParams);
 
   bool SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                        ethash_hash256 const& headerHash,
-                       ethash_hash256 const& boundary, int timeWindow);
+                       ethash_hash256 const& boundary, int timeWindow, const HeaderHashParams& headerParams);
   bool CheckMiningResult(const PairOfKey& pairOfKey,
                          ethash_hash256 const& headerHash,
                          ethash_hash256 const& boundary, uint64_t& nonce,
-                         ethash_hash256& mixHash, int timeWindow);
+                         ethash_hash256& mixHash, int timeWindow,
+                         zbytes& extraData);
   bool VerifyRemoteSoln(uint64_t blockNum, ethash_hash256 const& boundary,
                         uint64_t nonce, const ethash_hash256& headerHash,
                         const ethash_hash256& mixHash,
@@ -149,7 +163,8 @@ class POW {
                                   uint64_t startNonce, int timeWindow);
   ethash_mining_result_t MineGetWork(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
-                                     uint8_t difficulty, int timeWindow);
+                                     uint8_t difficulty, int timeWindow,
+                                     const HeaderHashParams& headerParams);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
                                      uint8_t difficulty, uint64_t startNonce,

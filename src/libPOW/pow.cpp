@@ -271,7 +271,7 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
 
 ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
                                         ethash_hash256 const& headerHash,
-                                        uint8_t difficulty, int timeWindow) {
+                                        uint8_t difficulty, int timeWindow, const HeaderHashParams& headerParams) {
   LOG_MARKER();
   int ethash_epoch = ethash::get_epoch_number(blockNum);
   std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
@@ -279,7 +279,7 @@ ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
       BlockhashToHexString(DifficultyLevelInIntDevided(difficulty));
   std::string headerStr = BlockhashToHexString(headerHash);
 
-  PoWWorkPackage work{headerStr, seed, boundary, blockNum, difficulty};
+  PoWWorkPackage work{headerStr, seed, boundary, blockNum, difficulty, headerParams};
 
   GetWorkServer::GetInstance().StartMining(work);
   auto result = GetWorkServer::GetInstance().GetResult(timeWindow);
@@ -298,7 +298,7 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
     if (ethash::is_less_or_equal(mineResult.final_hash, boundary)) {
       ethash_mining_result_t winning_result = {
           BlockhashToHexString(mineResult.final_hash),
-          BlockhashToHexString(mineResult.mix_hash), nonce, true};
+          BlockhashToHexString(mineResult.mix_hash), nonce, {}, true};
       return winning_result;
     }
     nonce++;
@@ -317,7 +317,7 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
     }
   }
 
-  ethash_mining_result_t failure_result = {"", "", 0, false};
+  ethash_mining_result_t failure_result = {"", "", 0, {}, false};
   return failure_result;
 }
 
@@ -332,7 +332,7 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
     if (ethash::is_less_or_equal(mineResult.final_hash, boundary)) {
       ethash_mining_result_t winning_result = {
           BlockhashToHexString(mineResult.final_hash),
-          BlockhashToHexString(mineResult.mix_hash), nonce, true};
+          BlockhashToHexString(mineResult.mix_hash), nonce, {}, true};
       return winning_result;
     }
     nonce++;
@@ -351,7 +351,7 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
     }
   }
 
-  ethash_mining_result_t failure_result = {"", "", 0, false};
+  ethash_mining_result_t failure_result = {"", "", 0, {}, false};
   return failure_result;
 }
 
@@ -364,7 +364,7 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
   m_minerIndex = 0;
   // Clear old result
   for (auto& miningResult : m_vecMiningResult) {
-    miningResult = ethash_mining_result_t{"", "", 0, false};
+    miningResult = ethash_mining_result_t{"", "", 0, {}, false};
   }
   for (size_t i = 0; i < m_miners.size(); ++i) {
     vecThread.push_back(std::make_unique<std::thread>([&] {
@@ -386,24 +386,24 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
     }
   }
 
-  return ethash_mining_result_t{"", "", 0, false};
+  return ethash_mining_result_t{"", "", 0, {}, false};
 }
 
 ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
                                        uint64_t blockNum,
                                        ethash_hash256 const& headerHash,
                                        ethash_hash256 const& boundary,
-                                       int timeWindow) {
+                                       int timeWindow, const HeaderHashParams& headerParams) {
   LOG_MARKER();
 
   m_shouldMine = true;
 
-  ethash_mining_result_t miningResult{"", "", 0, false};
+  ethash_mining_result_t miningResult{"", "", 0, {}, false};
   uint32_t retryTime = 0;
   bool sendWorkSuccess = false;
   do {
     if (SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary,
-                        timeWindow)) {
+                        timeWindow, headerParams)) {
       sendWorkSuccess = true;
       break;
     }
@@ -418,21 +418,23 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
 
   uint64_t nonce = 0;
   ethash_hash256 mixHash{};
+  zbytes extraData;
   bool checkResult = CheckMiningResult(pairOfKey, headerHash, boundary, nonce,
-                                       mixHash, timeWindow);
+                                       mixHash, timeWindow, extraData);
   if (!checkResult) {
     LOG_GENERAL(WARNING, "Failed to check pow result from mining proxy.");
     return miningResult;
   }
-
+  bool verifyResult;
   ethash_hash256 hashResult{};
-  auto verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, headerHash,
-                                       mixHash, hashResult);
+  if (!REMOTE_MINE_EXTRA_DATA) {
+    verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, headerHash, mixHash, hashResult);
+  } else {
+    auto computedHeaderHash = GenHeaderHash(headerParams.rand1, headerParams.rand2, headerParams.peer, pairOfKey.second, headerParams.lookupId, headerParams.gasPrice, extraData);
+    verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, computedHeaderHash, mixHash, hashResult);
+  }
   if (verifyResult) {
-    miningResult =
-        ethash_mining_result_t{BlockhashToHexString(hashResult),
-                               BlockhashToHexString(mixHash), nonce, true};
-
+    miningResult = ethash_mining_result_t{BlockhashToHexString(hashResult), BlockhashToHexString(mixHash), nonce, extraData, true};
   } else {
     LOG_GENERAL(WARNING, "Failed to verify PoW result from proxy.");
   }
@@ -446,82 +448,168 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
 
 bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                           ethash_hash256 const& headerHash,
-                          ethash_hash256 const& boundary, int timeWindow) {
+                          ethash_hash256 const& boundary, int timeWindow,
+                          const HeaderHashParams& headerParams) {
   LOG_MARKER();
 
-  zbytes tmp;
+  if (!REMOTE_MINE_EXTRA_DATA) {
+    zbytes tmp;
+    Json::Value jsonValue;
 
-  Json::Value jsonValue;
+    zbytes pubKeyData;
+    pairOfKey.second.Serialize(pubKeyData, 0);
+    jsonValue[0] = "0x" + BytesToHexString(pubKeyData.data(), pubKeyData.size());
+    tmp.insert(tmp.end(), pubKeyData.begin(), pubKeyData.end());
 
-  zbytes pubKeyData;
-  pairOfKey.second.Serialize(pubKeyData, 0);
-  jsonValue[0] = "0x" + BytesToHexString(pubKeyData.data(), pubKeyData.size());
-  tmp.insert(tmp.end(), pubKeyData.begin(), pubKeyData.end());
+    jsonValue[1] = "0x" + POW::BlockhashToHexString(headerHash);
+    tmp.insert(tmp.end(), headerHash.bytes,
+              headerHash.bytes + sizeof(ethash_hash256));
 
-  jsonValue[1] = "0x" + POW::BlockhashToHexString(headerHash);
-  tmp.insert(tmp.end(), headerHash.bytes,
-             headerHash.bytes + sizeof(ethash_hash256));
+    auto strBlockNumber =
+        DataConversion::IntegerToHexString<uint64_t, sizeof(uint64_t)>(blockNum);
+    jsonValue[2] = "0x" + strBlockNumber;
 
-  auto strBlockNumber =
-      DataConversion::IntegerToHexString<uint64_t, sizeof(uint64_t)>(blockNum);
-  jsonValue[2] = "0x" + strBlockNumber;
+    auto blockNumberBytes =
+        DataConversion::IntegerToBytes<uint64_t, sizeof(uint64_t)>(blockNum);
+    tmp.insert(tmp.end(), blockNumberBytes.begin(), blockNumberBytes.end());
 
-  auto blockNumberBytes =
-      DataConversion::IntegerToBytes<uint64_t, sizeof(uint64_t)>(blockNum);
-  tmp.insert(tmp.end(), blockNumberBytes.begin(), blockNumberBytes.end());
+    jsonValue[3] = "0x" + POW::BlockhashToHexString(boundary);
+    tmp.insert(tmp.end(), boundary.bytes,
+              boundary.bytes + sizeof(ethash_hash256));
 
-  jsonValue[3] = "0x" + POW::BlockhashToHexString(boundary);
-  tmp.insert(tmp.end(), boundary.bytes,
-             boundary.bytes + sizeof(ethash_hash256));
+    auto strPoWTime =
+        DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(
+            timeWindow);
+    jsonValue[4] = "0x" + strPoWTime;
+    auto powTimeBytes =
+        DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(timeWindow);
+    tmp.insert(tmp.end(), powTimeBytes.begin(), powTimeBytes.end());
 
-  auto strPoWTime =
-      DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(
-          timeWindow);
-  jsonValue[4] = "0x" + strPoWTime;
-  auto powTimeBytes =
-      DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(timeWindow);
-  tmp.insert(tmp.end(), powTimeBytes.begin(), powTimeBytes.end());
+    if (tmp.size() != (PUB_KEY_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t) +
+                      BLOCK_HASH_SIZE + sizeof(uint32_t))) {
+      LOG_GENERAL(WARNING, "Size of the buffer "
+                              << tmp.size()
+                              << " to generate signature is not correct.");
+      return false;
+    }
 
-  if (tmp.size() != (PUB_KEY_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t) +
-                     BLOCK_HASH_SIZE + sizeof(uint32_t))) {
-    LOG_GENERAL(WARNING, "Size of the buffer "
-                             << tmp.size()
-                             << " to generate signature is not correct.");
-    return false;
-  }
+    Signature signature;
+    if (!Schnorr::Sign(tmp, pairOfKey.first, pairOfKey.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign zil_requestWork json value.");
+      return false;
+    }
 
-  Signature signature;
-  if (!Schnorr::Sign(tmp, pairOfKey.first, pairOfKey.second, signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign zil_requestWork json value.");
-    return false;
-  }
+    std::string sigStr;
+    if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
+      LOG_GENERAL(WARNING, "Failed to convert signature to hex str");
+      return false;
+    }
+    jsonValue[5] = "0x" + sigStr;
 
-  std::string sigStr;
-  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
-    LOG_GENERAL(WARNING, "Failed to convert signature to hex str");
-    return false;
-  }
-  jsonValue[5] = "0x" + sigStr;
+    LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
-  LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
+    try {
+      jsonrpc::Client client(*m_httpClient);
+      Json::Value ret = client.CallMethod("zil_requestWork", jsonValue);
+      LOG_GENERAL(INFO, "zil_requestWork return: " << ret);
+      return ret.asBool();
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "Exception captured in jsonrpc api zil_requestWork, exception: "
+                      << e.what());
+      return false;
+    }
+  } else {
+    zbytes tmp;
+    Json::Value jsonValue;
 
-  try {
-    jsonrpc::Client client(*m_httpClient);
-    Json::Value ret = client.CallMethod("zil_requestWork", jsonValue);
-    LOG_GENERAL(INFO, "zil_requestWork return: " << ret);
-    return ret.asBool();
-  } catch (std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception captured in jsonrpc api zil_requestWork, exception: "
-                    << e.what());
-    return false;
+    zbytes pubKeyData;
+    headerParams.pubKey.Serialize(pubKeyData, 0);
+    jsonValue[0] = "0x" + BytesToHexString(pubKeyData.data(), pubKeyData.size());
+    tmp.insert(tmp.end(), pubKeyData.begin(), pubKeyData.end());
+
+    jsonValue[1] = "0x" + DataConversion::charArrToHexStrRet(headerParams.rand1);
+    tmp.insert(tmp.end(), headerParams.rand1.begin(), headerParams.rand1.end());
+
+    jsonValue[2] = "0x" + DataConversion::charArrToHexStrRet(headerParams.rand2);
+    tmp.insert(tmp.end(), headerParams.rand2.begin(), headerParams.rand2.end());
+    
+    zbytes peerData;
+    headerParams.peer.Serialize(peerData, 0);
+    jsonValue[3] = "0x" + BytesToHexString(peerData.data(), peerData.size());
+    tmp.insert(tmp.end(), peerData.begin(), peerData.end());
+
+    auto strLookupId = DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(headerParams.lookupId);
+    jsonValue[4] = "0x" + strLookupId;
+    auto lookupIdBytes = DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(headerParams.lookupId);
+    tmp.insert(tmp.end(), lookupIdBytes.begin(), lookupIdBytes.end());
+
+    auto strGasPrice = DataConversion::IntegerToHexString<uint128_t, sizeof(uint128_t)>(headerParams.gasPrice);
+    jsonValue[5] = "0x" + strGasPrice;
+    zbytes gasPriceBytes;
+    Serializable::SetNumber<uint128_t>(gasPriceBytes, 0, headerParams.gasPrice);
+    tmp.insert(tmp.end(), gasPriceBytes.begin(), gasPriceBytes.end());
+
+    auto strBlockNumber = DataConversion::IntegerToHexString<uint64_t, sizeof(uint64_t)>(blockNum);
+    jsonValue[6] = "0x" + strBlockNumber;
+    auto blockNumberBytes = DataConversion::IntegerToBytes<uint64_t, sizeof(uint64_t)>(blockNum);
+    tmp.insert(tmp.end(), blockNumberBytes.begin(), blockNumberBytes.end());
+
+    jsonValue[7] = "0x" + POW::BlockhashToHexString(boundary);
+    tmp.insert(tmp.end(), boundary.bytes, boundary.bytes + sizeof(ethash_hash256));
+
+    auto strPoWTime =
+        DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(
+            timeWindow);
+    jsonValue[8] = "0x" + strPoWTime;
+    auto powTimeBytes =
+        DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(timeWindow);
+    tmp.insert(tmp.end(), powTimeBytes.begin(), powTimeBytes.end());
+
+    if (tmp.size() != (PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE +
+                      (UINT128_SIZE + sizeof(uint32_t)) + sizeof(uint32_t) +
+                      sizeof(uint128_t) + sizeof(uint64_t) +
+                      BLOCK_HASH_SIZE + sizeof(uint32_t))) {
+      LOG_GENERAL(WARNING, "Size of the buffer "
+                              << tmp.size()
+                              << " to generate signature is not correct.");
+      return false;
+    }
+
+    Signature signature;
+    if (!Schnorr::Sign(tmp, pairOfKey.first, pairOfKey.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign zil_requestWorkWithHeaderHashParams json value.");
+      return false;
+    }
+
+    std::string sigStr;
+    if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
+      LOG_GENERAL(WARNING, "Failed to convert signature to hex str");
+      return false;
+    }
+    jsonValue[10] = "0x" + sigStr;
+
+    LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
+
+    try {
+      jsonrpc::Client client(*m_httpClient);
+      Json::Value ret = client.CallMethod("zil_requestWorkWithHeaderHashParams", jsonValue);
+      LOG_GENERAL(INFO, "zil_requestWorkWithHeaderHashParams return: " << ret);
+      return ret.asBool();
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "Exception captured in jsonrpc api zil_requestWorkWithHeaderHashParams, exception: "
+                      << e.what());
+      return false;
+    }
   }
 }
 
 bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
                             ethash_hash256 const& headerHash,
                             ethash_hash256 const& boundary, uint64_t& nonce,
-                            ethash_hash256& mixHash, int timeWindow) {
+                            ethash_hash256& mixHash, int timeWindow,
+                            zbytes& extraData) {
   Json::Value jsonValue;
 
   zbytes tmp;
@@ -576,28 +664,61 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
 
     try {
       jsonrpc::Client client(*m_httpClient);
-      Json::Value ret = client.CallMethod("zil_checkWorkStatus", jsonValue);
-      LOG_GENERAL(INFO, "zil_checkWorkStatus return: " << ret);
+      if (!REMOTE_MINE_EXTRA_DATA) {
+        Json::Value ret = client.CallMethod("zil_checkWorkStatus", jsonValue);
+        LOG_GENERAL(INFO, "zil_checkWorkStatus return: " << ret);
 
-      if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
-        LOG_GENERAL(WARNING,
-                    "Mining proxy return invalid result, ret array size: "
-                        << ret.size());
-        continue;
+        if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
+          LOG_GENERAL(WARNING,
+                      "Mining proxy return invalid result, ret array size: "
+                          << ret.size());
+          continue;
+        }
+
+        bool workDone = ret[0].asBool();
+        if (!workDone) {
+          continue;
+        }
+
+        nonce = std::strtoull(ret[1].asCString(), NULL, 16);
+        mixHash = StringToBlockhash(ret[3].asString());
+        LOG_GENERAL(INFO, "PoW result from proxy, nonce: "
+                              << nonce << ", headerHash: " << ret[2].asString()
+                              << " mix hash: " << ret[3].asString());
+
+        return true;
+      } else {
+        Json::Value ret = client.CallMethod("zil_checkWorkStatusWithExtraData", jsonValue);
+        LOG_GENERAL(INFO, "zil_checkWorkStatusWithExtraData return: " << ret);
+
+        if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
+          LOG_GENERAL(WARNING,
+                      "Mining proxy return invalid result, ret array size: "
+                          << ret.size());
+          continue;
+        }
+
+        bool workDone = ret[0].asBool();
+        if (!workDone) {
+          continue;
+        }
+
+        nonce = std::strtoull(ret[1].asCString(), NULL, 16);
+
+        extraData = HexStringToBytes(ret[2].asString());
+        if (extraData.size() > 32) {
+          LOG_GENERAL(WARNING, "Invalid extraData size. Size is " << extraData.size());
+          return false;
+        }
+
+        mixHash = StringToBlockhash(ret[3].asString());
+
+        LOG_GENERAL(INFO, "PoW result from proxy, nonce: "
+                              << nonce << ", extraData: " << ret[2].asString()
+                              << " mix hash: " << ret[3].asString());
+
+        return true;
       }
-
-      bool workDone = ret[0].asBool();
-      if (!workDone) {
-        continue;
-      }
-
-      nonce = std::strtoull(ret[1].asCString(), NULL, 16);
-      mixHash = StringToBlockhash(ret[3].asString());
-      LOG_GENERAL(INFO, "PoW result from proxy, nonce: "
-                            << nonce << ", headerHash: " << ret[2].asString()
-                            << " mix hash: " << ret[3].asString());
-
-      return true;
     } catch (std::exception& e) {
       LOG_GENERAL(
           WARNING,
@@ -705,7 +826,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
     if (!m_miners[index]->mine(wp, solution)) {
       LOG_GENERAL(WARNING, "GPU failed to do mine, GPU miner log: "
                                << m_miners[index]->getLog());
-      m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
+      m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, {}, false};
       m_cvMiningResult.notify_one();
       return;
     }
@@ -714,7 +835,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
     if (ethash::is_less_or_equal(hashResult.final_hash, boundary)) {
       m_vecMiningResult[index] =
           ethash_mining_result_t{BlockhashToHexString(hashResult.final_hash),
-                                 solution.mixHash.hex(), solution.nonce, true};
+                                 solution.mixHash.hex(), solution.nonce, {}, true};
       m_cvMiningResult.notify_one();
       return;
     }
@@ -734,7 +855,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
     }
   }
 
-  m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
+  m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, {}, false};
   m_cvMiningResult.notify_one();
   return;
 }
@@ -742,7 +863,8 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
 zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                           const std::array<unsigned char, UINT256_SIZE>& rand2,
                           const Peer& peer, const PubKey& pubKey,
-                          uint32_t lookupId, const uint128_t& gasPrice) {
+                          uint32_t lookupId, const uint128_t& gasPrice,
+                          const zbytes& extraData) {
   zbytes vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
@@ -759,6 +881,10 @@ zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                                     sizeof(uint32_t));
   Serializable::SetNumber<uint128_t>(vec, vec.size(), gasPrice, UINT128_SIZE);
 
+  for (const auto& s1 : extraData) {
+    vec.push_back(s1);
+  }
+
   SHA256Calculator sha2;
   sha2.Update(vec);
   zbytes sha2_result = sha2.Finalize();
@@ -768,9 +894,10 @@ zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
-    const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice) {
+    const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice,
+    const zbytes& extraData) {
   zbytes sha2_result =
-      ConcatAndhash(rand1, rand2, peer, pubKey, lookupId, gasPrice);
+      ConcatAndhash(rand1, rand2, peer, pubKey, lookupId, gasPrice, extraData);
 
   // Let's hash the inputs before feeding to ethash
   std::string output;
@@ -784,7 +911,7 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
                                     const PairOfKey& pairOfKey,
                                     const ethash_hash256& headerHash,
                                     bool fullDataset, uint64_t startNonce,
-                                    int timeWindow) {
+                                    int timeWindow, const HeaderHashParams& headerParams) {
   LOG_MARKER();
   // mutex required to prevent a new mining to begin before previous mining
   // operation has ended(ie. m_shouldMine=false has been processed) and
@@ -799,9 +926,9 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
   m_shouldMine = true;
 
   if (REMOTE_MINE) {
-    result = RemoteMine(pairOfKey, blockNum, headerHash, boundary, timeWindow);
+    result = RemoteMine(pairOfKey, blockNum, headerHash, boundary, timeWindow, headerParams);
   } else if (GETWORK_SERVER_MINE) {
-    result = MineGetWork(blockNum, headerHash, difficulty, timeWindow);
+    result = MineGetWork(blockNum, headerHash, difficulty, timeWindow, headerParams);
   } else if (OPENCL_GPU_MINE) {
     result =
         MineFullGPU(blockNum, headerHash, difficulty, startNonce, timeWindow);

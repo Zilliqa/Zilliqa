@@ -625,6 +625,7 @@ class Node : public Executable {
                              const uint64_t winningNonce,
                              const std::string& powResultHash,
                              const std::string& powMixhash,
+                             const zbytes& extraData,
                              const uint32_t& lookupId,
                              const uint128_t& gasPrice);
 
