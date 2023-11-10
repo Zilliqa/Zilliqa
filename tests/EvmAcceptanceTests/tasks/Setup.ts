@@ -10,7 +10,7 @@ import {askAmount, askForAccount, askForAccountType, askForAddress} from "../hel
 enum WhatDoYouWantToDo {
   RunTestsSequentially,
   RunTestsInParallel,
-  RefundCurrentSigners,
+  RefundCurrentSigners
 }
 
 task("setup", "A task to setup test suite").setAction(async (taskArgs, hre) => {
@@ -51,7 +51,7 @@ const askWhatDoYouWantToDo = async (): Promise<WhatDoYouWantToDo> => {
       {
         name: "Refund current signers",
         value: WhatDoYouWantToDo.RefundCurrentSigners
-      },
+      }
     ]
   });
 };

@@ -355,6 +355,7 @@ extern const unsigned int RECONNECT_INTERVAL_IN_MS;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
+extern const bool REMOTE_MINE_EXTRA_DATA;
 extern const std::string MINING_PROXY_URL;
 extern const unsigned int MINING_PROXY_TIMEOUT_IN_MS;
 extern const unsigned int MAX_RETRY_SEND_POW_TIME;

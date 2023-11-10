@@ -276,17 +276,18 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   // Light client mine and verify
   uint8_t difficultyToUse = 5;
   uint64_t blockToUse = 0;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result =
       POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, false,
-                        std::time(0), POW_WINDOW_IN_SECONDS);
+                        std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
-  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
                           winning_result.winning_nonce, winning_result.result,
@@ -319,17 +320,18 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   // Light client mine and verify
   uint8_t difficultyToUse = 3;
   uint64_t blockToUse = 34567;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result =
       POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, false,
-                        std::time(0), POW_WINDOW_IN_SECONDS);
+                        std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
-  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
                           winning_result.winning_nonce, winning_result.result,
@@ -362,17 +364,18 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   // Light client mine and verify
   uint8_t difficultyToUse = 5;
   uint64_t blockToUse = 0;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result =
       POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
-                        std::time(0), POW_WINDOW_IN_SECONDS);
+                        std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
-  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
                           winning_result.winning_nonce, winning_result.result,
@@ -405,10 +408,11 @@ BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
   // Light client mine and verify
   uint8_t difficultyToUse = 50;
   uint64_t blockToUse = 0;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result =
       POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
-                        std::time(0), POW_WINDOW_IN_SECONDS);
+                        std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
   BOOST_REQUIRE(!winning_result.success);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
@@ -441,17 +445,18 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result =
       POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
-                        std::time(0), POW_WINDOW_IN_SECONDS);
+                        std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
-  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
                           winning_result.winning_nonce, winning_result.result,
@@ -498,17 +503,18 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   // Light client mine and verify
   uint8_t difficultyToUse = 20;
   uint64_t blockToUse = 1234567;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
+  HeaderHashParams headerParams{rand1, rand2, peer, pubKey, 0, 0};
   ethash_mining_result_t winning_result =
       POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
-                        std::time(0), POW_WINDOW_IN_SECONDS);
+                        std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
-  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0);
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, peer, pubKey, 0, 0, {});
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
                           winning_result.winning_nonce, winning_result.result,

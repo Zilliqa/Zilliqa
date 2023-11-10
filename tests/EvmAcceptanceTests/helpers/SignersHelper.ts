@@ -61,7 +61,7 @@ export const loadSignersFromConfig = (hre: HardhatRuntimeEnvironment): string[] 
 };
 
 export const getAllSigners = (hre: HardhatRuntimeEnvironment): string[] => {
-  return [...loadFromSignersFile(hre.network.name), ...loadSignersFromConfig(hre)];
+  return loadSignersFromConfig(hre);
 };
 
 export const getEthSignersBalances = async (
