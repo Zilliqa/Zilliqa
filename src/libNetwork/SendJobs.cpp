@@ -249,7 +249,11 @@ void CloseGracefully(Socket&& socket) {
   socket.close(ec);
 }
 
-constinit std::chrono::milliseconds IDLE_TIMEOUT(120000);
+constinit std::chrono::seconds IDLE_TIMEOUT_IP_ONLY(120);
+// We don't want to resolve dns name very often, give more idle time for this
+// type of connections
+constinit std::chrono::seconds IDLE_TIMEOUT_DNS(3600);
+constinit std::chrono::milliseconds SLOW_SEND_TO_REPORT(5000);
 
 }  // namespace
 
@@ -302,13 +306,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
  private:
   void Resolve() {
-    if (!std::empty(m_peer.GetHostname())) {
+    if (!std::empty(m_peer.GetHostname()) && !m_is_resolving) {
+      m_is_resolving = true;
       m_resolver.async_resolve(
-          m_peer.GetHostname(), "",
+          m_peer.GetHostname(), std::to_string(m_peer.GetListenPortHost()),
           [self = shared_from_this()](
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
             if (!ec) {
+              LOG_GENERAL(INFO, "Successfully resolved dns name: "
+                                    << self->m_peer.GetHostname());
               self->OnResolved(endpoints);
             } else {
               LOG_GENERAL(WARNING, "Unable to resolve dns name: "
@@ -326,20 +333,35 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     ErrorCode ignored;
     m_timer.cancel(ignored);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
-      m_socket.cancel();
-      OnConnected(TIMED_OUT);
-    });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
+              [self = shared_from_this()]() {
+                LOG_GENERAL(WARNING,
+                            "Unable to connect within "
+                                << CONNECTION_TIMEOUT_IN_MS
+                                << ", canceling any operation on the socket "
+                                   "with remote dns/ip: "
+                                << self->m_peer.GetHostname() << "/"
+                                << self->m_peer.GetPrintableIPAddress());
+                self->m_socket.cancel();
+                self->OnConnected(TIMED_OUT);
+              });
 
+    LOG_GENERAL(INFO,
+                "I'll try to connect to remote IP since the dns name was "
+                "successfully resolved, peer: "
+                    << m_peer.GetHostname());
     boost::asio::async_connect(
         m_socket, endpoints,
         [self = shared_from_this()](const ErrorCode& ec,
                                     const Endpoint& endpoint) {
+          LOG_GENERAL(INFO,
+                      "Async connect handler called with ec: " << ec.message());
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
-            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
-                                   << self->m_endpoint << ": " << ec.message()
-                                   << " (" << ec << ')');
+            LOG_GENERAL(INFO, "Connection (via async resolve) to "
+                                  << self->m_endpoint << ": " << ec.message()
+                                  << " (" << ec << ')'
+                                  << ", queue size: " << self->m_queue.size());
 
             self->m_timer.cancel();
             self->OnConnected(ec);
@@ -365,10 +387,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS}, [this]() {
-      m_socket.cancel();
-      OnConnected(TIMED_OUT);
-    });
+    WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
+              [self = shared_from_this()]() {
+                LOG_GENERAL(WARNING,
+                            "Unable to connect within "
+                                << CONNECTION_TIMEOUT_IN_MS
+                                << ", canceling any operation on the socket");
+                self->m_socket.cancel();
+                self->OnConnected(TIMED_OUT);
+              });
 
     m_socket.async_connect(
         m_endpoint, [self = shared_from_this()](const ErrorCode& ec) {
@@ -384,12 +411,19 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void OnConnected(const ErrorCode& ec) {
     if (m_closed) {
+      LOG_GENERAL(INFO,
+                  "It looks the OnConnected was called when socket was already "
+                  "closed, returning");
       return;
     }
     if (!ec) {
+      LOG_GENERAL(INFO, "There's no error, so sending the message from queue");
       m_connected = true;
+      m_is_resolving = false;
       SendMessage();
     } else {
+      LOG_GENERAL(INFO, "There was an error: " << ec.message()
+                                               << ", so I'll try to reconnect");
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
@@ -398,9 +432,13 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   bool FindNotExpiredMessage() {
     auto clock = Clock();
     while (!m_queue.empty()) {
-      if (m_queue.front().expires_at < clock) {
+      // Messages sent to entities having dns name don't expire
+      if (std::empty(m_peer.GetHostname()) &&
+          m_queue.front().expires_at < clock) {
+        LOG_GENERAL(INFO, "Dropping P2P message as expired, peer="
+                              << m_peer << ", elapsed [ms]: "
+                              << (clock - m_queue.front().expires_at).count());
         m_queue.pop_front();
-        LOG_GENERAL(INFO, "Dropping P2P message as expired, peer=" << m_peer);
         // TODO metric about message drops
       } else {
         return true;
@@ -419,7 +457,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!FindNotExpiredMessage()) {
       if (m_connected && !m_noWait && !m_isMultiplier) {
         m_inIdleTimeout = true;
-        WaitTimer(m_timer, IDLE_TIMEOUT, [this]() { OnIdleTimer(); });
+        const auto delay = std::empty(m_peer.GetHostname())
+                               ? IDLE_TIMEOUT_IP_ONLY
+                               : IDLE_TIMEOUT_DNS;
+        WaitTimer(m_timer, delay, [this]() { OnIdleTimer(); });
       } else {
         Done();
       }
@@ -432,11 +473,21 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
-        [self = shared_from_this()](const ErrorCode& ec, size_t) {
-          if (ec) {
-            // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
-          }
+        [self = shared_from_this(),
+         start_time = std::chrono::steady_clock::now()](const ErrorCode& ec,
+                                                        size_t) {
           if (ec != OPERATION_ABORTED) {
+            const auto now = std::chrono::steady_clock::now();
+
+            if (now - start_time > SLOW_SEND_TO_REPORT) {
+              LOG_GENERAL(
+                  WARNING,
+                  "Slow send, it took: "
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(
+                             now - start_time)
+                             .count()
+                      << "[ms] to deliver msg");
+            }
             self->OnWritten(ec);
           }
         });
@@ -531,6 +582,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   // it's hard to determine is an asio socket really connected, so explicit var
   bool m_connected = false;
 
+  // Checks wheter dns resolve call is taking place
+  bool m_is_resolving = false;
+
   bool m_inIdleTimeout = false;
 
   bool m_noWait = false;
@@ -560,7 +614,8 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size <<" peer = "<< peer);
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
+                                                   << " peer = " << peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread

@@ -221,7 +221,8 @@ bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
   return true;
 }
 
-bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
+bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
+    bool afterRecovery) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -354,7 +355,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   SetState(FINALBLOCK_CONSENSUS);
 
   cl->StartConsensus(preprepFBAnnouncementGeneratorFunc,
-                     newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
+                     newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE,
+                     afterRecovery);
 
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
@@ -1311,7 +1313,7 @@ void DirectoryService::CalculateCurrentDSMBGasLimit() {
   }
 }
 
-void DirectoryService::RunConsensusOnFinalBlock() {
+void DirectoryService::RunConsensusOnFinalBlock(bool afterRecover) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1362,8 +1364,11 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // function, but rather wait for view change.
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
-      this_thread::sleep_for(chrono::milliseconds(DS_ANNOUNCEMENT_DELAY_IN_MS));
-      ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
+      const auto announceDealy = afterRecover ? DS_ANNOUNCEMENT_DELAY_IN_MS * 3
+                                              : DS_ANNOUNCEMENT_DELAY_IN_MS;
+      this_thread::sleep_for(chrono::milliseconds(announceDealy));
+      ConsensusObjCreation =
+          RunConsensusOnFinalBlockWhenDSPrimary(afterRecover);
       if (!ConsensusObjCreation) {
         LOG_GENERAL(WARNING,
                     "Consensus failed at "
@@ -1385,13 +1390,16 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     }
   }
 
-  auto func1 = [this]() -> void {
+  auto func1 = [this, afterRecover]() -> void {
     // View change will wait for timeout. If conditional variable is notified
     // before timeout, the thread will return without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+
+    const auto viewchangeTime =
+        afterRecover ? (VIEWCHANGE_TIME * 2) : VIEWCHANGE_TIME;
     // TODO: cv fix
     if (cv_viewChangeFinalBlock.wait_for(
-            cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
+            cv_lk, std::chrono::seconds(viewchangeTime)) ==
         std::cv_status::timeout) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Initiated final block view change");

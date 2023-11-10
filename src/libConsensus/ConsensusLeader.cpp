@@ -1068,7 +1068,7 @@ ConsensusLeader::~ConsensusLeader() {}
 bool ConsensusLeader::StartConsensus(
     const AnnouncementGeneratorFunc& announcementGeneratorFunc,
     const AnnouncementGeneratorFunc& newAnnouncementGeneratorFunc,
-    bool useGossipProto) {
+    bool useGossipProto, bool afterRecovery) {
   LOG_MARKER();
 
   // Initial checks
@@ -1118,11 +1118,14 @@ bool ConsensusLeader::StartConsensus(
   if (m_numOfSubsets > 1) {
     // Start timer for accepting commits
     // =================================
-    auto func = [this]() -> void {
+    auto func = [this, afterRecovery]() -> void {
       std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
       m_sufficientCommitsReceived = false;
+      const auto commitWindowSeconds = afterRecovery
+                                           ? (COMMIT_WINDOW_IN_SECONDS * 2)
+                                           : COMMIT_WINDOW_IN_SECONDS;
       if (cv_scheduleSubsetConsensus.wait_for(
-              cv_lk, std::chrono::seconds(COMMIT_WINDOW_IN_SECONDS),
+              cv_lk, std::chrono::seconds(commitWindowSeconds),
               [&] { return m_sufficientCommitsReceived; })) {
         LOG_GENERAL(INFO, "Sufficient commits within window");
       } else {
@@ -1239,12 +1242,8 @@ void ConsensusLeader::Audit(bool checkForResponses) {
       }
     }
   };
-
-  if (checkForResponses) {
-    responseAudit();
-  } else {
-    commitAudit();
-  }
+  commitAudit();
+  responseAudit();
 }
 #define MAKE_LITERAL_PAIR(s) \
   { s, #s }

@@ -390,6 +390,13 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   zbytes reserialized_message;
   PubKey senderPubKey;
 
+  if (!m_consensusObject) {
+    LOG_GENERAL(WARNING,
+                "Consensus object has not been created yet! Please check "
+                "consensus timings!");
+    return false;
+  }
+
   if (!m_consensusObject->PreProcessMessage(
           message, offset, consensus_id, senderPubKey, reserialized_message)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
