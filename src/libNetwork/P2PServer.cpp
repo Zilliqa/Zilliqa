@@ -208,7 +208,7 @@ class P2PServerImpl : public P2PServer,
   }
 
   void AcceptNextConnection() {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(DEBUG,
                 "Scheduling acceptor to asynchronously accept new connection");
     m_acceptor.async_accept(
         [wptr = weak_from_this()](const ErrorCode& ec, TcpSocket sock) {
@@ -244,7 +244,7 @@ class P2PServerImpl : public P2PServer,
     m_connections.erase(id);
     zil::local::obs_variables.AddClose(1);
     zil::local::obs_variables.SubActive(1);
-    LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
+    LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
   }
 
  private:
@@ -259,7 +259,7 @@ class P2PServerImpl : public P2PServer,
         zil::local::obs_variables.AddErrors(1);
         return;
       }
-      LOG_GENERAL(INFO, "Accepted new connection from: "
+      LOG_GENERAL(DEBUG, "Accepted new connection from: "
                             << maybe_peer.value().GetPrintableIPAddress());
       auto conn = std::make_shared<P2PServerConnection>(
           weak_from_this(), ++m_counter,
@@ -270,10 +270,10 @@ class P2PServerImpl : public P2PServer,
 
       m_connections[m_counter] = std::move(conn);
       zil::local::obs_variables.AddActive(1);
-      LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
+      LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
       zil::local::obs_variables.AddConnects(1);
     } else {
-      LOG_GENERAL(FATAL, "Error in accept : " << ec.message());
+      LOG_GENERAL(DEBUG, "Error in accept : " << ec.message());
       zil::local::obs_variables.AddErrors(1);
     }
   }
@@ -369,7 +369,7 @@ void P2PServerConnection::ReadNextMessage() {
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
     if (ec != END_OF_FILE) {
-      LOG_GENERAL(INFO, "Peer " << m_remotePeer << " read error: " << ec.message());
+      LOG_GENERAL(DEBUG, "Peer " << m_remotePeer << " read error: " << ec.message());
     }
     CloseSocket();
     OnConnectionClosed();
@@ -412,7 +412,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
     if (ec != END_OF_FILE){
-      LOG_GENERAL(INFO, "Read error: " << ec.message());
+      LOG_GENERAL(DEBUG, "Read error: " << ec.message());
       zil::local::obs_variables.AddErrors(1);
     }
     CloseSocket();
@@ -491,18 +491,18 @@ void P2PServerConnection::CloseSocket() {
   // is a blocking call that waits for the OS to complete the closedown. close
   // also frees the OS resources from the program so should be called even if an
   // error condition is encountered
-  LOG_GENERAL(INFO, "Attempting to do a shudtown on a socket");
+  LOG_GENERAL(DEBUG, "Attempting to do a shutdown on a socket");
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
     LOG_GENERAL(INFO, "Shutdown completed with an error: " << ec.message());
     m_socket.close(ec);
     zil::local::obs_variables.AddErrors(1);
-    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
+    LOG_GENERAL(DEBUG, "Informational, not an issue - Error closing socket: "
                             << ec.message());
     return;
   }
   size_t unread = m_socket.available(ec);
-  LOG_GENERAL(INFO, "Number of unread bytes available on socket: "
+  LOG_GENERAL(DEBUG, "Number of unread bytes available on socket: "
                         << unread << ", ec: " << ec.message());
   if (ec) {
     m_socket.close(ec);
@@ -522,17 +522,17 @@ void P2PServerConnection::CloseSocket() {
       boost::container::small_vector<uint8_t, BUFF_SIZE> buf;
       buf.resize(std::min(unread, BUFF_SIZE));
       m_socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
-      LOG_GENERAL(INFO, "Draining remaining IO before close"
+      LOG_GENERAL(DEBUG, "Draining remaining IO before close"
                             << m_remotePeer.GetPrintableIPAddress());
     } while (!ec && (unread = m_socket.available(ec)) > 0);
   }
   m_socket.close(ec);
   if (ec) {
-    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
+    LOG_GENERAL(DEBUG, "Informational, not an issue - Error closing socket: "
                           << ec.message());
     zil::local::obs_variables.AddErrors(1);
   }
-  LOG_GENERAL(INFO, "Connection completely closed with peer: "
+  LOG_GENERAL(DEBUG, "Connection completely closed with peer: "
                         << m_remotePeer.GetPrintableIPAddress());
 }
 
