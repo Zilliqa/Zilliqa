@@ -752,7 +752,7 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
            "-n", "7",
            "-d", "7",
            "-s", "7",
-           "-l", "7",
+           "-l", "1",
            "--guard", "5/0",
            "--gentxn", "false",
            "--multiplier-fanout", "1",
