@@ -176,6 +176,7 @@ echo "Install directory: ${install_dir}"
 
 
 echo building using $jobs jobs
+jobs=6
 
 cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS}  -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
 cmake --build "${build_dir}" --config ${build_type} -j $jobs

@@ -35,3 +35,8 @@ add_executable (Test_Peer Test_Peer.cpp)
 target_include_directories (Test_Peer PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Peer PUBLIC Network)
 add_test(NAME Test_Peer COMMAND Test_Peer)
+
+add_executable (Test_Rumours Test_Rumours.cpp)
+target_include_directories (Test_Rumours PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_Rumours PUBLIC Network Utils Boost::unit_test_framework)
+add_test(NAME Test_Rumours COMMAND Test_Rumours)
