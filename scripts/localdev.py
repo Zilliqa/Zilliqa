@@ -766,11 +766,11 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
                os.path.join(ZILLIQA_DIR, "constants.xml"),
                "--image", zilliqa_image,
-               "-n", "15",
-               "-s", "15",
-               "-d", "15",
+               "-n", "30",
+               "-s", "30",
+               "-d", "30",
                "-l", "1",
-               "--guard", "7/0",
+               "--guard", "17/0",
                "--gentxn", "false",
                "--multiplier-fanout", "1",
                "--host-network", "false",
@@ -811,8 +811,9 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
     xml_replace_element(config_file, config_file.documentElement, "SIGN_VERIFY_NONEMPTY_MSGTYP", "false")
     xml_replace_element(config_file, config_file.documentElement, "MAX_NEIGHBORS_PER_ROUND", "3")
     xml_replace_element(config_file, config_file.documentElement, "NUM_GOSSIP_RECEIVERS", "3")
-    xml_replace_element(config_file, config_file.documentElement, "ROUND_TIME_IN_MS", "1000")
     '''
+    xml_replace_element(config_file, config_file.documentElement, "ROUND_TIME_IN_MS", "1000")
+
 
 
     if chain_id is not None:
