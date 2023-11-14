@@ -212,7 +212,7 @@
     </jsonrpc>
     <network_composition>
         <COMM_SIZE>600</COMM_SIZE>
-        <NUM_DS_ELECTION>10</NUM_DS_ELECTION>
+        <NUM_DS_ELECTION>2</NUM_DS_ELECTION>
         <!-- DS Node must meet this minimum threshold to remain in the committee -->
         <DS_PERFORMANCE_THRESHOLD_PERCENT>0.05</DS_PERFORMANCE_THRESHOLD_PERCENT>
         <!-- Maximum number of Byzantine DS Nodes to remove each round. Must be smaller than
@@ -386,7 +386,7 @@
     </trace>
     <logging>
         <zilliqa>
-              <LOGGING_ZILLIQA_PROVIDER>NONE</LOGGING_ZILLIQA_PROVIDER>
+            <LOGGING_ZILLIQA_PROVIDER>NONE</LOGGING_ZILLIQA_PROVIDER>
         </zilliqa>
     </logging>
     <verifier>
