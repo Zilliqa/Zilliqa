@@ -199,19 +199,19 @@ bool DataSender::SendDataToOthers(
       tmpCommittee.push_back(sendercommittee.at(i));
     }
   }
-  // Always use leader for sending data to lookups
+
+  bool inB2 = false;
   uint16_t indexB2 = 0;
   for (const auto& entry : tmpCommittee) {
     if (entry.second == Peer()) {
+      inB2 = true;
       break;
     }
     indexB2++;
   }
 
-  if (indexB2 == 0 && !std::empty(tmpCommittee)) {
-    LOG_GENERAL(
-        INFO,
-        "I'm a leader who signed this block, I'll send it to all lookups");
+  if (inB2) {
+    LOG_GENERAL(INFO, "I'm in B2 set, so I'll try to send data to others");
     zbytes message;
     if (!(composeMessageForSenderFunc &&
           composeMessageForSenderFunc(message))) {
@@ -220,10 +220,60 @@ bool DataSender::SendDataToOthers(
           "composeMessageForSenderFunc undefined or cannot compose message");
       return false;
     }
-    LOG_GENERAL(INFO, "I will send data to the lookups");
-    if (sendDataToLookupFunc) {
-      sendDataToLookupFunc(lookups, message);
+
+    uint16_t randomDigits =
+        DataConversion::charArrTo16Bits(hashForRandom.asBytes());
+    bool committeeTooSmall = tmpCommittee.size() <= TX_SHARING_CLUSTER_SIZE;
+    uint16_t nodeToSendToLookUpLo =
+        committeeTooSmall
+            ? 0
+            : (randomDigits % (tmpCommittee.size() - TX_SHARING_CLUSTER_SIZE));
+    uint16_t nodeToSendToLookUpHi =
+        committeeTooSmall ? tmpCommittee.size()
+                          : nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+    if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
+      LOG_GENERAL(INFO, "I will send data to the lookups");
+      if (sendDataToLookupFunc) {
+        sendDataToLookupFunc(lookups, message);
+      }
+    } else {
+      LOG_GENERAL(WARNING,
+                  "I'm not going to send data to others because: IndexB2 is: "
+                      << indexB2
+                      << ", nodeLookupLo is : " << nodeToSendToLookUpLo
+                      << ", nodeLookupHi is: " << nodeToSendToLookUpHi);
     }
+
+    if (!shards.empty()) {
+      unsigned int my_cluster_num = UINT_MAX;
+      unsigned int my_shards_lo = 0;
+      unsigned int my_shards_hi = 0;
+
+      DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
+                                 shards, tmpCommittee, indexB2);
+
+      if ((my_cluster_num + 1) <= shards.size()) {
+        LOG_GENERAL(INFO, "I will send data to the shards");
+        if (sendDataToShardFunc) {
+          sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
+        } else {
+          std::deque<VectorOfPeer> sharded_receivers;
+          DetermineNodesToSendDataTo(shards, consensusMyId, forceMulticast,
+                                     sharded_receivers);
+          SendDataToShardNodesDefault(message, sharded_receivers,
+                                      forceMulticast);
+        }
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Shards size is: " << shards.size()
+                                              << ", so no data was sent there");
+    }
+  } else {
+    LOG_GENERAL(WARNING, "I'm NOT in B2 set! "
+                             << "B2 size " << blockwcosigSender.GetB2().size()
+                             << " and committee size "
+                             << sendercommittee.size());
   }
 
   return true;
