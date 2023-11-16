@@ -329,6 +329,8 @@ void Lookup::SetLookupNodes() {
     level++;
   }
 
+  LOG_GENERAL(INFO, "Loaded lookup nodes, size of m_lookupNodes is now: "
+                        << std::size(m_lookupNodes));
   m_lookupNodesStatic = m_lookupNodes;
 
   /*
@@ -651,6 +653,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
+    LOG_GENERAL(INFO, "m_lookupNodes has size: " << std::size(m_lookupNodes));
     for (const auto& node : m_lookupNodes) {
       Blacklist::GetInstance().Whitelist(
           {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
