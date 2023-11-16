@@ -19,15 +19,98 @@
 
 #include <optional>
 #include <unordered_map>
+#include <atomic>
 
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/container/small_vector.hpp>
-
+#include "libMetrics/Api.h"
 #include "Blacklist.h"
 #include "libUtils/Logger.h"
+
+namespace zil {
+namespace local {
+
+class P2PServerVariables {
+  int connects = 0;
+  int closes = 0;
+  int active = 0;
+  int reads = 0;
+  int writes = 0;
+  int errors = 0;
+  int timeouts = 0;
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void AddConnects(int count) {
+    Init();
+    connects += count;
+  }
+
+  void AddClose(int count) {
+    Init();
+    closes += count;
+  }
+
+  void AddActive(int count) {
+    Init();
+    active += count;
+  }
+
+  void SubActive(int count) {
+    Init();
+    active -= count;
+  }
+
+  void AddReads(int amount) {
+    Init();
+    reads += amount;
+  }
+
+  void AddWrites(int count) {
+    Init();
+    writes += count;
+  }
+
+  void AddErrors(int count) {
+    Init();
+    writes += count;
+  }
+
+  void AddTimeouts(int count) {
+    Init();
+    timeouts += count;
+  }
+
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "p2pServer.gauge",
+                                          "p2pServer metrics", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(connects,
+                   {{"counter", "Connects"}});
+        result.Set(closes,
+                   {{"counter", "Closes"}});
+        result.Set(active,
+                   {{"counter", "Active"}});
+        result.Set(reads, {{"counter", "Reads"}});
+        result.Set(writes,
+                   {{"counter", "Writes"}});
+        result.Set(errors,
+                   {{"counter", "Errors"}});
+        result.Set(timeouts,
+                   {{"counter", "Timeouts"}});
+      });
+    }
+  }
+};
+static thread_local P2PServerVariables obs_variables{};
+}  // namespace local
+}  // namespace zil
 
 namespace zil::p2p {
 
@@ -101,6 +184,7 @@ std::optional<Peer> ExtractRemotePeer(const TcpSocket& socket) {
   } else {
     LOG_GENERAL(WARNING,
                 "Cannot extract address from endpoint: " << ec.message());
+    zil::local::obs_variables.AddErrors(1);
   }
   return result;
 }
@@ -124,7 +208,7 @@ class P2PServerImpl : public P2PServer,
   }
 
   void AcceptNextConnection() {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(DEBUG,
                 "Scheduling acceptor to asynchronously accept new connection");
     m_acceptor.async_accept(
         [wptr = weak_from_this()](const ErrorCode& ec, TcpSocket sock) {
@@ -135,12 +219,14 @@ class P2PServerImpl : public P2PServer,
             } else {
               LOG_GENERAL(WARNING, "Got an error from Accept in P2P Server: "
                                        << ec.message());
+              zil::local::obs_variables.AddErrors(1);
             }
             parent->AcceptNextConnection();
           } else {
             LOG_GENERAL(WARNING,
                         "Parent doesn't exist anymore, this may happen only "
                         "during shutdown phase of Zilliqa");
+            zil::local::obs_variables.AddErrors(1);
           }
         });
   }
@@ -156,8 +242,9 @@ class P2PServerImpl : public P2PServer,
 
   void OnConnectionClosed(uint64_t id) {
     m_connections.erase(id);
-    // TODO metric about m_connections.size()
-    LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
+    zil::local::obs_variables.AddClose(1);
+    zil::local::obs_variables.SubActive(1);
+    LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
   }
 
  private:
@@ -169,9 +256,10 @@ class P2PServerImpl : public P2PServer,
       auto maybe_peer = ExtractRemotePeer(socket);
       if (!maybe_peer) {
         LOG_GENERAL(WARNING, "Couldn't get the IP address from remove socket!");
+        zil::local::obs_variables.AddErrors(1);
         return;
       }
-      LOG_GENERAL(INFO, "Accepted new connection from: "
+      LOG_GENERAL(DEBUG, "Accepted new connection from: "
                             << maybe_peer.value().GetPrintableIPAddress());
       auto conn = std::make_shared<P2PServerConnection>(
           weak_from_this(), ++m_counter,
@@ -181,10 +269,12 @@ class P2PServerImpl : public P2PServer,
       conn->StartReading();
 
       m_connections[m_counter] = std::move(conn);
-      LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
-      // TODO Metric
+      zil::local::obs_variables.AddActive(1);
+      LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
+      zil::local::obs_variables.AddConnects(1);
     } else {
-      LOG_GENERAL(FATAL, "Error in accept : " << ec.message());
+      LOG_GENERAL(DEBUG, "Error in accept : " << ec.message());
+      zil::local::obs_variables.AddErrors(1);
     }
   }
 
@@ -194,9 +284,6 @@ class P2PServerImpl : public P2PServer,
   uint64_t m_counter = 0;
   std::unordered_map<uint64_t, std::shared_ptr<P2PServerConnection>>
       m_connections;
-
-  // TODO decide if this is needed. It seems that no
-  //  std::map<uint128_t, uint16_t> m_peerConnectionCount;
 };
 
 std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
@@ -204,6 +291,7 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
                                                      size_t max_message_size,
                                                      Callback callback) {
   if (port == 0 || max_message_size == 0 || !callback) {
+    zil::local::obs_variables.AddErrors(1);
     throw std::runtime_error("P2PServer::CreateAndStart : invalid args");
   }
 
@@ -225,13 +313,13 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
     // it's impossible to get weak_from_this(), such a subtliety
     LOG_GENERAL(INFO, "Starting....");
     server->AcceptNextConnection();
-
     return server;
 
   } catch (const boost::system::system_error& e) {
     error_msg = e.what();
   }
 
+  zil::local::obs_variables.AddErrors(1);
   throw std::runtime_error(error_msg);
 }
 
@@ -269,10 +357,8 @@ void P2PServerConnection::ReadNextMessage() {
       m_socket, boost::asio::buffer(m_readBuffer),
       [self = shared_from_this()](const ErrorCode& ec, size_t n) {
         if (!ec) {
+          // TODO - non stop software should not stop !!
           assert(n == HDR_LEN);
-        }
-        if (ec) {
-          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
         }
         if (ec != OPERATION_ABORTED) {
           self->OnHeaderRead(ec);
@@ -282,8 +368,9 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO,
-                "Peer " << m_remotePeer << " read error: " << ec.message());
+    if (ec != END_OF_FILE) {
+      LOG_GENERAL(DEBUG, "Peer " << m_remotePeer << " read error: " << ec.message());
+    }
     CloseSocket();
     OnConnectionClosed();
     return;
@@ -313,10 +400,8 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
       boost::asio::buffer(m_readBuffer.data() + HDR_LEN, remainingLength),
       [self = shared_from_this()](const ErrorCode& ec, size_t n) {
         if (!ec) {
+          // TODO - non stop software should not stop !!
           assert(n == self->m_readBuffer.size() - HDR_LEN);
-        }
-        if (ec) {
-          // LOG_GENERAL(WARNING, "Got error code: " << ec.message());
         }
         if (ec != OPERATION_ABORTED) {
           self->OnBodyRead(ec);
@@ -326,7 +411,10 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO, "Read error: " << ec.message());
+    if (ec != END_OF_FILE){
+      LOG_GENERAL(DEBUG, "Read error: " << ec.message());
+      zil::local::obs_variables.AddErrors(1);
+    }
     CloseSocket();
     OnConnectionClosed();
     return;
@@ -341,18 +429,19 @@ void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
     Blacklist::GetInstance().Add({m_remotePeer.GetIpAddress(),
                                   m_remotePeer.GetListenPortHost(),
                                   m_remotePeer.GetNodeIndentifier()});
-
+    zil::local::obs_variables.AddErrors(1);
     CloseSocket();
     OnConnectionClosed();
     return;
   }
   auto owner = m_owner.lock();
   if (!owner || !owner->OnMessage(m_id, m_remotePeer, result)) {
+    zil::local::obs_variables.AddErrors(1);
     CloseSocket();
     OnConnectionClosed();
     return;
   }
-
+  zil::local::obs_variables.AddReads(1);
   ReadNextMessage();
 }
 
@@ -380,6 +469,7 @@ void P2PServerConnection::OnHeartBeat(const zil::p2p::ErrorCode& ec) {
     LOG_GENERAL(WARNING, "Due to inactivity on socket with peer: "
                              << m_remotePeer.GetPrintableIPAddress()
                              << " connection is closed");
+    zil::local::obs_variables.AddTimeouts(1);
     CloseSocket();
     OnConnectionClosed();
   }
@@ -401,22 +491,22 @@ void P2PServerConnection::CloseSocket() {
   // is a blocking call that waits for the OS to complete the closedown. close
   // also frees the OS resources from the program so should be called even if an
   // error condition is encountered
-  LOG_GENERAL(INFO, "Attempting to do a shudtown on a socket");
+  LOG_GENERAL(DEBUG, "Attempting to do a shutdown on a socket");
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
     LOG_GENERAL(INFO, "Shutdown completed with an error: " << ec.message());
     m_socket.close(ec);
-    if (ec) {
-      LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
+    zil::local::obs_variables.AddErrors(1);
+    LOG_GENERAL(DEBUG, "Informational, not an issue - Error closing socket: "
                             << ec.message());
-    }
     return;
   }
   size_t unread = m_socket.available(ec);
-  LOG_GENERAL(INFO, "Number of unread bytes available on socket: "
+  LOG_GENERAL(DEBUG, "Number of unread bytes available on socket: "
                         << unread << ", ec: " << ec.message());
   if (ec) {
     m_socket.close(ec);
+    zil::local::obs_variables.AddErrors(1);
     return;
   }
   // On Linux, the  close()  function for sockets does not necessarily wait
@@ -432,16 +522,17 @@ void P2PServerConnection::CloseSocket() {
       boost::container::small_vector<uint8_t, BUFF_SIZE> buf;
       buf.resize(std::min(unread, BUFF_SIZE));
       m_socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
-      LOG_GENERAL(INFO, "Draining remaining IO before close"
+      LOG_GENERAL(DEBUG, "Draining remaining IO before close"
                             << m_remotePeer.GetPrintableIPAddress());
     } while (!ec && (unread = m_socket.available(ec)) > 0);
   }
   m_socket.close(ec);
   if (ec) {
-    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
+    LOG_GENERAL(DEBUG, "Informational, not an issue - Error closing socket: "
                           << ec.message());
+    zil::local::obs_variables.AddErrors(1);
   }
-  LOG_GENERAL(INFO, "Connection completely closed with peer: "
+  LOG_GENERAL(DEBUG, "Connection completely closed with peer: "
                         << m_remotePeer.GetPrintableIPAddress());
 }
 

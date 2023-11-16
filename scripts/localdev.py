@@ -749,10 +749,11 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
            os.path.join(ZILLIQA_DIR, "constants.xml"),
            "--image", zilliqa_image,
-           "-n", "6",
-           "-d", "5",
+           "-n", "7",
+           "-d", "7",
+           "-s", "7",
            "-l", "1",
-           "--guard", "4/0",
+           "--guard", "5/0",
            "--gentxn", "false",
            "--multiplier-fanout", "1",
            "--host-network", "false",
@@ -765,13 +766,13 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
         cmd = ["./bootstrap.py", testnet_name, "--clusters", "minikube", "--constants-from-file",
                os.path.join(ZILLIQA_DIR, "constants.xml"),
                "--image", zilliqa_image,
-               "-n", "15",
-               "-s", "15",
-               "-d", "15",
+               "-n", "30",
+               "-s", "30",
+               "-d", "30",
                "-l", "1",
-               "--guard", "11/0",
+               "--guard", "17/0",
                "--gentxn", "false",
-               "--multiplier-fanout", "1,1",
+               "--multiplier-fanout", "1",
                "--host-network", "false",
                "--https", "localdomain",
                "--seed-multiplier", "true",
@@ -790,16 +791,30 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
 
     constants_xml_target_path = os.path.join(TESTNET_DIR, f"{testnet_name}/configmap/constants.xml")
     config_file = xml.dom.minidom.parse(constants_xml_target_path)
+
+    xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
+    xml_replace_element(config_file, config_file.documentElement, "BROADCAST_GOSSIP_MODE", "true")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_HOSTNAME", "0.0.0.0")
     xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PORT", "8090")
-    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "PROMETHEUS")
-    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "ALL")
+    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_PROVIDER", "NONE")
+    xml_replace_element(config_file, config_file.documentElement, "METRIC_ZILLIQA_MASK", "NONE")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_HOSTNAME", "tempo.default.svc.cluster.local")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PORT", "4317")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_PROVIDER", "NONE")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "TRACE_ZILLIQA_MASK", "NONE")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "DS_ANNOUNCEMENT_DELAY_IN_MS", "5")
     xml_replace_element_if_exists(config_file, config_file.documentElement, "NUM_DS_ELECTION", "2")
+    xml_replace_element(config_file, config_file.documentElement, "NUM_FINAL_BLOCK_PER_POW", "250")
+    '''
+    xml_replace_element(config_file, config_file.documentElement, "GOSSIP_CUSTOM_ROUNDS_SETTINGS", "false")
+    xml_replace_element(config_file, config_file.documentElement, "SIGN_VERIFY_EMPTY_MSGTYP", "false")
+    xml_replace_element(config_file, config_file.documentElement, "SIGN_VERIFY_NONEMPTY_MSGTYP", "false")
+    xml_replace_element(config_file, config_file.documentElement, "MAX_NEIGHBORS_PER_ROUND", "3")
+    xml_replace_element(config_file, config_file.documentElement, "NUM_GOSSIP_RECEIVERS", "3")
+    '''
+    xml_replace_element(config_file, config_file.documentElement, "ROUND_TIME_IN_MS", "1000")
+
+
 
     if chain_id is not None:
         xml_replace_element(config_file, config_file.documentElement, "CHAIN_ID", chain_id)

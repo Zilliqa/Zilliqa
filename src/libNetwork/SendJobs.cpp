@@ -178,7 +178,7 @@ std::set<Peer> ExtractMultipliers() {
         }
         auto inserted = peers.emplace(uint128_t(ip_addr.s_addr), port);
         if (inserted.second) {
-          LOG_GENERAL(INFO, "Found multiplier at " << *inserted.first);
+          LOG_GENERAL(DEBUG, "Found multiplier at " << *inserted.first);
         }
       }
     }
@@ -243,7 +243,7 @@ void CloseGracefully(Socket&& socket) {
       boost::container::small_vector<uint8_t, BUFF_SIZE> buf;
       buf.resize(std::min(BUFF_SIZE, unread));
       socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
-      LOG_GENERAL(INFO, "Draining remaining IO before close");
+      LOG_GENERAL(DEBUG, "Draining remaining IO before close");
     } while (!ec && (unread = socket.available(ec)) > 0);
   }
   socket.close(ec);
@@ -314,7 +314,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
             if (!ec) {
-              LOG_GENERAL(INFO, "Successfully resolved dns name: "
+              LOG_GENERAL(DEBUG, "Successfully resolved dns name: "
                                     << self->m_peer.GetHostname());
               self->OnResolved(endpoints);
             } else {
@@ -346,7 +346,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                 self->OnConnected(TIMED_OUT);
               });
 
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(DEBUG,
                 "I'll try to connect to remote IP since the dns name was "
                 "successfully resolved, peer: "
                     << m_peer.GetHostname());
@@ -354,11 +354,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         m_socket, endpoints,
         [self = shared_from_this()](const ErrorCode& ec,
                                     const Endpoint& endpoint) {
-          LOG_GENERAL(INFO,
+          LOG_GENERAL(DEBUG,
                       "Async connect handler called with ec: " << ec.message());
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
-            LOG_GENERAL(INFO, "Connection (via async resolve) to "
+            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
                                   << self->m_endpoint << ": " << ec.message()
                                   << " (" << ec << ')'
                                   << ", queue size: " << self->m_queue.size());
@@ -376,7 +376,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       auto address =
           boost::asio::ip::make_address(m_peer.GetPrintableIPAddress(), ec);
       if (ec) {
-        LOG_GENERAL(INFO, "Cannot create endpoint for address "
+        LOG_GENERAL(WARNING, "Cannot create endpoint for address "
                               << m_peer.GetPrintableIPAddress() << ":"
                               << m_peer.GetListenPortHost());
         Done();
@@ -417,7 +417,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
     if (!ec) {
-      LOG_GENERAL(INFO, "There's no error, so sending the message from queue");
       m_connected = true;
       m_is_resolving = false;
       SendMessage();
@@ -494,11 +493,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void OnWritten(const ErrorCode& ec) {
-    if (!ec && !m_closed) {
-      // LOG_GENERAL(INFO, "Successfully sent message to: "
-      //                       << m_peer.GetPrintableIPAddress()
-      //                       << " with size: " << m_queue.front().msg.size);
-    }
+
     if (m_closed) {
       return;
     }
@@ -534,7 +529,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
-    LOG_GENERAL(INFO, "Peer " << m_peer << " reconnects");
+    LOG_GENERAL(DEBUG, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Resolve();
@@ -609,7 +604,7 @@ class SendJobsImpl : public SendJobs,
                          bool allow_relaxed_blacklist) override {
     zil::local::variables.AddSendMessageToPeerCount(1);
     if (peer.m_listenPortHost == 0) {
-      LOG_GENERAL(WARNING, "Ignoring message to peer " << peer);
+      LOG_GENERAL(INFO, "Ignoring message to peer " << peer);
       zil::local::variables.AddSendMessageToPeerFailed(1);
       return;
     }
@@ -677,7 +672,7 @@ class SendJobsImpl : public SendJobs,
 
     // explicit Close() because shared_ptr may be reused in async operation
     LOG_GENERAL(
-        INFO, "Nothing else to be sent to peer, so closing socket with remote: "
+        DEBUG, "Nothing else to be sent to peer, so closing socket with remote: "
                   << peer.GetPrintableIPAddress());
     it->second->Close();
     m_activePeers.erase(it);

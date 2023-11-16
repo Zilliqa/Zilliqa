@@ -24,6 +24,7 @@ import time
 from subprocess import Popen, PIPE
 
 import xml.etree.cElementTree as ET
+import xml.dom.minidom
 
 NODE_LISTEN_PORT = 5001
 NODE_LOOKUP_PORT = 23456
@@ -311,20 +312,42 @@ def run_start(numdsnodes):
                       keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(
                 NODE_LISTEN_PORT + x) + ' --identity normal-' + str(x) + ' > ./error_log_zilliqa 2>&1 &')
 
+class GiveUp(Exception):
+    pass
 
-
+def xml_get_element(doc, parent, name):
+    elems = parent.getElementsByTagName(name)
+    if elems is None or len(elems) < 1:
+        raise GiveUp(f"XML: Cannot find element {name} in {parent}")
+    elif len(elems) > 1:
+        raise GiveUp(f"XML: More than one child named {name} in {parent}")
+    return elems[0]
+def xml_replace_element(doc, parent, name, new_value):
+    elem = xml_get_element(doc, parent, name)
+    # Remove all the nodes
+    while elem.firstChild is not None:
+        elem.removeChild(elem.firstChild)
+    elem.appendChild(doc.createTextNode(new_value))
 
 def patch_param_in_xml(filepath, ipc_path, status_server_port):
 
-    root = ET.parse(filepath).getroot()
+    config_file = xml.dom.minidom.parse("constants.xml")
 
-    td = root.find('jsonrpc')
-    ''' TODO will need extending for other params'''
-    td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
-    td.find('STATUS_RPC_PORT').text = status_server_port
+    xml_replace_element(config_file, config_file.documentElement, "LOOKUP_NODE_MODE", "true")
+    xml_replace_element(config_file, config_file.documentElement, "DEBUG_LEVEL", "3")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SC", "false")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_ROOT", "scilla")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_LIB", "stdlib")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_LIB", "stdlib")
+    xml_replace_element(config_file, config_file.documentElement, "SCILLA_IPC_SOCKET_PATH", ipc_path)
+    xml_replace_element(config_file, config_file.documentElement, "STATUS_RPC_PORT", status_server_port)
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_SCILLA_MULTI_VERSION", "false")
+    xml_replace_element(config_file, config_file.documentElement, "ENABLE_EVM", "true")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_BINARY", "evm-ds/evm-ds")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_LOG_CONFIG", "evm-ds/log4rs-local.yml")
+    xml_replace_element(config_file, config_file.documentElement, "EVM_SERVER_SOCKET_PATH", "/tmp/evm-server.sock")
 
-    tree = ET.ElementTree(root)
-    tree.write(filepath)
 
 
 def patch_lookup_pubkey(filepath, keypairs):

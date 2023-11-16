@@ -180,7 +180,7 @@ void RumorManager::StartRounds() {
       if (m_condStopRound.wait_for(guard,
                                    std::chrono::milliseconds(ROUND_TIME_IN_MS),
                                    [&] { return !m_continueRound; })) {
-        LOG_GENERAL(INFO, "Stopping round now..");
+        LOG_GENERAL(DEBUG, "Stopping round now..");
         return;
       }
     }
@@ -271,7 +271,7 @@ void RumorManager::UpdatePeerInfo(const Peer& newPeerInfo,
     if (it2 != m_peerIdPeerBimap.right.end()) {
       m_peerIdPeerBimap.right.modify_key(it2,
                                          boost::bimaps::_key = newPeerInfo);
-      LOG_GENERAL(INFO, "Updated peer info successfully!");
+      LOG_GENERAL(DEBUG, "Updated peer info successfully!");
 
       return;
     }
@@ -429,9 +429,9 @@ void RumorManager::SendRumorToForeignPeers(
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
-  LOG_GENERAL(INFO, "Foreign Peers: ");
+  LOG_GENERAL(DEBUG, "Foreign Peers: ");
   for (auto& i : toForeignPeers) {
-    LOG_GENERAL(INFO, i);
+    LOG_GENERAL(DEBUG, i);
   }
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
@@ -445,9 +445,9 @@ void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
-  LOG_GENERAL(INFO, "Foreign Peers: ");
+  LOG_GENERAL(DEBUG, "Foreign Peers: ");
   for (auto& i : toForeignPeers) {
-    LOG_GENERAL(INFO, i);
+    LOG_GENERAL(DEBUG, i);
   }
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
@@ -763,7 +763,7 @@ void RumorManager::SendMessage(const Peer& toPeer,
           if (!DataConversion::Uint8VecToHexStr(it1->second, gossipHashStr)) {
             return;
           }
-          LOG_GENERAL(INFO, "Sending [" << gossipHashStr.substr(0, 6) << "] to "
+          LOG_GENERAL(DEBUG, "Sending [" << gossipHashStr.substr(0, 6) << "] to "
                                         << toPeer);
         } else {
           // Nothing to send.
@@ -830,7 +830,7 @@ void RumorManager::PrintStatistics() {
       if (!DataConversion::Uint8VecToHexStr(this_msg_hash, gossipHashStr)) {
         continue;
       }
-      LOG_GENERAL(INFO, "[ RumorId: " << rumorId << ", Hash: "
+      LOG_GENERAL(DEBUG, "[ RumorId: " << rumorId << ", Hash: "
                                       << gossipHashStr.substr(0, 6) << " ], "
                                       << state);
     }
@@ -860,6 +860,6 @@ void RumorManager::CleanUp() {
     }
   }
   if (count != 0) {
-    LOG_GENERAL(INFO, "Cleaned " << count << " messages");
+    LOG_GENERAL(DEBUG, "Cleaned " << count << " messages");
   }
 }
