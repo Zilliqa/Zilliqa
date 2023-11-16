@@ -38,24 +38,12 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
   vector<Peer> allLookupNodes;
 
   for (auto& node : lookups) {
-    string url = node.second.GetHostname();
-    auto resolved_ip = node.second.GetIpAddress();  // existing one
-    if (!url.empty()) {
-      uint128_t tmpIp;
-      if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                  tmpIp)) {
-        resolved_ip = tmpIp;  // resolved one
-      } else {
-        LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-      }
-    }
-
     Blacklist::GetInstance().Whitelist(
-        {resolved_ip, node.second.GetListenPortHost(),
+        {node.second.GetIpAddress(), node.second.GetListenPortHost(),
          node.second.GetNodeIndentifier()});  // exclude this lookup ip from
                                               // blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost(),
-             node.second.GetNodeIndentifier());
+    Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+             node.second.GetHostname());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);
@@ -211,18 +199,19 @@ bool DataSender::SendDataToOthers(
       tmpCommittee.push_back(sendercommittee.at(i));
     }
   }
-
-  bool inB2 = false;
+  // Always use leader for sending data to lookups
   uint16_t indexB2 = 0;
   for (const auto& entry : tmpCommittee) {
     if (entry.second == Peer()) {
-      inB2 = true;
       break;
     }
     indexB2++;
   }
 
-  if (inB2) {
+  if (indexB2 == 0 && !std::empty(tmpCommittee)) {
+    LOG_GENERAL(
+        INFO,
+        "I'm a leader who signed this block, I'll send it to all lookups");
     zbytes message;
     if (!(composeMessageForSenderFunc &&
           composeMessageForSenderFunc(message))) {
@@ -231,45 +220,9 @@ bool DataSender::SendDataToOthers(
           "composeMessageForSenderFunc undefined or cannot compose message");
       return false;
     }
-
-    uint16_t randomDigits =
-        DataConversion::charArrTo16Bits(hashForRandom.asBytes());
-    bool committeeTooSmall = tmpCommittee.size() <= TX_SHARING_CLUSTER_SIZE;
-    uint16_t nodeToSendToLookUpLo =
-        committeeTooSmall
-            ? 0
-            : (randomDigits % (tmpCommittee.size() - TX_SHARING_CLUSTER_SIZE));
-    uint16_t nodeToSendToLookUpHi =
-        committeeTooSmall ? tmpCommittee.size()
-                          : nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
-
-    if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
-      LOG_GENERAL(INFO, "I will send data to the lookups");
-      if (sendDataToLookupFunc) {
-        sendDataToLookupFunc(lookups, message);
-      }
-    }
-
-    if (!shards.empty()) {
-      unsigned int my_cluster_num = UINT_MAX;
-      unsigned int my_shards_lo = 0;
-      unsigned int my_shards_hi = 0;
-
-      DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
-                                 shards, tmpCommittee, indexB2);
-
-      if ((my_cluster_num + 1) <= shards.size()) {
-        LOG_GENERAL(INFO, "I will send data to the shards");
-        if (sendDataToShardFunc) {
-          sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
-        } else {
-          std::deque<VectorOfPeer> sharded_receivers;
-          DetermineNodesToSendDataTo(shards, consensusMyId, forceMulticast,
-                                     sharded_receivers);
-          SendDataToShardNodesDefault(message, sharded_receivers,
-                                      forceMulticast);
-        }
-      }
+    LOG_GENERAL(INFO, "I will send data to the lookups");
+    if (sendDataToLookupFunc) {
+      sendDataToLookupFunc(lookups, message);
     }
   }
 

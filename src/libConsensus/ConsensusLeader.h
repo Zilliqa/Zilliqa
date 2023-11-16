@@ -151,7 +151,7 @@ class ConsensusLeader : public ConsensusCommon {
   bool StartConsensus(
       const AnnouncementGeneratorFunc& announcementGeneratorFunc,
       const AnnouncementGeneratorFunc& newAnnouncementGeneratorFunc = nullptr,
-      bool useGossipProto = false);
+      bool useGossipProto = false, bool afterRecovery = false);
 
   /// Function to process any consensus message received.
   bool ProcessMessage(const zbytes& message, unsigned int offset,
@@ -160,7 +160,7 @@ class ConsensusLeader : public ConsensusCommon {
   unsigned int GetNumForConsensusFailure() { return m_numForConsensusFailure; }
 
   /// Function to check for missing responses
-  void Audit();
+  void Audit(bool checkForResponses);
 
   /// Function to log the responses stats
   void LogResponsesStats(unsigned int subsetID);

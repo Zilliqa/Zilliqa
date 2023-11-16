@@ -350,10 +350,11 @@ bool APIServerImpl::DoListen() {
 
   beast::error_code ec;
 
-#define CHECK_EC()                                                   \
-  if (ec) {                                                          \
-    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message() << " port " << m_options.port); \
-    return false;                                                    \
+#define CHECK_EC()                                                             \
+  if (ec) {                                                                    \
+    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message() << " port " \
+                                                   << m_options.port);         \
+    return false;                                                              \
   }
 
   m_acceptor->open(endpoint.protocol(), ec);
@@ -460,26 +461,27 @@ void APIServerImpl::AcceptNext() {
 }
 
 void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
-  if (ec || !m_active || !m_started || !socket.is_open()) {
+  if (!m_active || !m_started) {
     // stopped, ignore
     return;
   }
 
-  socket.set_option(asio::socket_base::keep_alive(true), ec);
+  if (!ec && socket.is_open()) {
+    socket.set_option(asio::socket_base::keep_alive(true), ec);
 
-  auto ep = socket.remote_endpoint(ec);
-  auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
+    auto ep = socket.remote_endpoint(ec);
+    auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
 
-  ++m_counter;
-  auto conn = std::make_shared<Connection>(weak_from_this(), m_counter, from,
-                                           std::move(socket),
-                                           m_options.inputBodyLimitBytes);
-  conn->StartReading();
-  m_connections[m_counter] = std::move(conn);
+    ++m_counter;
+    auto conn = std::make_shared<Connection>(weak_from_this(), m_counter, from,
+                                             std::move(socket),
+                                             m_options.inputBodyLimitBytes);
+    conn->StartReading();
+    m_connections[m_counter] = std::move(conn);
 
-  LOG_GENERAL(DEBUG, "Connection #" << m_counter << " from " << from
-                                    << ", total=" << m_connections.size());
-
+    LOG_GENERAL(DEBUG, "Connection #" << m_counter << " from " << from
+                                      << ", total=" << m_connections.size());
+  }
   AcceptNext();
 }
 

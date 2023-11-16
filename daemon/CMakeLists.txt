@@ -1,4 +1,5 @@
-add_executable(zilliqad ZilliqaDaemon.cpp ZilliqaUpdater.cpp)
+add_executable(zilliqad ZilliqaDaemon.cpp ZilliqaUpdater.cpp
+        ../tests/Network/Test_Rumours.cpp)
 
 target_include_directories(zilliqad PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (zilliqad

@@ -105,13 +105,17 @@ do
     ;;
     fuzzer)
         CMAKE_EXTRA_OPTIONS="-DLIBFUZZER=ON ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with libfuzzer"
+        echo "Build with libfuzzer"``
     ;;
     style)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_format_fix=1
         echo "Build with LLVM Extra Tools for coding style check (clang-format-fix)"
     ;;
+    nomark)
+          CMAKE_EXTRA_OPTIONS="-DNOMARK=ON ${CMAKE_EXTRA_OPTIONS}"
+          echo "Build with no markers"
+      ;;
     linter)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_tidy_fix=1
@@ -170,9 +174,9 @@ echo "Current directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
-jobs=$((n_parallel - 1))
 
 echo building using $jobs jobs
+jobs=6
 
 cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS}  -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
 cmake --build "${build_dir}" --config ${build_type} -j $jobs
