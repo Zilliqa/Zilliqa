@@ -66,12 +66,7 @@ class XMLCombiner(object):
 @click.option('--output', default='constants_new.xml', prompt='The combined file',
               help='The name of the output file probably constants_new.xml')
 @click.pass_context
-
 def setup(ctx, baseline, update, output):
-
-    source_xml_file = 'constants_v9.3.0rt1_latest.xml'
-    target_xml_file = 'test.xml'
-    new_file = 'constants_new.xml'
 
     if XMLCombiner((baseline, update), output).combine() :
         print('success')
@@ -79,3 +74,6 @@ def setup(ctx, baseline, update, output):
         print('failed')
 
 
+
+if __name__ == '__main__':
+    setup()
