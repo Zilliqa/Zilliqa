@@ -1305,6 +1305,14 @@ void Node::SendTxnMemPoolToNextLayer() {
             m_mediator.m_lookup->GetTransactionsFromMemPool())) {
       LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
     }
+
+    const auto content = boost::algorithm::join(
+        m_mediator.m_lookup->GetTransactionsFromMemPool() |
+            boost::adaptors::transformed(
+                [](const Transaction& txn) { return txn.GetTranID().hex(); }),
+        ", ");
+    LOG_GENERAL(INFO, "SendTxnMemPoolToNextLayer, current content: [" << content
+                                                                      << "]");
   }
   // Sending mempool txns to random node next in the ladder (either lookup or
   // upper seed for external nodes)
