@@ -1300,7 +1300,11 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   }
 
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
-  zil::p2p::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
+  const auto& peer = notBlackListedSeedNodes[index];
+  LOG_GENERAL(INFO,
+              "Chosen lookup to send data to: " << peer.GetPrintableIPAddress()
+                                                << ", " << peer.GetHostname());
+  zil::p2p::GetInstance().SendMessage(peer, message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,

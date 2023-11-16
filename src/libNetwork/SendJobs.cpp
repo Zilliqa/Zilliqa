@@ -289,8 +289,18 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     item.expires_at = Clock() + m_messageExpireTime;
     if (m_queue.size() == 1) {
       if (!m_connected) {
+        if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+          LOG_GENERAL(INFO, "Not connected, so trying to connect to: "
+                                << m_peer.GetPrintableIPAddress() << ", "
+                                << m_peer.GetHostname());
+        }
         Resolve();
       } else {
+        if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+          LOG_GENERAL(INFO, "Queue size > 1, so sending message to: "
+                                << m_peer.GetPrintableIPAddress() << ", "
+                                << m_peer.GetHostname());
+        }
         SendMessage();
       }
     }
@@ -417,7 +427,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
     if (!ec) {
-      LOG_GENERAL(INFO, "There's no error, so sending the message from queue");
+      LOG_GENERAL(INFO,
+                  "There's no error, so sending the message from queue to: "
+                      << m_peer.GetPrintableIPAddress() << ", "
+                      << m_peer.GetHostname());
       m_connected = true;
       m_is_resolving = false;
       SendMessage();
@@ -457,12 +470,31 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!FindNotExpiredMessage()) {
       if (m_connected && !m_noWait && !m_isMultiplier) {
         m_inIdleTimeout = true;
+        if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+          LOG_GENERAL(INFO,
+                      "FindNotExpiredMessage is false, scheduling timer for: "
+                          << m_peer.GetPrintableIPAddress() << ", "
+                          << m_peer.GetHostname());
+        }
         const auto delay = std::empty(m_peer.GetHostname())
                                ? IDLE_TIMEOUT_IP_ONLY
                                : IDLE_TIMEOUT_DNS;
         WaitTimer(m_timer, delay, [this]() { OnIdleTimer(); });
       } else {
+        if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+          LOG_GENERAL(INFO,
+                      "FindNotExpiredMessage is false, calling Done() for: "
+                          << m_peer.GetPrintableIPAddress() << ", "
+                          << m_peer.GetHostname());
+        }
         Done();
+      }
+      if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+        LOG_GENERAL(
+            INFO,
+            "FindNotExpiredMessage is false, returning from this branch for: "
+                << m_peer.GetPrintableIPAddress() << ", "
+                << m_peer.GetHostname());
       }
       return;
     }
@@ -470,6 +502,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     assert(!m_queue.empty());
 
     auto& msg = m_queue.front().msg;
+
+    if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+      LOG_GENERAL(INFO, "Calling async_write on a socket, for: "
+                            << m_peer.GetPrintableIPAddress() << ", "
+                            << m_peer.GetHostname());
+    }
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -494,16 +532,24 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void OnWritten(const ErrorCode& ec) {
-    if (!ec && !m_closed) {
-      // LOG_GENERAL(INFO, "Successfully sent message to: "
-      //                       << m_peer.GetPrintableIPAddress()
-      //                       << " with size: " << m_queue.front().msg.size);
-    }
     if (m_closed) {
+      if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+        LOG_GENERAL(INFO, "I am closed, returning, for: "
+                              << m_peer.GetPrintableIPAddress() << ", "
+                              << m_peer.GetHostname());
+      }
       return;
     }
 
     if (ec) {
+      if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+        LOG_GENERAL(INFO,
+                    "I got error, will try to reconnect and send again, error: "
+                        << ec.message()
+                        << ", for: " << m_peer.GetPrintableIPAddress() << ", "
+                        << m_peer.GetHostname());
+      }
+
       m_connected = false;
       ScheduleReconnectOrGiveUp();
       return;
@@ -515,8 +561,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       LOG_GENERAL(WARNING, "Unexpected queue state, peer="
                                << m_peer.GetPrintableIPAddress() << ":"
                                << m_peer.GetListenPortHost());
+
       Done();
       return;
+    }
+
+    if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+      LOG_GENERAL(INFO,
+                  "Queue not empty, pop from and schedule SendMessage for: "
+                      << m_peer.GetPrintableIPAddress() << ", "
+                      << m_peer.GetHostname());
     }
 
     m_queue.pop_front();
@@ -616,6 +670,12 @@ class SendJobsImpl : public SendJobs,
 
     LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
                                                    << " peer = " << peer);
+
+    if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
+      LOG_GENERAL(INFO,
+                  "Enqueueing message for: " << peer.GetPrintableIPAddress()
+                                             << ", " << peer.GetHostname());
+    }
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread

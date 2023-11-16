@@ -175,6 +175,7 @@ void P2P::SendMessage(const Peer& peer, const zbytes& message,
     return;
   }
   if (message.size() <= MessageOffset::BODY) {
+    LOG_GENERAL(WARNING, "Message size is smaller than MessageOffset::BODY");
     return;
   }
   m_sendJobs->SendMessageToPeer(peer, message, startByteType,
