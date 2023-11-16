@@ -44,7 +44,7 @@ const ErrorCode END_OF_FILE = boost::asio::error::eof;
 // stale
 constexpr auto INACTIVITY_TIME_TO_CLOSE = std::chrono::seconds(180);
 // How often we should check if the connection is still 'alive'
-constexpr auto HEARTBEAT_CHECK = std::chrono::seconds(60);
+constexpr auto HEARTBEAT_CHECK = std::chrono::seconds(3600);
 
 class P2PServerImpl;
 

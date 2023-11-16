@@ -252,7 +252,7 @@ void CloseGracefully(Socket&& socket) {
 constinit std::chrono::seconds IDLE_TIMEOUT_IP_ONLY(120);
 // We don't want to resolve dns name very often, give more idle time for this
 // type of connections
-constinit std::chrono::seconds IDLE_TIMEOUT_DNS(3600);
+constinit std::chrono::seconds IDLE_TIMEOUT_DNS(600);
 constinit std::chrono::milliseconds SLOW_SEND_TO_REPORT(5000);
 
 }  // namespace
