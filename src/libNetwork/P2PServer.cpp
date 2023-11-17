@@ -42,9 +42,9 @@ const ErrorCode END_OF_FILE = boost::asio::error::eof;
 
 // How long it has to elapse from last successful read to mark connection as
 // stale
-constexpr auto INACTIVITY_TIME_TO_CLOSE = std::chrono::seconds(180);
+constexpr auto INACTIVITY_TIME_TO_CLOSE = std::chrono::seconds(3600);
 // How often we should check if the connection is still 'alive'
-constexpr auto HEARTBEAT_CHECK = std::chrono::seconds(3600);
+constexpr auto HEARTBEAT_CHECK = std::chrono::seconds(60);
 
 class P2PServerImpl;
 

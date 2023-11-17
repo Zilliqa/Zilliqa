@@ -249,9 +249,12 @@ void CloseGracefully(Socket&& socket) {
   socket.close(ec);
 }
 
+// BE WARNED! The following two IDLE constants should be lower
+// than the INACTIVITY_TIME_TO_CLOSE defined in P2PServer.cpp!
+
 constinit std::chrono::seconds IDLE_TIMEOUT_IP_ONLY(120);
 // We don't want to resolve dns name very often, give more idle time for this
-// type of connections
+// type of connection
 constinit std::chrono::seconds IDLE_TIMEOUT_DNS(600);
 constinit std::chrono::milliseconds SLOW_SEND_TO_REPORT(5000);
 
