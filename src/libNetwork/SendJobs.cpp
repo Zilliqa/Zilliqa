@@ -345,15 +345,17 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
               [self = shared_from_this()]() {
-                LOG_GENERAL(WARNING,
-                            "Unable to connect within "
-                                << CONNECTION_TIMEOUT_IN_MS
-                                << ", canceling any operation on the socket "
-                                   "with remote dns/ip: "
-                                << self->m_peer.GetHostname() << "/"
-                                << self->m_peer.GetPrintableIPAddress());
-                self->m_socket.cancel();
-                self->OnConnected(TIMED_OUT);
+                if (!self->m_connected) {
+                  LOG_GENERAL(WARNING,
+                              "Unable to connect within "
+                                  << CONNECTION_TIMEOUT_IN_MS
+                                  << ", canceling any operation on the socket "
+                                     "with remote dns/ip: "
+                                  << self->m_peer.GetHostname() << "/"
+                                  << self->m_peer.GetPrintableIPAddress());
+                  self->m_socket.cancel();
+                  self->OnConnected(TIMED_OUT);
+                }
               });
 
     LOG_GENERAL(INFO,
@@ -399,12 +401,17 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
               [self = shared_from_this()]() {
-                LOG_GENERAL(WARNING,
-                            "Unable to connect within "
-                                << CONNECTION_TIMEOUT_IN_MS
-                                << ", canceling any operation on the socket");
-                self->m_socket.cancel();
-                self->OnConnected(TIMED_OUT);
+                if (!self->m_connected) {
+                  LOG_GENERAL(
+                      WARNING,
+                      "Unable to connect within "
+                          << CONNECTION_TIMEOUT_IN_MS
+                          << ", canceling any operation on the socket to: "
+                          << self->m_peer.GetPrintableIPAddress() << ", "
+                          << self->m_peer.GetHostname());
+                  self->m_socket.cancel();
+                  self->OnConnected(TIMED_OUT);
+                }
               });
 
     m_socket.async_connect(
