@@ -240,7 +240,7 @@ RUN rm -f /usr/local/bin/gcc \
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 COPY docker/requirements3.txt ./
-RUN apt-get install -y patchelf python3-pip
+RUN apt-get update && apt-get install -y patchelf python3-pip
 
 RUN python3 -m pip install --upgrade pip setuptools wheel \
   && python3 -m pip install --no-cache-dir -r requirements3.txt \
