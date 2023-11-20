@@ -333,7 +333,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   LOG_GENERAL(INFO, "Block = " << blockNumber);
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
-  uint8_t expectedShardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
+  uint8_t expectedDSGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
 
   // Non-genesis block
   if (blockNumber > 1) {
@@ -353,19 +353,20 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
     }
   } else {
     bool difficultyCorrect = true;
-    if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey)) {
-      if (difficultyLevel != expectedDSDiff) {
+    if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey) ||
+        Guard::GetInstance().IsNodeInDSGuardList(submitterPubKey)) {
+      if (difficultyLevel != expectedDSGuardDiff) {
         difficultyCorrect = false;
       }
       LOG_GENERAL(INFO,
                   "CP difficultylevel = " << static_cast<int>(difficultyLevel)
                                           << " expectedDSDiff = "
-                                          << static_cast<int>(expectedDSDiff));
+                                          << static_cast<int>(expectedDSGuardDiff));
     } else if (difficultyLevel != expectedDSDiff &&
                difficultyLevel != expectedDiff) {
       difficultyCorrect = false;
       LOG_GENERAL(
-          INFO, "CP difficultylevel = "
+          INFO, "Outside mining node difficultylevel = "
                     << static_cast<int>(difficultyLevel)
                     << " expectedDSDiff = " << static_cast<int>(expectedDSDiff)
                     << " expectedDiff = " << static_cast<int>(expectedDiff));
@@ -375,7 +376,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
                      to_string(expectedDSDiff)
                          << " or " << to_string(expectedDiff) << " or "
-                         << to_string(expectedShardGuardDiff));
+                         << to_string(expectedDSGuardDiff));
       // TODO: penalise sender in reputation manager
       return false;
     }
