@@ -432,7 +432,8 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       }
 
       // Push the same solution into the DS PoW list if it qualifies
-      if (difficultyLevel >= expectedDSDiff) {
+      if (difficultyLevel >= expectedDSDiff ||
+          Guard::GetInstance().IsNodeInDSGuardList(submitterPubKey)) {
         AddDSPoWs(submitterPubKey, soln);
       }
 
