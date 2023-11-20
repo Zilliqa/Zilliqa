@@ -115,7 +115,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
        Guard::GetInstance().IsNodeInShardGuardList(
            m_mediator.m_selfKey.second))) {
     LOG_GENERAL(INFO, "The node is part of either ds/shard guard");
-    ds_difficulty = 1;
+    ds_difficulty = 5;
   }
 
   HeaderHashParams headerParams{rand1, rand2, m_mediator.m_selfPeer, m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice};

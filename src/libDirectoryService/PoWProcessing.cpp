@@ -333,7 +333,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   LOG_GENERAL(INFO, "Block = " << blockNumber);
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
-  uint8_t expectedDSGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
+  uint8_t expectedShardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
 
   // Non-genesis block
   if (blockNumber > 1) {
@@ -355,13 +355,13 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
     bool difficultyCorrect = true;
     if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey) ||
         Guard::GetInstance().IsNodeInDSGuardList(submitterPubKey)) {
-      if (difficultyLevel != expectedDSGuardDiff) {
+      if (difficultyLevel != expectedDSDiff) {
         difficultyCorrect = false;
       }
       LOG_GENERAL(INFO,
                   "CP difficultylevel = " << static_cast<int>(difficultyLevel)
                                           << " expectedDSDiff = "
-                                          << static_cast<int>(expectedDSGuardDiff));
+                                          << static_cast<int>(expectedDSDiff));
     } else if (difficultyLevel != expectedDSDiff &&
                difficultyLevel != expectedDiff) {
       difficultyCorrect = false;
@@ -376,7 +376,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
                      to_string(expectedDSDiff)
                          << " or " << to_string(expectedDiff) << " or "
-                         << to_string(expectedDSGuardDiff));
+                         << to_string(expectedShardGuardDiff));
       // TODO: penalise sender in reputation manager
       return false;
     }
