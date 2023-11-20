@@ -3166,6 +3166,12 @@ bool Node::GetDSLeader(const BlockLink &lastBlockLink,
       leader_id = lastBlockHash % dsCommittee.size();
     } else {
       leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      LOG_GENERAL(INFO, "leader id = " << leader_id << " ds comm size = "
+                                       << dsCommittee.size());
+      if (leader_id >= dsCommittee.size()) {
+        LOG_GENERAL(INFO, "leader id = " << leader_id);
+        leader_id = lastBlockHash % dsCommittee.size();
+      }
     }
     dsLeader = make_pair(dsCommittee.at(leader_id).first,
                          dsCommittee.at(leader_id).second);
