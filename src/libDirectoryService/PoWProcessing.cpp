@@ -355,6 +355,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
     bool difficultyCorrect = true;
     if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey) ||
         Guard::GetInstance().IsNodeInDSGuardList(submitterPubKey)) {
+      expectedDSDiff = DS_POW_DIFFICULTY;
       if (difficultyLevel != expectedDSDiff) {
         difficultyCorrect = false;
       }
@@ -502,6 +503,7 @@ void DirectoryService::ResetPoWSubmissionCounter() {
 
 void DirectoryService::AddDSPoWs(const PubKey& Pubk,
                                  const PoWSolution& DSPOWSoln) {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
