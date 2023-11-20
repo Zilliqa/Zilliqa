@@ -110,6 +110,13 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   auto headerHash = POW::GenHeaderHash(rand1, rand2, m_mediator.m_selfPeer,
                                        m_mediator.m_selfKey.second, lookupId,
                                        m_proposedGasPrice, {});
+  if (GUARD_MODE &&
+      (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second) ||
+       Guard::GetInstance().IsNodeInShardGuardList(
+           m_mediator.m_selfKey.second))) {
+    LOG_GENERAL(INFO, "The node is part of either ds/shard guard");
+    ds_difficulty = 1;
+  }
 
   HeaderHashParams headerParams{rand1, rand2, m_mediator.m_selfPeer, m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice};
   EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
