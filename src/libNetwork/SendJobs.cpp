@@ -300,7 +300,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         Resolve();
       } else {
         if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-          LOG_GENERAL(INFO, "Queue size > 1, so sending message to: "
+          LOG_GENERAL(INFO, "Queue size == 1, so sending message to: "
                                 << m_peer.GetPrintableIPAddress() << ", "
                                 << m_peer.GetHostname());
         }
@@ -361,10 +361,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                 }
               });
 
-    LOG_GENERAL(INFO,
-                "I'll try to connect to remote IP since the dns name was "
-                "successfully resolved, peer: "
-                    << m_peer.GetHostname());
     boost::asio::async_connect(
         m_socket, endpoints,
         [self = shared_from_this()](const ErrorCode& ec,
@@ -480,31 +476,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!FindNotExpiredMessage()) {
       if (m_connected && !m_noWait && !m_isMultiplier) {
         m_inIdleTimeout = true;
-        if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-          LOG_GENERAL(INFO,
-                      "FindNotExpiredMessage is false, scheduling timer for: "
-                          << m_peer.GetPrintableIPAddress() << ", "
-                          << m_peer.GetHostname());
-        }
         const auto delay = std::empty(m_peer.GetHostname())
                                ? IDLE_TIMEOUT_IP_ONLY
                                : IDLE_TIMEOUT_DNS;
         WaitTimer(m_timer, delay, [this]() { OnIdleTimer(); });
       } else {
-        if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-          LOG_GENERAL(INFO,
-                      "FindNotExpiredMessage is false, calling Done() for: "
-                          << m_peer.GetPrintableIPAddress() << ", "
-                          << m_peer.GetHostname());
-        }
         Done();
-      }
-      if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-        LOG_GENERAL(
-            INFO,
-            "FindNotExpiredMessage is false, returning from this branch for: "
-                << m_peer.GetPrintableIPAddress() << ", "
-                << m_peer.GetHostname());
       }
       return;
     }
@@ -512,12 +489,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     assert(!m_queue.empty());
 
     auto& msg = m_queue.front().msg;
-
-    if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO, "Calling async_write on a socket, for: "
-                            << m_peer.GetPrintableIPAddress() << ", "
-                            << m_peer.GetHostname());
-    }
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -543,23 +514,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void OnWritten(const ErrorCode& ec) {
     if (m_closed) {
-      if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-        LOG_GENERAL(INFO, "I am closed, returning, for: "
-                              << m_peer.GetPrintableIPAddress() << ", "
-                              << m_peer.GetHostname());
-      }
       return;
     }
 
     if (ec) {
-      if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-        LOG_GENERAL(INFO,
-                    "I got error, will try to reconnect and send again, error: "
-                        << ec.message()
-                        << ", for: " << m_peer.GetPrintableIPAddress() << ", "
-                        << m_peer.GetHostname());
-      }
-
       m_connected = false;
       ScheduleReconnectOrGiveUp();
       return;
@@ -575,14 +533,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       Done();
       return;
     }
-
-    if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO,
-                  "Queue not empty, pop from and schedule SendMessage for: "
-                      << m_peer.GetPrintableIPAddress() << ", "
-                      << m_peer.GetHostname());
-    }
-
     m_queue.pop_front();
     SendMessage();
   }
@@ -681,12 +631,6 @@ class SendJobsImpl : public SendJobs,
     LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
                                                    << " peer = " << peer);
 
-    if (ARCHIVAL_LOOKUP || LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO,
-                  "Enqueueing message for: " << peer.GetPrintableIPAddress()
-                                             << ", " << peer.GetHostname());
-    }
-
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
     m_asioCtx.post([this, peer = peer, msg = std::move(message),
@@ -746,9 +690,6 @@ class SendJobsImpl : public SendJobs,
     }
 
     // explicit Close() because shared_ptr may be reused in async operation
-    LOG_GENERAL(
-        INFO, "Nothing else to be sent to peer, so closing socket with remote: "
-                  << peer.GetPrintableIPAddress());
     it->second->Close();
     m_activePeers.erase(it);
   }

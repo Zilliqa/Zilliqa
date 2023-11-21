@@ -124,8 +124,6 @@ class P2PServerImpl : public P2PServer,
   }
 
   void AcceptNextConnection() {
-    LOG_GENERAL(INFO,
-                "Scheduling acceptor to asynchronously accept new connection");
     m_acceptor.async_accept(
         [wptr = weak_from_this()](const ErrorCode& ec, TcpSocket sock) {
           if (!wptr.expired()) {
@@ -223,7 +221,6 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
 
     // this call is needed to be decoupled from ctor, because in the ctor
     // it's impossible to get weak_from_this(), such a subtliety
-    LOG_GENERAL(INFO, "Starting....");
     server->AcceptNextConnection();
 
     return server;
@@ -326,7 +323,6 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO, "Read error: " << ec.message());
     CloseSocket();
     OnConnectionClosed();
     return;
@@ -377,9 +373,9 @@ void P2PServerConnection::OnHeartBeat(const zil::p2p::ErrorCode& ec) {
       SetupHeartBeat();
       return;
     }
-    LOG_GENERAL(WARNING, "Due to inactivity on socket with peer: "
-                             << m_remotePeer.GetPrintableIPAddress()
-                             << " connection is closed");
+    LOG_GENERAL(INFO, "Due to inactivity on socket with peer: "
+                          << m_remotePeer.GetPrintableIPAddress()
+                          << " connection is closed");
     CloseSocket();
     OnConnectionClosed();
   }
@@ -401,20 +397,12 @@ void P2PServerConnection::CloseSocket() {
   // is a blocking call that waits for the OS to complete the closedown. close
   // also frees the OS resources from the program so should be called even if an
   // error condition is encountered
-  LOG_GENERAL(INFO, "Attempting to do a shudtown on a socket");
   m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
-    LOG_GENERAL(INFO, "Shutdown completed with an error: " << ec.message());
     m_socket.close(ec);
-    if (ec) {
-      LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
-                            << ec.message());
-    }
     return;
   }
   size_t unread = m_socket.available(ec);
-  LOG_GENERAL(INFO, "Number of unread bytes available on socket: "
-                        << unread << ", ec: " << ec.message());
   if (ec) {
     m_socket.close(ec);
     return;
@@ -432,15 +420,9 @@ void P2PServerConnection::CloseSocket() {
       boost::container::small_vector<uint8_t, BUFF_SIZE> buf;
       buf.resize(std::min(unread, BUFF_SIZE));
       m_socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
-      LOG_GENERAL(INFO, "Draining remaining IO before close"
-                            << m_remotePeer.GetPrintableIPAddress());
     } while (!ec && (unread = m_socket.available(ec)) > 0);
   }
   m_socket.close(ec);
-  if (ec) {
-    LOG_GENERAL(INFO, "Informational, not an issue - Error closing socket: "
-                          << ec.message());
-  }
   LOG_GENERAL(INFO, "Connection completely closed with peer: "
                         << m_remotePeer.GetPrintableIPAddress());
 }
