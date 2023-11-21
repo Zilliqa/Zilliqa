@@ -965,6 +965,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 #endif  // VC_TEST_DS_SUSPEND_3
 
+  if (m_mediator.m_currentEpochNum == 1) {
+    LOG_GENERAL(INFO,
+                "Introduce some delay for backups to reach to consensus state");
+    std::this_thread::sleep_for(
+        chrono::milliseconds(DS_ANNOUNCEMENT_DELAY_IN_MS));
+  }
+
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
       m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
