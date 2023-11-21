@@ -16,6 +16,7 @@
  */
 
 #include "IPConverter.h"
+#include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
 #include <boost/algorithm/string.hpp>

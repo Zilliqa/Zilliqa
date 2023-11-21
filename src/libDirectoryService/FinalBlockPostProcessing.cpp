@@ -299,6 +299,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     ReloadGuardedShards(t_shards);
   }
 
+  LOG_GENERAL(INFO,
+              "Consensus is done, sending final block to others, ds_state: "
+                  << GetStateString());
   DataSender::GetInstance().SendDataToOthers(
       *m_finalBlock, *m_mediator.m_DSCommittee,
       t_shards.empty() ? m_shards : t_shards, t_microBlocks,
@@ -378,9 +381,21 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     return true;
   }
 
+  LOG_GENERAL(
+      INFO,
+      "DirectoryService::ProcessFinalBlockConsensus() enter, ds_state is: "
+          << GetStateString());
+
   uint32_t consensus_id = 0;
   zbytes reserialized_message;
   PubKey senderPubKey;
+
+  if (!m_consensusObject) {
+    LOG_GENERAL(WARNING,
+                "Consensus object has not been created yet! Please check "
+                "consensus timings!");
+    return false;
+  }
 
   if (!m_consensusObject->PreProcessMessage(
           message, offset, consensus_id, senderPubKey, reserialized_message)) {
@@ -405,13 +420,16 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     // Only buffer the Final block consensus message if in the immediate states
     // before consensus, or when doing view change
-    if (!((m_state == FINALBLOCK_CONSENSUS_PREP) ||
-          (m_state == VIEWCHANGE_CONSENSUS))) {
+    if ((m_state != FINALBLOCK_CONSENSUS_PREP) &&
+        (m_state != VIEWCHANGE_CONSENSUS)) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Ignoring final block consensus message");
       return false;
     }
 
+    LOG_GENERAL(INFO,
+                "Adding message to FinalBlockConsensusBuffer, "
+                "PROCESS_FINALBLOCKCONSENSUS action is allowed in my state");
     AddToFinalBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                    from, senderPubKey);
 
@@ -422,6 +440,10 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         senderPubKey ==
             m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
+      LOG_GENERAL(INFO,
+                  "DirectoryService::ProcessFinalBlockConsensus(): I'm calling "
+                  "RunConsensusOnFinalBlock, ds_state is: "
+                      << GetStateString());
       RunConsensusOnFinalBlock();
     }
   } else {
@@ -438,6 +460,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(
       AddToFinalBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                      from, senderPubKey);
     } else {
+      LOG_GENERAL(INFO, "Calling ProcessFinalBlockConsensusCore with ds_state: "
+                            << GetStateString());
       return ProcessFinalBlockConsensusCore(reserialized_message, offset, from,
                                             startByte);
     }

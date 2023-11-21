@@ -264,20 +264,21 @@ void DedicatedWSImpl::AcceptNext() {
 }
 
 void DedicatedWSImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
-  if (ec || !m_started || !socket.is_open()) {
+  if (!m_started) {
     // stopped, ignore
     return;
   }
 
-  socket.set_option(asio::socket_base::keep_alive(true), ec);
+  if (!ec && socket.is_open()) {
+    socket.set_option(asio::socket_base::keep_alive(true), ec);
 
-  assert(m_websocket);
+    assert(m_websocket);
 
-  auto ep = socket.remote_endpoint(ec);
-  auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
+    auto ep = socket.remote_endpoint(ec);
+    auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
 
-  m_websocket->NewConnection(std::move(from), std::move(socket));
-
+    m_websocket->NewConnection(std::move(from), std::move(socket));
+  }
   AcceptNext();
 }
 

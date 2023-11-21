@@ -175,6 +175,7 @@ void P2P::SendMessage(const Peer& peer, const zbytes& message,
     return;
   }
   if (message.size() <= MessageOffset::BODY) {
+    LOG_GENERAL(WARNING, "Message size is smaller than MessageOffset::BODY");
     return;
   }
   m_sendJobs->SendMessageToPeer(peer, message, startByteType,
@@ -260,7 +261,9 @@ void P2P::SendBroadcastMessage(const std::deque<Peer>& peers,
 /// Special case for cmd line utilities only - blocking
 void P2P::SendMessageNoQueue(const Peer& peer, const zbytes& message,
                              unsigned char startByteType) {
-  if (Blacklist::GetInstance().Exist({peer.m_ipAddress,peer.GetListenPortHost(),peer.GetNodeIndentifier()})) {
+  if (Blacklist::GetInstance().Exist({peer.m_ipAddress,
+                                      peer.GetListenPortHost(),
+                                      peer.GetNodeIndentifier()})) {
     LOG_GENERAL(INFO, "The node "
                           << peer
                           << " is in black list, block all message to it.");
@@ -365,7 +368,9 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
       LOG_GENERAL(WARNING,
                   "Hash missing or empty broadcast message (messageLength = "
                       << result.message.size() << ")");
-      Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
+      Blacklist::GetInstance().Add({from.GetIpAddress(),
+                                    from.GetListenPortHost(),
+                                    from.GetNodeIndentifier()});
       return false;
     }
 
@@ -385,8 +390,10 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
                       << result.message.size() << "] is unexpectedly large [ >"
                       << MAX_GOSSIP_MSG_SIZE_IN_BYTES
                       << " ]. Will be strictly blacklisting the sender");
-      Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});  // so we don't spend cost sending any data to this
-                              // sender as well.
+      Blacklist::GetInstance().Add(
+          {from.GetIpAddress(), from.GetListenPortHost(),
+           from.GetNodeIndentifier()});  // so we don't spend cost sending any
+                                         // data to this sender as well.
       return false;
     }
     if (result.message.size() <
@@ -396,7 +403,9 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
           "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
           "(messageLength = "
               << result.message.size() << ")");
-      Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
+      Blacklist::GetInstance().Add({from.GetIpAddress(),
+                                    from.GetListenPortHost(),
+                                    from.GetNodeIndentifier()});
       return false;
     }
 
@@ -404,7 +413,8 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
   } else {
     // Unexpected start byte. Drop this message
     LOG_GENERAL(WARNING, "Incorrect start byte " << result.startByte);
-    Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
+    Blacklist::GetInstance().Add({from.GetIpAddress(), from.GetListenPortHost(),
+                                  from.GetNodeIndentifier()});
     return false;
   }
 
@@ -430,7 +440,9 @@ void P2P::ProcessBroadCastMsg(zbytes& message, zbytes& hash, const Peer& from,
       } else {
         LOG_GENERAL(WARNING, "Incorrect message hash. Blacklisting peer "
                                  << from.GetPrintableIPAddress());
-        Blacklist::GetInstance().Add({from.GetIpAddress(),from.GetListenPortHost(),from.GetNodeIndentifier()});
+        Blacklist::GetInstance().Add({from.GetIpAddress(),
+                                      from.GetListenPortHost(),
+                                      from.GetNodeIndentifier()});
         return;
       }
     }
@@ -519,7 +531,9 @@ P2P::~P2P() {
     m_stopped = true;
   }
   m_condition.notify_all();
-  m_broadcastCleanupThread.join();
+  if (m_broadcastCleanupThread.joinable()) {
+    m_broadcastCleanupThread.join();
+  }
 }
 
 }  // namespace zil::p2p

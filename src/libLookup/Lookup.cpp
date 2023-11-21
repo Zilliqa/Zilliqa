@@ -26,8 +26,10 @@
 #include <fstream>
 #include <random>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "Lookup.h"
 #include "common/Messages.h"
@@ -327,6 +329,8 @@ void Lookup::SetLookupNodes() {
     level++;
   }
 
+  LOG_GENERAL(INFO, "Loaded lookup nodes, size of m_lookupNodes is now: "
+                        << std::size(m_lookupNodes));
   m_lookupNodesStatic = m_lookupNodes;
 
   /*
@@ -649,12 +653,12 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
+    LOG_GENERAL(INFO, "m_lookupNodes has size: " << std::size(m_lookupNodes));
     for (const auto& node : m_lookupNodes) {
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
       Blacklist::GetInstance().Whitelist(
-          {resolved_ip, node.second.GetListenPortHost(), ""});
-      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+          {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
+      Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+               node.second.GetHostname());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
@@ -677,13 +681,11 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
                   }) != m_multipliers.end()) {
         continue;
       }
-
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
       Blacklist::GetInstance().Whitelist(
-          {resolved_ip, node.second.GetListenPortHost(), ""});
+          {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
 
-      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+      Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+               node.second.GetHostname());
       LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
@@ -719,11 +721,11 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   }
 
   int index = RandomGenerator::GetRandomInt(tmp.size());
-  auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
-
+  const auto& peer = tmp[index].second;
   Blacklist::GetInstance().Whitelist(
-      {resolved_ip, tmp[index].second.GetListenPortHost(), ""});
-  Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
+      {peer.GetIpAddress(), peer.GetListenPortHost(), ""});
+  Peer tmpPeer(peer.GetIpAddress(), peer.GetListenPortHost(),
+               peer.GetHostname());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
   zil::p2p::GetInstance().SendMessage(tmpPeer, message);
 }
@@ -734,11 +736,10 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
     lock_guard<mutex> g(m_mutexSeedNodes);
 
     for (const auto& node : m_seedNodes) {
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
       Blacklist::GetInstance().Whitelist(
-          {resolved_ip, node.second.GetListenPortHost(), ""});
-      Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
+          {node.second.GetIpAddress(), node.second.GetListenPortHost(), ""});
+      Peer tmpPeer(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+                   node.second.GetHostname());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer);
       seedNodePeer.emplace_back(tmpPeer);
@@ -1254,12 +1255,12 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   }
 
   int index = RandomGenerator::GetRandomInt(m_l2lDataProviders.size());
-  auto resolved_ip = TryGettingResolvedIP(m_l2lDataProviders[index].second);
+  const auto& peer = m_l2lDataProviders[index].second;
 
   Blacklist::GetInstance().Whitelist(
-      {resolved_ip, m_l2lDataProviders[index].second.GetListenPortHost(), ""});
-  Peer tmpPeer(resolved_ip,
-               m_l2lDataProviders[index].second.GetListenPortHost());
+      {peer.GetIpAddress(), peer.GetListenPortHost(), ""});
+  Peer tmpPeer(peer.GetIpAddress(), peer.GetListenPortHost(),
+               peer.GetHostname());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
   unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
   //  TODO Disabled in updated protocol
@@ -1279,14 +1280,14 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
     }
 
     for (const auto& node : m_seedNodes) {
-      auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist({seedNodeIpToSend,
+      if (!Blacklist::GetInstance().Exist({node.second.GetIpAddress(),
                                            node.second.GetListenPortHost(),
                                            node.second.GetNodeIndentifier()}) &&
-          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
-        notBlackListedSeedNodes.push_back(
-            Peer(seedNodeIpToSend, node.second.GetListenPortHost(),
-                 node.second.GetNodeIndentifier()));
+          (m_mediator.m_selfPeer.GetIpAddress() !=
+           node.second.GetIpAddress())) {
+        notBlackListedSeedNodes.push_back(Peer(node.second.GetIpAddress(),
+                                               node.second.GetListenPortHost(),
+                                               node.second.GetHostname()));
       }
     }
   }
@@ -1299,7 +1300,11 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   }
 
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
-  zil::p2p::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
+  const auto& peer = notBlackListedSeedNodes[index];
+  LOG_GENERAL(INFO,
+              "Chosen lookup to send data to: " << peer.GetPrintableIPAddress()
+                                                << ", " << peer.GetHostname());
+  zil::p2p::GetInstance().SendMessage(peer, message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -5233,9 +5238,7 @@ void Lookup::RemoveSeedNodesFromBlackList() {
   lock_guard<mutex> lock(m_mutexSeedNodes);
 
   for (auto& node : m_seedNodes) {
-    auto seedNodeIp = TryGettingResolvedIP(node.second);
-
-    Blacklist::GetInstance().Remove({seedNodeIp,
+    Blacklist::GetInstance().Remove({node.second.GetIpAddress(),
                                      node.second.GetListenPortHost(),
                                      node.second.GetNodeIndentifier()});
   }
@@ -5290,6 +5293,14 @@ bool Lookup::ClearTxnMemPool() {
     return true;
   }
   lock_guard<mutex> g(m_txnMemPoolMutex);
+  const auto content = boost::algorithm::join(
+      m_txnMemPool | boost::adaptors::transformed([](const Transaction& txn) {
+        return txn.GetTranID().hex();
+      }),
+      ", ");
+  LOG_GENERAL(INFO,
+              "Clearing m_txnMemPool, current content: [" << content << "]");
+
   m_txnMemPool.clear();
 
   return true;
@@ -5499,6 +5510,18 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                 "Lookup::ProcessForwardTxn not expected to be called from "
                 "non-lookup node");
   }
+  std::vector<Transaction> transactions;
+  if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, transactions)) {
+    LOG_GENERAL(WARNING,
+                "Unable to deserialize message from by Lookup from Seed");
+    return false;
+  }
+
+  const auto content = boost::algorithm::join(
+      transactions | boost::adaptors::transformed([](const Transaction& txn) {
+        return txn.GetTranID().hex();
+      }),
+      ", ");
 
   if (m_mediator.m_disableTxns) {
     LOG_GENERAL(INFO, "Txns disabled - dropping txn packet");
@@ -5510,17 +5533,14 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
   // private seed nodes
   if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
     // I'm seed/external-seed - forward message to next layer of 'lookups'
+    LOG_GENERAL(INFO, "Sending from seed to next layer transactions batch: ["
+                          << content << "]");
     SendMessageToRandomSeedNode(message);
   } else {
     // I'm a lookup (non-seed & non-external) - forward messages to ds shard
-    std::vector<Transaction> transactions;
-    if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, transactions)) {
-      LOG_GENERAL(WARNING,
-                  "Unable to deserialize message from by Lookup from Seed");
-      return false;
-    }
-    std::this_thread::sleep_for(
-        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    LOG_GENERAL(INFO, "Sending from lookup to ds-members transactions batch: ["
+                          << content << "]");
     SenderTxnBatchThread(std::move(transactions));
   }
 

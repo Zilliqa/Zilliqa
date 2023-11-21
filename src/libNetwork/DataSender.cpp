@@ -38,24 +38,12 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
   vector<Peer> allLookupNodes;
 
   for (auto& node : lookups) {
-    string url = node.second.GetHostname();
-    auto resolved_ip = node.second.GetIpAddress();  // existing one
-    if (!url.empty()) {
-      uint128_t tmpIp;
-      if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                  tmpIp)) {
-        resolved_ip = tmpIp;  // resolved one
-      } else {
-        LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-      }
-    }
-
     Blacklist::GetInstance().Whitelist(
-        {resolved_ip, node.second.GetListenPortHost(),
+        {node.second.GetIpAddress(), node.second.GetListenPortHost(),
          node.second.GetNodeIndentifier()});  // exclude this lookup ip from
                                               // blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost(),
-             node.second.GetNodeIndentifier());
+    Peer tmp(node.second.GetIpAddress(), node.second.GetListenPortHost(),
+             node.second.GetHostname());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);
@@ -223,6 +211,7 @@ bool DataSender::SendDataToOthers(
   }
 
   if (inB2) {
+    LOG_GENERAL(INFO, "I'm in B2 set, so I'll try to send data to others");
     zbytes message;
     if (!(composeMessageForSenderFunc &&
           composeMessageForSenderFunc(message))) {
@@ -248,6 +237,12 @@ bool DataSender::SendDataToOthers(
       if (sendDataToLookupFunc) {
         sendDataToLookupFunc(lookups, message);
       }
+    } else {
+      LOG_GENERAL(WARNING,
+                  "I'm not going to send data to others because: IndexB2 is: "
+                      << indexB2
+                      << ", nodeLookupLo is : " << nodeToSendToLookUpLo
+                      << ", nodeLookupHi is: " << nodeToSendToLookUpHi);
     }
 
     if (!shards.empty()) {
@@ -270,7 +265,15 @@ bool DataSender::SendDataToOthers(
                                       forceMulticast);
         }
       }
+    } else {
+      LOG_GENERAL(WARNING, "Shards size is: " << shards.size()
+                                              << ", so no data was sent there");
     }
+  } else {
+    LOG_GENERAL(WARNING, "I'm NOT in B2 set! "
+                             << "B2 size " << blockwcosigSender.GetB2().size()
+                             << " and committee size "
+                             << sendercommittee.size());
   }
 
   return true;
