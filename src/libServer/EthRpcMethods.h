@@ -729,7 +729,7 @@ class EthRpcMethods {
   inline virtual void HasCodeI(const Json::Value& request,
                                Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->HasCode(request[0u].asString(), request[1u].asString());
+    response = this->HasCode(request[0u].asString(), request[1u].asUInt64());
   }
 
   inline virtual void GetBlockDetailsI(const Json::Value& request,
@@ -843,7 +843,7 @@ class EthRpcMethods {
                                       const Json::Value& json);
 
   Json::Value GetHeaderByNumber(const uint64_t blockNumber);
-  bool HasCode(const std::string& address, const std::string& block);
+  bool HasCode(const std::string& address, const uint64_t block);
   Json::Value GetBlockDetails(const uint64_t blockNumber);
   Json::Value GetBlockTransactions(const uint64_t blockNumber,
                                    const uint32_t pageNumber,

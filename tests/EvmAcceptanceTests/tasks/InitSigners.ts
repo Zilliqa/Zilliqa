@@ -22,6 +22,7 @@ task("init-signers", "A task to init signers")
 
     const spinner = ora();
     spinner.start(`Creating ${count} accounts...`);
+
     let accounts = [];
     if (fromAddressType === "eth") {
       accounts = await createAccountsEth(hre, from, hre.ethers.utils.parseEther(balance), count);
@@ -75,8 +76,8 @@ const createAccountsEth = async (
     ...accounts.map((signer) => signer.address),
     ...accounts.map((signer) => getAddressFromPrivateKey(signer.privateKey).toLocaleLowerCase())
   ];
-  
-  const value = amount.mul(addresses.length)
+
+  const value = amount.mul(addresses.length);
 
   if ((await wallet.getBalance()).lt(value)) {
     throw new Error(

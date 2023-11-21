@@ -45,6 +45,7 @@ async function ensureContractDeployment(hre: HardhatRuntimeEnvironment): Promise
     if (contract == undefined) {
       throw Error(clc.bold.red(`Failed to get the contract at ${WELL_KNOWN_CONTRACT_ADDRESS}`));
     }
+
     return {contract, deployerAddress, zilliqa, version: version.toString(), hre, deployerAccount};
   }
 
