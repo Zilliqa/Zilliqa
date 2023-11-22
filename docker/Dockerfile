@@ -18,7 +18,7 @@ ARG SCILLA_VERSION=v0.13.4
 ARG SCILLA_IMAGE=zilliqa/scilla:${SCILLA_VERSION}
 
 # Common dependencies of the builder and runner stages.
-FROM ubuntu:22.04 AS base
+FROM arm64v8/ubuntu:22.04 AS base
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -78,12 +78,11 @@ ENV SCCACHE_DIR="/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
 ARG CMAKE_VERSION=3.25.1
-RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
-    && echo "6598da34f0e3a0f763809e25cfdd646aa1d5e4d133c4277821e63ae5cfe09457 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-aarch64.sh \
     && mkdir -p "${HOME}"/.local \
-    && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
+    && bash ./cmake-${CMAKE_VERSION}-Linux-aarch64.sh --skip-license --prefix="${HOME}"/.local/ \
     && "${HOME}"/.local/bin/cmake --version \
-    && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+    && rm cmake-${CMAKE_VERSION}-Linux-aarch64.sh
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Setup ccache
@@ -98,6 +97,7 @@ ARG VCPKG_ROOT=/vcpkg
 
 RUN ccache -p && ccache -z
 
+ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 # If COMMIT_OR_TAG is a branch name or a tag, clone a shallow copy which is
 # faster; if this fails, just clone the full repo and checkout the commit.
 RUN git clone https://github.com/microsoft/vcpkg ${VCPKG_ROOT} \
@@ -116,9 +116,11 @@ RUN apt update -y \
   && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
   && apt update -y && apt install -y google-cloud-cli
 
-ENV VCPKG_BINARY_SOURCES="default,readwrite;x-gcs,gs://vcpkg/ubuntu/22.04/x64-linux-dynamic/${VCPKG_COMMIT_OR_TAG}/,read"
+ENV VCPKG_BINARY_SOURCES="default,readwrite;x-gcs,gs://vcpkg/ubuntu/22.04/arm64-linux-dynamic/${VCPKG_COMMIT_OR_TAG}/,readwrite"
 
-RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
+RUN --mount=type=cache,target=/root/.cache/vcpkg/ \
+  echo "set(VCPKG_TARGET_ARCHITECTURE arm64)\nset(VCPKG_CRT_LINKAGE dynamic)\nset(VCPKG_LIBRARY_LINKAGE dynamic)\nset(VCPKG_CMAKE_SYSTEM_NAME Linux)\nset(VCPKG_FIXUP_ELF_RPATH ON)" >> ${VCPKG_ROOT}/triplets/community/arm64-linux-dynamic.cmake \
+  && ${VCPKG_ROOT}/vcpkg install --triplet=arm64-linux-dynamic
 
 ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
@@ -128,13 +130,13 @@ WORKDIR /zilliqa
 COPY src/libPersistence/*.proto src/libPersistence/
 COPY src/libUtils/*.proto src/libUtils/
 COPY evm-ds/ evm-ds
-RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/build/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
+RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/build/vcpkg_installed/arm64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
 
 RUN ls -l /zilliqa/evm-ds/target
 
-RUN cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libffi.so /usr/local/lib  \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libssl.so* /usr/local/lib  \
-  && cp /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/libcrypto.so* /usr/local/lib
+RUN cp /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/libffi.so /usr/local/lib  \
+  && cp /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/libssl.so* /usr/local/lib  \
+  && cp /zilliqa/build/vcpkg_installed/arm64-linux-dynamic/lib/libcrypto.so* /usr/local/lib
 
 RUN apt-get install -y patchelf
 
@@ -191,8 +193,8 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 
 FROM builder AS test_runner
 RUN mkdir -p \
-    /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/x64-linux-dynamic \
-    && ln -s /usr/local/lib /scilla/0/vcpkg_installed/x64-linux-dynamic
+    /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/arm64-linux-dynamic \
+    && ln -s /usr/local/lib /scilla/0/vcpkg_installed/arm64-linux-dynamic
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 # pour in scilla tests
@@ -224,7 +226,7 @@ COPY --from=builder /usr/local/lib/*.so* /usr/local/lib/
 COPY --from=builder /zilliqa/evm-ds/target/release/evm-ds /usr/local/bin/
 COPY --from=builder /zilliqa/evm-ds/log4rs.yml /usr/local/etc/
 
-ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
+ADD https://github.com/krallin/tini/releases/latest/download/tini-arm64 /tini
 
 # The above COPY doesn't preserve symlinks which causes gcc/g++/cc/c++
 # to hang as stand-alone binaries on Ubuntu 22.04.

@@ -86,6 +86,7 @@ void P2P::StartServer(AsioContext& asio, uint16_t port, uint16_t additionalPort,
   };
 
   if (port) {
+    LOG_GENERAL(INFO, "Starting P2P server on port " << port);
     m_server = P2PServer::CreateAndStart(asio, port, maxMsgSize, dispatchFn);
   }
 
