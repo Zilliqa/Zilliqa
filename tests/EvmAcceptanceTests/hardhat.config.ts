@@ -27,6 +27,18 @@ const config: HardhatUserConfig = {
   defaultNetwork: "isolated_server",
 
   networks: {
+    from_env: {
+      url: process.env.CHAIN_URL,
+      websocketUrl: process.env.CHAIN_WEBSOCKET_URL,
+      accounts: [
+        ...loadFromSignersFile(process.env.CHAIN_NAME)
+      ],
+      chainId: process.env.CHAIN_ID | 0x8000,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
     public_devnet: {
       url: "https://api.devnet.zilliqa.com",
       websocketUrl: "ws://api.devnet.zilliqa.com",

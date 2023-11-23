@@ -1,4 +1,5 @@
 import {BN, Zilliqa, bytes, toChecksumAddress, units} from "@zilliqa-js/zilliqa";
+import * as zilliqaCrypto from "@zilliqa-js/crypto";
 import clc from "cli-color";
 import {ethers} from "ethers";
 import {task} from "hardhat/config";
@@ -46,11 +47,13 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
   let zilliqa = new Zilliqa(hre.getNetworkUrl());
   const msgVersion = 1; // current msgVersion
   const VERSION = bytes.pack(hre.getZilliqaChainId(), msgVersion);
+  let fromAddress = zilliqaCrypto.getAddressFromPrivateKey(privateKey);
   zilliqa.wallet.addByPrivateKey(privateKey);
+  zilliqa.wallet.setDefault(fromAddress);
   const ethAddrConverted = toChecksumAddress(to); // Zil checksum
   const balance = await getZilBalance(hre, to);
   console.log(`Current balance: ${clc.yellow.bold(balance)}`);
-
+  console.log(`Funding address ${fromAddress}`);
   const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(
     zilliqa.transactions.new(
       {

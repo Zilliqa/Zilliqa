@@ -98,10 +98,13 @@ const createAccountsZil = async (
   amount: BigNumber,
   count: number
 ) => {
+  // Add +amount for the source account itself, add +100 for transaction costs.
+  let gasSupply = BigNumber.from(100).mul(ethers.constants.WeiPerEther)
+  let amountToMove = ethers.utils.formatEther(amount.mul(count * 2).add(gasSupply))
   await hre.run("transfer", {
     from: privateKey,
     to: getEthAddress(privateKey),
-    amount: ethers.utils.formatEther(amount.mul(count * 2)), // Add +amount for the source account itself
+    amount: amountToMove,
     fromAddressType: "zil"
   });
 
