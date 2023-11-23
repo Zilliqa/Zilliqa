@@ -16,9 +16,10 @@ task("init-signers", "A task to init signers")
   )
   .addParam("count", "Number of signers to be generated")
   .addParam("balance", "Balance of each newly generated signers")
+  .addOptionalParam("fileName", "Output file name")
   .addFlag("append", "Append new signers to the end of the .signer-<network> file")
   .setAction(async (taskArgs, hre) => {
-    const {from, fromAddressType, count, balance, append} = taskArgs;
+    const {from, fromAddressType, count, balance, append, fileName} = taskArgs;
 
     const spinner = ora();
     spinner.start(`Creating ${count} accounts...`);
@@ -36,17 +37,18 @@ task("init-signers", "A task to init signers")
 
     spinner.succeed();
 
-    const file_name = `${hre.network.name}.json`;
+    const outputFileStem = fileName ?? process.env.CHAIN_NAME ?? `${hre.network.name}`
+    const outputFileName = `${outputFileStem}.json`
 
     try {
       await writeToFile(
         accounts.map((account) => account.privateKey),
         append,
-        file_name
+        outputFileName
       );
       console.log();
       console.log(
-        clc.bold(`.signers/${file_name}`),
+        clc.bold(`.signers/${outputFileName}`),
         clc.blackBright(`${append ? "updated" : "created"} successfully.`)
       );
     } catch (error) {
