@@ -592,11 +592,14 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
 
-    if (!m_mediator.m_lookup->AddTxnToMemPool(tx)) {
-      throw JsonRpcException(RPC_DATABASE_ERROR,
-                             "Txn could not be added as database exceeded "
-                             "limit or the txn was already present");
+    zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+    if (!Messenger::SetForwardTxnBlockFromSeed(msg, MessageOffset::BODY,
+                                               {tx})) {
+      LOG_GENERAL(WARNING, "Unable to serialize txn into protobuf msg");
     }
+    LOG_GENERAL(INFO, "Forwarding txn: " << tx.GetTranID().hex()
+                                         << " from seed to next node in chain");
+    m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
 
     ret["TranID"] = tx.GetTranID().hex();
     return ret;

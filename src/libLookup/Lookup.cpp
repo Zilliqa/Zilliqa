@@ -5528,7 +5528,6 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  // TODO: this should be reworked once we drop support for Lookup nodes
   // I'm either upper seed (archival lookup) for external node or a Lookup for
   // private seed nodes
   if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
@@ -5537,11 +5536,9 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                           << content << "]");
     SendMessageToRandomSeedNode(message);
   } else {
-    // I'm a lookup (non-seed & non-external) - forward messages to ds shard
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-    LOG_GENERAL(INFO, "Sending from lookup to ds-members transactions batch: ["
-                          << content << "]");
-    SenderTxnBatchThread(std::move(transactions));
+    // I'm a lookup (non-seed & non-external) - save this message into mempool.
+    // Mempool will be sent do ds members when final block arrives
+    LOG_GENERAL(INFO, "Saving: " << content << " into mempool");
   }
 
   return true;
