@@ -5292,7 +5292,6 @@ bool Lookup::ClearTxnMemPool() {
                 "other than the LookUp node.");
     return true;
   }
-  lock_guard<mutex> g(m_txnMemPoolMutex);
   const auto content = boost::algorithm::join(
       m_txnMemPool | boost::adaptors::transformed([](const Transaction& txn) {
         return txn.GetTranID().hex();
