@@ -5292,7 +5292,6 @@ bool Lookup::ClearTxnMemPool() {
                 "other than the LookUp node.");
     return true;
   }
-  lock_guard<mutex> g(m_txnMemPoolMutex);
   const auto content = boost::algorithm::join(
       m_txnMemPool | boost::adaptors::transformed([](const Transaction& txn) {
         return txn.GetTranID().hex();
@@ -5510,6 +5509,12 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                 "Lookup::ProcessForwardTxn not expected to be called from "
                 "non-lookup node");
   }
+
+  if (m_mediator.m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - dropping txn packet");
+    return false;
+  }
+
   std::vector<Transaction> transactions;
   if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, transactions)) {
     LOG_GENERAL(WARNING,
@@ -5523,12 +5528,6 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
       }),
       ", ");
 
-  if (m_mediator.m_disableTxns) {
-    LOG_GENERAL(INFO, "Txns disabled - dropping txn packet");
-    return false;
-  }
-
-  // TODO: this should be reworked once we drop support for Lookup nodes
   // I'm either upper seed (archival lookup) for external node or a Lookup for
   // private seed nodes
   if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
@@ -5537,11 +5536,17 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                           << content << "]");
     SendMessageToRandomSeedNode(message);
   } else {
-    // I'm a lookup (non-seed & non-external) - forward messages to ds shard
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-    LOG_GENERAL(INFO, "Sending from lookup to ds-members transactions batch: ["
-                          << content << "]");
-    SenderTxnBatchThread(std::move(transactions));
+    // I'm a lookup (non-seed & non-external) - save this message into mempool.
+    // Mempool will be sent to ds members when final block arrives
+    for (const auto& tx : transactions) {
+      if (!AddTxnToMemPool(tx)) {
+        LOG_GENERAL(WARNING, "Unable to add: " << tx.GetTranID().hex()
+                                               << " to mempool!");
+      } else {
+        LOG_GENERAL(INFO, "Successfully added: " << tx.GetTranID().hex()
+                                                 << " to mempool!");
+      }
+    }
   }
 
   return true;

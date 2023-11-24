@@ -703,7 +703,7 @@ bool Node::ProcessVCDSBlocksMessage(
 
     m_mediator.m_node->CleanWhitelistReqs();
 
-    if (m_mediator.m_lookup->GetIsServer() && ARCHIVAL_LOOKUP) {
+    if (m_mediator.m_lookup->GetIsServer() && LOOKUP_NODE_MODE) {
       SendTxnMemPoolToNextLayer();
     }
   }
