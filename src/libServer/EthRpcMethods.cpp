@@ -547,6 +547,11 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
                              << ", NONCE: " << tx.GetNonce()
                              << ", HASH: " << tx.GetTranID().hex()
                              << ", TO: " << tx.GetCoreInfo().toAddr.hex());
+    LOG_GENERAL(INFO, "Sender is = " << tx.GetSenderAddr().hex());
+    if(tx.GetSenderAddr().hex() == "d641199dc7fac248961b42d4f3b5fae8e4e8aa24"){
+      LOG_GENERAL(INFO, "Ignore the sender");
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+    }
 
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
