@@ -25,6 +25,7 @@
 #include "LookupServer.h"
 #include "common/CommonData.h"
 #include "common/Constants.h"
+#include "common/Messages.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Account.h"
@@ -140,7 +141,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                          jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthBlockNumberI);
 
-  //Parameters are not listed to bypass library's parameter validation.
+  // Parameters are not listed to bypass library's parameter validation.
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, nullptr),
@@ -560,11 +561,14 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
         throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                                "Txn type unexpected");
     }
-    if (!m_sharedMediator.m_lookup->AddTxnToMemPool(tx)) {
-      throw JsonRpcException(ServerBase::RPC_DATABASE_ERROR,
-                             "Txn could not be added as database exceeded "
-                             "limit or the txn was already present");
+    zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+    if (!Messenger::SetForwardTxnBlockFromSeed(msg, MessageOffset::BODY,
+                                               {tx})) {
+      LOG_GENERAL(WARNING, "Unable to serialize txn into protobuf msg");
     }
+    LOG_GENERAL(INFO, "Forwarding txn: " << tx.GetTranID().hex()
+                                         << " from seed to next node in chain");
+    m_sharedMediator.m_lookup->SendMessageToRandomSeedNode(msg);
 
   } catch (const JsonRpcException &je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");
@@ -2161,21 +2165,22 @@ bool EthRpcMethods::HasCode(const std::string &address,
 Json::Value EthRpcMethods::GetBlockDetails(const uint64_t blockNumber) {
   Json::Value response;
 
-   auto maybeBlock = m_sharedMediator.m_txBlockChain.MaybeGetBlock(blockNumber);
+  auto maybeBlock = m_sharedMediator.m_txBlockChain.MaybeGetBlock(blockNumber);
   if (maybeBlock) {
     auto txBlock = maybeBlock.value();
-     bool isVacuous =
+    bool isVacuous =
         CommonUtils::IsVacuousEpoch(txBlock.GetHeader().GetBlockNum());
-     uint128_t rewards =
+    uint128_t rewards =
         (isVacuous ? txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR
-         : 0);
-     uint128_t fees =
+                   : 0);
+    uint128_t fees =
         (isVacuous ? 0
-         : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
-     try {
+                   : txBlock.GetHeader().GetRewards() * EVM_ZIL_SCALING_FACTOR);
+    try {
       auto jsonBlock = GetEthBlockCommon(txBlock, false);
 
-       if (jsonBlock["gasLimit"].asString() == "0x0") jsonBlock["gasLimit"] = "0x1";
+      if (jsonBlock["gasLimit"].asString() == "0x0")
+        jsonBlock["gasLimit"] = "0x1";
 
       jsonBlock.removeMember("transactions");
       jsonBlock["transactionCount"] = txBlock.GetHeader().GetNumTxs();
