@@ -406,7 +406,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       LOG_GENERAL(INFO,
-                  "Size of txn batch sent to Lookup: " << txnsToSend.size());
+                  "Size of txn batch sent to Lookup: " << txnsInMemPool.size());
       zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
       if (!Messenger::SetForwardTxnBlockFromSeed(msg, MessageOffset::BODY,
                                                  txnsInMemPool)) {
