@@ -355,7 +355,7 @@ string LookupServer::GetNetworkId() {
 bool LookupServer::StartCollectorThread() {
   INC_CALLS(GetCallsCounter());
 
-  if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
+  if (!ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
         "Not expected to be called from node other than LOOKUP ARCHIVAL ");
@@ -392,6 +392,27 @@ bool LookupServer::StartCollectorThread() {
       for (const auto& tx : txnsToSend) {
         m_mediator.m_lookup->AddTxnToMemPool(tx);
       }
+
+      std::vector<Transaction> txnsInMemPool;
+      {
+        lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
+        txnsInMemPool = m_mediator.m_lookup->GetTransactionsFromMemPool();
+        m_mediator.m_lookup->ClearTxnMemPool();
+      }
+
+      if (std::empty(txnsInMemPool)) {
+        LOG_GENERAL(INFO, "Txn pool is empty - nothing to send");
+        continue;
+      }
+
+      LOG_GENERAL(INFO,
+                  "Size of txn batch sent to Lookup: " << txnsToSend.size());
+      zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+      if (!Messenger::SetForwardTxnBlockFromSeed(msg, MessageOffset::BODY,
+                                                 txnsInMemPool)) {
+        LOG_GENERAL(WARNING, "Unable to serialize txn into protobuf msg");
+      }
+      m_sharedMediator.m_lookup->SendMessageToRandomSeedNode(msg);
     }
   };
   DetachedFunction(1, collectorThread);
@@ -592,14 +613,10 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
 
-    zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
-    if (!Messenger::SetForwardTxnBlockFromSeed(msg, MessageOffset::BODY,
-                                               {tx})) {
-      LOG_GENERAL(WARNING, "Unable to serialize txn into protobuf msg");
+    if (!m_sharedMediator.m_lookup->AddTxnToMemPool(tx)) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                             "Unable to add transaction to mempool");
     }
-    LOG_GENERAL(INFO, "Forwarding txn: " << tx.GetTranID().hex()
-                                         << " from seed to next node in chain");
-    m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
 
     ret["TranID"] = tx.GetTranID().hex();
     return ret;
