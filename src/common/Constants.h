@@ -300,6 +300,7 @@ extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
 extern const bool LAUNCH_EVM_DAEMON;
 extern const bool ENABLE_CPS;
+extern const bool ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;

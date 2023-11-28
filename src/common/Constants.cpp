@@ -774,6 +774,8 @@ const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
 const bool ENABLE_CPS{
     ReadConstantString("ENABLE_CPS", "node.jsonrpc.", "true") == "true"};
+const bool ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID{
+    ReadConstantString("ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID", "node.jsonrpc.", "false") == "true"};
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
 const std::string METRIC_ZILLIQA_PROVIDER{ReadConstantString(
