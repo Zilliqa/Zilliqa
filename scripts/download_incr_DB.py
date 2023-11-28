@@ -59,7 +59,7 @@ DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 
 EXCLUDE_CDN_CACHE_HEADER = { "X-z-cdn-bypass": "true", }
-EXCLUDE_CDN_CACHE_KEYS = [ 'CURRENT', '.lock', '.currentTxBlk', 'LOG', 'LOG.old', 'LOCK' ]
+EXCLUDE_CDN_CACHE_KEYS = [ 'CURRENT', '.lock', '.currentTxBlk', 'LOG', 'LOG.old', 'LOCK', 'state_purge' ]
 
 def isGCP():
 	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
@@ -221,7 +221,8 @@ def GetPersistenceKey(key_url):
 		try:
 			parsed_url = urlparse(key_url)
 			fname = parsed_url.path.split('/')[-1]
-			if fname in EXCLUDE_CDN_CACHE_KEYS:
+			dname = parsed_url.path.split('/')[-2]
+			if fname in EXCLUDE_CDN_CACHE_KEYS or dname in EXCLUDE_CDN_CACHE_KEYS:
 				req_header = EXCLUDE_CDN_CACHE_HEADER
 			else:
 				req_header = None
