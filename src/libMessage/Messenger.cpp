@@ -16,6 +16,7 @@
  */
 
 #include "Messenger.h"
+#include "depends/common/FixedHash.h"
 #include "libBlockchain/Serialization.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
@@ -23,7 +24,6 @@
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libUtils/SafeMath.h"
-#include "depends/common/FixedHash.h"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
@@ -748,12 +748,13 @@ bool ProtobufToShardingStructureAnnouncement(
         LOG_GENERAL(WARNING, "extra data is too large");
         return false;
       }
-      zbytes extraData(proto_member.powsoln().extradata().begin(), proto_member.powsoln().extradata().end());
+      zbytes extraData(proto_member.powsoln().extradata().begin(),
+                       proto_member.powsoln().extradata().end());
       allPoWs.emplace(
-          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
-                           proto_member.powsoln().lookupid(), gasPrice,
-                           std::make_pair(govProposalId, govVoteValue),
-                           extraData));
+          key,
+          PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
+                      proto_member.powsoln().lookupid(), gasPrice,
+                      std::make_pair(govProposalId, govVoteValue), extraData));
     }
   }
 
@@ -762,7 +763,6 @@ bool ProtobufToShardingStructureAnnouncement(
 
 void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
                                    ProtoTransactionCoreInfo& protoTxnCoreInfo) {
-  LOG_GENERAL(WARNING, "writing protobuf with tx version of " << txnCoreInfo.version);
   protoTxnCoreInfo.set_version(txnCoreInfo.version);
   protoTxnCoreInfo.set_nonce(txnCoreInfo.nonce);
   protoTxnCoreInfo.set_toaddr(txnCoreInfo.toAddr.data(),
@@ -789,7 +789,8 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
   }
   if (txnCoreInfo.maxPriorityFeePerGas != 0) {
     NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-        txnCoreInfo.maxPriorityFeePerGas, *protoTxnCoreInfo.mutable_maxpriorityfeepergas());
+        txnCoreInfo.maxPriorityFeePerGas,
+        *protoTxnCoreInfo.mutable_maxpriorityfeepergas());
   }
   if (txnCoreInfo.maxFeePerGas != 0) {
     NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
@@ -830,7 +831,8 @@ bool ProtobufToTransactionCoreInfo(
   }
   txnCoreInfo.accessList.reserve(protoTxnCoreInfo.accesslist_size());
   for (const auto& item : protoTxnCoreInfo.accesslist()) {
-    dev::h160 address(item.address(), dev::h160::ConstructFromStringType::FromBinary);
+    dev::h160 address(item.address(),
+                      dev::h160::ConstructFromStringType::FromBinary);
     std::vector<dev::h256> storageKeys;
     storageKeys.reserve(item.storagekeys_size());
     for (const auto& key : item.storagekeys()) {
@@ -840,10 +842,11 @@ bool ProtobufToTransactionCoreInfo(
     auto accessListItem = std::make_pair(address, storageKeys);
     txnCoreInfo.accessList.push_back(std::move(accessListItem));
   }
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoTxnCoreInfo.maxpriorityfeepergas(),
-                                                     txnCoreInfo.maxPriorityFeePerGas);
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoTxnCoreInfo.maxfeepergas(),
-                                                     txnCoreInfo.maxFeePerGas);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+      protoTxnCoreInfo.maxpriorityfeepergas(),
+      txnCoreInfo.maxPriorityFeePerGas);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+      protoTxnCoreInfo.maxfeepergas(), txnCoreInfo.maxFeePerGas);
   return true;
 }
 
@@ -888,11 +891,12 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  transaction = Transaction(
-      txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
-      txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
-      txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature,
-      txnCoreInfo.accessList, txnCoreInfo.maxPriorityFeePerGas, txnCoreInfo.maxFeePerGas);
+  transaction =
+      Transaction(txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
+                  txnCoreInfo.senderPubKey, txnCoreInfo.amount,
+                  txnCoreInfo.gasPrice, txnCoreInfo.gasLimit, txnCoreInfo.code,
+                  txnCoreInfo.data, signature, txnCoreInfo.accessList,
+                  txnCoreInfo.maxPriorityFeePerGas, txnCoreInfo.maxFeePerGas);
 
   if (transaction.GetTranID() != tranID) {
     LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
@@ -1043,7 +1047,8 @@ void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
   dsPowSubmission.mutable_data()->set_resultinghash(
       powSolution.GetResultingHash());
   dsPowSubmission.mutable_data()->set_mixhash(powSolution.GetMixHash());
-  dsPowSubmission.mutable_data()->set_extradata(powSolution.GetExtraData().data(), powSolution.GetExtraData().size());
+  dsPowSubmission.mutable_data()->set_extradata(
+      powSolution.GetExtraData().data(), powSolution.GetExtraData().size());
   dsPowSubmission.mutable_data()->set_lookupid(powSolution.GetLookupId());
   if (dsPowSubmission.mutable_data()->govdata().IsInitialized()) {
     dsPowSubmission.mutable_data()->mutable_govdata()->set_proposalid(
@@ -1077,7 +1082,8 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
     LOG_GENERAL(WARNING, "extra data is too large");
     return false;
   }
-  zbytes extraData(dsPowSubmission.data().extradata().begin(), dsPowSubmission.data().extradata().end());
+  zbytes extraData(dsPowSubmission.data().extradata().begin(),
+                   dsPowSubmission.data().extradata().end());
   const uint32_t& lookupId = dsPowSubmission.data().lookupid();
   uint128_t gasPrice;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -1089,9 +1095,9 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   const uint32_t& govVoteValue = dsPowSubmission.data().govdata().votevalue();
 
   DSPowSolution result(blockNumber, difficultyLevel, submitterPeer,
-                       submitterKey, nonce, resultingHash, mixHash, extraData, lookupId,
-                       gasPrice, std::make_pair(govProposalId, govVoteValue),
-                       signature);
+                       submitterKey, nonce, resultingHash, mixHash, extraData,
+                       lookupId, gasPrice,
+                       std::make_pair(govProposalId, govVoteValue), signature);
   powSolution = result;
 
   return true;
@@ -2555,7 +2561,8 @@ bool Messenger::GetDSPoWSubmission(
     return false;
   }
   extraData.resize(result.data().extradata().size());
-  std::copy(result.data().extradata().begin(), result.data().extradata().end(), extraData.begin());
+  std::copy(result.data().extradata().begin(), result.data().extradata().end(),
+            extraData.begin());
   lookupId = result.data().lookupid();
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
@@ -2881,11 +2888,13 @@ bool Messenger::GetDSDSBlockAnnouncement(
       LOG_GENERAL(WARNING, "extra data is too large");
       return false;
     }
-    zbytes extraData(protoDSWinnerPoW.powsoln().extradata().begin(), protoDSWinnerPoW.powsoln().extradata().end());
+    zbytes extraData(protoDSWinnerPoW.powsoln().extradata().begin(),
+                     protoDSWinnerPoW.powsoln().extradata().end());
     dsWinnerPoWs.emplace(
-        key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
-                         protoDSWinnerPoW.powsoln().lookupid(), gasPrice,
-                         std::make_pair(govProposalId, govVoteValue), extraData));
+        key,
+        PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
+                    protoDSWinnerPoW.powsoln().lookupid(), gasPrice,
+                    std::make_pair(govProposalId, govVoteValue), extraData));
   }
 
   // Get the part of the announcement that should be co-signed during the first
