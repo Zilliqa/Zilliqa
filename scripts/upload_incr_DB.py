@@ -130,7 +130,7 @@ def SetCurrentTxBlkNum(txBlkNum):
 	Path(".currentTxBlk").touch()
 	with open(".currentTxBlk",encoding='utf-8', mode='w') as file:
 		file.write(txBlkNum)
-	bashCommand = awsCli() + " s3 cp .currentTxBlk "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.currentTxBlk"
+	bashCommand = awsCli() + " s3 cp .currentTxBlk "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.currentTxBlk"+' --metadata "cache-control=no-store"'
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	logging.info("[" + str(datetime.datetime.now()) + "] SetCurrentTxBlkNum:" + txBlkNum + " for uploading process")	
