@@ -1904,6 +1904,10 @@ std::string EthRpcMethods::EthRecoverTransaction(
 
   auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
 
+  if (pubKeyBytes.empty()) {
+    return "";
+  }
+
   auto const asAddr = CreateAddr(pubKeyBytes);
 
   auto addrChksum = AddressChecksum::GetChecksummedAddressEth(
