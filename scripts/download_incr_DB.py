@@ -31,6 +31,7 @@ import hashlib
 from distutils.dir_util import copy_tree
 from pprint import pformat
 import download_static_DB
+from urllib.parse import urlparse
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
@@ -57,6 +58,9 @@ mutex = Lock()
 DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 
+EXCLUDE_CDN_CACHE_HEADER = { "X-z-cdn-bypass": "true", }
+EXCLUDE_CDN_CACHE_KEYS = [ 'CURRENT', '.lock', '.currentTxBlk', 'LOG', 'LOG.old', 'LOCK', 'state_purge', 'contractTrie_purge' ]
+
 def isGCP():
 	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
 
@@ -71,14 +75,14 @@ def getURL():
 		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
 
 def UploadLock():
-	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
+	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock", headers=EXCLUDE_CDN_CACHE_HEADER)
 	if response.status_code == 200:
 		return True
 	return False
 
 def GetCurrentTxBlkNum():
 	url = getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.currentTxBlk"
-	response = requests.get(url, stream=True)
+	response = requests.get(url, stream=True, headers=EXCLUDE_CDN_CACHE_HEADER)
 	if response.status_code == 200:
 		return int(response.text.strip())
 	else:
@@ -215,7 +219,11 @@ def GetPersistenceKey(key_url):
 	mutex.release()
 	while True:
 		try:
-			response = requests.get(key_url, stream=True)
+			parsed_url = urlparse(key_url)
+			fname = parsed_url.path.split('/')[-1]
+			dname = parsed_url.path.split('/')[-2]
+			req_header = EXCLUDE_CDN_CACHE_HEADER if fname in EXCLUDE_CDN_CACHE_KEYS or dname in EXCLUDE_CDN_CACHE_KEYS else None
+			response = requests.get(key_url, stream=True, headers=req_header)
 		except Exception as e:
 			print("Exception occurred while downloading " + key_url + ": " + str(e))
 			retry_counter+=1
