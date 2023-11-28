@@ -1292,42 +1292,39 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 }
 
 void Node::SendTxnMemPoolToNextLayer() {
-  std::vector<Transaction> txnsInMemPool;
-  {
-    lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
-    txnsInMemPool = m_mediator.m_lookup->GetTransactionsFromMemPool();
-    m_mediator.m_lookup->ClearTxnMemPool();
-  }
+  // Only used in pure lookups
+  if (!ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
+    std::vector<Transaction> txnsInMemPool;
+    {
+      lock_guard<mutex> g(m_mediator.m_lookup->m_txnMemPoolMutex);
+      txnsInMemPool = m_mediator.m_lookup->GetTransactionsFromMemPool();
+      m_mediator.m_lookup->ClearTxnMemPool();
+    }
 
-  zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+    if (std::empty(txnsInMemPool)) {
+      LOG_GENERAL(INFO, "Txn pool is empty - nothing to send to ds nodes");
+      return;
+    }
 
-  if (!Messenger::SetForwardTxnBlockFromSeed(
-          msg, MessageOffset::BODY,
-          m_mediator.m_lookup->GetTransactionsFromMemPool())) {
-    LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
-  }
+    zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
-  const auto content = boost::algorithm::join(
-      txnsInMemPool | boost::adaptors::transformed([](const Transaction& txn) {
-        return txn.GetTranID().hex();
-      }),
-      ", ");
-  LOG_GENERAL(
-      INFO, "SendTxnMemPoolToNextLayer, current content: [" << content << "]");
+    if (!Messenger::SetForwardTxnBlockFromSeed(
+            msg, MessageOffset::BODY,
+            m_mediator.m_lookup->GetTransactionsFromMemPool())) {
+      LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
+    }
 
-  // I'm either upper seed (archival lookup) for external node or a Lookup for
-  // private seed nodes
-  if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
-    // I'm seed/external-seed - forward message to next layer of 'lookups'
-    LOG_GENERAL(
-        INFO,
-        "SendTxnMemPoolToNextLayer, from seed to lookup, current content: ["
-            << content << "]");
-    m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
-  } else {
+    const auto content = boost::algorithm::join(
+        txnsInMemPool |
+            boost::adaptors::transformed(
+                [](const Transaction& txn) { return txn.GetTranID().hex(); }),
+        ", ");
+    LOG_GENERAL(INFO, "SendTxnMemPoolToNextLayer, current content: [" << content
+                                                                      << "]");
     // I'm a lookup (non-seed & non-external) - send current mempool to ds
-    // committee I just received final block - give some time for all ds backups
-    // to finish consensus before they get new txn batch
+    // committee.
+    // I just received final block - give some time for all ds backups to finish
+    // consensus before they get new txn batch
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     LOG_GENERAL(INFO,
                 "SendTxnMemPoolToNextLayer, from lookups to ds members, "

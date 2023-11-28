@@ -561,14 +561,10 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
         throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                                "Txn type unexpected");
     }
-    zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
-    if (!Messenger::SetForwardTxnBlockFromSeed(msg, MessageOffset::BODY,
-                                               {tx})) {
-      LOG_GENERAL(WARNING, "Unable to serialize txn into protobuf msg");
+    if (!m_sharedMediator.m_lookup->AddTxnToMemPool(tx)) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                             "Unable to add transaction to mempool");
     }
-    LOG_GENERAL(INFO, "Forwarding txn: " << tx.GetTranID().hex()
-                                         << " from seed to next node in chain");
-    m_sharedMediator.m_lookup->SendMessageToRandomSeedNode(msg);
 
   } catch (const JsonRpcException &je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");

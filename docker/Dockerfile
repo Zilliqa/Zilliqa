@@ -72,7 +72,6 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN cargo install --git https://github.com/rrw-zilliqa/sccache --branch rrw_compile_fix sccache --locked
-RUN cargo install sccache
 ENV SCCACHE_CACHE_SIZE="1G"
 ENV SCCACHE_DIR="/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
