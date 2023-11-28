@@ -625,7 +625,11 @@ class EthRpcMethods {
   inline virtual void OtterscanEnableI(const Json::Value& request,
                                        Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    ARCHIVAL_LOOKUP_WITH_TX_TRACES = request[0u].asBool();
+    // This is fatal to ordinary seedpubs - partly because they never receive some txns,
+    // partly because it takes a long time to generate the traces once they have;
+    // disabled.
+    // - rrw 2023-11-24
+    // ARCHIVAL_LOOKUP_WITH_TX_TRACES = request[0u].asBool();
   }
 
   /**
