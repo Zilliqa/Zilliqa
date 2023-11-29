@@ -364,6 +364,11 @@ zbytes RecoverLegacyTransaction(zbytes transaction, int chain_id) {
     i++;
   }
 
+  if (!ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID && beforeEip155Tx) {
+    LOG_GENERAL(WARNING, "Eth transactions without chain ID are disabled");
+    return {};
+  }
+
   // Determine whether the rcid is 0,1 based on the V
   int vSelect = 0;
   if (beforeEip155Tx) {
