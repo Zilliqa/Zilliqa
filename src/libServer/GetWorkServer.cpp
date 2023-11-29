@@ -202,7 +202,7 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
   }
 
   // check the header and boundary is same with current work
-  if (header != m_curWork.header) {
+  if (extraData.size() == 0 && header != m_curWork.header) {
     LOG_GENERAL(WARNING, "Submit header diff with current work");
     LOG_GENERAL(WARNING, "Current header: " << m_curWork.header);
     LOG_GENERAL(WARNING, "Submit header: " << header);
