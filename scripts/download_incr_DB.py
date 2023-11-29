@@ -59,7 +59,7 @@ DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 
 EXCLUDE_CDN_CACHE_HEADER = { "X-z-cdn-bypass": "true", }
-EXCLUDE_CDN_CACHE_KEYS = [ 'CURRENT', '.lock', '.currentTxBlk', 'LOG', 'LOG.old', 'LOCK', 'state_purge', 'contractTrie_purge' ]
+EXCLUDE_CDN_CACHE_KEYS = [ 'CURRENT', '.lock', '.currentTxBlk', 'LOG', 'LOG.old', 'LOCK','persistence', 'statedelta', 'incremental' ]
 
 def isGCP():
 	return AWS_ENDPOINT_URL and '.googleapis.com' in AWS_ENDPOINT_URL
@@ -222,7 +222,8 @@ def GetPersistenceKey(key_url):
 			parsed_url = urlparse(key_url)
 			fname = parsed_url.path.split('/')[-1]
 			dname = parsed_url.path.split('/')[-2]
-			req_header = EXCLUDE_CDN_CACHE_HEADER if fname in EXCLUDE_CDN_CACHE_KEYS or dname in EXCLUDE_CDN_CACHE_KEYS else None
+			pdname = parsed_url.path.split('/')[-3]
+			req_header = EXCLUDE_CDN_CACHE_HEADER if fname in EXCLUDE_CDN_CACHE_KEYS or dname in EXCLUDE_CDN_CACHE_KEYS or pdname in EXCLUDE_CDN_CACHE_KEYS else None
 			response = requests.get(key_url, stream=True, headers=req_header)
 		except Exception as e:
 			print("Exception occurred while downloading " + key_url + ": " + str(e))
