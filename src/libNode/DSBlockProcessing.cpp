@@ -346,7 +346,7 @@ bool Node::ProcessVCDSBlocksMessage(
   LOG_MARKER();
 
   const bool leader = m_mediator.m_ds->GetConsensusMyID() ==
-                      m_mediator.m_ds->GetConsensusMyID();
+                      m_mediator.m_ds->GetConsensusLeaderID();
   LOG_GENERAL(WARNING, "I am " << (leader ? "" : "not") << " the leader");
   lock_guard<mutex> g(m_mutexDSBlock);
 
