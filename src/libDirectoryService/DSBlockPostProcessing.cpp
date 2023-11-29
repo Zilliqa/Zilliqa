@@ -782,6 +782,12 @@ bool DirectoryService::ProcessDSBlockConsensus(
   zbytes unused_reserialized_message;
   PubKey senderPubKey;
 
+  if (m_consensusObject == nullptr) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "m_consensusObject is not created.");
+    return false;
+  }
+
   if (!m_consensusObject->PreProcessMessage(message, offset,
                                             unused_consensus_id, senderPubKey,
                                             unused_reserialized_message)) {
