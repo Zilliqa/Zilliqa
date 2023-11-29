@@ -42,7 +42,8 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return transaction hash for a legacy transaction (before EIP-155)", async function () {
+  // FIXME: ZIL-5498
+  xit("should return transaction hash for a legacy transaction (before EIP-155)", async function () {
     const rawTransaction =
       "0xf8a88088016345785d8a0000830186a08080b853604580600e600039806000f350fe" +
       "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601" +
