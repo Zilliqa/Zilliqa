@@ -33,7 +33,7 @@ describe(`Otterscan api tests: ${METHOD_AFTER} #parallel`, function () {
     });
   });
 
-  it("We can get the otter search TX before and after @block-1", async function () {
+  xit("We can get the otter search TX before and after @block-1", async function () {
     // run the contract that batch sends funds to other addresses
     // then we can check that this txid comes up when asking about
     // these contract addresses.

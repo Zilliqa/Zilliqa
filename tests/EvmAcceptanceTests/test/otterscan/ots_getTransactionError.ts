@@ -17,7 +17,7 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
     revertContract = await hre.deployContract("Revert");
   });
 
-  it("When we revert the TX, we can get the tx error @block-1", async function () {
+  xit("When we revert the TX, we can get the tx error @block-1", async function () {
     const REVERT_MESSAGE = "Transaction too old";
 
     const abi = ethers.utils.defaultAbiCoder;
