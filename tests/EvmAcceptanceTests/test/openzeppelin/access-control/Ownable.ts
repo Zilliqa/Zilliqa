@@ -12,6 +12,7 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
 
   it("should return the deployer as the owner @block-1", async function () {
     const owner = contract.signer as SignerWithAddress;
+    console.log(`Owner is ${owner.address}`);
     expect(await contract.owner()).to.be.equal(owner.address);
   });
 
@@ -24,6 +25,8 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
   it("should not be possible to call a restricted function using an arbitrary account @block-1", async function () {
     const notOwner = hre.allocateEthSigner();
 
+    console.log(`NotOwner is ${notOwner.address}`);
+    
     await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
 
     hre.releaseEthSigner(notOwner);
