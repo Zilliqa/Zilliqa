@@ -5285,6 +5285,45 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx) {
   return AddTxnToMemPool(tx, m_txnMemPool, m_txnMemPoolMutex);
 }
 
+void Lookup::AddTxnToMemPool(const std::vector<Transaction>& txns) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::AddTxnToMemPool not expected to be called from "
+                "other than the LookUp node.");
+    return;
+  }
+
+  unsigned long toAddCount = 0;
+  {
+    lock_guard<mutex> g(m_txnMemPoolMutex);
+
+    if (std::size(m_txnMemPool) >= TXN_STORAGE_LIMIT) {
+      LOG_GENERAL(INFO, "Number of txns exceeded limit");
+      return;
+    }
+
+    // Add no more than TXN_STORAGE_LIMIT and available in txns
+    toAddCount =
+        std::min(TXN_STORAGE_LIMIT - std::size(m_txnMemPool), std::size(txns));
+
+    m_txnMemPool.insert(std::end(m_txnMemPool), std::begin(txns),
+                        std::begin(txns) + toAddCount);
+
+    // Remove duplicates
+    std::sort(std::begin(m_txnMemPool), std::end(m_txnMemPool));
+    m_txnMemPool.erase(
+        std::unique(std::begin(m_txnMemPool), std::end(m_txnMemPool)),
+        std::end(m_txnMemPool));
+  }
+
+  for (unsigned long idx = 0; idx < toAddCount; ++idx) {
+    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+      RemoteStorageDB::GetInstance().InsertTxn(txns[idx], TxnStatus::DISPATCHED,
+                                               m_mediator.m_currentEpochNum);
+    }
+  }
+}
+
 bool Lookup::ClearTxnMemPool() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -5538,15 +5577,7 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
   } else {
     // I'm a lookup (non-seed & non-external) - save this message into mempool.
     // Mempool will be sent to ds members when final block arrives
-    for (const auto& tx : transactions) {
-      if (!AddTxnToMemPool(tx)) {
-        LOG_GENERAL(WARNING, "Unable to add: " << tx.GetTranID().hex()
-                                               << " to mempool!");
-      } else {
-        LOG_GENERAL(INFO, "Successfully added: " << tx.GetTranID().hex()
-                                                 << " to mempool!");
-      }
-    }
+    AddTxnToMemPool(transactions);
   }
 
   return true;
