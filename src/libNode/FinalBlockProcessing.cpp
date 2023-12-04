@@ -1319,7 +1319,6 @@ void Node::SendTxnMemPoolToNextLayer() {
             boost::adaptors::transformed(
                 [](const Transaction& txn) { return txn.GetTranID().hex(); }),
         ", ");
-                                                                      << "]");
     // I'm a lookup (non-seed & non-external) - send current mempool to ds
     // committee.
     // I just received final block - give some time for all ds backups to finish
