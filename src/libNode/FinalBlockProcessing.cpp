@@ -1452,7 +1452,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   const auto processTransactionEndTime = std::chrono::steady_clock::now();
-  LOG_GERANAL(
+  LOG_GENERAL(
       INFO, "Entire ProcessTransaction took: "
                 << std::chrono::duration_cast<std::chrono::milliseconds>(
                        processTransactionEndTime - processTransactionStartTime)
