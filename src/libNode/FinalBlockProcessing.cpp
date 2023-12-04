@@ -1394,6 +1394,9 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
               "Committing forwarded transactions with committee size: "
                   << m_mediator.m_DSCommittee->size()
                   << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
+
+  const auto processTransactionStartTime = std::chrono::steady_clock::now();
+
   if (!entry.m_transactions.empty()) {
     uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
@@ -1417,6 +1420,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
             twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
       }
 
+      const auto putBlockStart = std::chrono::steady_clock::now();
       // Store TxBody to disk
       zbytes serializedTxBody;
       twr.Serialize(serializedTxBody, 0);
@@ -1425,6 +1429,12 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
       }
+      const auto putBlockEnd = std::chrono::steady_clock::now();
+      LOG_GENERAL(INFO,
+                  "Put single tx body took: "
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(
+                             putBlockEnd - putBlockStart)
+                             .count());
       LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: "
                                << txhash.hex()
                                << ", NONCE: " << tran.GetNonce());
@@ -1439,6 +1449,13 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
       }
     }
   }
+
+  const auto processTransactionEndTime = std::chrono::steady_clock::now();
+  LOG_GERANAL(
+      INFO, "Entire ProcessTransaction took: "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(
+                       processTransactionEndTime - processTransactionStartTime)
+                       .count());
 
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
     RemoteStorageDB::GetInstance().ExecuteWriteDetached();
