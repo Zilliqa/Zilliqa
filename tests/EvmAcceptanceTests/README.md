@@ -18,6 +18,22 @@
     MOCHA_REPORTER=./BriefMochaReporter.ts npx hardhat test    # To use brief reporter.
 ```
 
+# Running tests from env vars
+
+You can run tests from a chain specified via environment variables (this is used by `z blockchain perf`) - eg:
+
+```
+export CHAIN_URL=http://localhost:12003
+export CHAIN_WEBSOCKET_URL=http://localhost:12003
+export CHAIN_NAME="zbconnect2"
+export CHAIN_ID=700
+
+
+npm i
+npx hardhat init-signers --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --from-address-type zil --count 30 --balance 1000 --network from_env
+npx hardhat test --parallel --network from_env
+```
+
 # Start running tests
 
 If it's the first time you want to run tests, or you just created [a new network](#how-to-define-a-new-network-for-hardhat) and you want to run tests against this newly added network, you're supposed to call `setup`:

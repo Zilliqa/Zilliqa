@@ -37,8 +37,8 @@ task("init-signers", "A task to init signers")
 
     spinner.succeed();
 
-    const outputFileStem = fileName ?? process.env.CHAIN_NAME ?? `${hre.network.name}`
-    const outputFileName = `${outputFileStem}.json`
+    const outputFileStem = fileName ?? process.env.CHAIN_NAME ?? `${hre.network.name}`;
+    const outputFileName = `${outputFileStem}.json`;
 
     try {
       await writeToFile(
@@ -101,8 +101,8 @@ const createAccountsZil = async (
   count: number
 ) => {
   // Add +amount for the source account itself, add +100 for transaction costs.
-  let gasSupply = BigNumber.from(100).mul(ethers.constants.WeiPerEther)
-  let amountToMove = ethers.utils.formatEther(amount.mul(count * 2).add(gasSupply))
+  let gasSupply = BigNumber.from(100).mul(ethers.constants.WeiPerEther);
+  let amountToMove = ethers.utils.formatEther(amount.mul(count * 2).add(gasSupply));
   await hre.run("transfer", {
     from: privateKey,
     to: getEthAddress(privateKey),

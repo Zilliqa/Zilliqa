@@ -24,7 +24,7 @@ describe(`Otterscan api tests: ${METHOD}`, function () {
     const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
       ethers.Wallet.createRandom().connect(ethers.provider)
     );
-    
+
     const acctAddr = accounts[0].address;
 
     const [owner] = await ethers.getSigners();

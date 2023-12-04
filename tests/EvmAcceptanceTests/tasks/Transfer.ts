@@ -53,7 +53,6 @@ const fundZil = async (hre: HardhatRuntimeEnvironment, privateKey: string, to: s
   const ethAddrConverted = toChecksumAddress(to); // Zil checksum
   const balance = await getZilBalance(hre, to);
   console.log(`Current balance: ${clc.yellow.bold(balance)}`);
-  console.log(`Funding address ${fromAddress}`);
   const tx = await zilliqa.blockchain.createTransactionWithoutConfirm(
     zilliqa.transactions.new(
       {

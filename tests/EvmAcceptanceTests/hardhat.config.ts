@@ -22,17 +22,17 @@ declare module "hardhat/types/config" {
   }
 }
 
+// The ?? "" s below are simply because hardhat requires a string even if the
+// variable is undefined - rrw 2023-12-11
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
   defaultNetwork: "isolated_server",
 
   networks: {
     from_env: {
-      url: process.env.CHAIN_URL,
-      websocketUrl: process.env.CHAIN_WEBSOCKET_URL,
-      accounts: [
-        ...loadFromSignersFile(process.env.CHAIN_NAME)
-      ],
+      url: process.env.CHAIN_URL ?? "",
+      websocketUrl: process.env.CHAIN_WEBSOCKET_URL ?? "",
+      accounts: [...loadFromSignersFile(process.env.CHAIN_NAME)],
       chainId: process.env.CHAIN_ID | 0x8000,
       zilliqaNetwork: true,
       web3ClientVersion: "Zilliqa/v8.2",
