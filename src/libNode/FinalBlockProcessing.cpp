@@ -1431,7 +1431,8 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
       }
       const auto putBlockEnd = std::chrono::steady_clock::now();
       LOG_GENERAL(INFO,
-                  "Put single tx body took: "
+                  "Put single tx body with size: "
+                      << serializedTxBody.size() << " took:"
                       << std::chrono::duration_cast<std::chrono::milliseconds>(
                              putBlockEnd - putBlockStart)
                              .count());
