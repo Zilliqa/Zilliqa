@@ -5286,6 +5286,7 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx) {
 }
 
 void Lookup::AddTxnToMemPool(const std::vector<Transaction>& txns) {
+  LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::AddTxnToMemPool not expected to be called from "
