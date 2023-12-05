@@ -5317,11 +5317,19 @@ void Lookup::AddTxnToMemPool(const std::vector<Transaction>& txns) {
         std::end(m_txnMemPool));
   }
 
-  for (unsigned long idx = 0; idx < toAddCount; ++idx) {
-    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-      RemoteStorageDB::GetInstance().InsertTxn(txns[idx], TxnStatus::DISPATCHED,
-                                               m_mediator.m_currentEpochNum);
-    }
+  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+    auto mongoInsertFunc =
+        [transactions =
+             std::vector<Transaction>{
+                 std::make_move_iterator(std::begin(txns)),
+                 std::make_move_iterator(std::begin(txns) + toAddCount)},
+         epoch = m_mediator.m_currentEpochNum]() {
+          for (const auto& txn : transactions) {
+            RemoteStorageDB::GetInstance().InsertTxn(txn, TxnStatus::DISPATCHED,
+                                                     epoch);
+          }
+        };
+    DetachedFunction(1, mongoInsertFunc);
   }
 }
 
