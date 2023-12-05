@@ -201,7 +201,9 @@ bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
     LOG_GENERAL(WARNING, "DB not initialized");
     return false;
   }
-  Json::Value tx_json = JSONConversion::convertTxtoJson(txn);
+  constexpr auto USE_HEX_ENCODING_FOR_CODE_AND_DATA = true;
+  Json::Value tx_json =
+      JSONConversion::convertTxtoJson(txn, USE_HEX_ENCODING_FOR_CODE_AND_DATA);
   tx_json["status"] = static_cast<int>(status);
   tx_json["success"] = success;
   tx_json["epochInserted"] = to_string(epoch);
@@ -220,7 +222,7 @@ bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
       m_bulkWriteEmpty = false;
     }
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "Failed to InsertTxn " << e.what());
+    LOG_GENERAL(DEBUG, "Failed to InsertTxn " << e.what());
     return false;
   }
 

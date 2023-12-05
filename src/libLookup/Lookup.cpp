@@ -5368,38 +5368,36 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
   bool result = false;
   uint64_t epoch = m_mediator.m_currentEpochNum;
 
-  {
-    unique_lock<mutex> g(m_txnMemPoolMutex, defer_lock);
-    unique_lock<mutex> g2(m_txnMemPoolGeneratedMutex, defer_lock);
-    lock(g, g2);
-    auto transactionNumber = transactions.size();
+  auto transactionNumber = transactions.size();
 
-    LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
+  LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-    if (transactions.empty()) {
-      LOG_GENERAL(INFO, "No txns to send to ds shard");
-      return;
-    }
-    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+  if (transactions.empty()) {
+    LOG_GENERAL(INFO, "No txns to send to ds shard");
+    return;
+  }
+
+  result = Messenger::SetNodeForwardTxnBlock(
+      msg, MessageOffset::BODY, epoch,
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+      m_mediator.m_node->GetShardId(), m_mediator.m_selfKey, transactions);
+
+  if (!result) {
+    LOG_EPOCH(WARNING, epoch, "Messenger::SetNodeForwardTxnBlock failed.");
+    return;
+  }
+  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+    auto mongoInsertFunc = [transactions = std::move(transactions), epoch]() {
       for (const auto& tx : transactions) {
         LOG_GENERAL(INFO, "InsertTxn " << tx.GetTranID().hex() << " fromAddr "
                                        << tx.GetSenderAddr()
                                        << ", nonce: " << tx.GetNonce());
         RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
-                                                 m_mediator.m_currentEpochNum);
+                                                 epoch);
       }
       RemoteStorageDB::GetInstance().ExecuteWriteDetached();
-    }
-
-    result = Messenger::SetNodeForwardTxnBlock(
-        msg, MessageOffset::BODY, epoch,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        m_mediator.m_node->GetShardId(), m_mediator.m_selfKey, transactions);
-  }
-
-  if (!result) {
-    LOG_EPOCH(WARNING, epoch, "Messenger::SetNodeForwardTxnBlock failed.");
-    return;
+    };
+    DetachedFunction(1, mongoInsertFunc);
   }
 
   vector<Peer> toSend;
