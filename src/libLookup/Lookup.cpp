@@ -5397,9 +5397,9 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
     auto mongoInsertFunc = [transactions = std::move(transactions), epoch]() {
       for (const auto& tx : transactions) {
-        LOG_GENERAL(INFO, "InsertTxn " << tx.GetTranID().hex() << " fromAddr "
-                                       << tx.GetSenderAddr()
-                                       << ", nonce: " << tx.GetNonce());
+        LOG_GENERAL(DEBUG, "InsertTxn " << tx.GetTranID().hex() << " fromAddr "
+                                        << tx.GetSenderAddr()
+                                        << ", nonce: " << tx.GetNonce());
         RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
                                                  epoch);
       }
