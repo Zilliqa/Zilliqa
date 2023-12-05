@@ -5340,13 +5340,8 @@ bool Lookup::ClearTxnMemPool() {
                 "other than the LookUp node.");
     return true;
   }
-  const auto content = boost::algorithm::join(
-      m_txnMemPool | boost::adaptors::transformed([](const Transaction& txn) {
-        return txn.GetTranID().hex();
-      }),
-      ", ");
   LOG_GENERAL(INFO,
-              "Clearing m_txnMemPool, current content: [" << content << "]");
+              "Clearing m_txnMemPool, current size: " << m_txnMemPool.size());
 
   m_txnMemPool.clear();
 
@@ -5568,18 +5563,13 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  const auto content = boost::algorithm::join(
-      transactions | boost::adaptors::transformed([](const Transaction& txn) {
-        return txn.GetTranID().hex();
-      }),
-      ", ");
-
   // I'm either upper seed (archival lookup) for external node or a Lookup for
   // private seed nodes
   if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
     // I'm seed/external-seed - forward message to next layer of 'lookups'
-    LOG_GENERAL(INFO, "Sending from seed to next layer transactions batch: ["
-                          << content << "]");
+    LOG_GENERAL(INFO,
+                "Sending from seed to next layer transactions batch with size: "
+                    << transactions.size());
     SendMessageToRandomSeedNode(message);
   } else {
     // I'm a lookup (non-seed & non-external) - save this message into mempool.
