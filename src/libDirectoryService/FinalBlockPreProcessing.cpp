@@ -1349,6 +1349,11 @@ void DirectoryService::RunConsensusOnFinalBlock(bool afterRecover) {
 
     m_mediator.m_node->m_txn_distribute_window_open = true;
 
+    // If we're running consensus for the same epoch again (after view change)
+    // we have to erase old that might have been received in the same epoch
+    // before view change kicked in
+    m_microBlocks.erase(m_mediator.m_currentEpochNum);
+
     m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
     LOG_GENERAL(INFO, "RunConsensusOnFinalBlock ");

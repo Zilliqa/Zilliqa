@@ -28,7 +28,9 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
     });
   });
 
-  it("We can get the otter internal operations @block-1", async function () {
+  // Disabled because it requires TX_TRACES on and this can't be on by default
+  // ZIL-5489 - rrw 2023-11-29
+  xit("We can get the otter internal operations @block-1", async function () {
     // Check we can for example detect a suicide with correct value.
     // Below is taken from transfer.ts test
 
