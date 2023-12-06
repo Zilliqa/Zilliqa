@@ -284,6 +284,8 @@ class Lookup : public Executable {
   bool AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
                        std::mutex& txnMemPoolMutex);
 
+  void AddTxnToMemPool(const std::vector<Transaction>& tx);
+
   void CheckBufferTxBlocks();
 
   bool ClearTxnMemPool();

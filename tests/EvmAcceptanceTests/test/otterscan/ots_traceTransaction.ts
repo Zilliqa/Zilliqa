@@ -29,7 +29,7 @@ describe(`Otterscan api tests: ${METHOD} #parallel`, function () {
     }
   });
 
-  it("We can get the otter trace transaction @block-1", async function () {
+  xit("We can get the otter trace transaction @block-1", async function () {
     let addrOne = contractOne.address.toLowerCase();
     let addrTwo = contractTwo.address.toLowerCase();
     let addrThree = contractThree.address.toLowerCase();

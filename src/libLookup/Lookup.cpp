@@ -5285,6 +5285,54 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx) {
   return AddTxnToMemPool(tx, m_txnMemPool, m_txnMemPoolMutex);
 }
 
+void Lookup::AddTxnToMemPool(const std::vector<Transaction>& txns) {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::AddTxnToMemPool not expected to be called from "
+                "other than the LookUp node.");
+    return;
+  }
+
+  unsigned long toAddCount = 0;
+  {
+    lock_guard<mutex> g(m_txnMemPoolMutex);
+
+    if (std::size(m_txnMemPool) >= TXN_STORAGE_LIMIT) {
+      LOG_GENERAL(INFO, "Number of txns exceeded limit");
+      return;
+    }
+
+    // Add no more than TXN_STORAGE_LIMIT and available in txns
+    toAddCount =
+        std::min(TXN_STORAGE_LIMIT - std::size(m_txnMemPool), std::size(txns));
+
+    m_txnMemPool.insert(std::end(m_txnMemPool), std::begin(txns),
+                        std::begin(txns) + toAddCount);
+
+    // Remove duplicates
+    std::sort(std::begin(m_txnMemPool), std::end(m_txnMemPool));
+    m_txnMemPool.erase(
+        std::unique(std::begin(m_txnMemPool), std::end(m_txnMemPool)),
+        std::end(m_txnMemPool));
+  }
+
+  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+    auto mongoInsertFunc =
+        [transactions =
+             std::vector<Transaction>{
+                 std::make_move_iterator(std::begin(txns)),
+                 std::make_move_iterator(std::begin(txns) + toAddCount)},
+         epoch = m_mediator.m_currentEpochNum]() {
+          for (const auto& txn : transactions) {
+            RemoteStorageDB::GetInstance().InsertTxn(txn, TxnStatus::DISPATCHED,
+                                                     epoch);
+          }
+        };
+    DetachedFunction(1, mongoInsertFunc);
+  }
+}
+
 bool Lookup::ClearTxnMemPool() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -5292,13 +5340,8 @@ bool Lookup::ClearTxnMemPool() {
                 "other than the LookUp node.");
     return true;
   }
-  const auto content = boost::algorithm::join(
-      m_txnMemPool | boost::adaptors::transformed([](const Transaction& txn) {
-        return txn.GetTranID().hex();
-      }),
-      ", ");
   LOG_GENERAL(INFO,
-              "Clearing m_txnMemPool, current content: [" << content << "]");
+              "Clearing m_txnMemPool, current size: " << m_txnMemPool.size());
 
   m_txnMemPool.clear();
 
@@ -5328,38 +5371,36 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
   bool result = false;
   uint64_t epoch = m_mediator.m_currentEpochNum;
 
-  {
-    unique_lock<mutex> g(m_txnMemPoolMutex, defer_lock);
-    unique_lock<mutex> g2(m_txnMemPoolGeneratedMutex, defer_lock);
-    lock(g, g2);
-    auto transactionNumber = transactions.size();
+  auto transactionNumber = transactions.size();
 
-    LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
+  LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-    if (transactions.empty()) {
-      LOG_GENERAL(INFO, "No txns to send to ds shard");
-      return;
-    }
-    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-      for (const auto& tx : transactions) {
-        LOG_GENERAL(INFO, "InsertTxn " << tx.GetTranID().hex() << " fromAddr "
-                                       << tx.GetSenderAddr()
-                                       << ", nonce: " << tx.GetNonce());
-        RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
-                                                 m_mediator.m_currentEpochNum);
-      }
-      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
-    }
-
-    result = Messenger::SetNodeForwardTxnBlock(
-        msg, MessageOffset::BODY, epoch,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        m_mediator.m_node->GetShardId(), m_mediator.m_selfKey, transactions);
+  if (transactions.empty()) {
+    LOG_GENERAL(INFO, "No txns to send to ds shard");
+    return;
   }
+
+  result = Messenger::SetNodeForwardTxnBlock(
+      msg, MessageOffset::BODY, epoch,
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+      m_mediator.m_node->GetShardId(), m_mediator.m_selfKey, transactions);
 
   if (!result) {
     LOG_EPOCH(WARNING, epoch, "Messenger::SetNodeForwardTxnBlock failed.");
     return;
+  }
+  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+    auto mongoInsertFunc = [transactions = std::move(transactions), epoch]() {
+      for (const auto& tx : transactions) {
+        LOG_GENERAL(DEBUG, "InsertTxn " << tx.GetTranID().hex() << " fromAddr "
+                                        << tx.GetSenderAddr()
+                                        << ", nonce: " << tx.GetNonce());
+        RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
+                                                 epoch);
+      }
+      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+    };
+    DetachedFunction(1, mongoInsertFunc);
   }
 
   vector<Peer> toSend;
@@ -5522,31 +5563,18 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  const auto content = boost::algorithm::join(
-      transactions | boost::adaptors::transformed([](const Transaction& txn) {
-        return txn.GetTranID().hex();
-      }),
-      ", ");
-
   // I'm either upper seed (archival lookup) for external node or a Lookup for
   // private seed nodes
   if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
     // I'm seed/external-seed - forward message to next layer of 'lookups'
-    LOG_GENERAL(INFO, "Sending from seed to next layer transactions batch: ["
-                          << content << "]");
+    LOG_GENERAL(INFO,
+                "Sending from seed to next layer transactions batch with size: "
+                    << transactions.size());
     SendMessageToRandomSeedNode(message);
   } else {
     // I'm a lookup (non-seed & non-external) - save this message into mempool.
     // Mempool will be sent to ds members when final block arrives
-    for (const auto& tx : transactions) {
-      if (!AddTxnToMemPool(tx)) {
-        LOG_GENERAL(WARNING, "Unable to add: " << tx.GetTranID().hex()
-                                               << " to mempool!");
-      } else {
-        LOG_GENERAL(INFO, "Successfully added: " << tx.GetTranID().hex()
-                                                 << " to mempool!");
-      }
-    }
+    AddTxnToMemPool(transactions);
   }
 
   return true;

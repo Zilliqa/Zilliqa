@@ -13,7 +13,8 @@ describe(`Otterscan api tests: ${METHOD}`, function () {
     });
   });
 
-  it("We can get the otter search for sender by nonce", async function () {
+  // Temporarily disabled - requires an archival lookup with traces.
+  xit("We can get the otter search for sender by nonce", async function () {
     // To test this, send money to an account then have it send it back.
     // The nonces should be able to lookup via 0, 1, 2
     // re-use the batch transfer code for this

@@ -1292,6 +1292,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 }
 
 void Node::SendTxnMemPoolToNextLayer() {
+  LOG_MARKER();
   // Only used in pure lookups
   if (!ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
     std::vector<Transaction> txnsInMemPool;
@@ -1306,30 +1307,11 @@ void Node::SendTxnMemPoolToNextLayer() {
       return;
     }
 
-    zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
-
-    if (!Messenger::SetForwardTxnBlockFromSeed(
-            msg, MessageOffset::BODY,
-            m_mediator.m_lookup->GetTransactionsFromMemPool())) {
-      LOG_GENERAL(WARNING, "Unable to serialize txn mempool into protobuf msg");
-    }
-
-    const auto content = boost::algorithm::join(
-        txnsInMemPool |
-            boost::adaptors::transformed(
-                [](const Transaction& txn) { return txn.GetTranID().hex(); }),
-        ", ");
-    LOG_GENERAL(INFO, "SendTxnMemPoolToNextLayer, current content: [" << content
-                                                                      << "]");
     // I'm a lookup (non-seed & non-external) - send current mempool to ds
     // committee.
     // I just received final block - give some time for all ds backups to finish
     // consensus before they get new txn batch
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-    LOG_GENERAL(INFO,
-                "SendTxnMemPoolToNextLayer, from lookups to ds members, "
-                "current content: ["
-                    << content << "]");
     m_mediator.m_lookup->SenderTxnBatchThread(std::move(txnsInMemPool));
   }
 }
@@ -1396,6 +1378,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
               "Committing forwarded transactions with committee size: "
                   << m_mediator.m_DSCommittee->size()
                   << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
+
   if (!entry.m_transactions.empty()) {
     uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
@@ -1412,13 +1395,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
       if (ENABLE_WEBSOCKET) {
         m_mediator.m_websocketServer->ParseTxn(twr);
       }
-
-      if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-        RemoteStorageDB::GetInstance().UpdateTxn(
-            txhash.hex(), TxnStatus::CONFIRMED, m_mediator.m_currentEpochNum,
-            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
-      }
-
       // Store TxBody to disk
       zbytes serializedTxBody;
       twr.Serialize(serializedTxBody, 0);
@@ -1442,8 +1418,19 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     }
   }
 
-  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+  if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
+    auto mongoInsertFunc = [transactions = entry.m_transactions,
+                            epoch = m_mediator.m_currentEpochNum]() {
+      for (const auto& twr : transactions) {
+        const auto& tran = twr.GetTransaction();
+        const auto& txhash = tran.GetTranID();
+        RemoteStorageDB::GetInstance().UpdateTxn(
+            txhash.hex(), TxnStatus::CONFIRMED, epoch,
+            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
+      }
+      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+    };
+    DetachedFunction(1, mongoInsertFunc);
   }
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Proceessed " << entry.m_transactions.size() << " of txns.");
@@ -1458,20 +1445,32 @@ void Node::SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
+  {
+    lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
 
-  lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
-
-  for (const auto& twr : entry.m_transactions) {
-    const auto& txhash = twr.GetTransaction().GetTranID();
-    m_softConfirmedTxns.emplace(txhash, twr);
-    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-      RemoteStorageDB::GetInstance().UpdateTxn(
-          txhash.hex(), TxnStatus::SOFT_CONFIRMED, m_mediator.m_currentEpochNum,
-          twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
+    for (const auto& twr : entry.m_transactions) {
+      const auto& txhash = twr.GetTransaction().GetTranID();
+      m_softConfirmedTxns.emplace(txhash, twr);
+      if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+        RemoteStorageDB::GetInstance().UpdateTxn(
+            txhash.hex(), TxnStatus::SOFT_CONFIRMED,
+            m_mediator.m_currentEpochNum,
+            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
+      }
     }
   }
-  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+  if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
+    auto mongoInsertFunc = [txns = entry.m_transactions,
+                            epoch = m_mediator.m_currentEpochNum]() {
+      for (const auto& twr : txns) {
+        const auto& txhash = twr.GetTransaction().GetTranID();
+        RemoteStorageDB::GetInstance().UpdateTxn(
+            txhash.hex(), TxnStatus::SOFT_CONFIRMED, epoch,
+            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
+      }
+      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+    };
+    DetachedFunction(1, mongoInsertFunc);
   }
 }
 
@@ -1685,7 +1684,7 @@ bool Node::ProcessMBnForwardTransaction(
   return ProcessMBnForwardTransactionCore(entry);
 }
 
-bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+bool Node::AddPendingTxn(HashCodeMap pendingTxns, const PubKey& pubkey,
                          uint32_t shardId, const zbytes& txnListHash) {
   {
     // DS Committee
@@ -1726,15 +1725,18 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
     if (IsTxnDropped(entry.second)) {
       LOG_GENERAL(INFO, "[DTXN]" << entry.first << " " << currentEpochNum);
     }
-
-    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-      RemoteStorageDB::GetInstance().UpdateTxn(
-          entry.first.hex(), entry.second, m_mediator.m_currentEpochNum, false);
-    }
   }
 
   if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
-    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+    auto mongoInsertFunc = [pendingTxns = std::move(pendingTxns),
+                            epoch = m_mediator.m_currentEpochNum]() {
+      for (const auto& entry : pendingTxns) {
+        RemoteStorageDB::GetInstance().UpdateTxn(entry.first.hex(),
+                                                 entry.second, epoch, false);
+      }
+      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+    };
+    DetachedFunction(1, mongoInsertFunc);
   }
   return true;
 }
@@ -1813,7 +1815,7 @@ bool Node::ProcessPendingTxn(const zbytes& message, unsigned int cur_offset,
                         << " id=" << hashCodeMap.begin()->first
                         << " s=" << hashCodeMap.begin()->second);
 
-  AddPendingTxn(hashCodeMap, pubkey, shardId, txnListHash);
+  AddPendingTxn(std::move(hashCodeMap), pubkey, shardId, txnListHash);
 
   return true;
 }
