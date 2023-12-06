@@ -219,7 +219,7 @@ class Node : public Executable {
   // internal calls from ProcessForwardTransaction
   void CommitForwardedTransactions(const MBnForwardedTxnEntry& entry);
 
-  bool AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+  bool AddPendingTxn(HashCodeMap pendingTxns, const PubKey& pubkey,
                      uint32_t shardId, const zbytes& txnListHash);
 
   bool RemoveTxRootHashFromUnavailableMicroBlock(
@@ -625,8 +625,7 @@ class Node : public Executable {
                              const uint64_t winningNonce,
                              const std::string& powResultHash,
                              const std::string& powMixhash,
-                             const zbytes& extraData,
-                             const uint32_t& lookupId,
+                             const zbytes& extraData, const uint32_t& lookupId,
                              const uint128_t& gasPrice);
 
   /// Used by oldest DS node to finish setup as a new shard node

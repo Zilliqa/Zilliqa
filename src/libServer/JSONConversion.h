@@ -67,7 +67,8 @@ class JSONConversion {
   static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr,
                                            bool isSoftConfirmed = false);
   // Convert Tx (without reciept) to JSON object
-  static const Json::Value convertTxtoJson(const Transaction& txn);
+  static const Json::Value convertTxtoJson(
+      const Transaction& txn, bool useHexEncodingForCodeData = false);
   // Convert Tx to ETH-like JSON Object
   static const Json::Value convertTxtoEthJson(uint64_t txindex,
                                               const TransactionWithReceipt& txn,

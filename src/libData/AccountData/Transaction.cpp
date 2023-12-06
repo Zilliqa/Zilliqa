@@ -121,7 +121,6 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
                  maxFeePerGas),
       m_signature(signature),
       m_signature_validation(signature_validation) {
-  LOG_MARKER();
   zbytes txnData;
   SerializeCoreFields(txnData, 0);
 
