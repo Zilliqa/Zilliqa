@@ -202,6 +202,34 @@ StatusServer::StatusServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION, NULL),
       &Server::GetVersionI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("SetRemoteStorageDBTxnUpdaterNode", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &StatusServer::SetRemoteStorageDBUpdateTxnChangeLookupNodeI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetRemoteStorageDBTxnUpdaterNode",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         NULL),
+      &StatusServer::GetRemoteStorageDBUpdateTxnChangeLookupNodeI);
+}
+
+
+bool StatusServer::SetRemoteStorageDBTxnUpdaterNode(
+    const std::string& lookupnodeIdentity) {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Must be called from lookup node only");
+  }
+  REMOTESTORAGE_DB_TXN_UPDATER_NODE = lookupnodeIdentity;
+  return true;
+}
+
+std::string StatusServer::GetRemoteStorageDBTxnUpdaterNode() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Must be called from lookup node only");
+  }
+  return REMOTESTORAGE_DB_TXN_UPDATER_NODE;
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {

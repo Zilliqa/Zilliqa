@@ -212,6 +212,8 @@ const string REMOTESTORAGE_DB_TLS_FILE{
 bool REMOTESTORAGE_DB_ENABLE{
     ReadConstantString("REMOTESTORAGE_DB_ENABLE", "node.remotestorageDB.") ==
     "true"};
+string REMOTESTORAGE_DB_TXN_UPDATER_NODE{ReadConstantString(
+    "REMOTESTORAGE_DB_TXN_UPDATER_NODE", "node.remotestorageDB.", "lookup-1")};
 
 // Consensus constants
 const double TOLERANCE_FRACTION{

@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   Mediator mediator(GenerateRandomKeyPair(), GenerateRandomPeer());
   DirectoryService dummyDS(mediator);
-  Node dummyNode(mediator, 0, true);  // Unused in code anyways
+  Node dummyNode(mediator, 0, true, "dummyNode-0");  // Unused in code anyways
   Lookup dummyLookup(mediator, SyncType::NO_SYNC);
   const uint64_t nonce{0};
   auto dummyValidator = make_shared<Validator>(mediator);

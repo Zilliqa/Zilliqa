@@ -67,6 +67,7 @@ class Zilliqa {
  public:
   /// Constructor.
   Zilliqa(const PairOfKey& key, const Peer& peer,
+          const std::string& nodeIdentity,
           SyncType syncType = SyncType::NO_SYNC, bool toRetrieveHistory = false,
           bool multiplierSyncMode = true,
           PairOfKey extSeedKey = PairOfKey(PrivKey(), PubKey()));

@@ -517,7 +517,7 @@ class Node : public Executable {
 
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
-  Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
+  Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory, const std::string& nodeIdentity);
 
   /// Destructor.
   ~Node();
@@ -748,6 +748,7 @@ class Node : public Executable {
                         processedTransactions);
 
   std::string GetAwsS3CpString(const std::string& uploadFilePath);
+  std::string m_nodeIdentity;
 };
 
 #endif  // ZILLIQA_SRC_LIBNODE_NODE_H_
