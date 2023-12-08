@@ -211,13 +211,14 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   }
 }
 
-Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
+Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer,
+                 const std::string &nodeIdentity, SyncType syncType,
                  bool toRetrieveHistory, bool multiplierSyncMode,
                  PairOfKey extSeedKey)
     : m_mediator(key, peer),
       m_ds(m_mediator),
       m_lookup(m_mediator, syncType, multiplierSyncMode, std::move(extSeedKey)),
-      m_n(m_mediator, syncType, toRetrieveHistory),
+      m_n(m_mediator, syncType, toRetrieveHistory, nodeIdentity),
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
 
