@@ -1693,10 +1693,7 @@ void AccountStoreSC::CommitAtomics() {
   }
 }
 
-void AccountStoreSC::DiscardAtomics() {
-  LOG_MARKER();
-  m_accountStoreAtomic->Init();
-}
+void AccountStoreSC::DiscardAtomics() { m_accountStoreAtomic->Init(); }
 
 void AccountStoreSC::NotifyTimeout() {
   LOG_MARKER();

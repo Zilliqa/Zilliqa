@@ -178,7 +178,7 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   if (!checkerResult.isSuccess) {
     receipt.AddError(CHECKER_FAILED);
     span.SetError("Scilla contract checker failed");
-    LOG_GENERAL(WARNING, "CHECKER out: " << checkerResult.returnVal);
+    LOG_GENERAL(DEBUG, "CHECKER out: " << checkerResult.returnVal);
     return {TxnStatus::NOT_PRESENT, false, failedRetScillaVal};
   }
 
@@ -242,19 +242,17 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
 }
 
 CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
-  LOG_GENERAL(WARNING,
+  LOG_GENERAL(DEBUG,
               "Executing call from: "
                   << mArgs.from.hex() << ", to: " << mArgs.dest.hex()
                   << ", value: " << mArgs.value.toQa().convert_to<std::string>()
                   << ", gasLimit: " << mCpsContext.gasTracker.GetCoreGas());
-  LOG_GENERAL(WARNING,
-              "FROM has balance: "
-                  << mAccountStore.GetBalanceForAccountAtomic(mArgs.from)
-                         .toQa()
-                         .convert_to<std::string>());
-  LOG_GENERAL(
-      WARNING,
-      "To has balance: " << mAccountStore.GetBalanceForAccountAtomic(mArgs.dest)
+  LOG_GENERAL(DEBUG, "FROM has balance: "
+                         << mAccountStore.GetBalanceForAccountAtomic(mArgs.from)
+                                .toQa()
+                                .convert_to<std::string>());
+  LOG_GENERAL(DEBUG, "To has balance: "
+                         << mAccountStore.GetBalanceForAccountAtomic(mArgs.dest)
                                 .toQa()
                                 .convert_to<std::string>());
 
@@ -361,7 +359,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   // Only transfer funds when accepted is true
   if (parseCallResults.accepted) {
-    LOG_GENERAL(WARNING, "Contract accepted amount, transferring");
+    LOG_GENERAL(DEBUG, "Contract accepted amount, transferring");
     if (!mAccountStore.TransferBalanceAtomic(mArgs.from, mArgs.dest,
                                              mArgs.value)) {
       span.SetError("Unable to transfer requested balance");
@@ -369,7 +367,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
     }
   }
 
-  LOG_GENERAL(WARNING,
+  LOG_GENERAL(DEBUG,
               "NUMBER OF MESSAGES: " << std::size(parseCallResults.entries));
   // Check if there's another level of runs that may generate events
   if (!std::empty(parseCallResults.entries)) {
@@ -508,7 +506,7 @@ ScillaInvokeResult CpsRunScilla::InvokeScillaInterpreter(INVOKE_TYPE type) {
     std::unique_lock<std::mutex> lock(mAccountStore.GetScillaMutex());
     mAccountStore.GetScillaCondVariable().wait(
         lock, [&callAlreadyFinished] { return callAlreadyFinished; });
-    LOG_GENERAL(INFO, "Call functions already finished!");
+    LOG_GENERAL(DEBUG, "Call functions already finished!");
   }
 
   if (mAccountStore.GetProcessTimeout()) {
