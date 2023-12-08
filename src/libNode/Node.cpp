@@ -1385,7 +1385,11 @@ void Node::WakeupAtTxEpoch() {
 }
 
 bool Node::GetOfflineLookups(bool endless) {
+  LOG_MARKER();
   unsigned int counter = 1;
+  LOG_GENERAL(INFO,
+              "endless = " << endless << " m_fetchedOfflineLookups = "
+                           << m_mediator.m_lookup->m_fetchedOfflineLookups);
   while (!m_mediator.m_lookup->m_fetchedOfflineLookups &&
          (counter <= FETCH_LOOKUP_MSG_MAX_RETRY || endless)) {
     m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
@@ -1394,6 +1398,9 @@ bool Node::GetOfflineLookups(bool endless) {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
       // TODO: cv fix
+      LOG_GENERAL(INFO, "Inside while loop endless = "
+                            << endless << " m_fetchedOfflineLookups = "
+                            << m_mediator.m_lookup->m_fetchedOfflineLookups);
       if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
@@ -1405,6 +1412,7 @@ bool Node::GetOfflineLookups(bool endless) {
         }
       } else {
         break;
+        LOG_GENERAL(INFO, "Breaking from here");
       }
     }
   }
@@ -1413,6 +1421,7 @@ bool Node::GetOfflineLookups(bool endless) {
     return false;
   }
   m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+  LOG_GENERAL(INFO, "In the end GetOfflineLookups")
   return true;
 }
 

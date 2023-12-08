@@ -4266,6 +4266,7 @@ bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
 bool Lookup::ProcessSetOfflineLookups(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
+      LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetOfflineLookups not expected to be "
@@ -4315,6 +4316,8 @@ bool Lookup::ProcessSetOfflineLookups(
 
   {
     unique_lock<mutex> lock(m_mutexOfflineLookupsUpdation);
+    LOG_GENERAL(INFO, "Notifying all m_fetchedOfflineLookups"
+                          << m_fetchedOfflineLookups);
     m_fetchedOfflineLookups = true;
     cv_offlineLookups.notify_all();
   }
