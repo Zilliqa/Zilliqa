@@ -1418,7 +1418,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     }
   }
 
-  if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
+  if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
     auto mongoInsertFunc = [transactions = entry.m_transactions,
                             epoch = m_mediator.m_currentEpochNum]() {
       for (const auto& twr : transactions) {
@@ -1447,7 +1447,13 @@ void Node::SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
   {
     lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
-    if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
+    for (const auto& twr : entry.m_transactions) {
+      const auto& txhash = twr.GetTransaction().GetTranID();
+      m_softConfirmedTxns.emplace(txhash, twr);
+    }
+  }
+  {
+    if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
       auto mongoInsertFunc = [txns = entry.m_transactions,
                               epoch = m_mediator.m_currentEpochNum]() {
         for (const auto& twr : txns) {
