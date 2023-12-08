@@ -242,7 +242,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_CONSTANTS;
     }
 
-    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
+    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info, identity,
                     (SyncType)syncType, vm.count("recovery"),
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));

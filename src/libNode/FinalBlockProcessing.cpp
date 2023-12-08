@@ -1447,30 +1447,25 @@ void Node::SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
   {
     lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
-
     for (const auto& twr : entry.m_transactions) {
       const auto& txhash = twr.GetTransaction().GetTranID();
       m_softConfirmedTxns.emplace(txhash, twr);
-      if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-        RemoteStorageDB::GetInstance().UpdateTxn(
-            txhash.hex(), TxnStatus::SOFT_CONFIRMED,
-            m_mediator.m_currentEpochNum,
-            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
-      }
     }
   }
-  if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
-    auto mongoInsertFunc = [txns = entry.m_transactions,
-                            epoch = m_mediator.m_currentEpochNum]() {
-      for (const auto& twr : txns) {
-        const auto& txhash = twr.GetTransaction().GetTranID();
-        RemoteStorageDB::GetInstance().UpdateTxn(
-            txhash.hex(), TxnStatus::SOFT_CONFIRMED, epoch,
-            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
-      }
-      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
-    };
-    DetachedFunction(1, mongoInsertFunc);
+  {
+    if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
+      auto mongoInsertFunc = [txns = entry.m_transactions,
+                              epoch = m_mediator.m_currentEpochNum]() {
+        for (const auto& twr : txns) {
+          const auto& txhash = twr.GetTransaction().GetTranID();
+          RemoteStorageDB::GetInstance().UpdateTxn(
+              txhash.hex(), TxnStatus::SOFT_CONFIRMED, epoch,
+              twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
+        }
+        RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+      };
+      DetachedFunction(1, mongoInsertFunc);
+    }
   }
 }
 
@@ -1727,16 +1722,19 @@ bool Node::AddPendingTxn(HashCodeMap pendingTxns, const PubKey& pubkey,
     }
   }
 
-  if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
-    auto mongoInsertFunc = [pendingTxns = std::move(pendingTxns),
-                            epoch = m_mediator.m_currentEpochNum]() {
-      for (const auto& entry : pendingTxns) {
-        RemoteStorageDB::GetInstance().UpdateTxn(entry.first.hex(),
-                                                 entry.second, epoch, false);
-      }
-      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
-    };
-    DetachedFunction(1, mongoInsertFunc);
+  if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
+    if (REMOTESTORAGE_DB_ENABLE && REMOTESTORAGE_DB_TXN_UPDATER_NODE.find(
+                                       m_nodeIdentity) != string::npos) {
+      auto mongoInsertFunc = [pendingTxns = std::move(pendingTxns),
+                              epoch = m_mediator.m_currentEpochNum]() {
+        for (const auto& entry : pendingTxns) {
+          RemoteStorageDB::GetInstance().UpdateTxn(entry.first.hex(),
+                                                   entry.second, epoch, false);
+        }
+        RemoteStorageDB::GetInstance().ExecuteWriteDetached();
+      };
+      DetachedFunction(1, mongoInsertFunc);
+    }
   }
   return true;
 }

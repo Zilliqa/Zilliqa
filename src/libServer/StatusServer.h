@@ -183,6 +183,19 @@ class StatusServer : public Server,
     (void)request;
     response = this->ToggleGetPendingTxns();
   }
+  inline virtual void SetRemoteStorageDBUpdateTxnChangeLookupNodeI(
+      const Json::Value& request, Json::Value& response) {
+    (void)request;
+    response =
+        this->SetRemoteStorageDBTxnUpdaterNode(request[0u].asString());
+  }
+
+  inline virtual void GetRemoteStorageDBUpdateTxnChangeLookupNodeI(
+      const Json::Value& request, Json::Value& response) {
+    (void)request;
+    response =
+        this->GetRemoteStorageDBTxnUpdaterNode();
+  }
 
   Json::Value IsTxnInMemPool(const std::string& tranID);
   bool AddToBlacklistExclusion(const std::string& ipAddr);
@@ -220,6 +233,8 @@ class StatusServer : public Server,
   bool ToggleGetPendingTxns();
   bool EnableJsonRpcPort();
   bool DisableJsonRpcPort();
+  bool SetRemoteStorageDBTxnUpdaterNode(const std::string& lookupNodeIdentity);
+  std::string GetRemoteStorageDBTxnUpdaterNode();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_

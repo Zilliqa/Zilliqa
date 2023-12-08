@@ -33,7 +33,7 @@ int main() {
   Peer peer;
 
   Mediator mediator(key, peer);
-  Node node(mediator, 0, false);
+  Node node(mediator, 0, false,"validator-0");
   auto vd = make_unique<Validator>(mediator);
   Synchronizer sync;
 

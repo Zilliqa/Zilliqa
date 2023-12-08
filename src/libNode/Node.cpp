@@ -254,8 +254,9 @@ void Node::AddBalanceToGenesisAccount() {
 }
 
 Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
-           [[gnu::unused]] bool toRetrieveHistory)
-    : m_mediator(mediator) {}
+           [[gnu::unused]] bool toRetrieveHistory, const std::string& nodeIdentity)
+    : m_mediator(mediator), m_nodeIdentity(nodeIdentity){
+    }
 
 Node::~Node() {}
 

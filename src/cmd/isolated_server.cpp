@@ -173,7 +173,7 @@ int main(int argc, const char* argv[]) {
     Peer peer;
 
     Mediator mediator(key, peer);
-    Node node(mediator, 0, false);
+    Node node(mediator, 0, false,"IsolatedServer-0");
     Lookup lk(mediator, NO_SYNC);
     auto vd = make_shared<Validator>(mediator);
 
