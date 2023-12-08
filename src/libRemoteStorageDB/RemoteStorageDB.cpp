@@ -289,10 +289,8 @@ bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
 
   {
     lock_guard<mutex> g(m_mutexHashMapUpdateTxn);
-    const auto& result_emplace =
-        m_hashMapUpdateTxn.emplace(txnhash, status, epoch);
+    const auto& result_emplace = m_hashMapUpdateTxn.emplace(txnhash, status);
     if (!result_emplace.second) {
-      LOG_GENERAL(INFO, "TxnHash already present: " << txnhash);
       return false;
     }
   }

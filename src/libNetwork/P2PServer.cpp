@@ -131,12 +131,12 @@ class P2PServerImpl : public P2PServer,
             if (!ec) {
               parent->OnAccept(ec, std::move(sock));
             } else {
-              LOG_GENERAL(WARNING, "Got an error from Accept in P2P Server: "
-                                       << ec.message());
+              LOG_GENERAL(DEBUG, "Got an error from Accept in P2P Server: "
+                                     << ec.message());
             }
             parent->AcceptNextConnection();
           } else {
-            LOG_GENERAL(WARNING,
+            LOG_GENERAL(DEBUG,
                         "Parent doesn't exist anymore, this may happen only "
                         "during shutdown phase of Zilliqa");
           }
@@ -155,7 +155,7 @@ class P2PServerImpl : public P2PServer,
   void OnConnectionClosed(uint64_t id) {
     m_connections.erase(id);
     // TODO metric about m_connections.size()
-    LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
+    LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
   }
 
  private:
@@ -169,8 +169,8 @@ class P2PServerImpl : public P2PServer,
         LOG_GENERAL(WARNING, "Couldn't get the IP address from remove socket!");
         return;
       }
-      LOG_GENERAL(INFO, "Accepted new connection from: "
-                            << maybe_peer.value().GetPrintableIPAddress());
+      LOG_GENERAL(DEBUG, "Accepted new connection from: "
+                             << maybe_peer.value().GetPrintableIPAddress());
       auto conn = std::make_shared<P2PServerConnection>(
           weak_from_this(), ++m_counter,
           std::move(maybe_peer.value()), /*m_asio,*/
@@ -179,7 +179,8 @@ class P2PServerImpl : public P2PServer,
       conn->StartReading();
 
       m_connections[m_counter] = std::move(conn);
-      LOG_GENERAL(INFO, "Total incoming connections: " << m_connections.size());
+      LOG_GENERAL(DEBUG,
+                  "Total incoming connections: " << m_connections.size());
       // TODO Metric
     } else {
       LOG_GENERAL(FATAL, "Error in accept : " << ec.message());
@@ -279,7 +280,7 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(DEBUG,
                 "Peer " << m_remotePeer << " read error: " << ec.message());
     CloseSocket();
     OnConnectionClosed();
@@ -373,9 +374,9 @@ void P2PServerConnection::OnHeartBeat(const zil::p2p::ErrorCode& ec) {
       SetupHeartBeat();
       return;
     }
-    LOG_GENERAL(INFO, "Due to inactivity on socket with peer: "
-                          << m_remotePeer.GetPrintableIPAddress()
-                          << " connection is closed");
+    LOG_GENERAL(DEBUG, "Due to inactivity on socket with peer: "
+                           << m_remotePeer.GetPrintableIPAddress()
+                           << " connection is closed");
     CloseSocket();
     OnConnectionClosed();
   }
@@ -423,8 +424,8 @@ void P2PServerConnection::CloseSocket() {
     } while (!ec && (unread = m_socket.available(ec)) > 0);
   }
   m_socket.close(ec);
-  LOG_GENERAL(INFO, "Connection completely closed with peer: "
-                        << m_remotePeer.GetPrintableIPAddress());
+  LOG_GENERAL(DEBUG, "Connection completely closed with peer: "
+                         << m_remotePeer.GetPrintableIPAddress());
 }
 
 void P2PServerConnection::OnConnectionClosed() {

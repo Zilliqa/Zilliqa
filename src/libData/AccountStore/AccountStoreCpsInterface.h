@@ -90,7 +90,6 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
 
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      libCps::Amount amount) override {
-    LOG_GENERAL(WARNING, "TransferBalanceAtomic from " << from << ", to: " << to << ", value: " << amount.toWei());
     return mAccountStore.TransferBalanceAtomic(from, to, amount.toQa());
   }
 

@@ -394,11 +394,6 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
     fullCopy = true;
   }
 
-  LOG_GENERAL(INFO,
-              "Old account storage root: " << oldAccount->GetStorageRoot());
-  LOG_GENERAL(INFO,
-              "New account storage root: " << newAccount.GetStorageRoot());
-
   AccountBase accbase;
 
   accbase.SetVersion(newAccount.GetVersion());
