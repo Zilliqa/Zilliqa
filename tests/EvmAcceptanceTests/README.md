@@ -30,7 +30,7 @@ export CHAIN_ID=700
 
 
 npm i
-npx hardhat init-signers --from db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --from-address-type zil --count 30 --balance 1000 --network from_env
+npx hardhat init-signers --from [privkey] --from-address-type zil --count 30 --balance 1000 --network from_env
 npx hardhat test --parallel --network from_env
 ```
 
