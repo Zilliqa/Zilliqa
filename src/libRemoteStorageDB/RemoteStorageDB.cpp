@@ -201,6 +201,14 @@ bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
     LOG_GENERAL(WARNING, "DB not initialized");
     return false;
   }
+  {
+    const auto txnhash = txn.GetTranID().hex();
+    lock_guard<mutex> g(m_mutexHashMapUpdateTxn);
+    const auto& result_emplace = m_hashMapUpdateTxn.emplace(txnhash, status);
+    if (!result_emplace.second) {
+      return false;
+    }
+  }
   constexpr auto USE_HEX_ENCODING_FOR_CODE_AND_DATA = true;
   Json::Value tx_json =
       JSONConversion::convertTxtoJson(txn, USE_HEX_ENCODING_FOR_CODE_AND_DATA);
