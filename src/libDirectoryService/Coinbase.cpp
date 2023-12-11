@@ -139,14 +139,15 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  RewardControlContractState parsed_state = RewardControlContractState::GetCurrentRewards();
+  RewardControlContractState parsed_state =
+      RewardControlContractState::GetCurrentRewards();
   uint128_t total_reward = parsed_state.coinbase_reward_per_ds;
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
   uint128_t base_reward = 0;
 
-  if (!SafeMath<uint128_t>::mul(total_reward, parsed_state.base_reward_in_percent,
-                                base_reward)) {
+  if (!SafeMath<uint128_t>::mul(
+          total_reward, parsed_state.base_reward_in_percent, base_reward)) {
     LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
     return std::nullopt;
   }
@@ -166,15 +167,24 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
 
   uint128_t lookupReward = 0;
-  if (!SafeMath<uint128_t>::mul(total_reward, parsed_state.lookup_reward_in_percent,
-                                lookupReward)) {
+  if (!SafeMath<uint128_t>::mul(
+          total_reward, parsed_state.lookup_reward_in_percent, lookupReward)) {
     LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
     return std::nullopt;
     ;
   }
   lookupReward /= 100 * parsed_state.percent_prec;
 
-  uint128_t nodeReward = total_reward - lookupReward - base_reward;
+  uint128_t nodeReward = 0;
+  if (!SafeMath<uint128_t>::mul(
+          total_reward,
+          parsed_state.percent_prec - 3 * parsed_state.base_reward_in_percent,
+          nodeReward)) {
+    LOG_GENERAL(WARNING, "nodeReward multiplication unsafe!");
+    return std::nullopt;
+  }
+
+  nodeReward /= 100 * parsed_state.percent_prec;
   uint128_t reward_each = 0;
   uint128_t reward_each_lookup = 0;
 
@@ -193,18 +203,19 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
   LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
                                     << reward_each_lookup);
 
-  return RewardInformation{.base_reward = base_reward,
-                           .base_each_reward = base_reward_each,
-                           .each_reward = reward_each,
-                           .lookup_reward = lookupReward,
-                           .lookup_each_reward = reward_each_lookup,
-                           .lookup_count = lookup_count,
-                           .total_reward = total_reward,
-                           .sig_count = sig_count,
-                           .node_count = node_count,
-                           .node_reward = nodeReward,
-                           .base_reward_mul_in_millis = parsed_state.base_reward_mul_in_millis,
-                           .reward_each_mul_in_millis = parsed_state.reward_each_mul_in_millis};
+  return RewardInformation{
+      .base_reward = base_reward,
+      .base_each_reward = base_reward_each,
+      .each_reward = reward_each,
+      .lookup_reward = lookupReward,
+      .lookup_each_reward = reward_each_lookup,
+      .lookup_count = lookup_count,
+      .total_reward = total_reward,
+      .sig_count = sig_count,
+      .node_count = node_count,
+      .node_reward = nodeReward,
+      .base_reward_mul_in_millis = parsed_state.base_reward_mul_in_millis,
+      .reward_each_mul_in_millis = parsed_state.reward_each_mul_in_millis};
 }
 
 void DirectoryService::InitCoinbase() {
@@ -314,21 +325,22 @@ void DirectoryService::InitCoinbase() {
   if (file.has_value()) {
     auto& fileval = file.value();
     fileval << "Starting Base reward section for epoch: "
-         << m_mediator.m_currentEpochNum << '\n';
+            << m_mediator.m_currentEpochNum << '\n';
     fileval << "RewardStruct information:" << '\n';
     fileval << "base_reward: " << rewardInformation->base_reward << '\n';
-    fileval << "base_each_reward: " << rewardInformation->base_each_reward << '\n';
+    fileval << "base_each_reward: " << rewardInformation->base_each_reward
+            << '\n';
     fileval << "each_reward: " << rewardInformation->each_reward << '\n';
     fileval << "lookup_reward: " << rewardInformation->lookup_reward << '\n';
     fileval << "lookup_each_reward: " << rewardInformation->lookup_each_reward
-         << '\n';
+            << '\n';
     fileval << "lookup_count: " << rewardInformation->lookup_count << '\n';
     fileval << "total_reward: " << rewardInformation->total_reward << '\n';
     fileval << "sig_count: " << rewardInformation->sig_count << '\n';
     fileval << "node_count: " << rewardInformation->node_count << '\n';
     fileval << "node_reward: " << rewardInformation->node_reward << '\n';
   }
-    // DS nodes
+  // DS nodes
   LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");
   for (const auto& ds : *m_mediator.m_DSCommittee) {
     const auto& pk = ds.first;
@@ -378,7 +390,8 @@ void DirectoryService::InitCoinbase() {
 
   uint128_t reward_each_desharded;
 
-  if (!SafeMath<uint128_t>::mul(reward_each, rewardInformation->reward_each_mul_in_millis,
+  if (!SafeMath<uint128_t>::mul(reward_each,
+                                rewardInformation->reward_each_mul_in_millis,
                                 reward_each_desharded)) {
     LOG_GENERAL(WARNING, "reward_each_desharded multiplication unsafe!");
     return;
@@ -396,9 +409,11 @@ void DirectoryService::InitCoinbase() {
 
   if (file.has_value()) {
     file.value() << "Old reward_each is: " << reward_each
-       << ", reward_each_desharded: " << reward_each_desharded << '\n';
-    file.value() << "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes..."
+                 << ", reward_each_desharded: " << reward_each_desharded
                  << '\n';
+    file.value()
+        << "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes..."
+        << '\n';
   }
 
   LOG_GENERAL(WARNING, "Rewardees has size: " << m_coinbaseRewardees.size());
@@ -411,8 +426,9 @@ void DirectoryService::InitCoinbase() {
       const auto& rewardees = shardIdRewardee.second;
       LOG_GENERAL(INFO, "[CNBSE] Rewarding shard " << shardId);
 
-      // These are in fact the SSNs in disguise - rewards are disbursed to lookups, and
-      // then funneled by external scripts back to the SSNs - rrw 2023-10-02
+      // These are in fact the SSNs in disguise - rewards are disbursed to
+      // lookups, and then funneled by external scripts back to the SSNs - rrw
+      // 2023-10-02
       if (shardId == CoinbaseReward::LOOKUP_REWARD) {
         for (const auto& pk : rewardees) {
           const auto& addr = Account::GetAddressFromPublicKey(pk);
