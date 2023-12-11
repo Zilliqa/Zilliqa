@@ -1,0 +1,33 @@
+scilla_version 0
+library Thrower
+(* Thrower contract *)
+type Error =
+| TestError1
+| TestError2
+
+
+let make_error =
+  fun (result : Error) =>
+    let result_code =
+      match result with
+    | TestError1 => Int32 -1
+    | TestError2 => Int32 -2
+      end
+    in
+    { _exception : "Error"; code : result_code }
+
+let zero = Uint128 0
+
+contract Thrower ()
+
+
+procedure ThrowError(err: Error)
+  e = make_error err;
+  throw e
+end
+
+transition throwError(msg: String)
+  err = TestError1;
+  ThrowError err
+end
+

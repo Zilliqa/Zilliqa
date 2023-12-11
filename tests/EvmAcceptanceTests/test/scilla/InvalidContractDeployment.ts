@@ -18,7 +18,7 @@ describe("Scilla contract deployment with error", () => {
   });
 
   // Disabled in q4-working-branch
-  xit("should return error if the provided init version is invalid", async () => {
+  it("should return error if the provided init version is invalid", async () => {
     let contractPath = hre.scillaContracts["SetGet"].path;
     const init = [{vname: "_scilla_version", type: "Uint32", value: "1"}];
 
