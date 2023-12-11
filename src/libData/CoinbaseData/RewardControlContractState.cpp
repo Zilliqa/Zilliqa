@@ -41,7 +41,7 @@ bool GetUint128FromState(Account& account, const std::string& key,
 RewardControlContractState RewardControlContractState::GetCurrentRewards() {
   RewardControlContractState parsed_state(
       COINBASE_REWARD_PER_DS, BASE_REWARD_IN_PERCENT, LOOKUP_REWARD_IN_PERCENT,
-      REWARD_EACH_MUL_IN_MILLIS, BASE_REWARD_MUL_IN_MILLIS, 1,
+      REWARD_EACH_MUL_IN_MILLIS, BASE_REWARD_MUL_IN_MILLIS, 100,
       NODE_REWARD_IN_PERCENT);
 
   LOG_GENERAL(INFO, "RCA " << REWARD_CONTROL_CONTRACT_ADDRESS);
