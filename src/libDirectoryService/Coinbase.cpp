@@ -177,9 +177,7 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
 
   uint128_t nodeReward = 0;
   if (!SafeMath<uint128_t>::mul(
-          total_reward,
-          parsed_state.percent_prec - 3 * parsed_state.base_reward_in_percent,
-          nodeReward)) {
+          total_reward, parsed_state.node_reward_in_percent, nodeReward)) {
     LOG_GENERAL(WARNING, "nodeReward multiplication unsafe!");
     return std::nullopt;
   }

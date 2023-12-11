@@ -21,8 +21,8 @@
 #include "common/BaseType.h"
 #include "libData/AccountData/Account.h"
 
-// The numbers here are represented as strings because that is how they are represented in contract
-// state.
+// The numbers here are represented as strings because that is how they are
+// represented in contract state.
 struct RewardControlContractState {
   uint128_t coinbase_reward_per_ds;
   uint128_t base_reward_in_percent;
@@ -30,20 +30,22 @@ struct RewardControlContractState {
   uint128_t percent_prec;
   uint128_t reward_each_mul_in_millis;
   uint128_t base_reward_mul_in_millis;
+  uint128_t node_reward_in_percent;
 
   RewardControlContractState(uint128_t coinbase_reward_per_ds_,
                              uint128_t base_reward_in_percent_,
                              uint128_t lookup_reward_in_percent_,
                              uint128_t reward_each_mul_in_millis_,
                              uint128_t base_reward_mul_in_millis_,
-                             uint128_t percent_prec_) :
-  coinbase_reward_per_ds(coinbase_reward_per_ds_),
-    base_reward_in_percent(base_reward_in_percent_),
-    lookup_reward_in_percent(lookup_reward_in_percent_),
-    percent_prec(percent_prec_),
-    reward_each_mul_in_millis(reward_each_mul_in_millis_),
-    base_reward_mul_in_millis(base_reward_mul_in_millis_)
-  { }
+                             uint128_t percent_prec_,
+                             uint128_t node_reward_in_percent_)
+      : coinbase_reward_per_ds(coinbase_reward_per_ds_),
+        base_reward_in_percent(base_reward_in_percent_),
+        lookup_reward_in_percent(lookup_reward_in_percent_),
+        percent_prec(percent_prec_),
+        reward_each_mul_in_millis(reward_each_mul_in_millis_),
+        base_reward_mul_in_millis(base_reward_mul_in_millis_),
+        node_reward_in_percent(node_reward_in_percent_) {}
 
   /// returns true if we succeeded, false if we didn't.
   /// WARNING: Will change this even if it returns false! Be careful.
@@ -51,7 +53,5 @@ struct RewardControlContractState {
 
   static RewardControlContractState GetCurrentRewards();
 };
-
-
 
 #endif  // ZILLIQA_SRC_LIBDATA_COINBASEDATA_REWARDCONTROLCONTRACTSTATE_H_

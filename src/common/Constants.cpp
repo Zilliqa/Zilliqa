@@ -194,8 +194,8 @@ const unsigned int FETCH_DS_BLOCK_LIMIT{
     ReadConstantNumeric("FETCH_DS_BLOCK_LIMIT", "node.seed.")};
 
 // RemotestorageDB constants
-const string REMOTESTORAGE_DB_CONN_STRING{
-    ReadConstantString("REMOTESTORAGE_DB_CONN_STRING", "node.remotestorageDB.")};
+const string REMOTESTORAGE_DB_CONN_STRING{ReadConstantString(
+    "REMOTESTORAGE_DB_CONN_STRING", "node.remotestorageDB.")};
 const string REMOTESTORAGE_DB_HOST{
     ReadConstantString("REMOTESTORAGE_DB_HOST", "node.remotestorageDB.")};
 const string REMOTESTORAGE_DB_NAME{
@@ -264,8 +264,8 @@ const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
     ReadConstantNumeric("DELAY_FIRSTXNEPOCH_IN_MS", "node.epoch_timing.")};
 const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
     ReadConstantNumeric("FETCHING_MISSING_DATA_TIMEOUT", "node.epoch_timing.")};
-const unsigned int DS_ANNOUNCEMENT_DELAY_IN_MS{
-    ReadConstantNumeric("DS_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.", 2000)};
+const unsigned int DS_ANNOUNCEMENT_DELAY_IN_MS{ReadConstantNumeric(
+    "DS_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.", 2000)};
 const unsigned int SHARD_ANNOUNCEMENT_DELAY_IN_MS{ReadConstantNumeric(
     "SHARD_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
 const unsigned int MICROBLOCK_TIMEOUT{
@@ -280,10 +280,10 @@ const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{ReadConstantNumeric(
     "POWPACKETSUBMISSION_WINDOW_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int RECOVERY_SYNC_TIMEOUT{
     ReadConstantNumeric("RECOVERY_SYNC_TIMEOUT", "node.epoch_timing.")};
-const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
-    ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.",6000)};
+const unsigned int TX_DISTRIBUTE_TIME_IN_MS{ReadConstantNumeric(
+    "TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.", 6000)};
 const unsigned int EXTRA_TX_DISTRIBUTE_TIME_IN_MS{ReadConstantNumeric(
-    "EXTRA_TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.",7000)};
+    "EXTRA_TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.", 7000)};
 const unsigned int DS_TX_PROCESSING_TIMEOUT{
     ReadConstantNumeric("DS_TX_PROCESSING_TIMEOUT", "node.epoch_timing.")};
 const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
@@ -462,8 +462,6 @@ const unsigned int STORE_DS_COMMITTEE_INTERVAL{ReadConstantNumeric(
 const unsigned int MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM{ReadConstantNumeric(
     "MAX_NUMBER_OF_NEW_MEMBERS_INTO_DS_COMM", "node.network_composition.", 30)};
 
-
-
 // P2PComm constants
 const unsigned int BROADCAST_INTERVAL{
     ReadConstantNumeric("BROADCAST_INTERVAL", "node.p2pcomm.")};
@@ -511,7 +509,8 @@ const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
                            "true"};
 const bool REMOTE_MINE{ReadConstantString("REMOTE_MINE", "node.pow.") ==
                        "true"};
-const bool REMOTE_MINE_EXTRA_DATA{ReadConstantString("REMOTE_MINE_EXTRA_DATA", "node.pow.") == "true"};
+const bool REMOTE_MINE_EXTRA_DATA{
+    ReadConstantString("REMOTE_MINE_EXTRA_DATA", "node.pow.") == "true"};
 const std::string MINING_PROXY_URL{
     ReadConstantString("MINING_PROXY_URL", "node.pow.")};
 const unsigned int MINING_PROXY_TIMEOUT_IN_MS{
@@ -666,8 +665,8 @@ const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 
 // Transaction constants
-const string REWARD_CONTROL_CONTRACT_ADDRESS{
-    ReadConstantString("REWARD_CONTROL_CONTRACT_ADDRESS", "node.transactions.")};
+const string REWARD_CONTROL_CONTRACT_ADDRESS{ReadConstantString(
+    "REWARD_CONTROL_CONTRACT_ADDRESS", "node.transactions.")};
 const uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
 const uint128_t COINBASE_REWARD_PER_DS{
@@ -723,11 +722,14 @@ const double BLOOM_FILTER_FALSE_RATE{
 const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT{
     ReadConstantNumeric("TXN_DISPATCH_ATTEMPT_LIMIT", "node.transactions.")};
 const bool ENABLE_REWARD_DEBUG_FILE{
-    ReadConstantString("ENABLE_REWARD_DEBUG_FILE", "node.transactions.") == "true"};
-const unsigned int REWARD_EACH_MUL_IN_MILLIS{
-  ReadConstantNumeric("REWARD_EACH_MUL_IN_MILLIS", "node.transactions.", 1668) };
-const unsigned int BASE_REWARD_MUL_IN_MILLIS{
-  ReadConstantNumeric("BASE_REWARD_MUL_IN_MILLIS", "node.transactions.", 4726) };
+    ReadConstantString("ENABLE_REWARD_DEBUG_FILE", "node.transactions.") ==
+    "true"};
+const unsigned int REWARD_EACH_MUL_IN_MILLIS{ReadConstantNumeric(
+    "REWARD_EACH_MUL_IN_MILLIS", "node.transactions.", 1668)};
+const unsigned int BASE_REWARD_MUL_IN_MILLIS{ReadConstantNumeric(
+    "BASE_REWARD_MUL_IN_MILLIS", "node.transactions.", 4726)};
+const unsigned int NODE_REWARD_IN_PERCENT{
+    ReadConstantNumeric("NODE_REWARD_IN_PERCENT", "node.transactions.", 40)};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
@@ -777,7 +779,8 @@ const bool LAUNCH_EVM_DAEMON{
 const bool ENABLE_CPS{
     ReadConstantString("ENABLE_CPS", "node.jsonrpc.", "true") == "true"};
 const bool ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID{
-    ReadConstantString("ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID", "node.jsonrpc.", "false") == "true"};
+    ReadConstantString("ACCEPT_ETH_TRANSACTIONS_WITHOUT_CHAIN_ID",
+                       "node.jsonrpc.", "false") == "true"};
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
 const std::string METRIC_ZILLIQA_PROVIDER{ReadConstantString(
