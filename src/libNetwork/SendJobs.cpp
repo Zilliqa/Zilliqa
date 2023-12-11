@@ -339,7 +339,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
               [self = shared_from_this()]() {
                 if (!self->m_connected) {
-                  LOG_GENERAL(WARNING,
+                  LOG_GENERAL(DEBUG,
                               "Unable to connect within "
                                   << CONNECTION_TIMEOUT_IN_MS
                                   << ", canceling any operation on the socket "
@@ -392,7 +392,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
               [self = shared_from_this()]() {
                 if (!self->m_connected) {
                   LOG_GENERAL(
-                      WARNING,
+                      DEBUG,
                       "Unable to connect within "
                           << CONNECTION_TIMEOUT_IN_MS
                           << ", canceling any operation on the socket to: "
