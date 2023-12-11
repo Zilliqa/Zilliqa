@@ -20,9 +20,11 @@ describe("InteropErrors X045", function () {
     solidityContract = await hre.deployContract("InteropErrors");
     scillaContract = await parallelizer.deployScillaContract(
       "Thrower");
+    scillaContractAddress = scillaContract.address?.toLowerCase()!;
   });
 
   it("Should get an error when we call Scilla improperly through EVM", async function () {
-    await solidityContract.callString(scillaContractAddress, "throwError", KEEP_ORIGIN, "Fish");
+    await solidityContract.callString(scillaContractAddress, "throwError", KEEP_ORIGIN, "Fish",
+                                      { gasLimit: 21000000} );
   });
 });
