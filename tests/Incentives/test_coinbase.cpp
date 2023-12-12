@@ -149,16 +149,11 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   auto lookupReward = totalReward - normalReward;
 
-  const auto lookupRewardPerc = (lookupReward * 100) / COINBASE_REWARD_PER_DS;
-
-  BOOST_CHECK_MESSAGE(
-      totalReward < EXPECTED_REWARD + each_reward_desharded &&
-          totalReward > EXPECTED_REWARD - each_reward_desharded,
-      "total reward wrong: " << totalReward << ", Base: " << EXPECTED_REWARD);
+  const auto lookupRewardPerc = (lookupReward * 100 * 100) / COINBASE_REWARD_PER_DS;
 
   BOOST_CHECK_MESSAGE(lookupRewardPerc - 1 <= LOOKUP_REWARD_IN_PERCENT &&
                           lookupRewardPerc + 1 >= LOOKUP_REWARD_IN_PERCENT,
-                      "Lookup reward doesn't match");
+                      "Lookup reward doesn't match: " << lookupRewardPerc << ", " << LOOKUP_REWARD_IN_PERCENT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -152,7 +152,7 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
     return std::nullopt;
   }
   // @TODO we should really do this division just once - rrw 2023-10-03
-  base_reward /= parsed_state.percent_prec;
+  base_reward /= 100 * parsed_state.percent_prec;
 
   LOG_GENERAL(INFO, "Total base reward: " << base_reward);
 
@@ -173,7 +173,7 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
     return std::nullopt;
     ;
   }
-  lookupReward /= parsed_state.percent_prec;
+  lookupReward /= 100 * parsed_state.percent_prec;
 
   uint128_t nodeReward = 0;
   if (!SafeMath<uint128_t>::mul(
@@ -182,7 +182,7 @@ std::optional<RewardInformation> DirectoryService::GetRewardInformation()
     return std::nullopt;
   }
 
-  nodeReward /= parsed_state.percent_prec;
+  nodeReward /= 100 * parsed_state.percent_prec;
   uint128_t reward_each = 0;
   uint128_t reward_each_lookup = 0;
 
