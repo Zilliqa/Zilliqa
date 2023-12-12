@@ -52,8 +52,8 @@ bool CpsRunEvm::IsResumable() const {
 
 CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
-  const auto contractAddress =
-      mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH_LEGACY);
+  const auto contractAddress = mAccountStore.GetAddressForContract(
+      fromAddress, TRANSACTION_VERSION_ETH_LEGACY);
 
   CREATE_SPAN(
       zil::trace::FilterClass::TXN, fromAddress.hex(), contractAddress.hex(),
@@ -64,16 +64,19 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
-      LOG_GENERAL(WARNING, "CpsRunEvm::Run Create type");
       mAccountStore.AddAccountAtomic(contractAddress);
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
       mCpsContext.gasTracker.DecreaseByEth(baseFee);
 
-      LOG_GENERAL(WARNING, "About to make transfer from : " << ProtoToAddress(mProtoArgs.origin()) << ", to: " << ProtoToAddress(mProtoArgs.address())
-                                                                              << ", value: "
-                                                            << Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())).toWei());
+      LOG_GENERAL(
+          DEBUG,
+          "About to make transfer from : "
+              << ProtoToAddress(mProtoArgs.origin())
+              << ", to: " << ProtoToAddress(mProtoArgs.address()) << ", value: "
+              << Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value()))
+                     .toWei());
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -87,16 +90,19 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
-      LOG_GENERAL(WARNING, "CpsRunEvm::Run Call type");
       INC_STATUS(GetCPSMetric(), "transaction", "call");
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
       mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
-      LOG_GENERAL(WARNING, "About to make transfer from : " << ProtoToAddress(mProtoArgs.origin()) << ", to: " << ProtoToAddress(mProtoArgs.address())
-                                                            << ", value: "
-                                                            << Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())).toWei());
+      LOG_GENERAL(
+          DEBUG,
+          "About to make transfer from : "
+              << ProtoToAddress(mProtoArgs.origin())
+              << ", to: " << ProtoToAddress(mProtoArgs.address()) << ", value: "
+              << Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value()))
+                     .toWei());
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -116,7 +122,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   mProtoArgs.set_tx_trace_enabled(TX_TRACES);
   mProtoArgs.set_tx_trace(mExecutor.CurrentTrace());
 
-  LOG_GENERAL(INFO, "Running EVM with gasLimit: " << mProtoArgs.gas_limit());
+  LOG_GENERAL(DEBUG, "Running EVM with gasLimit: " << mProtoArgs.gas_limit());
 
   const auto invokeResult = InvokeEvm();
 
@@ -137,10 +143,10 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-    LOG_GENERAL(WARNING, "EVM: Handle trap result");
+    LOG_GENERAL(DEBUG, "EVM: Handle trap result");
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
-    LOG_GENERAL(WARNING, "EVM: Handle apply result");
+    LOG_GENERAL(DEBUG, "EVM: Handle apply result");
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
@@ -262,7 +268,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
               mProtoArgs.is_static_call()) {
             break;
           }
-          LOG_GENERAL(INFO,
+          LOG_GENERAL(DEBUG,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
                   thisContractAddress,
@@ -308,8 +314,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   if (!isStatic && transferValue > 0) {
     if (inputGas < MIN_ETH_GAS) {
-      LOG_GENERAL(WARNING, "Insufficient gas in call-trap, remaining: "
-                               << inputGas << ", required: " << MIN_ETH_GAS);
+      LOG_GENERAL(DEBUG, "Insufficient gas in call-trap, remaining: "
+                             << inputGas << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in call-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
       span.SetError("Insufficient gas, given: " + std::to_string(inputGas) +
@@ -381,8 +387,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
         mAccountStore.GetBalanceForAccountAtomic(fromAccount);
     const auto requestedValue = Amount::fromWei(transferValue);
     if (requestedValue > currentBalance) {
-      LOG_GENERAL(WARNING,
-                  "From account has insufficient balance in call-trap");
+      LOG_GENERAL(DEBUG, "From account has insufficient balance in call-trap");
       TRACE_ERROR("Insufficient balance");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance in call-trap");
       span.SetError(
@@ -698,7 +703,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
               mProtoArgs.is_static_call()) {
             break;
           }
-          LOG_GENERAL(INFO,
+          LOG_GENERAL(DEBUG,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
                   thisContractAddress,

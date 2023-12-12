@@ -775,10 +775,6 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
       }
       // Clear the vc blocks store
       m_vcBlockStore.clear();
-    } else if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP &&
-               LOOKUP_NODE_MODE) {
-      RemoteStorageDB::GetInstance().ClearHashMapForUpdates();
-      // Clear Hash map for duplicate updates
     }
     return true;
   }
@@ -1119,6 +1115,15 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
   }
 
+  // Clean mongo cache regularly
+  constexpr auto MODULO_DIVIDER = 10;
+  if (isVacuousEpoch || (m_mediator.m_currentEpochNum % MODULO_DIVIDER == 0)) {
+    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
+      // Clear Hash map for duplicate updates
+      RemoteStorageDB::GetInstance().ClearHashMapForUpdates();
+    }
+  }
+
   if (!BlockStorage::GetBlockStorage().PutStateDelta(
           txBlock.GetHeader().GetBlockNum(), stateDelta)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutStateDelta failed");
@@ -1319,11 +1324,10 @@ void Node::SendTxnMemPoolToNextLayer() {
 bool Node::ProcessStateDeltaFromFinalBlock(
     const zbytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash) {
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "Node::ProcessStateDeltaFromFinalBlock ENTER");
   // Init local AccountStoreTemp first
   AccountStore::GetInstance().InitTemp();
 
-  LOG_GENERAL(INFO,
+  LOG_GENERAL(DEBUG,
               "State delta root hash = " << finalBlockStateDeltaHash.hex());
 
   if (finalBlockStateDeltaHash == StateHash()) {

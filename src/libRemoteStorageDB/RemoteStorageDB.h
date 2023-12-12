@@ -42,21 +42,18 @@ struct PendingTxnStatus {
   TxnStatus m_status;
   uint64_t m_epoch;
 
-  PendingTxnStatus(const std::string& txnhash, const TxnStatus& status,
-                   const uint64_t& epoch)
-      : m_txnhash(txnhash), m_status(status), m_epoch(epoch) {}
+  PendingTxnStatus(const std::string& txnhash, const TxnStatus& status)
+      : m_txnhash(txnhash), m_status(status) {}
 
   bool operator==(const PendingTxnStatus& pts) const {
-    return ((pts.m_txnhash == m_txnhash) && (pts.m_status == m_status) &&
-            (pts.m_epoch == m_epoch));
+    return ((pts.m_txnhash == m_txnhash) && (pts.m_status == m_status));
   }
 };
 
 struct PendingTxnStatusHash {
   std::size_t operator()(const PendingTxnStatus& pts) const {
     return std::hash<std::string>()(pts.m_txnhash) ^
-           std::hash<std::uint8_t>()(static_cast<uint8_t>(pts.m_status)) ^
-           std::hash<std::uint64_t>()(pts.m_epoch);
+           std::hash<std::uint8_t>()(static_cast<uint8_t>(pts.m_status));
   }
 };
 

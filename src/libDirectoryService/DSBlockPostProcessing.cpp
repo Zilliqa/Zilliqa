@@ -573,8 +573,9 @@ void DirectoryService::StartFirstTxEpoch() {
     if (!found) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "My DS node signed insufficient blocks. Kicked out and "
-                "invoking RejoinAsNormal now.");
-      m_mediator.m_node->RejoinAsNormal();
+                "start syncing.Better luck next time !!!");
+      m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+      m_mediator.m_node->StartSynchronization();
       return;
     }
 

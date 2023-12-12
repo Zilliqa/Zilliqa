@@ -21,7 +21,7 @@ describe("Events and logs #parallel", function () {
     expect(receipt.logs.length).to.be.eq(1);
   });
 
-  it("Should return 2 logs whenever a function with two events is called @block-1", async function () {
+  it("Should return 2 logs whenever a function with two events is called @block-2", async function () {
     const tx = await contract.two_logs();
     const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
     expect(receipt.logs.length).to.be.eq(2);

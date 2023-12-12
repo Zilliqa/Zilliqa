@@ -914,7 +914,7 @@ bool DirectoryService::CheckStateDeltaHash() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "State delta hash = " << stateRootHash);
+  LOG_GENERAL(DEBUG, "State delta hash = " << stateRootHash);
 
   return true;
 }
