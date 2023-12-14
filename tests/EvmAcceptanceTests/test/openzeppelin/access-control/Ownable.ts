@@ -23,8 +23,8 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
   });
 
   it("should not be possible to call a restricted function using an arbitrary account @block-1", async function () {
-    const notOwner = ethers.Wallet.createRandom();
-
+    const notOwner = ethers.Wallet.createRandom(ethers.provider);
+    
     console.log(`NotOwner is ${notOwner.address}`);
 
     await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
