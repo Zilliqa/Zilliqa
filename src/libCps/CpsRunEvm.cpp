@@ -128,7 +128,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
 
   if (!invokeResult.has_value()) {
     // Timeout
-    receipt.AddError(EXECUTE_CMD_TIMEOUT);
+    receipt.SetResult(false);
     span.SetError("Evm-ds Invoke Error");
     INC_STATUS(GetCPSMetric(), "error", "timeout");
     LOG_GENERAL(WARNING, "Invoke EVM failed!");
