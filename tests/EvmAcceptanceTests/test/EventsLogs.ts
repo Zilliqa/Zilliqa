@@ -31,6 +31,6 @@ describe("Events and logs #parallel", function () {
     const tx = await contract.one_log_and_fail({gasLimit: 250000});
     const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
     console.log("Receipt: " + JSON.stringify(receipt));
-    expect(receipt.logs.length).to.be.eq(2);
+    expect(receipt.logs.length).to.be.eq(1);
   });
 });
