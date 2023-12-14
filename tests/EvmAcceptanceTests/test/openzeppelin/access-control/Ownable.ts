@@ -27,7 +27,8 @@ describe("Openzeppelin ownable contract functionality #parallel", function () {
     let notOwner = hre.allocateEthSigner();
     console.log(`NotOwner is ${notOwner.address}`);
 
-    if(notOwner.address != contract.address) {
+    // In case we have limited pool of signers and the real owner is used here...
+    if(notOwner.address != await contract.signer.getAddress()) {
       await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
     }
     hre.releaseEthSigner(notOwner);
