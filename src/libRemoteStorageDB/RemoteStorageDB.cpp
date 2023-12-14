@@ -289,7 +289,6 @@ RemoteStorageDB::TryGetConnection() {
 
 bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
                                 const uint64_t& epoch, const bool success) {
-  LOG_MARKER();
   if (!m_initialized) {
     LOG_GENERAL(WARNING, "DB not initialized");
     return false;
