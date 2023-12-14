@@ -26,4 +26,10 @@ describe("Events and logs #parallel", function () {
     const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
     expect(receipt.logs.length).to.be.eq(2);
   });
+
+  it("Should return log from child contract even if function failed @block-2", async function () {
+    const tx = await contract.one_log_and_fail({gasLimit: 250000});
+    const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
+    expect(receipt.logs.length).to.be.eq(1);
+  });
 });

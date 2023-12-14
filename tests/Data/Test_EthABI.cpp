@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_SUITE(EthAbiTest)
 
 BOOST_AUTO_TEST_CASE(EmptyString) {
   std::string empty;
-  const auto string = Eth::ConvertScillaEventToEthAbi(empty);
+  const auto string = Eth::ConvertStringToEthAbi(empty);
   const std::string EXPECTED =
       "0000000000000000000000000000000000000000000000000000000000000020000000"
       "0000000000000000000000000000000000000000000000000000000000";
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(EmptyString) {
 
 BOOST_AUTO_TEST_CASE(SingleCharacter) {
   std::string data{"1"};
-  const auto string = Eth::ConvertScillaEventToEthAbi(data);
+  const auto string = Eth::ConvertStringToEthAbi(data);
 
   const std::string EXPECTED =
       "0000000000000000000000000000000000000000000000000000000000000020000000"
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(SingleCharacter) {
 
 BOOST_AUTO_TEST_CASE(SimpleText) {
   std::string data{"HelloWorld"};
-  const auto string = Eth::ConvertScillaEventToEthAbi(data);
+  const auto string = Eth::ConvertStringToEthAbi(data);
   const std::string EXPECTED =
       "000000000000000000000000000000000000000000000000000000000000002000000000"
       "0000000000000000000000000000000000000000000000000000000A48656C6C6F576F72"
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(SimpleText) {
 BOOST_AUTO_TEST_CASE(LongText) {
   std::string data{
       "123456789012345678901234567890123456789012345678901234567890"};
-  const auto string = Eth::ConvertScillaEventToEthAbi(data);
+  const auto string = Eth::ConvertStringToEthAbi(data);
 
   const std::string EXPECTED =
       "000000000000000000000000000000000000000000000000000000000000002000000000"
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(VeryLongText) {
       "567890123456789012345678901234567890123456789012345678901234567890123456"
       "789012345678901234567890123456789012345678901234567890123456789012345678"
       "901234567890"};
-  const auto string = Eth::ConvertScillaEventToEthAbi(data);
+  const auto string = Eth::ConvertStringToEthAbi(data);
 
   std::cerr << string << std::endl;
 

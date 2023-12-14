@@ -16,9 +16,12 @@
  */
 
 #include "Eth.h"
+
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/range.hpp>
 #include <ethash/keccak.hpp>
+
 #include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "json/value.h"
@@ -34,10 +37,12 @@
 
 using namespace jsonrpc;
 
-const char *ZEROES_HASH =
+namespace Eth {
+
+constexpr auto ZEROES_HASH =
     "0x0000000000000000000000000000000000000000000000000000000000000";
 
-namespace Eth {
+constexpr auto ZEROES_ADDR = "0x0000000000000000000000000000000000000000";
 
 Json::Value populateReceiptHelper(
     std::string const &txnhash, bool success, const std::string &from,
@@ -95,7 +100,7 @@ Json::Value populateReceiptHelper(
   return ret;
 }
 
-EthFields parseLegacyTransaction(zbytes const& asBytes) {
+EthFields parseLegacyTransaction(zbytes const &asBytes) {
   EthFields ret;
 
   dev::RLP rlpStream1(asBytes,
@@ -161,7 +166,7 @@ EthFields parseLegacyTransaction(zbytes const& asBytes) {
   return ret;
 }
 
-EthFields parseEip2930Transaction(zbytes const& asBytes) {
+EthFields parseEip2930Transaction(zbytes const &asBytes) {
   EthFields ret;
 
   dev::RLP rlpStream1(asBytes,
@@ -174,12 +179,14 @@ EthFields parseEip2930Transaction(zbytes const& asBytes) {
 
   int i = 0;
 
-  ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_2930);
+  ret.version =
+      DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_2930);
 
-  // RLP TX contains: chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, signatureYParity, signatureR, signatureS
-  for (const auto& it : rlpStream1) {
+  // RLP TX contains: chainId, nonce, gasPrice, gasLimit, to, value, data,
+  // accessList, signatureYParity, signatureR, signatureS
+  for (const auto &it : rlpStream1) {
     switch (i) {
-      case 0: // Chain ID - validated earlier
+      case 0:  // Chain ID - validated earlier
         break;
       case 1:
         ret.nonce = uint32_t(it);
@@ -227,7 +234,7 @@ EthFields parseEip2930Transaction(zbytes const& asBytes) {
   return ret;
 }
 
-EthFields parseEip1559Transaction(zbytes const& asBytes) {
+EthFields parseEip1559Transaction(zbytes const &asBytes) {
   EthFields ret;
 
   dev::RLP rlpStream1(asBytes,
@@ -240,12 +247,15 @@ EthFields parseEip1559Transaction(zbytes const& asBytes) {
 
   int i = 0;
 
-  ret.version = DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_1559);
+  ret.version =
+      DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION_ETH_EIP_1559);
 
-  // RLP TX contains: chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, amount, data, access_list, signature_y_parity, signature_r, signature_s
-  for (const auto& it : rlpStream1) {
+  // RLP TX contains: chain_id, nonce, max_priority_fee_per_gas,
+  // max_fee_per_gas, gas_limit, destination, amount, data, access_list,
+  // signature_y_parity, signature_r, signature_s
+  for (const auto &it : rlpStream1) {
     switch (i) {
-      case 0: // Chain ID - validated earlier
+      case 0:  // Chain ID - validated earlier
         break;
       case 1:
         ret.nonce = uint32_t(it);
@@ -290,8 +300,9 @@ EthFields parseEip1559Transaction(zbytes const& asBytes) {
     ++i;
   }
 
-  // Set gas price now, based on `maxPriorityFeePerGas` and `maxFeePerGas`. This gas price is what will actually be
-  // used for all downstream transaction processing. We only need to keep around the two values from the request so
+  // Set gas price now, based on `maxPriorityFeePerGas` and `maxFeePerGas`. This
+  // gas price is what will actually be used for all downstream transaction
+  // processing. We only need to keep around the two values from the request so
   // that we can reconstruct it later.
   ret.gasPrice = ret.maxFeePerGas;
 
@@ -318,13 +329,14 @@ EthFields parseRawTxFields(std::string const &message) {
     zbytes transaction(asBytes.begin() + 1, asBytes.end());
     return parseEip1559Transaction(transaction);
   } else if ((firstByte >= 0xc0) && (firstByte <= 0xfe)) {
-    // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards Compatibility"
+    // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards
+    // Compatibility"
     return parseLegacyTransaction(asBytes);
   } else {
-    LOG_GENERAL(WARNING, "invalid transaction. Tx: " << message << " First byte: " << firstByte);
+    LOG_GENERAL(WARNING, "invalid transaction. Tx: "
+                             << message << " First byte: " << firstByte);
     return {};
   }
-
 }
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
@@ -456,7 +468,7 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
 
     Json::Value converted{};
     converted["address"] =
-        event.isMember("address") ? event["address"].asString() : "0x";
+        event.isMember("address") ? event["address"].asString() : ZEROES_ADDR;
     converted["topics"] = Json::arrayValue;
     const auto eventName =
         event["_eventname"].asString() + std::string("(string)");
@@ -467,15 +479,67 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
     boost::algorithm::hex(std::cbegin(ethhash.bytes), std::cend(ethhash.bytes),
                           std::back_inserter(topic0));
     converted["topics"].append(topic0);
-    converted["data"] = "0x" + ConvertScillaEventToEthAbi(
-        JSONUtils::GetInstance().convertJsontoStr(event));
+    converted["data"] =
+        "0x" +
+        ConvertStringToEthAbi(JSONUtils::GetInstance().convertJsontoStr(event));
     convertedEvents.append(converted);
   }
 
   return convertedEvents;
 }
 
-std::string ConvertScillaEventToEthAbi(const std::string &scillaEventString) {
+Json::Value ConvertScillaErrorsToEvm(const Json::Value &receiptErrors) {
+  Json::Value convertedErrors = Json::arrayValue;
+  const auto count =
+      std::size(TransactionReceiptStr::TransactionReceiptErrorStr);
+  for (const auto &arr : receiptErrors) {
+    std::vector<std::string> numericalErrors;
+    for (const auto &error : arr) {
+      const auto errorInt = error.asUInt();
+      if (errorInt >= count) {
+        LOG_GENERAL(WARNING, "Receipt has unknown error code: " << errorInt);
+        continue;
+        ;
+      }
+      const auto enum_name = std::string{
+          TransactionReceiptStr::TransactionReceiptErrorStr[errorInt]};
+      numericalErrors.push_back(std::move(enum_name));
+    }
+    Json::Value converted{};
+
+    converted["address"] = ZEROES_ADDR;
+    converted["topics"] = Json::arrayValue;
+
+    const std::string payload =
+        "Errors: " + boost::algorithm::join(numericalErrors, ",");
+
+    converted["data"] = "0x" + ConvertStringToEthAbi(payload);
+    convertedErrors.append(converted);
+  }
+  return convertedErrors;
+}
+
+Json::Value ConvertScillaExceptionsToEvm(const Json::Value &exceptions) {
+  Json::Value convertedErrors = Json::arrayValue;
+
+  for (const auto &entry : exceptions) {
+    const auto msg = entry["message"].asString();
+    const auto line = entry["line"].asString();
+
+    Json::Value converted{};
+
+    converted["address"] = ZEROES_ADDR;
+    converted["topics"] = Json::arrayValue;
+
+    const std::string payload = "Exception: " + msg + ", line: " + line;
+
+    converted["data"] = "0x" + ConvertStringToEthAbi(payload);
+    convertedErrors.append(converted);
+  }
+  return convertedErrors;
+}
+
+std::string ConvertStringToEthAbi(const std::string &scillaEventString) {
   zbytes encoded;
   constexpr auto OFFSET = 32;
   // Specify offset where real data starts
@@ -514,6 +578,14 @@ Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt) {
   const Json::Value logs =
       receipt.GetJsonValue().get("event_logs", Json::arrayValue);
   return logs;
+}
+
+std::pair<Json::Value, Json::Value> GetErrorsAndExceptionsFromReceipt(
+    const TransactionReceipt &receipt) {
+  const auto errors = receipt.GetJsonValue().get("errors", Json::arrayValue);
+  const auto exceptions =
+      receipt.GetJsonValue().get("exceptions", Json::arrayValue);
+  return {errors, exceptions};
 }
 
 LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
@@ -626,7 +698,7 @@ Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
                  fields.accessList,
                  fields.maxPriorityFeePerGas,
                  fields.maxFeePerGas,
-                 fields.signature_validation };
+                 fields.signature_validation};
 
   hash = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 
