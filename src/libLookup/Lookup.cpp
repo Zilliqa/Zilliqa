@@ -1191,9 +1191,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   uint32_t portNo = 0;
   bool initialDS;
 
-  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
-                              {from.m_ipAddress, from.GetListenPortHost(),
-                               from.GetNodeIndentifier()})) {
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1780,9 +1779,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
   uint32_t portNo = 0;
   bool includeMinerInfo = false;
 
-  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
-                              {from.m_ipAddress, from.m_listenPortHost,
-                               from.GetNodeIndentifier()})) {
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -1954,9 +1952,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
 
-  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
-                              {from.m_ipAddress, from.m_listenPortHost,
-                               from.GetNodeIndentifier()})) {
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2075,9 +2072,8 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint64_t blockNum = 0;
   uint32_t portNo = 0;
 
-  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
-                              {from.m_ipAddress, from.m_listenPortHost,
-                               from.GetNodeIndentifier()})) {
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2140,9 +2136,8 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
 
-  if (!ARCHIVAL_LOOKUP && !Blacklist::GetInstance().IsWhitelistedSeed(
-                              {from.m_ipAddress, from.m_listenPortHost,
-                               from.GetNodeIndentifier()})) {
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -2326,9 +2321,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(
-          {from.m_ipAddress, from.m_listenPortHost,
-           from.GetNodeIndentifier()})) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed({from.m_ipAddress, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
@@ -3696,8 +3689,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedSeed(
-          {ipAddr, from.GetListenPortHost(), from.GetNodeIndentifier()})) {
+  if (!Blacklist::GetInstance().IsWhitelistedSeed({ipAddr, 0, ""})) {
     LOG_GENERAL(
         WARNING,
         "Requesting IP : "
