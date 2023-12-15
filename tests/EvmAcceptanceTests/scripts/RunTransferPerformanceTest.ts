@@ -47,7 +47,8 @@ async function main() {
               value: "1000000",
               nonce: nonce + Math.floor(Math.random() * 2 * DEST_ACCOUNTS_NUM),
               gasPrice: "0x9184e72a000",
-              gas: "0x5208"
+              gas: "0x5208",
+              chainId: hre.getEthChainId(),
             },
             privateKey
           )
