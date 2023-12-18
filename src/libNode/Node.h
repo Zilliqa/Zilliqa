@@ -239,7 +239,7 @@ class Node : public Executable {
   void ReinstateMemPool(
       const std::map<Address, std::map<uint64_t, Transaction>>& addrNonceTxnMap,
       const std::vector<Transaction>& gasLimitExceededTxnBuffer,
-      const std::vector<std::pair<TxnHash, TxnStatus>>& droppedTxns);
+      std::vector<std::pair<TxnHash, TxnStatus>> droppedTxns);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -517,7 +517,8 @@ class Node : public Executable {
 
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
-  Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory, const std::string& nodeIdentity);
+  Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory,
+       const std::string& nodeIdentity);
 
   /// Destructor.
   ~Node();
