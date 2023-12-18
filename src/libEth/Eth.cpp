@@ -44,6 +44,15 @@ constexpr auto ZEROES_HASH =
 
 constexpr auto ZEROES_ADDR = "0x0000000000000000000000000000000000000000";
 
+std::string ConvertStrToHexEthSelector(const std::string &input) {
+  const auto ethhash = ethash_keccak256(
+      reinterpret_cast<const uint8_t *>(input.data()), std::size(input));
+  std::string selector = "0x";
+  boost::algorithm::hex(std::cbegin(ethhash.bytes), std::cend(ethhash.bytes),
+                        std::back_inserter(selector));
+  return selector;
+}
+
 Json::Value populateReceiptHelper(
     std::string const &txnhash, bool success, const std::string &from,
     const std::string &to, const std::string &gasUsed,
@@ -472,12 +481,8 @@ Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents) {
     converted["topics"] = Json::arrayValue;
     const auto eventName =
         event["_eventname"].asString() + std::string("(string)");
-    const auto ethhash =
-        ethash_keccak256(reinterpret_cast<const uint8_t *>(eventName.data()),
-                         std::size(eventName));
-    std::string topic0 = "0x";
-    boost::algorithm::hex(std::cbegin(ethhash.bytes), std::cend(ethhash.bytes),
-                          std::back_inserter(topic0));
+
+    const auto topic0 = ConvertStrToHexEthSelector(eventName);
     converted["topics"].append(topic0);
     converted["data"] =
         "0x" +
@@ -493,28 +498,26 @@ Json::Value ConvertScillaErrorsToEvm(const Json::Value &receiptErrors) {
   const auto count =
       std::size(TransactionReceiptStr::TransactionReceiptErrorStr);
   for (const auto &arr : receiptErrors) {
-    std::vector<std::string> numericalErrors;
     for (const auto &error : arr) {
       const auto errorInt = error.asUInt();
       if (errorInt >= count) {
         LOG_GENERAL(WARNING, "Receipt has unknown error code: " << errorInt);
         continue;
-        ;
       }
-      const auto enum_name = std::string{
+      const auto enumName = std::string{
           TransactionReceiptStr::TransactionReceiptErrorStr[errorInt]};
-      numericalErrors.push_back(std::move(enum_name));
+      Json::Value converted{};
+
+      converted["address"] = ZEROES_ADDR;
+
+      constexpr auto errorSignature = "ScillaError(string)";
+      const auto topic0 = ConvertStrToHexEthSelector(errorSignature);
+      converted["topics"] = Json::arrayValue;
+      converted["topics"].append(topic0);
+
+      converted["data"] = "0x" + ConvertStringToEthAbi(enumName);
+      convertedErrors.append(converted);
     }
-    Json::Value converted{};
-
-    converted["address"] = ZEROES_ADDR;
-    converted["topics"] = Json::arrayValue;
-
-    const std::string payload =
-        "Errors: " + boost::algorithm::join(numericalErrors, ",");
-
-    converted["data"] = "0x" + ConvertStringToEthAbi(payload);
-    convertedErrors.append(converted);
   }
   return convertedErrors;
 }
@@ -529,9 +532,12 @@ Json::Value ConvertScillaExceptionsToEvm(const Json::Value &exceptions) {
     Json::Value converted{};
 
     converted["address"] = ZEROES_ADDR;
+    constexpr auto errorSignature = "ScillaException(string)";
+    const auto topic0 = ConvertStrToHexEthSelector(errorSignature);
     converted["topics"] = Json::arrayValue;
+    converted["topics"].append(topic0);
 
-    const std::string payload = "Exception: " + msg + ", line: " + line;
+    const std::string payload = msg + ", line: " + line;
 
     converted["data"] = "0x" + ConvertStringToEthAbi(payload);
     convertedErrors.append(converted);
