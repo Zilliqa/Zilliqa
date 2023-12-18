@@ -252,7 +252,6 @@ void DedicatedWSImpl::Start() {
   AcceptNext();
 
   m_started = true;
-  LOG_GENERAL(INFO, "websocket started");
 
   m_eventLoopThread.emplace([this] { EventLoopThread(); });
 }
@@ -269,7 +268,6 @@ void DedicatedWSImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
     // stopped, ignore
     return;
   }
-  LOG_MARKER();
 
   if (!ec && socket.is_open()) {
     socket.set_option(asio::socket_base::keep_alive(true), ec);
@@ -296,11 +294,11 @@ void DedicatedWSImpl::EventLoopThread() {
 void DedicatedWSImpl::Stop() { DoStop(); }
 
 void DedicatedWSImpl::DoStop() {
-  LOG_MARKER();
   if (!m_started) {
     return;
   }
-  LOG_GENERAL(INFO, "websocket stopped");
+
+  LOG_MARKER();
 
   std::lock_guard<std::mutex> g(m_mutex);
 
@@ -323,7 +321,6 @@ void DedicatedWSImpl::DoStop() {
 
 void DedicatedWSImpl::Clean() {
   std::lock_guard<std::mutex> g(m_mutex);
-  LOG_MARKER();
   m_subscriptions.clear();
   m_eventLogAddrHdlTracker.clear();
   m_eventLogDataBuffer.clear();
@@ -370,7 +367,6 @@ std::string GetQueryString(const WEBSOCKETQUERY& q_enum) {
 
 bool DedicatedWSImpl::OnMessage(ConnectionId hdl, const std::string& query) {
   assert(m_websocket);
-  LOG_MARKER();
 
   if (!m_started) {
     return false;
@@ -382,7 +378,7 @@ bool DedicatedWSImpl::OnMessage(ConnectionId hdl, const std::string& query) {
     return false;
   }
 
-  LOG_GENERAL(INFO, "conn: " << hdl << " query: " << query);
+  LOG_GENERAL(DEBUG, "conn: " << hdl << " query: " << query);
 
   Json::Value j_query;
   WEBSOCKETQUERY q_enum;
@@ -503,7 +499,6 @@ void DedicatedWSImpl::FinalizeTxBlock(const Json::Value& json_txblock,
   if (!m_started) {
     return;
   }
-  LOG_MARKER();
   std::lock_guard<std::mutex> g(m_mutex);
   m_jsonTxnBlockNTxnHashes.clear();
   m_jsonTxnBlockNTxnHashes["TxBlock"] = json_txblock;
@@ -512,7 +507,6 @@ void DedicatedWSImpl::FinalizeTxBlock(const Json::Value& json_txblock,
 }
 
 Json::Value CreateReturnAddressJson(const TransactionWithReceipt& twr) {
-  LOG_MARKER();
   Json::Value _json;
 
   _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
@@ -613,7 +607,6 @@ void DedicatedWSImpl::ParseTxnLog(const TransactionWithReceipt& twr) {
 
 void DedicatedWSImpl::CloseConnection(ConnectionId hdl) {
   assert(m_websocket);
-  LOG_MARKER();
   m_websocket->CloseConnection(hdl);
 
   std::lock_guard<std::mutex> g(m_mutex);
@@ -630,7 +623,6 @@ void DedicatedWSImpl::CloseConnection(ConnectionId hdl) {
 
 void DedicatedWSImpl::SendOutMessages() {
   if (m_subscriptions.empty()) {
-    LOG_MARKER();
     m_eventLogDataBuffer.clear();
     m_txnLogDataBuffer.clear();
     return;
