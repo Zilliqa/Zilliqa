@@ -28,3 +28,10 @@ transition setValue(to: ByStr20, val: Uint128)
     as_msg = one_msg msg;
     send as_msg
 end
+
+transition emitEventAndFail()
+    ev = {_eventname : "SomeEvent"};
+    event ev;
+    err = { _exception : "Yaicksss" };
+    throw err
+end

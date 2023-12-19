@@ -32,8 +32,10 @@ struct TransactionCoreInfo {
                       const uint128_t& amountInput,
                       const uint128_t& gasPriceInput,
                       const uint64_t& gasLimitInput, const zbytes& codeInput,
-                      const zbytes& dataInput, const AccessList& accessListInput,
-                      const uint128_t& maxPriorityFeePerGasInput, const uint128_t& maxFeePerGasInput)
+                      const zbytes& dataInput,
+                      const AccessList& accessListInput,
+                      const uint128_t& maxPriorityFeePerGasInput,
+                      const uint128_t& maxFeePerGasInput)
       : version(versionInput),
         nonce(nonceInput),
         toAddr(toAddrInput),
@@ -72,6 +74,7 @@ class Transaction : public SerializableDataBlock {
   bool SetHash(const zbytes& txnData);
 
  public:
+  static constexpr auto AVERAGE_TXN_SIZE_BYTES = 192;
   /// Default constructor.
   Transaction();
 
@@ -102,16 +105,16 @@ class Transaction : public SerializableDataBlock {
               const Address& toAddr, const PubKey& senderPubKey,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
-              const Signature& signature, const AccessList &accessList);
+              const Signature& signature, const AccessList& accessList);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
-              const Signature& signature, const AccessList &accessList,
-              const uint128_t& maxPriorityFeePerGas, const uint128_t& maxFeePerGas,
-              uint32_t signature_validation = 0);
+              const Signature& signature, const AccessList& accessList,
+              const uint128_t& maxPriorityFeePerGas,
+              const uint128_t& maxFeePerGas, uint32_t signature_validation = 0);
 
   /// Constructor with core information.
   Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,

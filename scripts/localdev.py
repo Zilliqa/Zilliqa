@@ -194,6 +194,7 @@ def print_config_advice(config):
         host_names = [  "localdev-api",
                         "localdev-explorer",
                         "localdev-l2api",
+                        "localdev-l2api-ws",
                         "localdev-newapi",
                         "localdev-fireblocks",
                         "localdev-otterscan",
@@ -759,6 +760,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
            "--host-network", "false",
            "--https", "localdomain",
            "--seed-multiplier", "true",
+           "--websocket", "seedpub",
+           "--websocket-port", "4401",
            "--bucket", bucket_name,
            "--localstack", "true",
                "--otterscan", otterscan]
@@ -776,6 +779,8 @@ def write_testnet_configuration(config, zilliqa_image, testnet_name, isolated_se
                "--host-network", "false",
                "--https", "localdomain",
                "--seed-multiplier", "true",
+               "--websocket", "seedpub",
+               "--websocket-port", "4401",
                "--bucket", bucket_name,
                "--localstack", "true",
                "--otterscan", otterscan]
@@ -841,6 +846,7 @@ def get_mitm_instances(testnet_name):
     return { "explorer" : { "host" : f"{testnet_name}-explorer.localdomain", "port" : 5300 },
              "api" : { "host" : f"{testnet_name}-api.localdomain", "port" : 5301 },
              "l2api" : { "host" : f"{testnet_name}-l2api.localdomain", "port" : 5302 },
+             "l2api-ws" : { "host" : f"{testnet_name}-l2api-ws.localdomain", "port" : 4401 },
              "newapi" : { "host" : f"{testnet_name}-newapi.localdomain", "port" : 5303 },
              "origin" : { "host" : f"{testnet_name}-origin.localdomain", "port" : 5304 },
              "grafana" : { "host" : f"{testnet_name}-grafana.localdomain", "port" : 5305 } }

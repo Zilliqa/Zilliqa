@@ -254,9 +254,9 @@ void Node::AddBalanceToGenesisAccount() {
 }
 
 Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
-           [[gnu::unused]] bool toRetrieveHistory, const std::string& nodeIdentity)
-    : m_mediator(mediator), m_nodeIdentity(nodeIdentity){
-    }
+           [[gnu::unused]] bool toRetrieveHistory,
+           const std::string &nodeIdentity)
+    : m_mediator(mediator), m_nodeIdentity(nodeIdentity) {}
 
 Node::~Node() {}
 
@@ -1968,7 +1968,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
   std::vector<Transaction> checkedTxns;
-  vector<pair<TxnHash, TxnStatus>> rejectTxns;
+  checkedTxns.reserve(std::size(txns));
+  vector<std::pair<TxnHash, TxnStatus>> rejectTxns;
+  rejectTxns.reserve(std::size(txns));
+
   for (const auto &txn : txns) {
     TxnStatus error;
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
@@ -1990,6 +1993,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     LOG_GENERAL(INFO,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
+    uint32_t rejectedCount = 0;
+    uint32_t addedCount = 0;
     for (const auto &txn : checkedTxns) {
       MempoolInsertionStatus status;
       if (!m_createdTxns.insert(txn, status)) {
@@ -2000,25 +2005,30 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             // if it is pending/dropped there should be some other cause which
             // is primary.
             rejectTxns.emplace_back(status.second, status.first);
+            rejectedCount++;
           }
-          LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to ( "
-                                   << (int)status.first << ") "
-                                   << status.first);
+          LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex()
+                                    << " rejected by pool due to ( "
+                                    << (int)status.first << ") "
+                                    << status.first);
         }
       } else {
         if (status.first != TxnStatus::NOT_PRESENT) {
           // Txn added with deletion of some previous txn
           rejectTxns.emplace_back(status.second, status.first);
-          LOG_GENERAL(INFO, "Txn " << status.second
-                                   << " removed from pool due to "
-                                   << status.first);
+          LOG_GENERAL(DEBUG, "Txn " << status.second
+                                    << " removed from pool due to "
+                                    << status.first);
+          rejectedCount++;
         }
-        LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
+        LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex() << " added to pool");
+        addedCount++;
       }
     }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
+                                           << ", added: " << addedCount
+                                           << ", rejected: " << rejectedCount
                                            << " TxnPool size after processing: "
                                            << m_createdTxns.size());
 
@@ -2028,9 +2038,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
   {
     unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-    for (const auto &txnhashStatus : rejectTxns) {
-      m_unconfirmedTxns.emplace(txnhashStatus);
-    }
+    m_unconfirmedTxns.insert(std::make_move_iterator(std::begin(rejectTxns)),
+                             std::make_move_iterator(std::end(rejectTxns)));
   }
 
   LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
@@ -2115,9 +2124,6 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
     }
     if (!(ignorePktForPrevEpoch &&
           (epochNumber < m_mediator.m_currentEpochNum))) {
-      for (const auto &tran : transactions) {
-        LOG_GENERAL(WARNING, "Transaction hash: " << tran.GetTranID().hex());
-      }
       ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                      lookupPubKey, transactions);
     }
