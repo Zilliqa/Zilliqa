@@ -198,7 +198,7 @@ bool RemoteStorageDB::IsInitialized() const { return m_initialized; }
 bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
                                 const uint64_t& epoch, const bool success) {
   if (!m_initialized) {
-    LOG_GENERAL(WARNING, "DB not initialized");
+    LOG_GENERAL(DEBUG, "DB not initialized");
     return false;
   }
   {
@@ -238,12 +238,11 @@ bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
 }
 
 bool RemoteStorageDB::ExecuteWrite() {
-  LOG_MARKER();
   if (!m_initialized) {
-    LOG_GENERAL(WARNING, "DB not initialized");
+    LOG_GENERAL(DEBUG, "DB not initialized");
     return false;
   }
-
+  LOG_MARKER();
   auto resetBulkWrite = [this]() mutable {
     mongocxx::options::bulk_write bulk_opts;
     m_bulkWrite.reset(nullptr);
@@ -290,7 +289,7 @@ RemoteStorageDB::TryGetConnection() {
 bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
                                 const uint64_t& epoch, const bool success) {
   if (!m_initialized) {
-    LOG_GENERAL(WARNING, "DB not initialized");
+    LOG_GENERAL(DEBUG, "DB not initialized");
     return false;
   }
 
@@ -369,7 +368,7 @@ Json::Value RemoteStorageDB::QueryPendingTxns(
   Json::Value _json{Json::Value::null};
 
   if (!m_initialized) {
-    LOG_GENERAL(WARNING, "DB not initialized");
+    LOG_GENERAL(DEBUG, "DB not initialized");
     _json["error"] = true;
     return _json;
   }
