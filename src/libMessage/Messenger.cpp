@@ -3641,8 +3641,15 @@ bool Messenger::GetNodeForwardTxnBlock(
     return false;
   }
 
+  auto start = std::chrono::steady_clock::now();
   NodeForwardTxnBlock result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
+  auto end = std::chrono::steady_clock::now();
+  LOG_GENERAL(
+      WARNING,
+      "BZ Parsing NodeForwardTxnBlock took: "
+          << std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+                 .count());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed");
@@ -3656,19 +3663,55 @@ bool Messenger::GetNodeForwardTxnBlock(
 
   if (result.transactions().size() > 0) {
     zbytes tmp;
+    auto start = std::chrono::steady_clock::now();
     tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
                 result.transactions_size());
+
+    auto end = std::chrono::steady_clock::now();
+    LOG_GENERAL(WARNING,
+                "BZ Reserving tmp took: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - start)
+                           .count());
+
+    start = std::chrono::steady_clock::now();
+
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
+    end = std::chrono::steady_clock::now();
+    LOG_GENERAL(WARNING,
+                "BZ RepeatableToArray took: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - start)
+                           .count());
+
     PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
+    start = std::chrono::steady_clock::now();
     if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in transactions");
       return false;
     }
+    end = std::chrono::steady_clock::now();
+    LOG_GENERAL(WARNING,
+                "BZ Verif took: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - start)
+                           .count());
+
+    start = std::chrono::steady_clock::now();
     txns.reserve(result.transactions_size());
+    end = std::chrono::steady_clock::now();
+    LOG_GENERAL(WARNING,
+                "BZ Reserve2 took: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - start)
+                           .count());
+
+    start = std::chrono::steady_clock::now();
+
     for (const auto& txn : result.transactions()) {
       Transaction t;
       if (!ProtobufToTransaction(txn, t)) {
@@ -3677,6 +3720,12 @@ bool Messenger::GetNodeForwardTxnBlock(
       }
       txns.emplace_back(t);
     }
+    end = std::chrono::steady_clock::now();
+    LOG_GENERAL(WARNING,
+                "BZ txns emplace took: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - start)
+                           .count());
   }
 
   LOG_GENERAL(INFO, "Epoch: " << epochNumber << " Shard: " << shardId

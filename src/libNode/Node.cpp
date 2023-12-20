@@ -1972,6 +1972,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   vector<std::pair<TxnHash, TxnStatus>> rejectTxns;
   rejectTxns.reserve(std::size(txns));
 
+  auto start = std::chrono::steady_clock::now();
   for (const auto &txn : txns) {
     TxnStatus error;
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
@@ -1987,8 +1988,15 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
       LOG_GENERAL(INFO, processed_count << " txns from packet processed");
     }
   }
+  auto end = std::chrono::steady_clock::now();
+  LOG_GENERAL(
+      WARNING,
+      "BZ CheckCreatedTxnFromLookup took: "
+          << std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+                 .count());
 
   {
+    start = std::chrono::steady_clock::now();
     lock_guard<mutex> g(m_mutexCreatedTransactions);
     LOG_GENERAL(INFO,
                 "TxnPool size before processing: " << m_createdTxns.size());
@@ -2025,6 +2033,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
         addedCount++;
       }
     }
+
+    end = std::chrono::steady_clock::now();
+    LOG_GENERAL(WARNING,
+                "BZ checkedTxns took: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - start)
+                           .count());
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
                                            << ", added: " << addedCount
