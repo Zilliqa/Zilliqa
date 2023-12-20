@@ -58,6 +58,9 @@ int main(int argc, char* argv[]) {
 
   std::cerr << "Max block found: " << latestBlockNum << std::endl;
 
+  std::vector<std::pair<dev::h256, uint32_t>> visitedHashes;
+  visitedHashes.reserve(blocksNum);
+
   {
     dev::OverlayDB fullStateDb{"state"};
     dev::GenericTrieDB fullState{&fullStateDb};
@@ -65,9 +68,6 @@ int main(int argc, char* argv[]) {
     dev::OverlayDB slimStateDb{"state_slim"};
     dev::GenericTrieDB slimState{&slimStateDb};
     slimState.init();
-
-    std::vector<std::pair<dev::h256, uint32_t>> visitedHashes;
-    visitedHashes.reserve(blocksNum);
 
     const auto startBlock =
         (blocksNum > latestBlockNum + 1) ? 0 : (latestBlockNum - blocksNum + 1);
@@ -114,39 +114,41 @@ int main(int argc, char* argv[]) {
         exit(1);
       }
     }
-
-    for (const auto& [hash, count] : visitedHashes) {
-      try {
-        slimState.setRoot(hash);
-        uint32_t slimCount = 0;
-        for (auto it = slimState.begin(); it != slimState.end(); ++it) {
-          slimCount++;
-        }
-        if (slimCount != count) {
-          std::cerr
-              << "Invalid number of entries between two states, state has: "
-              << count << ", but slim state has: " << slimCount << std::endl;
-          std::cerr << "This is inconsistency, exiting...";
-          exit(1);
-        }
-      } catch (std::exception& e) {
-        std::cerr << "Unable to verify correctness of slim state trie. Cannot "
-                     "set root at hash: "
-                  << hash << std::endl;
-        std::cerr << "Please revisit correctness of this program or if given "
-                     "full state is not corrupted!"
-                  << std::endl;
-        exit(1);
-      }
-    }
-    const auto stopTime = std::chrono::system_clock::now();
-    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              stopTime - startTime)
-                              .count();
-    std::cerr << "All done. It has taken: " << duration << "[ms]. "
-              << "Looks we're ready to use the slim version now." << std::endl;
     slimStateDb.commit();
   }
+
+  dev::OverlayDB slimStateDb{"state_slim"};
+  dev::GenericTrieDB slimState{&slimStateDb};
+  for (const auto& [hash, count] : visitedHashes) {
+    try {
+      slimState.setRoot(hash);
+      uint32_t slimCount = 0;
+      for (auto it = slimState.begin(); it != slimState.end(); ++it) {
+        slimCount++;
+      }
+      if (slimCount != count) {
+        std::cerr << "Invalid number of entries between two states, state has: "
+                  << count << ", but slim state has: " << slimCount
+                  << std::endl;
+        std::cerr << "This is inconsistency, exiting...";
+        exit(1);
+      }
+    } catch (std::exception& e) {
+      std::cerr << "Unable to verify correctness of slim state trie. Cannot "
+                   "set root at hash: "
+                << hash << std::endl;
+      std::cerr << "Please revisit correctness of this program or if given "
+                   "full state is not corrupted!"
+                << std::endl;
+      exit(1);
+    }
+  }
+  const auto stopTime = std::chrono::system_clock::now();
+  const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            stopTime - startTime)
+                            .count();
+  std::cerr << "All done. It has taken: " << duration << "[ms]. "
+            << "Looks we're ready to use the slim version now." << std::endl;
 
   return 0;
 }
