@@ -215,10 +215,11 @@ describe("Transfer ethers #parallel", function () {
   });
 
   // Disabled in q4-working-branch
-  xit("should return check gas and funds consistency", async function () {
+  it("should return check gas and funds consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
-    const FUND = BigNumber.from(200_000_000_000_000_000n);
+    // 20 ZIL - the txn deployment costs c. 0.33 ZIL.
+    const FUND = BigNumber.from(20_000_000_000_000_000_000n);
 
     const tx = await hre.sendEthTransaction({
       to: rndAccount.address,
@@ -228,12 +229,12 @@ describe("Transfer ethers #parallel", function () {
     // Get transaction receipt for the tx
     const receipt = await tx.response.wait();
 
-    rndAccount = rndAccount.connect(ethers.provider);
+    let rndAccountProvider = rndAccount.connect(ethers.provider);
 
     const TRANSFER_VALUE = 100_000_000;
 
     // We can't use parallizer here since we need a hash of the receipt to inspect gas usage later
-    const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
+    const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccountProvider);
 
     const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE});
 
@@ -244,7 +245,7 @@ describe("Transfer ethers #parallel", function () {
     // Need to scale down to ignore miniscule rounding differences from getFee
     const scaleDown = 10000000;
 
-    let newBal = await ethers.provider.getBalance(rndAccount.address);
+    let newBal = await ethers.provider.getBalance(rndAccountProvider.address);
 
     const expectedNewBalance = FUND.sub(TRANSFER_VALUE).sub(fee1).div(scaleDown);
     newBal = newBal.div(scaleDown);
