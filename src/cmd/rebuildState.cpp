@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Zilliqa
+ * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,38 +21,54 @@
 #include <libBlockchain/TxBlock.h>
 #include <libData/AccountStore/AccountStore.h>
 
+int findMaxTxBlock(const LevelDB& txBlockchainDB) {
+  uint32_t left = 0;
+  uint32_t right = std::numeric_limits<uint32_t>::max();
+  // main code goes as follows
+  while (left <= right) {
+    uint32_t mid = left + (right - left) / 2;
+
+    // Found!
+    if (!txBlockchainDB.Lookup(mid).empty() &&
+        txBlockchainDB.Lookup(mid + 1).empty()) {
+      return mid;
+    }
+    if (!txBlockchainDB.Lookup(mid).empty()) {
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+  return left;
+}
+
 int main(int argc, char* argv[]) {
-  if (argc != 3) {
-    std::cerr << "Usage: " << argv[0] << " LATEST_TX_BLOCK_NUM"
-              << " NUM_OF_BLOCKS_TO_KEEP_STATE" << std::endl;
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " NUM_OF_BLOCKS_TO_KEEP_STATE"
+              << std::endl;
     exit(1);
   }
-  auto latestBlockNum = std::atoi(argv[1]);
-  const auto blocksNum = std::atoi(argv[2]);
+  const auto blocksNum = std::atoi(argv[1]);
 
   LevelDB txBlockchainDB{"txBlocks"};
 
-  // Find if given block num is actually the highest
+  auto latestBlockNum = findMaxTxBlock(txBlockchainDB);
 
-  for (;;) {
-    const auto blockString = txBlockchainDB.Lookup(latestBlockNum);
-    if (std::empty(blockString)) {
-      latestBlockNum--;
-      break;
-    }
-    latestBlockNum++;
-  }
-
-  const auto startBlock =
-      (blocksNum > latestBlockNum + 1) ? 0 : (latestBlockNum - blocksNum + 1);
+  std::cerr << "Max block found: " << latestBlockNum << std::endl;
 
   {
     dev::OverlayDB fullStateDb{"state"};
     dev::GenericTrieDB fullState{&fullStateDb};
 
-    dev::OverlayDB slimStateDb{"slim_state"};
+    dev::OverlayDB slimStateDb{"state_slim"};
     dev::GenericTrieDB slimState{&slimStateDb};
     slimState.init();
+
+    std::vector<std::pair<dev::h256, uint32_t>> visitedHashes;
+    visitedHashes.reserve(blocksNum);
+
+    const auto startBlock =
+        (blocksNum > latestBlockNum + 1) ? 0 : (latestBlockNum - blocksNum + 1);
 
     for (auto idx = startBlock; idx <= latestBlockNum; ++idx) {
       const auto blockString = txBlockchainDB.Lookup(idx);
@@ -66,17 +82,53 @@ int main(int argc, char* argv[]) {
                   << std::endl;
         continue;
       }
-
-      std::cerr << "Processing block num: " << idx << std::endl;
+      if (idx % 10 == 0) {
+        std::cerr << "Processing block num: " << idx << std::endl;
+      }
       const auto currStateHash = block.GetHeader().GetStateRootHash();
-      fullState.setRoot(currStateHash);
-
-      for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
-        const auto [key, val] = iter.at();
-        slimState.insert(key, val);
+      try {
+        fullState.setRoot(currStateHash);
+        visitedHashes.push_back({currStateHash, 0});
+        for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
+          const auto [key, val] = iter.at();
+          slimState.insert(key, val);
+          visitedHashes.back().second++;
+        }
+      } catch (std::exception& e) {
+        std::cerr << "Unable to set trie at given hash from blockNum: " << idx
+                  << std::endl;
+        std::cerr << "Hash saved in txBlock: " << idx
+                  << " may not be valid!. Exiting..." << std::endl;
+        exit(1);
       }
     }
 
+    for (const auto& [hash, count] : visitedHashes) {
+      try {
+        slimState.setRoot(hash);
+        uint32_t slimCount = 0;
+        for (auto it = slimState.begin(); it != slimState.end(); ++it) {
+          slimCount++;
+        }
+        if (slimCount != count) {
+          std::cerr
+              << "Invalid number of entries between two states, state has: "
+              << count << ", but slim state has: " << slimCount << std::endl;
+          std::cerr << "This is inconsistency, exiting...";
+          exit(1);
+        }
+      } catch (std::exception& e) {
+        std::cerr << "Unable to verify correctness of slim state trie. Cannot "
+                     "set root at hash: "
+                  << hash << std::endl;
+        std::cerr << "Please revisit correctness of this program or if given "
+                     "full state is not corrupted!"
+                  << std::endl;
+        exit(1);
+      }
+    }
+    std::cerr << "All done. Looks we're ready to use the slim version now."
+              << std::endl;
     slimStateDb.commit();
   }
 
