@@ -95,6 +95,16 @@ int main(int argc, char* argv[]) {
           const auto [key, val] = iter.at();
           slimState.insert(key, val);
           visitedHashes.back().second++;
+
+          // flush to disk every X inserts
+          if (visitedHashes.back().second % 1000 == 0) {
+            slimState.db()->commit();
+          }
+
+          if (visitedHashes.back().second % 50000 == 0) {
+            std::cerr << "Processed: " << visitedHashes.back().second
+                      << " entries from block: " << idx << std::endl;
+          }
         }
       } catch (std::exception& e) {
         std::cerr << "Unable to set trie at given hash from blockNum: " << idx
