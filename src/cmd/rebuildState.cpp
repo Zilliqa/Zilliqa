@@ -50,6 +50,8 @@ int main(int argc, char* argv[]) {
   }
   const auto blocksNum = std::atoi(argv[1]);
 
+  LOOKUP_NODE_MODE = true;
+
   LevelDB txBlockchainDB{"txBlocks"};
 
   const auto startTime = std::chrono::system_clock::now();
@@ -64,10 +66,6 @@ int main(int argc, char* argv[]) {
   {
     dev::OverlayDB fullStateDb{"state"};
     dev::GenericTrieDB fullState{&fullStateDb};
-
-    dev::OverlayDB slimStateDb{"state_slim"};
-    dev::GenericTrieDB slimState{&slimStateDb};
-    slimState.init();
 
     const auto startBlock =
         (blocksNum > latestBlockNum + 1) ? 0 : (latestBlockNum - blocksNum + 1);
@@ -89,23 +87,29 @@ int main(int argc, char* argv[]) {
       }
       const auto currStateHash = block.GetHeader().GetStateRootHash();
       try {
+        {
+          LevelDB level_db{"state_slim"};
+          level_db.compact();
+        }
         fullState.setRoot(currStateHash);
         visitedHashes.push_back({currStateHash, 0});
+
+        dev::OverlayDB slimStateDb{"state_slim"};
+        dev::GenericTrieDB slimState{&slimStateDb};
+        slimState.init();
+
         for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
           const auto [key, val] = iter.at();
           slimState.insert(key, val);
           visitedHashes.back().second++;
-
-          // flush to disk every X inserts
-          if (visitedHashes.back().second % 1000 == 0) {
-            slimState.db()->commit();
-          }
 
           if (visitedHashes.back().second % 50000 == 0) {
             std::cerr << "Processed: " << visitedHashes.back().second
                       << " entries from block: " << idx << std::endl;
           }
         }
+        slimStateDb.commit();
+
       } catch (std::exception& e) {
         std::cerr << "Unable to set trie at given hash from blockNum: " << idx
                   << std::endl;
@@ -114,35 +118,38 @@ int main(int argc, char* argv[]) {
         exit(1);
       }
     }
-    slimStateDb.commit();
   }
-
-  dev::OverlayDB slimStateDb{"state_slim"};
-  dev::GenericTrieDB slimState{&slimStateDb};
-  for (const auto& [hash, count] : visitedHashes) {
-    try {
-      slimState.setRoot(hash);
-      uint32_t slimCount = 0;
-      for (auto it = slimState.begin(); it != slimState.end(); ++it) {
-        slimCount++;
-      }
-      if (slimCount != count) {
-        std::cerr << "Invalid number of entries between two states, state has: "
-                  << count << ", but slim state has: " << slimCount
+  {
+    std::cerr << "Rebuilding done. Doing validation" << std::endl;
+    dev::OverlayDB slimStateDb{"state_slim"};
+    dev::GenericTrieDB slimState{&slimStateDb};
+    for (const auto& [hash, count] : visitedHashes) {
+      try {
+        slimState.setRoot(hash);
+        uint32_t slimCount = 0;
+        for (auto it = slimState.begin(); it != slimState.end(); ++it) {
+          slimCount++;
+        }
+        if (slimCount != count) {
+          std::cerr
+              << "Invalid number of entries between two states, state has: "
+              << count << ", but slim state has: " << slimCount << std::endl;
+          std::cerr << "This is inconsistency, exiting...";
+          exit(1);
+        }
+        std::cerr << "Validated one block " << std::endl;
+      } catch (std::exception& e) {
+        std::cerr << "Unable to verify correctness of slim state trie. Cannot "
+                     "set root at hash: "
+                  << hash << ", exception: " << e.what() << std::endl;
+        std::cerr << "Please revisit correctness of this program or if given "
+                     "full state is not corrupted!"
                   << std::endl;
-        std::cerr << "This is inconsistency, exiting...";
         exit(1);
       }
-    } catch (std::exception& e) {
-      std::cerr << "Unable to verify correctness of slim state trie. Cannot "
-                   "set root at hash: "
-                << hash << std::endl;
-      std::cerr << "Please revisit correctness of this program or if given "
-                   "full state is not corrupted!"
-                << std::endl;
-      exit(1);
     }
   }
+
   const auto stopTime = std::chrono::system_clock::now();
   const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                             stopTime - startTime)
