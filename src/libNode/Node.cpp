@@ -1973,9 +1973,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   rejectTxns.reserve(std::size(txns));
 
   auto start = std::chrono::steady_clock::now();
+  const auto gasPrice =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+
   for (const auto &txn : txns) {
-    TxnStatus error;
-    if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
+    if (TxnStatus error = {};
+        m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error,
+                                                                  gasPrice)) {
       checkedTxns.push_back(txn);
     } else {
       LOG_GENERAL(WARNING, "Txn " << txn.GetTranID().hex() << " is not valid.");
