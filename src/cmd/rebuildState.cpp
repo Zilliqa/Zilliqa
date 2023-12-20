@@ -52,6 +52,8 @@ int main(int argc, char* argv[]) {
 
   LevelDB txBlockchainDB{"txBlocks"};
 
+  const auto startTime = std::chrono::system_clock::now();
+
   auto latestBlockNum = findMaxTxBlock(txBlockchainDB);
 
   std::cerr << "Max block found: " << latestBlockNum << std::endl;
@@ -127,8 +129,12 @@ int main(int argc, char* argv[]) {
         exit(1);
       }
     }
-    std::cerr << "All done. Looks we're ready to use the slim version now."
-              << std::endl;
+    const auto stopTime = std::chrono::system_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              stopTime - startTime)
+                              .count();
+    std::cerr << "All done. It has taken: " << duration << "[ms]. "
+              << "Looks we're ready to use the slim version now." << std::endl;
     slimStateDb.commit();
   }
 
