@@ -279,7 +279,7 @@ endif ()
 
 set_target_properties(connectivity buildTxBlockHashesToNums genaccounts genkeypair genTxnBodiesFromS3
     getpub getaddr gentxn signmultisig verifymultisig getnetworkhistory
-    getrewardhistory isolatedServer sendcmd validateDB zilliqa zilliqad asio_multiplier
+    getrewardhistory isolatedServer rebuildState sendcmd validateDB zilliqa zilliqad asio_multiplier
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie NAT

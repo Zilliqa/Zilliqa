@@ -28,6 +28,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
+#include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -323,6 +324,10 @@ void DirectoryService::RunConsensusOnViewChange() {
         LOG_GENERAL(INFO, i.second);
       }
     }
+
+    CleanFinalBlockConsensusBuffer();
+
+    m_mediator.m_node->CleanCreatedTransaction();
 
     // Upon consensus object creation failure, one should not return from the
     // function, but rather wait for view change.
