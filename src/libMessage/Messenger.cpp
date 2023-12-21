@@ -871,25 +871,50 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   TransactionCoreInfo txnCoreInfo;
   Signature signature;
 
+  uint32_t maxCopyFirst = 0;
+  uint32_t maxCoreInfo = 0;
+  uint32_t maxTxn = 0;
+  uint32_t maxIsSigned = 0;
+
+  auto start = std::chrono::system_clock::now();
   copy(protoTransaction.tranid().begin(),
        protoTransaction.tranid().begin() +
            min((unsigned int)protoTransaction.tranid().size(),
                (unsigned int)tranID.size),
        tranID.asArray().begin());
+  auto end = std::chrono::system_clock::now();
+  maxCopyFirst = std::max(
+      maxCopyFirst,
+      static_cast<uint32_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+              .count()));
 
+  start = std::chrono::system_clock::now();
   if (!ProtobufToTransactionCoreInfo(protoTransaction.info(), txnCoreInfo)) {
     LOG_GENERAL(WARNING, "ProtobufToTransactionCoreInfo failed");
     return false;
   }
-
+  end = std::chrono::system_clock::now();
+  maxCoreInfo = std::max(
+      maxCoreInfo,
+      static_cast<uint32_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+              .count()));
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
+  start = std::chrono::system_clock::now();
   zbytes txnData;
   txnData.reserve(protoTransaction.info().ByteSizeLong());
   if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
     LOG_GENERAL(WARNING, "Serialize protoTransaction core info failed");
     return false;
   }
+  end = std::chrono::system_clock::now();
+  maxTxn = std::max(
+      maxTxn,
+      static_cast<uint32_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+              .count()));
 
   transaction =
       Transaction(txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
@@ -905,11 +930,23 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
+  start = std::chrono::system_clock::now();
   if (!transaction.IsSigned(txnData)) {
     LOG_GENERAL(WARNING,
                 "Signature verification failed when converting tx to protobuf");
     return false;
   }
+
+  end = std::chrono::system_clock::now();
+  maxIsSigned = std::max(
+      maxIsSigned,
+      static_cast<uint32_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+              .count()));
+  LOG_GENERAL(WARNING, "BZ Stats from ProtobufToTransaction. maxCopyFirst: "
+                           << maxCopyFirst << ", maxCoreInfo: " << maxCoreInfo
+                           << ", maxTxn: " << maxTxn
+                           << ", maxIsSigned: " << maxIsSigned);
 
   return true;
 }
@@ -3717,17 +3754,36 @@ bool Messenger::GetNodeForwardTxnBlock(
 
     start = std::chrono::steady_clock::now();
 
+    uint32_t protoTime = 0;
+    uint32_t emplaceTime = 0;
+
     for (const auto& txn : result.transactions()) {
       Transaction t;
+      auto startIn = std::chrono::system_clock::now();
       if (!ProtobufToTransaction(txn, t)) {
         LOG_GENERAL(WARNING, "ProtobufToTransaction failed");
         return false;
       }
+      auto endIn = std::chrono::system_clock::now();
+      protoTime +=
+          std::chrono::duration_cast<std::chrono::milliseconds>(endIn - startIn)
+              .count();
+
+      startIn = std::chrono::system_clock::now();
       txns.emplace_back(std::move(t));
+      endIn = std::chrono::system_clock::now();
+      emplaceTime +=
+          std::chrono::duration_cast<std::chrono::milliseconds>(endIn - startIn)
+              .count();
     }
     end = std::chrono::steady_clock::now();
+
+    LOG_GENERAL(WARNING, "BZ avg time for proto: "
+                             << protoTime / result.transactions_size()
+                             << ", for emplace: "
+                             << emplaceTime / result.transactions_size());
     LOG_GENERAL(WARNING,
-                "BZ txns emplace took: "
+                "BZ txns total emplace took: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(
                            end - start)
                            .count());
