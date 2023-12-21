@@ -114,8 +114,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Unable to set trie at given hash from blockNum: " << idx
                   << std::endl;
         std::cerr << "Hash saved in txBlock: " << idx
-                  << " may not be valid!. Exiting..." << std::endl;
-        exit(1);
+                  << " may not be valid!. Will skip this one...." << std::endl;
       }
     }
   }
