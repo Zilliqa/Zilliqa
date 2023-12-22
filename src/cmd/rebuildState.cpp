@@ -34,7 +34,7 @@ struct LevelDbWrapper {
     const auto key = h.hex();
     m_db.Insert(leveldb::Slice(key), leveldb::Slice(vStr.data(), vStr.size()));
   }
-  bool kill(dev::h256 const& h) { return true; }
+  bool kill(dev::h256 const& h) { return m_db.DeleteKey(h) == 0; }
 
  private:
   LevelDB& m_db;
@@ -83,8 +83,7 @@ int main(int argc, char* argv[]) {
   visitedHashes.reserve(blocksNum);
 
   {
-    boost::asio::thread_pool threadPool(std::thread::hardware_concurrency() *
-                                        8);
+    boost::asio::thread_pool threadPool(1);
 
     dev::OverlayDB fullStateDb{"state"};
     dev::GenericTrieDB fullState{&fullStateDb};
@@ -97,7 +96,7 @@ int main(int argc, char* argv[]) {
 
     std::mutex mutex;
 
-    for (auto idx = startBlock; idx <= latestBlockNum; ++idx) {
+    for (auto idx = latestBlockNum; idx >= startBlock; --idx) {
       boost::asio::post(threadPool, [idx, &txBlockchainDB, &fullStateDb,
                                      &slimStateDb, &mutex, &visitedHashes]() {
         const auto blockString = txBlockchainDB.Lookup(idx);
@@ -123,7 +122,6 @@ int main(int argc, char* argv[]) {
           slimState.init();
 
           uint32_t visitedCount = 0;
-
           for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
             const auto [key, val] = iter.at();
             slimState.insert(key, val);
@@ -136,7 +134,7 @@ int main(int argc, char* argv[]) {
           }
 
           std::lock_guard lock{mutex};
-          std::cerr << "Rebuild for index: " << idx << std::endl;
+          std::cerr << "Rebuilt for index: " << idx << std::endl;
           visitedHashes.push_back({currStateHash, visitedCount});
 
         } catch (std::exception& e) {
