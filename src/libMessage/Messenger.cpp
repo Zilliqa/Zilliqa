@@ -3674,7 +3674,6 @@ bool Messenger::GetNodeForwardTxnBlock(
       return false;
     }
     txns.reserve(result.transactions_size());
-    end = std::chrono::steady_clock::now();
 
     for (const auto& txn : result.transactions()) {
       Transaction t;
