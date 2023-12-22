@@ -802,11 +802,13 @@ bool ProtobufToTransactionCoreInfo(
   }
   txnCoreInfo.version = protoTxnCoreInfo.version();
   txnCoreInfo.nonce = protoTxnCoreInfo.nonce();
+
   copy(protoTxnCoreInfo.toaddr().begin(),
        protoTxnCoreInfo.toaddr().begin() +
            min((unsigned int)protoTxnCoreInfo.toaddr().size(),
                (unsigned int)txnCoreInfo.toAddr.size),
        txnCoreInfo.toAddr.asArray().begin());
+
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTxnCoreInfo.senderpubkey(),
                                   txnCoreInfo.senderPubKey);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoTxnCoreInfo.amount(),
@@ -815,14 +817,16 @@ bool ProtobufToTransactionCoreInfo(
       protoTxnCoreInfo.gasprice(), txnCoreInfo.gasPrice);
   txnCoreInfo.gasLimit = protoTxnCoreInfo.gaslimit();
   if (protoTxnCoreInfo.code().size() > 0) {
-    txnCoreInfo.code.resize(protoTxnCoreInfo.code().size());
-    copy(protoTxnCoreInfo.code().begin(), protoTxnCoreInfo.code().end(),
-         txnCoreInfo.code.begin());
+    txnCoreInfo.code.reserve(protoTxnCoreInfo.code().size());
+    txnCoreInfo.code.insert(txnCoreInfo.code.end(),
+                            protoTxnCoreInfo.code().begin(),
+                            protoTxnCoreInfo.code().end());
   }
   if (protoTxnCoreInfo.data().size() > 0) {
-    txnCoreInfo.data.resize(protoTxnCoreInfo.data().size());
-    copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
-         txnCoreInfo.data.begin());
+    txnCoreInfo.data.reserve(protoTxnCoreInfo.data().size());
+    txnCoreInfo.data.insert(txnCoreInfo.data.end(),
+                            protoTxnCoreInfo.data().begin(),
+                            protoTxnCoreInfo.data().end());
   }
   txnCoreInfo.accessList.reserve(protoTxnCoreInfo.accesslist_size());
   for (const auto& item : protoTxnCoreInfo.accesslist()) {
@@ -877,10 +881,10 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     LOG_GENERAL(WARNING, "ProtobufToTransactionCoreInfo failed");
     return false;
   }
-
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
   zbytes txnData;
+  txnData.reserve(protoTransaction.info().ByteSizeLong());
   if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
     LOG_GENERAL(WARNING, "Serialize protoTransaction core info failed");
     return false;
@@ -3643,7 +3647,6 @@ bool Messenger::GetNodeForwardTxnBlock(
 
   NodeForwardTxnBlock result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
-
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed");
     return false;
@@ -3658,10 +3661,12 @@ bool Messenger::GetNodeForwardTxnBlock(
     zbytes tmp;
     tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
                 result.transactions_size());
+
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
+
     PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
     if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
@@ -3669,13 +3674,14 @@ bool Messenger::GetNodeForwardTxnBlock(
       return false;
     }
     txns.reserve(result.transactions_size());
+
     for (const auto& txn : result.transactions()) {
       Transaction t;
       if (!ProtobufToTransaction(txn, t)) {
         LOG_GENERAL(WARNING, "ProtobufToTransaction failed");
         return false;
       }
-      txns.emplace_back(t);
+      txns.emplace_back(std::move(t));
     }
   }
 
