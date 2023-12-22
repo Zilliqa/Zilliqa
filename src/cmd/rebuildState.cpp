@@ -21,6 +21,33 @@
 #include <libBlockchain/TxBlock.h>
 #include <libData/AccountStore/AccountStore.h>
 
+#include <boost/asio/thread_pool.hpp>
+#include <boost/asio/post.hpp>
+
+struct LevelDbWrapper {
+  LevelDbWrapper(LevelDB& db) : m_db(db) {}
+
+  std::string lookup(dev::h256 const& h) const {
+    return m_db.Lookup(h);
+  }
+  bool exists(dev::h256 const& h) const {
+    return !lookup(h).empty();
+  }
+  void insert(dev::h256 const& h, dev::zbytesConstRef v) {
+    const auto vStr = v.toString();
+    const auto key = h.hex();
+    m_db.Insert(leveldb::Slice(key),
+                      leveldb::Slice(vStr.data(), vStr.size()));
+
+  }
+  bool kill(dev::h256 const& h) {
+    return true;
+  }
+
+private:
+  LevelDB& m_db;
+};
+
 int findMaxTxBlock(const LevelDB& txBlockchainDB) {
   uint32_t left = 0;
   uint32_t right = std::numeric_limits<uint32_t>::max();
@@ -62,53 +89,61 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::pair<dev::h256, uint32_t>> visitedHashes;
   visitedHashes.reserve(blocksNum);
+  std::mutex mutex;
 
   {
+
+    boost::asio::thread_pool threadPool(4); // 4 threads
+
     dev::OverlayDB fullStateDb{"state"};
     dev::GenericTrieDB fullState{&fullStateDb};
 
     const auto startBlock =
         (blocksNum > latestBlockNum + 1) ? 0 : (latestBlockNum - blocksNum + 1);
 
+    LevelDB level_db{"state_slim"};
+    LevelDbWrapper slimStateDb{level_db};
+
     for (auto idx = startBlock; idx <= latestBlockNum; ++idx) {
-      const auto blockString = txBlockchainDB.Lookup(idx);
+      boost::asio::post(threadPool, [idx, &txBlockchainDB, &fullStateDb, &slimStateDb, &mutex, &visitedHashes]() {
+        const auto blockString = txBlockchainDB.Lookup(idx);
       if (std::empty(blockString)) {
         std::cerr << "Unable to find txBlick with number: " << idx << std::endl;
-        continue;
+        return;
       }
       TxBlock block;
       if (!block.Deserialize(blockString, 0)) {
         std::cerr << "Unable to deserialize block with number: " << idx
                   << std::endl;
-        continue;
+        return;
       }
-      if (idx % 10 == 0) {
-        std::cerr << "Processing block num: " << idx << std::endl;
-      }
+
       const auto currStateHash = block.GetHeader().GetStateRootHash();
       try {
-        {
-          LevelDB level_db{"state_slim"};
-          level_db.compact();
-        }
-        fullState.setRoot(currStateHash);
-        visitedHashes.push_back({currStateHash, 0});
+        dev::GenericTrieDB fullState{&fullStateDb};
 
-        dev::OverlayDB slimStateDb{"state_slim"};
+        fullState.setRoot(currStateHash);
+
         dev::GenericTrieDB slimState{&slimStateDb};
         slimState.init();
+
+        uint32_t visitedCount = 0;
 
         for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
           const auto [key, val] = iter.at();
           slimState.insert(key, val);
-          visitedHashes.back().second++;
+          visitedCount++;
+          //visitedHashes.back().second++;
 
-          if (visitedHashes.back().second % 50000 == 0) {
-            std::cerr << "Processed: " << visitedHashes.back().second
-                      << " entries from block: " << idx << std::endl;
-          }
+          //if (visitedHashes.back().second % 50000 == 0) {
+          //  std::cerr << "Processed: " << visitedHashes.back().second
+                      //<< " entries from block: " << idx << std::endl;
+          //}
         }
-        slimStateDb.commit();
+
+        std::lock_guard lock{mutex};
+        std::cerr << "Rebuild for index: " << idx << std::endl;
+        visitedHashes.push_back({currStateHash, visitedCount});
 
       } catch (std::exception& e) {
         std::cerr << "Unable to set trie at given hash from blockNum: " << idx
@@ -116,10 +151,19 @@ int main(int argc, char* argv[]) {
         std::cerr << "Hash saved in txBlock: " << idx
                   << " may not be valid!. Will skip this one...." << std::endl;
       }
+      });
     }
+
+    threadPool.join();
   }
+
   {
-    std::cerr << "Rebuilding done. Doing validation" << std::endl;
+    LevelDB level_db{"state_slim"};
+    level_db.compact();
+  }
+
+  {
+    std::cerr << "Rebuilding done. Doing validation for total num of blocks: " << visitedHashes.size() << std::endl;
     dev::OverlayDB slimStateDb{"state_slim"};
     dev::GenericTrieDB slimState{&slimStateDb};
     for (const auto& [hash, count] : visitedHashes) {
