@@ -21,30 +21,22 @@
 #include <libBlockchain/TxBlock.h>
 #include <libData/AccountStore/AccountStore.h>
 
-#include <boost/asio/thread_pool.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 
 struct LevelDbWrapper {
-  LevelDbWrapper(LevelDB& db) : m_db(db) {}
+  explicit LevelDbWrapper(LevelDB& db) : m_db(db) {}
 
-  std::string lookup(dev::h256 const& h) const {
-    return m_db.Lookup(h);
-  }
-  bool exists(dev::h256 const& h) const {
-    return !lookup(h).empty();
-  }
+  std::string lookup(dev::h256 const& h) const { return m_db.Lookup(h); }
+  bool exists(dev::h256 const& h) const { return !lookup(h).empty(); }
   void insert(dev::h256 const& h, dev::zbytesConstRef v) {
     const auto vStr = v.toString();
     const auto key = h.hex();
-    m_db.Insert(leveldb::Slice(key),
-                      leveldb::Slice(vStr.data(), vStr.size()));
-
+    m_db.Insert(leveldb::Slice(key), leveldb::Slice(vStr.data(), vStr.size()));
   }
-  bool kill(dev::h256 const& h) {
-    return true;
-  }
+  bool kill(dev::h256 const& h) { return true; }
 
-private:
+ private:
   LevelDB& m_db;
 };
 
@@ -89,11 +81,10 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::pair<dev::h256, uint32_t>> visitedHashes;
   visitedHashes.reserve(blocksNum);
-  std::mutex mutex;
 
   {
-
-    boost::asio::thread_pool threadPool(4); // 4 threads
+    boost::asio::thread_pool threadPool(std::thread::hardware_concurrency() *
+                                        8);
 
     dev::OverlayDB fullStateDb{"state"};
     dev::GenericTrieDB fullState{&fullStateDb};
@@ -104,53 +95,57 @@ int main(int argc, char* argv[]) {
     LevelDB level_db{"state_slim"};
     LevelDbWrapper slimStateDb{level_db};
 
+    std::mutex mutex;
+
     for (auto idx = startBlock; idx <= latestBlockNum; ++idx) {
-      boost::asio::post(threadPool, [idx, &txBlockchainDB, &fullStateDb, &slimStateDb, &mutex, &visitedHashes]() {
+      boost::asio::post(threadPool, [idx, &txBlockchainDB, &fullStateDb,
+                                     &slimStateDb, &mutex, &visitedHashes]() {
         const auto blockString = txBlockchainDB.Lookup(idx);
-      if (std::empty(blockString)) {
-        std::cerr << "Unable to find txBlick with number: " << idx << std::endl;
-        return;
-      }
-      TxBlock block;
-      if (!block.Deserialize(blockString, 0)) {
-        std::cerr << "Unable to deserialize block with number: " << idx
-                  << std::endl;
-        return;
-      }
-
-      const auto currStateHash = block.GetHeader().GetStateRootHash();
-      try {
-        dev::GenericTrieDB fullState{&fullStateDb};
-
-        fullState.setRoot(currStateHash);
-
-        dev::GenericTrieDB slimState{&slimStateDb};
-        slimState.init();
-
-        uint32_t visitedCount = 0;
-
-        for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
-          const auto [key, val] = iter.at();
-          slimState.insert(key, val);
-          visitedCount++;
-          //visitedHashes.back().second++;
-
-          //if (visitedHashes.back().second % 50000 == 0) {
-          //  std::cerr << "Processed: " << visitedHashes.back().second
-                      //<< " entries from block: " << idx << std::endl;
-          //}
+        if (std::empty(blockString)) {
+          std::cerr << "Unable to find txBlick with number: " << idx
+                    << std::endl;
+          return;
+        }
+        TxBlock block;
+        if (!block.Deserialize(blockString, 0)) {
+          std::cerr << "Unable to deserialize block with number: " << idx
+                    << std::endl;
+          return;
         }
 
-        std::lock_guard lock{mutex};
-        std::cerr << "Rebuild for index: " << idx << std::endl;
-        visitedHashes.push_back({currStateHash, visitedCount});
+        const auto currStateHash = block.GetHeader().GetStateRootHash();
+        try {
+          dev::GenericTrieDB fullState{&fullStateDb};
 
-      } catch (std::exception& e) {
-        std::cerr << "Unable to set trie at given hash from blockNum: " << idx
-                  << std::endl;
-        std::cerr << "Hash saved in txBlock: " << idx
-                  << " may not be valid!. Will skip this one...." << std::endl;
-      }
+          fullState.setRoot(currStateHash);
+
+          dev::GenericTrieDB slimState{&slimStateDb};
+          slimState.init();
+
+          uint32_t visitedCount = 0;
+
+          for (auto iter = fullState.begin(); iter != fullState.end(); ++iter) {
+            const auto [key, val] = iter.at();
+            slimState.insert(key, val);
+            visitedCount++;
+
+            if (visitedCount % 100000 == 0) {
+              std::cerr << "Processed: " << visitedCount
+                        << " entries from block: " << idx << std::endl;
+            }
+          }
+
+          std::lock_guard lock{mutex};
+          std::cerr << "Rebuild for index: " << idx << std::endl;
+          visitedHashes.push_back({currStateHash, visitedCount});
+
+        } catch (std::exception& e) {
+          std::cerr << "Unable to set trie at given hash from blockNum: " << idx
+                    << std::endl;
+          std::cerr << "Hash saved in txBlock: " << idx
+                    << " may not be valid!. Will skip this one...."
+                    << std::endl;
+        }
       });
     }
 
@@ -163,34 +158,43 @@ int main(int argc, char* argv[]) {
   }
 
   {
-    std::cerr << "Rebuilding done. Doing validation for total num of blocks: " << visitedHashes.size() << std::endl;
+    std::cerr << "Rebuilding done. Doing validation for total num of blocks: "
+              << visitedHashes.size() << std::endl;
     dev::OverlayDB slimStateDb{"state_slim"};
-    dev::GenericTrieDB slimState{&slimStateDb};
+
+    boost::asio::thread_pool threadPool(std::thread::hardware_concurrency() *
+                                        8);
+
     for (const auto& [hash, count] : visitedHashes) {
-      try {
-        slimState.setRoot(hash);
-        uint32_t slimCount = 0;
-        for (auto it = slimState.begin(); it != slimState.end(); ++it) {
-          slimCount++;
-        }
-        if (slimCount != count) {
+      boost::asio::post(threadPool, [&slimStateDb, hash, count]() {
+        try {
+          dev::GenericTrieDB slimState{&slimStateDb};
+          slimState.setRoot(hash);
+          uint32_t slimCount = 0;
+          for (auto it = slimState.begin(); it != slimState.end(); ++it) {
+            slimCount++;
+          }
+          if (slimCount != count) {
+            std::cerr
+                << "Invalid number of entries between two states, state has: "
+                << count << ", but slim state has: " << slimCount << std::endl;
+            std::cerr << "This is inconsistency, exiting...";
+            exit(1);
+          }
+          std::cerr << "Validated one block " << std::endl;
+        } catch (std::exception& e) {
           std::cerr
-              << "Invalid number of entries between two states, state has: "
-              << count << ", but slim state has: " << slimCount << std::endl;
-          std::cerr << "This is inconsistency, exiting...";
+              << "Unable to verify correctness of slim state trie. Cannot "
+                 "set root at hash: "
+              << hash << ", exception: " << e.what() << std::endl;
+          std::cerr << "Please revisit correctness of this program or if given "
+                       "full state is not corrupted!"
+                    << std::endl;
           exit(1);
         }
-        std::cerr << "Validated one block " << std::endl;
-      } catch (std::exception& e) {
-        std::cerr << "Unable to verify correctness of slim state trie. Cannot "
-                     "set root at hash: "
-                  << hash << ", exception: " << e.what() << std::endl;
-        std::cerr << "Please revisit correctness of this program or if given "
-                     "full state is not corrupted!"
-                  << std::endl;
-        exit(1);
-      }
+      });
     }
+    threadPool.join();
   }
 
   const auto stopTime = std::chrono::system_clock::now();
