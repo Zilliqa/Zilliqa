@@ -31,6 +31,7 @@
 #include <map>
 #include <random>
 #include <unordered_set>
+#include "libUtils/MemoryStats.h"
 
 using namespace boost::multiprecision;
 using namespace std;
@@ -816,17 +817,24 @@ bool ProtobufToTransactionCoreInfo(
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoTxnCoreInfo.gasprice(), txnCoreInfo.gasPrice);
   txnCoreInfo.gasLimit = protoTxnCoreInfo.gaslimit();
+  uint64_t startMem{0};
   if (protoTxnCoreInfo.code().size() > 0) {
+    startMem = DisplayPhysicalMemoryStats("Before txnCoreInfo code reserve", 0);
     txnCoreInfo.code.reserve(protoTxnCoreInfo.code().size());
     txnCoreInfo.code.insert(txnCoreInfo.code.end(),
                             protoTxnCoreInfo.code().begin(),
                             protoTxnCoreInfo.code().end());
+    startMem =
+        DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", startMem);
   }
   if (protoTxnCoreInfo.data().size() > 0) {
+    startMem = DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", 0);
     txnCoreInfo.data.reserve(protoTxnCoreInfo.data().size());
     txnCoreInfo.data.insert(txnCoreInfo.data.end(),
                             protoTxnCoreInfo.data().begin(),
                             protoTxnCoreInfo.data().end());
+    startMem =
+        DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", startMem);
   }
   txnCoreInfo.accessList.reserve(protoTxnCoreInfo.accesslist_size());
   for (const auto& item : protoTxnCoreInfo.accesslist()) {
@@ -846,6 +854,8 @@ bool ProtobufToTransactionCoreInfo(
       txnCoreInfo.maxPriorityFeePerGas);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoTxnCoreInfo.maxfeepergas(), txnCoreInfo.maxFeePerGas);
+  startMem =
+      DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", startMem);
   return true;
 }
 

@@ -50,6 +50,7 @@
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
 #include "libValidator/Validator.h"
+#include "libUtils/MemoryStats.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -1966,11 +1967,14 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   unsigned int processed_count = 0;
 
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
+  uint64_t startMem = DisplayPhysicalMemoryStats("Before checkedTxns reserve", 0);
 
   std::vector<Transaction> checkedTxns;
   checkedTxns.reserve(std::size(txns));
+  startMem = DisplayPhysicalMemoryStats("After checkedTxns reserve", startMem);
   vector<std::pair<TxnHash, TxnStatus>> rejectTxns;
   rejectTxns.reserve(std::size(txns));
+  startMem = DisplayPhysicalMemoryStats("After rejectTxns reserve", startMem);
 
   const auto gasPrice =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
@@ -2057,6 +2061,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     m_txnPacketThreadOnHold--;
   }
 
+  startMem = DisplayPhysicalMemoryStats("End ProcessTxnPacketFromLookupCore reserve", startMem);
   return true;
 }
 
