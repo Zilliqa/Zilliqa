@@ -12,6 +12,7 @@
     "boost-multiprecision",
     "boost-program-options",
     "boost-process",
+    "boost-scope-exit",
     "boost-timer",
     "boost-test",
     "snappy",
