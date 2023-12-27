@@ -819,22 +819,14 @@ bool ProtobufToTransactionCoreInfo(
   txnCoreInfo.gasLimit = protoTxnCoreInfo.gaslimit();
   uint64_t startMem{0};
   if (protoTxnCoreInfo.code().size() > 0) {
-    startMem = DisplayPhysicalMemoryStats("Before txnCoreInfo code reserve", 0);
-    txnCoreInfo.code.reserve(protoTxnCoreInfo.code().size());
     txnCoreInfo.code.insert(txnCoreInfo.code.end(),
                             protoTxnCoreInfo.code().begin(),
                             protoTxnCoreInfo.code().end());
-    startMem =
-        DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", startMem);
   }
   if (protoTxnCoreInfo.data().size() > 0) {
-    startMem = DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", 0);
-    txnCoreInfo.data.reserve(protoTxnCoreInfo.data().size());
     txnCoreInfo.data.insert(txnCoreInfo.data.end(),
                             protoTxnCoreInfo.data().begin(),
                             protoTxnCoreInfo.data().end());
-    startMem =
-        DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", startMem);
   }
   txnCoreInfo.accessList.reserve(protoTxnCoreInfo.accesslist_size());
   for (const auto& item : protoTxnCoreInfo.accesslist()) {
@@ -854,8 +846,6 @@ bool ProtobufToTransactionCoreInfo(
       txnCoreInfo.maxPriorityFeePerGas);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoTxnCoreInfo.maxfeepergas(), txnCoreInfo.maxFeePerGas);
-  startMem =
-      DisplayPhysicalMemoryStats("After txnCoreInfo code reserve", startMem);
   return true;
 }
 
@@ -887,12 +877,10 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
                (unsigned int)tranID.size),
        tranID.asArray().begin());
 
-  uint64_t startMem = DisplayPhysicalMemoryStats("Before ProtobufToTransactionCoreInfo", 0);
   if (!ProtobufToTransactionCoreInfo(protoTransaction.info(), txnCoreInfo)) {
     LOG_GENERAL(WARNING, "ProtobufToTransactionCoreInfo failed");
     return false;
   }
-  startMem = DisplayPhysicalMemoryStats("After ProtobufToTransactionCoreInfo", startMem);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
   zbytes txnData;
@@ -3680,6 +3668,7 @@ bool Messenger::GetNodeForwardTxnBlock(
       return false;
     }
 
+    uint64_t startMem = DisplayPhysicalMemoryStats("start ProtobufToTransaction", 0);
     for (const auto& txn : result.transactions()) {
       Transaction t;
       if (!ProtobufToTransaction(txn, t)) {
@@ -3688,6 +3677,7 @@ bool Messenger::GetNodeForwardTxnBlock(
       }
       txns.emplace_back(std::move(t));
     }
+    startMem = DisplayPhysicalMemoryStats("end ProtobufToTransaction", startMem);
   }
 
   LOG_GENERAL(INFO, "Epoch: " << epochNumber << " Shard: " << shardId

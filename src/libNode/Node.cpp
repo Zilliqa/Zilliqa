@@ -1967,12 +1967,12 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   unsigned int processed_count = 0;
 
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
-  uint64_t startMem = DisplayPhysicalMemoryStats("Before checkedTxns reserve", 0);
+  uint64_t startMem = DisplayPhysicalMemoryStats("start checkedTxns", 0);
 
   std::vector<Transaction> checkedTxns;
-  startMem = DisplayPhysicalMemoryStats("After checkedTxns reserve", startMem);
+  startMem = DisplayPhysicalMemoryStats("end checkedTxns", startMem);
   vector<std::pair<TxnHash, TxnStatus>> rejectTxns;
-  startMem = DisplayPhysicalMemoryStats("After rejectTxns reserve", startMem);
+  startMem = DisplayPhysicalMemoryStats("end rejectTxns", startMem);
 
   const auto gasPrice =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
