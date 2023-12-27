@@ -23,6 +23,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
+#include "libUtils/MemoryPool.h"
 #include "libUtils/SafeMath.h"
 
 #include <boost/scope_exit.hpp>
