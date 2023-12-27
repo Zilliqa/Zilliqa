@@ -887,10 +887,12 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
                (unsigned int)tranID.size),
        tranID.asArray().begin());
 
+  uint64_t startMem = DisplayPhysicalMemoryStats("Before ProtobufToTransactionCoreInfo", 0);
   if (!ProtobufToTransactionCoreInfo(protoTransaction.info(), txnCoreInfo)) {
     LOG_GENERAL(WARNING, "ProtobufToTransactionCoreInfo failed");
     return false;
   }
+  startMem = DisplayPhysicalMemoryStats("After ProtobufToTransactionCoreInfo", startMem);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
   zbytes txnData;
@@ -956,7 +958,6 @@ void TransactionArrayToProtobuf(const deque<pair<Transaction, uint32_t>>& txns,
 bool ProtobufToTransactionArray(
     const ProtoTransactionArray& protoTransactionArray,
     std::vector<Transaction>& txns) {
-  txns.reserve(protoTransactionArray.transactions_size());
   for (const auto& protoTransaction : protoTransactionArray.transactions()) {
     Transaction txn;
     if (!ProtobufToTransaction(protoTransaction, txn)) {
@@ -3574,8 +3575,6 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
   Signature signature;
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -3669,9 +3668,6 @@ bool Messenger::GetNodeForwardTxnBlock(
 
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
-
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -3683,7 +3679,6 @@ bool Messenger::GetNodeForwardTxnBlock(
       LOG_GENERAL(WARNING, "Invalid signature in transactions");
       return false;
     }
-    txns.reserve(result.transactions_size());
 
     for (const auto& txn : result.transactions()) {
       Transaction t;
@@ -5908,8 +5903,6 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   Signature signature;
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -5959,8 +5952,6 @@ bool Messenger::GetLookupSetTxnsFromLookup(
 
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -5971,7 +5962,6 @@ bool Messenger::GetLookupSetTxnsFromLookup(
       return false;
     }
   }
-  txns.reserve(result.transactions_size());
   for (auto const& protoTxn : result.transactions()) {
     TransactionWithReceipt txn;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTxn, txn);

@@ -1970,10 +1970,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
   uint64_t startMem = DisplayPhysicalMemoryStats("Before checkedTxns reserve", 0);
 
   std::vector<Transaction> checkedTxns;
-  checkedTxns.reserve(std::size(txns));
   startMem = DisplayPhysicalMemoryStats("After checkedTxns reserve", startMem);
   vector<std::pair<TxnHash, TxnStatus>> rejectTxns;
-  rejectTxns.reserve(std::size(txns));
   startMem = DisplayPhysicalMemoryStats("After rejectTxns reserve", startMem);
 
   const auto gasPrice =
