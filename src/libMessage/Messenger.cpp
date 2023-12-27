@@ -25,6 +25,8 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libUtils/SafeMath.h"
 
+#include <boost/scope_exit.hpp>
+
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <algorithm>
@@ -3563,9 +3565,13 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
 
   Signature signature;
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
-               result.transactions_size());
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -3658,9 +3664,12 @@ bool Messenger::GetNodeForwardTxnBlock(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
-               result.transactions_size());
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
 
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
@@ -4004,7 +4013,12 @@ bool Messenger::SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
 
   Signature signature;
   if (result.candidateseeds().size() > 0) {
-    zbytes tmp;
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
@@ -4055,7 +4069,12 @@ bool Messenger::GetLookupSetSeedPeers(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.candidateseeds().size() > 0) {
-    zbytes tmp;
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
@@ -5316,7 +5335,12 @@ bool Messenger::SetLookupSetOfflineLookups(zbytes& dst,
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.nodes().size() > 0) {
-    zbytes tmp;
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.nodes(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
@@ -5367,7 +5391,12 @@ bool Messenger::GetLookupSetOfflineLookups(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.nodes().size() > 0) {
-    zbytes tmp;
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.nodes(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
@@ -5678,7 +5707,12 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
-    zbytes tmp;
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
@@ -5723,7 +5757,12 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.microblocks().size() > 0) {
-    zbytes tmp;
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
@@ -5897,9 +5936,12 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
-               result.transactions_size());
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -5948,9 +5990,12 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
-               result.transactions_size());
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
