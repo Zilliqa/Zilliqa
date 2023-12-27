@@ -3564,8 +3564,8 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
   Signature signature;
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
+    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
+               result.transactions_size());
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -3659,8 +3659,8 @@ bool Messenger::GetNodeForwardTxnBlock(
 
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
+    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
+               result.transactions_size());
 
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
@@ -5898,8 +5898,8 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   Signature signature;
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
+    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
+               result.transactions_size());
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -5949,8 +5949,8 @@ bool Messenger::GetLookupSetTxnsFromLookup(
 
   if (result.transactions().size() > 0) {
     zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
+    tmp.resize(Transaction::AVERAGE_TXN_SIZE_BYTES *
+               result.transactions_size());
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
