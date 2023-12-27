@@ -884,7 +884,6 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
   zbytes txnData;
-  txnData.reserve(protoTransaction.info().ByteSizeLong());
   if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
     LOG_GENERAL(WARNING, "Serialize protoTransaction core info failed");
     return false;
