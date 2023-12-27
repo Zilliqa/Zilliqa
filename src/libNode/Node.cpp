@@ -20,6 +20,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/asio/readable_pipe.hpp>
+#include <boost/pool/pool_alloc.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/start_dir.hpp>
 #include <boost/process/v2/stdio.hpp>
@@ -1967,9 +1968,12 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
-  std::vector<Transaction> checkedTxns;
+  using TxnAlloc = boost::pool_allocator<Transaction>;
+  std::vector<Transaction, TxnAlloc> checkedTxns;
   checkedTxns.reserve(std::size(txns));
-  vector<std::pair<TxnHash, TxnStatus>> rejectTxns;
+
+  using TxnPairAlloc = boost::pool_allocator<std::pair<TxnHash, TxnStatus>>;
+  vector<std::pair<TxnHash, TxnStatus>, TxnPairAlloc> rejectTxns;
   rejectTxns.reserve(std::size(txns));
 
   const auto gasPrice =
@@ -2042,8 +2046,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
   {
     unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-    m_unconfirmedTxns.insert(std::make_move_iterator(std::begin(rejectTxns)),
-                             std::make_move_iterator(std::end(rejectTxns)));
+    m_unconfirmedTxns.insert(std::begin(rejectTxns), std::end(rejectTxns));
   }
 
   LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left

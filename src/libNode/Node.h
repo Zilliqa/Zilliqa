@@ -25,6 +25,8 @@
 #include <shared_mutex>
 #include <unordered_map>
 
+#include <boost/pool/pool_alloc.hpp>
+
 #include "common/TxnStatus.h"
 #include "libBlockchain/Block.h"
 #include "libConsensus/Consensus.h"
@@ -239,7 +241,9 @@ class Node : public Executable {
   void ReinstateMemPool(
       const std::map<Address, std::map<uint64_t, Transaction>>& addrNonceTxnMap,
       const std::vector<Transaction>& gasLimitExceededTxnBuffer,
-      std::vector<std::pair<TxnHash, TxnStatus>> droppedTxns);
+      std::vector<std::pair<TxnHash, TxnStatus>,
+                  boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+          droppedTxns);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
