@@ -51,14 +51,16 @@ template <class T>
 std::pair<uint64_t, bool> RepeatableToArray(const T& repeatable, zbytes& dst,
                        const unsigned int offset) {
   uint64_t tempOffset = offset;
+  uint64_t len{0} ;
   for (const auto& element : repeatable) {
     if (!SerializeToArray(element, dst, tempOffset)) {
       LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
-      return {tempOffset, false};
+      return {len, false};
     }
     tempOffset += element.ByteSizeLong();
+    len += element.ByteSizeLong();
   }
-  return {tempOffset, true};
+  return {len, true};
 }
 
 template <class T, size_t S>
@@ -3572,12 +3574,14 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, 0);
+
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
-    if (!Schnorr::Sign(tmp, 0, txnsLen, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, offset+txnsLen, lookupKey.first, lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign transactions");
       return false;
     }
@@ -3672,7 +3676,8 @@ bool Messenger::GetNodeForwardTxnBlock(
 
     zbytes& tmp = *ptr.get();
 
-    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -3680,7 +3685,7 @@ bool Messenger::GetNodeForwardTxnBlock(
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-    if (!Schnorr::Verify(tmp, 0, txnsLen, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, offset+txnsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in transactions");
       return false;
     }
@@ -4021,12 +4026,13 @@ bool Messenger::SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [seedsLen, status] = RepeatableToArray(result.candidateseeds(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [seedsLen, status] = RepeatableToArray(result.candidateseeds(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
     }
-    if (!Schnorr::Sign(tmp, 0, seedsLen, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, offset+seedsLen, lookupKey.first, lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign candidate seeds");
       return false;
     }
@@ -4078,12 +4084,13 @@ bool Messenger::GetLookupSetSeedPeers(const zbytes& src,
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [seedsLen, status] = RepeatableToArray(result.candidateseeds(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [seedsLen, status] = RepeatableToArray(result.candidateseeds(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
     }
-    if (!Schnorr::Verify(tmp, 0, seedsLen, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, offset+seedsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in candidate seeds");
       return false;
     }
@@ -5344,13 +5351,14 @@ bool Messenger::SetLookupSetOfflineLookups(zbytes& dst,
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [lookupsLen, status] = RepeatableToArray(result.nodes(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [lookupsLen, status] = RepeatableToArray(result.nodes(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
     }
 
-    if (!Schnorr::Sign(tmp, 0, lookupsLen, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, offset+lookupsLen, lookupKey.first, lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign offline lookup nodes");
       return false;
     }
@@ -5401,12 +5409,13 @@ bool Messenger::GetLookupSetOfflineLookups(const zbytes& src,
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [lookupsLen, status] = RepeatableToArray(result.nodes(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [lookupsLen, status] = RepeatableToArray(result.nodes(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
     }
-    if (!Schnorr::Verify(tmp, 0, lookupsLen, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, offset+lookupsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in offline lookup nodes");
       return false;
     }
@@ -5717,13 +5726,14 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [microBlocksLen, status] = RepeatableToArray(result.microblocks(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [microBlocksLen, status] = RepeatableToArray(result.microblocks(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
     }
 
-    if (!Schnorr::Sign(tmp, 0, microBlocksLen, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, offset+microBlocksLen, lookupKey.first, lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign micro blocks");
       return false;
     }
@@ -5768,12 +5778,13 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [microBlocksLen, status] = RepeatableToArray(result.microblocks(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [microBlocksLen, status] = RepeatableToArray(result.microblocks(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
     }
-    if (!Schnorr::Verify(tmp, 0, microBlocksLen, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, offset+microBlocksLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in micro blocks");
       return false;
     }
@@ -5947,12 +5958,13 @@ bool Messenger::SetLookupSetTxnsFromLookup(
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
-    if (!Schnorr::Sign(tmp, 0, txnsLen, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, offset+txnsLen, lookupKey.first, lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign transactions");
       return false;
     }
@@ -6001,13 +6013,14 @@ bool Messenger::GetLookupSetTxnsFromLookup(
     BOOST_SCOPE_EXIT_END
 
     zbytes& tmp = *ptr.get();
-    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, 0);
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] = RepeatableToArray(result.transactions(), tmp, offset);
     if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
 
-    if (!Schnorr::Verify(tmp, 0, txnsLen, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, offset+txnsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in transactions");
       return false;
     }
