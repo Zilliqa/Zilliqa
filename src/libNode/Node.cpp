@@ -2003,36 +2003,36 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
     uint32_t rejectedCount = 0;
     uint32_t addedCount = 0;
-    for (const auto &txn : checkedTxns) {
-      MempoolInsertionStatus status;
-      if (!m_createdTxns.insert(txn, status)) {
-        {
-          if (status.first != TxnStatus::MEMPOOL_ALREADY_PRESENT) {
-            // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
-            // issue, hence if this comes, either the txn should be confirmed or
-            // if it is pending/dropped there should be some other cause which
-            // is primary.
-            rejectTxns.emplace_back(status.second, status.first);
-            rejectedCount++;
-          }
-          LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex()
-                                    << " rejected by pool due to ( "
-                                    << (int)status.first << ") "
-                                    << status.first);
-        }
-      } else {
-        if (status.first != TxnStatus::NOT_PRESENT) {
-          // Txn added with deletion of some previous txn
-          rejectTxns.emplace_back(status.second, status.first);
-          LOG_GENERAL(DEBUG, "Txn " << status.second
-                                    << " removed from pool due to "
-                                    << status.first);
-          rejectedCount++;
-        }
-        LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex() << " added to pool");
-        addedCount++;
-      }
-    }
+    // for (const auto &txn : checkedTxns) {
+    //   MempoolInsertionStatus status;
+    //   if (!m_createdTxns.insert(txn, status)) {
+    //     {
+    //       if (status.first != TxnStatus::MEMPOOL_ALREADY_PRESENT) {
+    //         // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
+    //         // issue, hence if this comes, either the txn should be confirmed or
+    //         // if it is pending/dropped there should be some other cause which
+    //         // is primary.
+    //         rejectTxns.emplace_back(status.second, status.first);
+    //         rejectedCount++;
+    //       }
+    //       LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex()
+    //                                 << " rejected by pool due to ( "
+    //                                 << (int)status.first << ") "
+    //                                 << status.first);
+    //     }
+    //   } else {
+    //     if (status.first != TxnStatus::NOT_PRESENT) {
+    //       // Txn added with deletion of some previous txn
+    //       rejectTxns.emplace_back(status.second, status.first);
+    //       LOG_GENERAL(DEBUG, "Txn " << status.second
+    //                                 << " removed from pool due to "
+    //                                 << status.first);
+    //       rejectedCount++;
+    //     }
+    //     LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex() << " added to pool");
+    //     addedCount++;
+    //   }
+    // }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
                                            << ", added: " << addedCount
@@ -2044,10 +2044,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
   }
 
-  {
-    unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-    m_unconfirmedTxns.insert(std::begin(rejectTxns), std::end(rejectTxns));
-  }
+  // {
+  //   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+  //   m_unconfirmedTxns.insert(std::begin(rejectTxns), std::end(rejectTxns));
+  // }
 
   LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
