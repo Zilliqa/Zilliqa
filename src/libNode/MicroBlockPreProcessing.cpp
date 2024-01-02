@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/pool/pool_alloc.hpp>
+
 #include "Node.h"
 #include "RootComputation.h"
 #include "common/Constants.h"
@@ -425,7 +427,9 @@ void Node::ProcessTransactionWhenShardLeader(
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
-  vector<pair<TxnHash, TxnStatus>> droppedTxns;
+  vector<pair<TxnHash, TxnStatus>,
+         boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+      droppedTxns;
   unsigned int count_addrNonceTxnMap = 0;
   unsigned int count_createdTxns = 0;
   uint32_t highNonce = 0;
@@ -741,7 +745,9 @@ void Node::ProcessTransactionWhenShardBackup(
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
-  vector<pair<TxnHash, TxnStatus>> droppedTxns;
+  vector<pair<TxnHash, TxnStatus>,
+         boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+      droppedTxns;
   unsigned int count_addrNonceTxnMap = 0;
   unsigned int count_createdTxns = 0;
 
@@ -957,7 +963,9 @@ std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {
 void Node::ReinstateMemPool(
     const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
     const vector<Transaction>& gasLimitExceededTxnBuffer,
-    vector<pair<TxnHash, TxnStatus>> droppedTxns) {
+    vector<pair<TxnHash, TxnStatus>,
+           boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+        droppedTxns) {
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
   MempoolInsertionStatus status;
@@ -979,8 +987,7 @@ void Node::ReinstateMemPool(
     m_unconfirmedTxns.emplace(t.GetTranID(), TxnStatus::PRESENT_GAS_EXCEEDED);
   }
 
-  m_unconfirmedTxns.insert(std::make_move_iterator(std::begin(droppedTxns)),
-                           std::make_move_iterator(std::end(droppedTxns)));
+  m_unconfirmedTxns.insert(std::begin(droppedTxns), std::end(droppedTxns));
 }
 
 void Node::PutAllTxnsInUnconfirmedTxns() {

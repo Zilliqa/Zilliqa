@@ -23,7 +23,10 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
+#include "libUtils/MemoryPool.h"
 #include "libUtils/SafeMath.h"
+
+#include <boost/scope_exit.hpp>
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
@@ -45,17 +48,19 @@ template bool SerializeToArray<ProtoAccountStore>(
     const unsigned int offset);
 
 template <class T>
-bool RepeatableToArray(const T& repeatable, zbytes& dst,
-                       const unsigned int offset) {
-  int tempOffset = offset;
+std::pair<uint64_t, bool> RepeatableToArray(const T& repeatable, zbytes& dst,
+                                            const unsigned int offset) {
+  uint64_t tempOffset = offset;
+  uint64_t len{0};
   for (const auto& element : repeatable) {
     if (!SerializeToArray(element, dst, tempOffset)) {
       LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
-      return false;
+      return {len, false};
     }
     tempOffset += element.ByteSizeLong();
+    len += element.ByteSizeLong();
   }
-  return true;
+  return {len, true};
 }
 
 template <class T, size_t S>
@@ -3563,14 +3568,22 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
 
   Signature signature;
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
-    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] =
+        RepeatableToArray(result.transactions(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
-    if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, txnsLen, lookupKey.first, lookupKey.second,
+                       signature)) {
       LOG_GENERAL(WARNING, "Failed to sign transactions");
       return false;
     }
@@ -3658,18 +3671,24 @@ bool Messenger::GetNodeForwardTxnBlock(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
 
-    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] =
+        RepeatableToArray(result.transactions(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-    if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, txnsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in transactions");
       return false;
     }
@@ -4004,12 +4023,21 @@ bool Messenger::SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
 
   Signature signature;
   if (result.candidateseeds().size() > 0) {
-    zbytes tmp;
-    if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [seedsLen, status] =
+        RepeatableToArray(result.candidateseeds(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
     }
-    if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, seedsLen, lookupKey.first, lookupKey.second,
+                       signature)) {
       LOG_GENERAL(WARNING, "Failed to sign candidate seeds");
       return false;
     }
@@ -4055,13 +4083,20 @@ bool Messenger::GetLookupSetSeedPeers(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.candidateseeds().size() > 0) {
-    zbytes tmp;
-    if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [seedsLen, status] =
+        RepeatableToArray(result.candidateseeds(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
     }
-
-    if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, seedsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in candidate seeds");
       return false;
     }
@@ -5316,13 +5351,22 @@ bool Messenger::SetLookupSetOfflineLookups(zbytes& dst,
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.nodes().size() > 0) {
-    zbytes tmp;
-    if (!RepeatableToArray(result.nodes(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [lookupsLen, status] =
+        RepeatableToArray(result.nodes(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
     }
 
-    if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, lookupsLen, lookupKey.first,
+                       lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign offline lookup nodes");
       return false;
     }
@@ -5367,13 +5411,20 @@ bool Messenger::GetLookupSetOfflineLookups(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.nodes().size() > 0) {
-    zbytes tmp;
-    if (!RepeatableToArray(result.nodes(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [lookupsLen, status] =
+        RepeatableToArray(result.nodes(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
     }
-
-    if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, lookupsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in offline lookup nodes");
       return false;
     }
@@ -5678,13 +5729,22 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
-    zbytes tmp;
-    if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [microBlocksLen, status] =
+        RepeatableToArray(result.microblocks(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
     }
 
-    if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, microBlocksLen, lookupKey.first,
+                       lookupKey.second, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign micro blocks");
       return false;
     }
@@ -5723,13 +5783,21 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.microblocks().size() > 0) {
-    zbytes tmp;
-    if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [microBlocksLen, status] =
+        RepeatableToArray(result.microblocks(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
     }
-
-    if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, microBlocksLen, signature,
+                         lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in micro blocks");
       return false;
     }
@@ -5897,15 +5965,21 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
-    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] =
+        RepeatableToArray(result.transactions(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
-
-    if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
+    if (!Schnorr::Sign(tmp, offset, txnsLen, lookupKey.first, lookupKey.second,
+                       signature)) {
       LOG_GENERAL(WARNING, "Failed to sign transactions");
       return false;
     }
@@ -5948,15 +6022,21 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
   if (result.transactions().size() > 0) {
-    zbytes tmp;
-    tmp.reserve(Transaction::AVERAGE_TXN_SIZE_BYTES *
-                result.transactions_size());
-    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+    auto ptr = MemoryPool::GetInstance().GetZbytesFromPool();
+
+    BOOST_SCOPE_EXIT(ptr) { MemoryPool::GetInstance().PutZbytesToPool(ptr); }
+    BOOST_SCOPE_EXIT_END
+
+    zbytes& tmp = *ptr.get();
+    const unsigned int offset = 0;
+    const auto [txnsLen, status] =
+        RepeatableToArray(result.transactions(), tmp, offset);
+    if (!status) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
 
-    if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
+    if (!Schnorr::Verify(tmp, offset, txnsLen, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in transactions");
       return false;
     }
