@@ -61,8 +61,8 @@ Json::Value populateReceiptHelper(
     const Json::Value &logs, const Json::Value &logsBloom,
     const Json::Value &transactionIndex, const Transaction &txn);
 
-EthFields parseEip2930Transaction(zbytes const& asBytes);
-EthFields parseEip1559Transaction(zbytes const& asBytes);
+EthFields parseEip2930Transaction(zbytes const &asBytes);
+EthFields parseEip1559Transaction(zbytes const &asBytes);
 EthFields parseRawTxFields(std::string const &message);
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
@@ -76,12 +76,17 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          uint32_t logIndex);
 
 Json::Value ConvertScillaEventsToEvm(const Json::Value &evmEvents);
-std::string ConvertScillaEventToEthAbi(const std::string &event);
+Json::Value ConvertScillaErrorsToEvm(const Json::Value &evmEvents);
+Json::Value ConvertScillaExceptionsToEvm(const Json::Value &evmEvents);
+
+std::string ConvertStringToEthAbi(const std::string &event);
 
 LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt);
 Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt);
 
 Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt);
+std::pair<Json::Value, Json::Value> GetErrorsAndExceptionsFromReceipt(
+    const TransactionReceipt &receipt);
 
 LogBloom BuildBloomForLogObject(const Json::Value &logObject);
 LogBloom BuildBloomForLogs(const Json::Value &logsArray);

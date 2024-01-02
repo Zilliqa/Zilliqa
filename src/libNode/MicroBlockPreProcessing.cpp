@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/pool/pool_alloc.hpp>
+
 #include "Node.h"
 #include "RootComputation.h"
 #include "common/Constants.h"
@@ -425,9 +427,12 @@ void Node::ProcessTransactionWhenShardLeader(
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
-  vector<pair<TxnHash, TxnStatus>> droppedTxns;
+  vector<pair<TxnHash, TxnStatus>,
+         boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+      droppedTxns;
   unsigned int count_addrNonceTxnMap = 0;
   unsigned int count_createdTxns = 0;
+  uint32_t highNonce = 0;
 
   AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
 
@@ -481,9 +486,8 @@ void Node::ProcessTransactionWhenShardLeader(
 
         continue;
       } else {
-        LOG_GENERAL(WARNING,
-                    "Adding to dropped Txns failed transaction with id: "
-                        << txn.GetTranID());
+        LOG_GENERAL(DEBUG, "Adding to dropped Txns failed transaction with id: "
+                               << txn.GetTranID());
         droppedTxns.emplace_back(txn.GetTranID(), error_code);
       }
     }
@@ -498,10 +502,11 @@ void Node::ProcessTransactionWhenShardLeader(
       if (txn.GetNonce() >
           AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
         LOG_GENERAL(
-            INFO, "High nonce: "
-                      << txn.GetNonce() << " cur sender " << senderAddr.hex()
-                      << " nonce: "
-                      << AccountStore::GetInstance().GetNonceTemp(senderAddr));
+            DEBUG, "High nonce: "
+                       << txn.GetNonce() << " cur sender " << senderAddr.hex()
+                       << " nonce: "
+                       << AccountStore::GetInstance().GetNonceTemp(senderAddr));
+        highNonce++;
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
           auto it2 = it1->second.find(txn.GetNonce());
@@ -520,7 +525,7 @@ void Node::ProcessTransactionWhenShardLeader(
       else if (txn.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
         LOG_GENERAL(
-            INFO,
+            DEBUG,
             "Nonce too small"
                 << " Expected "
                 << AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1
@@ -557,7 +562,7 @@ void Node::ProcessTransactionWhenShardLeader(
           }
           appendOne(txn, txnReceipt);
         } else {
-          LOG_GENERAL(WARNING,
+          LOG_GENERAL(DEBUG,
                       "Adding to dropped Txns failed transaction with id: "
                           << txn.GetTranID());
           droppedTxns.emplace_back(txn.GetTranID(), error_code);
@@ -571,6 +576,7 @@ void Node::ProcessTransactionWhenShardLeader(
 
   LOG_GENERAL(INFO, "AddrNonceTxnMap # txns = " << count_addrNonceTxnMap);
   LOG_GENERAL(INFO, "t_createdTxns   # txns = " << count_createdTxns);
+  LOG_GENERAL(INFO, "HighNonce   # txns = " << highNonce);
   LOG_GENERAL(INFO, "m_gasUsedTotal         = " << m_gasUsedTotal);
 
   AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
@@ -583,7 +589,8 @@ void Node::ProcessTransactionWhenShardLeader(
   }
 
   // Put txns in map back into pool
-  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer, droppedTxns);
+  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer,
+                   std::move(droppedTxns));
 }
 
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
@@ -602,13 +609,13 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
 
     for (const auto& tranHash : tranHashes) {
       if (!m_createdTxns.exist(tranHash)) {
-        LOG_GENERAL(WARNING,
-                    "Missing transaction hash in my pool: " << tranHash.hex());
         missingtranHashes.emplace_back(tranHash);
       }
     }
 
     if (!missingtranHashes.empty()) {
+      LOG_GENERAL(WARNING,
+                  "Missing txn in my pool: " << std::size(missingtranHashes));
       if (m_prePrepRunning) {
         if (missingtranHashes.size() + m_createdTxns.size() !=
             tranHashes.size()) {
@@ -738,9 +745,13 @@ void Node::ProcessTransactionWhenShardBackup(
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
-  vector<pair<TxnHash, TxnStatus>> droppedTxns;
+  vector<pair<TxnHash, TxnStatus>,
+         boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+      droppedTxns;
   unsigned int count_addrNonceTxnMap = 0;
   unsigned int count_createdTxns = 0;
+
+  uint32_t highNonce = 0;
 
   AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
 
@@ -806,10 +817,11 @@ void Node::ProcessTransactionWhenShardBackup(
       if (t.GetNonce() >
           AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
         LOG_GENERAL(
-            INFO, "High nonce: "
-                      << t.GetNonce() << " cur sender " << senderAddr.hex()
-                      << " nonce: "
-                      << AccountStore::GetInstance().GetNonceTemp(senderAddr));
+            DEBUG, "High nonce: "
+                       << t.GetNonce() << " cur sender " << senderAddr.hex()
+                       << " nonce: "
+                       << AccountStore::GetInstance().GetNonceTemp(senderAddr));
+        highNonce++;
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
           auto it2 = it1->second.find(t.GetNonce());
@@ -828,7 +840,7 @@ void Node::ProcessTransactionWhenShardBackup(
       else if (t.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
         LOG_GENERAL(
-            INFO,
+            DEBUG,
             "Nonce too small"
                 << " Expected "
                 << AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1
@@ -876,6 +888,7 @@ void Node::ProcessTransactionWhenShardBackup(
 
   LOG_GENERAL(INFO, "AddrNonceTxnMap # txns = " << count_addrNonceTxnMap);
   LOG_GENERAL(INFO, "t_createdTxns   # txns = " << count_createdTxns);
+  LOG_GENERAL(INFO, "HighNonce   # txns = " << highNonce);
   LOG_GENERAL(INFO, "m_gasUsedTotal         = " << m_gasUsedTotal);
 
   AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
@@ -886,7 +899,8 @@ void Node::ProcessTransactionWhenShardBackup(
 
   PutTxnsInTempDataBase(t_processedTransactions);
 
-  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer, droppedTxns);
+  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer,
+                   std::move(droppedTxns));
 }
 
 void Node::PutTxnsInTempDataBase(
@@ -949,7 +963,9 @@ std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {
 void Node::ReinstateMemPool(
     const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
     const vector<Transaction>& gasLimitExceededTxnBuffer,
-    const vector<pair<TxnHash, TxnStatus>>& droppedTxns) {
+    vector<pair<TxnHash, TxnStatus>,
+           boost::pool_allocator<std::pair<TxnHash, TxnStatus>>>
+        droppedTxns) {
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
   MempoolInsertionStatus status;
@@ -957,8 +973,8 @@ void Node::ReinstateMemPool(
   for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second, status);
-      LOG_GENERAL(INFO, "Txn " << nonceTxn.second.GetTranID() << ", Status: "
-                               << status.first << "  " << status.second);
+      LOG_GENERAL(DEBUG, "Txn " << nonceTxn.second.GetTranID() << ", Status: "
+                                << status.first << "  " << status.second);
       m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
                                 TxnStatus::PRESENT_NONCE_HIGH);
     }
@@ -966,16 +982,12 @@ void Node::ReinstateMemPool(
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t, status);
-    LOG_GENERAL(INFO, "Txn " << t.GetTranID() << ", Status: " << status.first
-                             << "  " << status.second);
+    LOG_GENERAL(DEBUG, "Txn " << t.GetTranID() << ", Status: " << status.first
+                              << "  " << status.second);
     m_unconfirmedTxns.emplace(t.GetTranID(), TxnStatus::PRESENT_GAS_EXCEEDED);
   }
 
-  for (const auto& txnHashStatus : droppedTxns) {
-    LOG_GENERAL(INFO,
-                "[DTXN]" << txnHashStatus.first << " " << txnHashStatus.second);
-    m_unconfirmedTxns.emplace(txnHashStatus);
-  }
+  m_unconfirmedTxns.insert(std::begin(droppedTxns), std::end(droppedTxns));
 }
 
 void Node::PutAllTxnsInUnconfirmedTxns() {

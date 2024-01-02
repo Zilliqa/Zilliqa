@@ -1407,10 +1407,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
       }
-      LOG_GENERAL(WARNING, "Node::CommitForwardedTransactions Commititng: "
-                               << txhash.hex()
-                               << ", NONCE: " << tran.GetNonce());
-
       if (LOOKUP_NODE_MODE) {
         LookupServer::AddToRecentTransactions(txhash);
         const auto& receipt = twr.GetTransactionReceipt();

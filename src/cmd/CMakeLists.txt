@@ -100,6 +100,18 @@ else()
   target_link_libraries(buildTxBlockHashesToNums PUBLIC "-Wl,--start-group" AccountData Persistence)
 endif()
 
+add_executable(rebuildState rebuildState.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:rebuildState> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(rebuildState PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+  target_link_libraries(rebuildState PUBLIC AccountData Persistence)
+else()
+  target_link_libraries(rebuildState PUBLIC "-Wl,--start-group" AccountData Persistence)
+endif()
+
 add_executable(connectivity connectivity.cpp)
 add_custom_command(TARGET zilliqa
     POST_BUILD

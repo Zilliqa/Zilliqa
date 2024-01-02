@@ -97,7 +97,6 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     mTxReceipt.RemoveAllTransitions();
     mTxReceipt.SetCumGas(0);
     mTxReceipt.SetResult(false);
-    mTxReceipt.AddError(RUNNER_FAILED);
     mTxReceipt.update();
     mAccountStore.IncreaseNonceForAccount(clientContext.origin);
     return preValidateResult;
@@ -211,7 +210,6 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   const auto preValidateResult = PreValidateEvmRun(clientContext);
   if (!preValidateResult.isSuccess) {
     mTxReceipt.SetResult(false);
-    mTxReceipt.AddError(RUNNER_FAILED);
     mTxReceipt.SetCumGas(0);
     mTxReceipt.update();
     mAccountStore.IncreaseNonceForAccount(
@@ -292,7 +290,6 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
         LOG_GENERAL(WARNING, "EVM call returned a Scilla result");
       }
       mTxReceipt.SetResult(false);
-      mTxReceipt.AddError(RUNNER_FAILED);
     } else {
       mTxReceipt.SetResult(true);
       mTxReceipt.clear();

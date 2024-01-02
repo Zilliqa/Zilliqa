@@ -1729,6 +1729,20 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 
     logs = Eth::ConvertScillaEventsToEvm(logs);
 
+    const auto [errors, exceptions] = Eth::GetErrorsAndExceptionsFromReceipt(
+        transactionBodyPtr->GetTransactionReceipt());
+    const auto convertedErrors = Eth::ConvertScillaErrorsToEvm(errors);
+    const auto convertedExceptions =
+        Eth::ConvertScillaExceptionsToEvm(exceptions);
+
+    for (const auto &error : convertedErrors) {
+      logs.append(error);
+    }
+
+    for (const auto &exception : convertedExceptions) {
+      logs.append(exception);
+    }
+
     const auto baselogIndex =
         Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
 
@@ -1736,6 +1750,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
                              transactionIndex, baselogIndex);
     const auto bloomLogs = Eth::GetBloomFromReceiptHex(
         transactionBodyPtr->GetTransactionReceipt());
+
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, gasPrice, blockHash,
         blockNumber, contractAddress, logs, bloomLogs, transactionIndex,

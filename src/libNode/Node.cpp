@@ -20,6 +20,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/asio/readable_pipe.hpp>
+#include <boost/pool/pool_alloc.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/start_dir.hpp>
 #include <boost/process/v2/stdio.hpp>
@@ -254,9 +255,9 @@ void Node::AddBalanceToGenesisAccount() {
 }
 
 Node::Node(Mediator &mediator, [[gnu::unused]] unsigned int syncType,
-           [[gnu::unused]] bool toRetrieveHistory, const std::string& nodeIdentity)
-    : m_mediator(mediator), m_nodeIdentity(nodeIdentity){
-    }
+           [[gnu::unused]] bool toRetrieveHistory,
+           const std::string &nodeIdentity)
+    : m_mediator(mediator), m_nodeIdentity(nodeIdentity) {}
 
 Node::~Node() {}
 
@@ -1967,11 +1968,21 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
-  std::vector<Transaction> checkedTxns;
-  vector<pair<TxnHash, TxnStatus>> rejectTxns;
+  using TxnAlloc = boost::pool_allocator<Transaction>;
+  std::vector<Transaction, TxnAlloc> checkedTxns;
+  checkedTxns.reserve(std::size(txns));
+
+  using TxnPairAlloc = boost::pool_allocator<std::pair<TxnHash, TxnStatus>>;
+  vector<std::pair<TxnHash, TxnStatus>, TxnPairAlloc> rejectTxns;
+  rejectTxns.reserve(std::size(txns));
+
+  const auto gasPrice =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+
   for (const auto &txn : txns) {
-    TxnStatus error;
-    if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
+    if (TxnStatus error = {};
+        m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error,
+                                                                  gasPrice)) {
       checkedTxns.push_back(txn);
     } else {
       LOG_GENERAL(WARNING, "Txn " << txn.GetTranID().hex() << " is not valid.");
@@ -1990,6 +2001,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     LOG_GENERAL(INFO,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
+    uint32_t rejectedCount = 0;
+    uint32_t addedCount = 0;
     for (const auto &txn : checkedTxns) {
       MempoolInsertionStatus status;
       if (!m_createdTxns.insert(txn, status)) {
@@ -2000,25 +2013,30 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
             // if it is pending/dropped there should be some other cause which
             // is primary.
             rejectTxns.emplace_back(status.second, status.first);
+            rejectedCount++;
           }
-          LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to ( "
-                                   << (int)status.first << ") "
-                                   << status.first);
+          LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex()
+                                    << " rejected by pool due to ( "
+                                    << (int)status.first << ") "
+                                    << status.first);
         }
       } else {
         if (status.first != TxnStatus::NOT_PRESENT) {
           // Txn added with deletion of some previous txn
           rejectTxns.emplace_back(status.second, status.first);
-          LOG_GENERAL(INFO, "Txn " << status.second
-                                   << " removed from pool due to "
-                                   << status.first);
+          LOG_GENERAL(DEBUG, "Txn " << status.second
+                                    << " removed from pool due to "
+                                    << status.first);
+          rejectedCount++;
         }
-        LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
+        LOG_GENERAL(DEBUG, "Txn " << txn.GetTranID().hex() << " added to pool");
+        addedCount++;
       }
     }
 
     LOG_GENERAL(WARNING, "Txn processed: " << processed_count
+                                           << ", added: " << addedCount
+                                           << ", rejected: " << rejectedCount
                                            << " TxnPool size after processing: "
                                            << m_createdTxns.size());
 
@@ -2028,9 +2046,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 
   {
     unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-    for (const auto &txnhashStatus : rejectTxns) {
-      m_unconfirmedTxns.emplace(txnhashStatus);
-    }
+    m_unconfirmedTxns.insert(std::begin(rejectTxns), std::end(rejectTxns));
   }
 
   LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
@@ -2115,9 +2131,6 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
     }
     if (!(ignorePktForPrevEpoch &&
           (epochNumber < m_mediator.m_currentEpochNum))) {
-      for (const auto &tran : transactions) {
-        LOG_GENERAL(WARNING, "Transaction hash: " << tran.GetTranID().hex());
-      }
       ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                      lookupPubKey, transactions);
     }

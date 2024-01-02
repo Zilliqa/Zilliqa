@@ -108,7 +108,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
-                                                  TxnStatus& error_code) {
+                                                  TxnStatus& error_code,
+                                                  const uint128_t& gasPrice) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Validator::CheckCreatedTransactionFromLookup not expected "
@@ -164,8 +165,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     return false;
   }
 
-  if (tx.GetGasPriceQa() <
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
+  if (tx.GetGasPriceQa() < gasPrice) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "GasPrice " << tx.GetGasPriceQa()
                           << " lower than minimum allowable "
@@ -188,7 +188,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-    Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
                                                   << ". Transaction rejected: "
@@ -198,7 +198,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     }
 
     // Check if transaction amount is valid
-    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
+    if (account->GetBalance() < tx.GetAmountQa()) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Insufficient funds in source account!"
                     << " From Account  = 0x" << fromAddr << " Balance = "
