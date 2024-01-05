@@ -27,6 +27,9 @@
 namespace mp = boost::multiprecision;
 
 class Mediator;
+namespace rpc {
+class APIServer;
+}
 
 typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
     CreateTransactionTargetFunc;
@@ -47,6 +50,7 @@ class LookupServer : public Server,
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
+  std::shared_ptr<rpc::APIServer> m_apiServer;
 
   Z_I64METRIC m_callCount{Z_FL::API_SERVER, "lookup_invocation_count",
                           "Calls to Lookup Server", "Calls"};
@@ -59,7 +63,7 @@ class LookupServer : public Server,
   mp::cpp_dec_float_50 CalculateTotalSupply();
 
  public:
-  LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
+  LookupServer(Mediator& mediator, std::shared_ptr<rpc::APIServer> apiServer);
   ~LookupServer() = default;
 
   inline bool bindAndAddExternalMethod(const jsonrpc::Procedure& proc,
@@ -375,6 +379,8 @@ class LookupServer : public Server,
   Json::Value GetTransactionStatus(const std::string& txnhash);
   Json::Value GetStateProof(const std::string& address, const std::string& key,
                             const std::string& txBlockNumOrTag = "latest");
+
+  auto GetApiServer() const { return m_apiServer; }
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
