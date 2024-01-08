@@ -23,6 +23,10 @@
 
 class Mediator;
 
+namespace rcp {
+class APIServer;
+}
+
 class IsolatedServer : public LookupServer,
                        public jsonrpc::AbstractServer<IsolatedServer> {
   uint64_t m_blocknum;
@@ -42,7 +46,7 @@ class IsolatedServer : public LookupServer,
 
  public:
   std::string m_uuid;
-  IsolatedServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server,
+  IsolatedServer(Mediator& mediator, std::shared_ptr<rpc::APIServer> apiServer,
                  const uint64_t& blocknum, const uint32_t& timeDelta);
   ~IsolatedServer() = default;
 
@@ -77,7 +81,7 @@ class IsolatedServer : public LookupServer,
     LOG_MARKER_CONTITIONAL(LOG_SC);
     auto rawTx = request[0u].asString();
 
-    if(LOG_SC) {
+    if (LOG_SC) {
       LOG_GENERAL(INFO, "rawTx: " << rawTx);
     }
 

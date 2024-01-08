@@ -173,7 +173,7 @@ int main(int argc, const char* argv[]) {
     Peer peer;
 
     Mediator mediator(key, peer);
-    Node node(mediator, 0, false,"IsolatedServer-0");
+    Node node(mediator, 0, false, "IsolatedServer-0");
     Lookup lk(mediator, NO_SYNC);
     auto vd = make_shared<Validator>(mediator);
 
@@ -233,8 +233,8 @@ int main(int argc, const char* argv[]) {
       cout << "Server listening on " << port << endl;
     }
 
-    auto isolatedServer = make_shared<IsolatedServer>(
-        mediator, apiServer->GetRPCServerBackend(), blocknum, timeDelta);
+    auto isolatedServer =
+        make_shared<IsolatedServer>(mediator, apiServer, blocknum, timeDelta);
 
     if (ENABLE_EVM) {
       mediator.m_filtersAPICache->EnableWebsocketAPI(

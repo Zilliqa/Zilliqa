@@ -478,6 +478,8 @@ class Lookup : public Executable {
     m_lookupServer = std::move(lookupServer);
   }
 
+  auto GetLookupServer() { return m_lookupServer; }
+
   void SetStakingServer(std::shared_ptr<StakingServer> stakingServer) {
     m_stakingServer = std::move(stakingServer);
   }

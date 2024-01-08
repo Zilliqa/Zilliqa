@@ -87,6 +87,8 @@ class APIServer {
 
   /// Explicit close because of shared_ptr usage
   virtual void Close() = 0;
+
+  virtual void Pause(bool value) = 0;
 };
 
 }  // namespace rpc
