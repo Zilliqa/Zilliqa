@@ -463,7 +463,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
       LOG_GENERAL(INFO, "Calling ProcessFinalBlockConsensusCore with ds_state: "
                             << GetStateString());
       return ProcessFinalBlockConsensusCore(reserialized_message, offset, from,
-                                            startByte);
+                                            startByte, consensus_id);
     }
   }
 
@@ -476,9 +476,9 @@ void DirectoryService::CommitFinalBlockConsensusBuffer() {
 
   for (const auto& i : m_finalBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
-      ProcessFinalBlockConsensusCore(std::get<NODE_MSG>(i), MessageOffset::BODY,
-                                     std::get<NODE_PEER>(i),
-                                     zil::p2p::START_BYTE_NORMAL);
+      ProcessFinalBlockConsensusCore(
+          std::get<NODE_MSG>(i), MessageOffset::BODY, std::get<NODE_PEER>(i),
+          zil::p2p::START_BYTE_NORMAL, std::get<CONSENSUS_ID>(i));
     };
     DetachedFunction(1, runconsensus);
   }
@@ -515,7 +515,7 @@ void DirectoryService::AddToFinalBlockConsensusBuffer(
     return;
   }
 
-  vecNodeMsg.push_back(make_tuple(senderPubKey, peer, message));
+  vecNodeMsg.push_back(make_tuple(senderPubKey, peer, message, consensusId));
 }
 
 void DirectoryService::CleanFinalBlockConsensusBuffer() {
@@ -525,7 +525,7 @@ void DirectoryService::CleanFinalBlockConsensusBuffer() {
 
 bool DirectoryService::ProcessFinalBlockConsensusCore(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
-    const Peer& from, const unsigned char& startByte) {
+    const Peer& from, const unsigned char& startByte, uint32_t consensusId) {
   LOG_MARKER();
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
@@ -588,6 +588,11 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   }
 #endif  // VC_TEST_FB_SUSPEND_RESPONSE
 
+  if (consensusId < m_mediator.m_consensusID) {
+    LOG_GENERAL(WARNING, "Dropping outdated consensus message!");
+    return false;
+  }
+
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
   }
@@ -625,11 +630,13 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         m_consensusObject->RecoveryAndProcessFromANewState(
             ConsensusCommon::INITIAL);
 
-        auto rerunconsensus = [this, message, offset, from, startByte]() {
+        auto rerunconsensus = [this, message, offset, from, startByte,
+                               consensusId]() {
           RemoveDSMicroBlock();  // Remove DS microblock from my list of
                                  // microblocks
           PrepareRunConsensusOnFinalBlockNormal();
-          ProcessFinalBlockConsensusCore(message, offset, from, startByte);
+          ProcessFinalBlockConsensusCore(message, offset, from, startByte,
+                                         consensusId);
         };
         DetachedFunction(1, rerunconsensus);
         return true;
@@ -654,10 +661,12 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         m_consensusObject->RecoveryAndProcessFromANewState(
             ConsensusCommon::INITIAL);
 
-        auto reprocessconsensus = [this, message, offset, from, startByte]() {
+        auto reprocessconsensus = [this, message, offset, from, startByte,
+                                   consensusId]() {
           RemoveDSMicroBlock();  // Remove DS microblock from my list of
                                  // microblocks
-          ProcessFinalBlockConsensusCore(message, offset, from, startByte);
+          ProcessFinalBlockConsensusCore(message, offset, from, startByte,
+                                         consensusId);
         };
         DetachedFunction(1, reprocessconsensus);
         return true;

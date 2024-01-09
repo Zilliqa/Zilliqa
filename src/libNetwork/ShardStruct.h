@@ -42,9 +42,9 @@ using PairOfNode = std::pair<PubKey, Peer>;
 using VectorOfNode = std::vector<PairOfNode>;
 using DequeOfNode = std::deque<PairOfNode>;
 
-enum NodeMessage { NODE_PUBKEY, NODE_PEER, NODE_MSG };
+enum NodeMessage { NODE_PUBKEY, NODE_PEER, NODE_MSG, CONSENSUS_ID };
 
-using NodeMsg = std::tuple<PubKey, Peer, zbytes>;
+using NodeMsg = std::tuple<PubKey, Peer, zbytes, uint32_t>;
 using VectorOfNodeMsg = std::vector<NodeMsg>;
 
 #endif  // ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
