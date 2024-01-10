@@ -479,7 +479,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     assert(!m_queue.empty());
 
     auto& msg = m_queue.front().msg;
-
+    LOG_GENERAL(INFO, "BZ Sending msg to: " << m_peer);
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
         [self = shared_from_this(),
@@ -618,8 +618,8 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size
-                                                   << " peer = " << peer);
+    LOG_GENERAL(INFO, "Enqueueing message, size=" << message.size
+                                                  << " peer = " << peer);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
@@ -654,10 +654,9 @@ class SendJobsImpl : public SendJobs,
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
-      LOG_GENERAL(DEBUG, "Ignoring blacklisted peer "
-                             << peer.GetPrintableIPAddress()
-                             << "allow relaxed blacklist "
-                             << allow_relaxed_blacklist);
+      LOG_GENERAL(INFO, "Ignoring blacklisted peer "
+                            << peer << ", allow relaxed blacklist "
+                            << allow_relaxed_blacklist);
       return;
     }
 

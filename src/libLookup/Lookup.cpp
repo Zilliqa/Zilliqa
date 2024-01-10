@@ -1236,6 +1236,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
+  LOG_GENERAL(INFO, "BZ RECEIVED REQUEST FROM: " << from << ", but sending to: "
+                                                 << requestingNode);
   zil::p2p::GetInstance().SendMessage(requestingNode, dsInfoMessage, startByte);
 
   return true;
