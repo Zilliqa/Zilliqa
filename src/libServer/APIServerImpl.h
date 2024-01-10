@@ -65,6 +65,8 @@ class APIServerImpl : public APIServer,
   jsonrpc::AbstractServerConnector& GetRPCServerBackend() override;
   void Close() override;
 
+  void Pause(bool value) override { m_isPaused = value; }
+
   // AbstractServerConnector overrides
   bool StartListening() override;
   bool StopListening() override;
@@ -117,6 +119,8 @@ class APIServerImpl : public APIServer,
 
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
+
+  std::atomic<bool> m_isPaused = false;
 
   Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
                        "api.server.metrics", "API server metrics", "units",

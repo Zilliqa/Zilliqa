@@ -490,6 +490,10 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
   APIThreadPool::Response response;
   bool error = false;
   try {
+    while (m_isPaused) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
     // Calls connection handler from AbstractServerConnector
     ProcessRequest(request.body, response.body);
 

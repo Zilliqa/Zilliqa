@@ -32,6 +32,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/APIServer.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -87,11 +88,12 @@ Address ToBase16AddrHelper(const std::string& addr) {
 const unsigned int REF_BLOCK_DIFF = 1;
 
 LookupServer::LookupServer(Mediator& mediator,
-                           jsonrpc::AbstractServerConnector& server)
+                           std::shared_ptr<rpc::APIServer> apiServer)
     : Server(mediator),
       EthRpcMethods(mediator),
-      jsonrpc::AbstractServer<LookupServer>(server,
-                                            jsonrpc::JSONRPC_SERVER_V2) {
+      jsonrpc::AbstractServer<LookupServer>(apiServer->GetRPCServerBackend(),
+                                            jsonrpc::JSONRPC_SERVER_V2),
+      m_apiServer(std::move(apiServer)) {
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),

@@ -496,8 +496,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer,
 
       apiRPC = rpc::APIServer::CreateAndStart(std::move(options), false);
       if (apiRPC) {
-        m_lookupServer = make_shared<LookupServer>(
-            m_mediator, apiRPC->GetRPCServerBackend());
+        m_lookupServer = make_shared<LookupServer>(m_mediator, apiRPC);
 
         if (ENABLE_EVM) {
           m_mediator.m_filtersAPICache->EnableWebsocketAPI(
@@ -527,7 +526,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer,
           m_lookupServer->StartCollectorThread();
         }
         if (m_lookup.GetSyncType() == SyncType::NO_SYNC) {
-          LOG_GENERAL(INFO, "Trying to start a lookup listener" );
+          LOG_GENERAL(INFO, "Trying to start a lookup listener");
           if (m_lookupServer->StartListening()) {
             LOG_GENERAL(INFO, "API Server started successfully");
 

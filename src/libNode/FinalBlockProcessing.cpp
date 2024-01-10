@@ -18,6 +18,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/scope_exit.hpp>
 
 #include "Node.h"
 #include "RootComputation.h"
@@ -38,6 +39,7 @@
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/JSONConversion.h"
 #include "libServer/LookupServer.h"
@@ -646,6 +648,19 @@ bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                const unsigned char& startByte) {
   LOG_MARKER();
+  auto lookupServer = m_mediator.m_lookup->GetLookupServer();
+  auto apiServer = lookupServer ? lookupServer->GetApiServer() : nullptr;
+
+  if (apiServer) {
+    apiServer->Pause(true);
+  }
+  BOOST_SCOPE_EXIT(apiServer) {
+    if (apiServer) {
+      apiServer->Pause(false);
+    }
+  }
+  BOOST_SCOPE_EXIT_END
+
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP || MULTIPLIER_SYNC_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -705,6 +720,19 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
                              [[gnu::unused]] const Peer& from,
                              [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
+
+  auto lookupServer = m_mediator.m_lookup->GetLookupServer();
+  auto apiServer = lookupServer ? lookupServer->GetApiServer() : nullptr;
+
+  if (apiServer) {
+    apiServer->Pause(true);
+  }
+  BOOST_SCOPE_EXIT(apiServer) {
+    if (apiServer) {
+      apiServer->Pause(false);
+    }
+  }
+  BOOST_SCOPE_EXIT_END
 
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;

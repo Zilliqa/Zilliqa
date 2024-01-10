@@ -260,7 +260,7 @@ class DirectoryService : public Executable {
                                   const unsigned char& startByte);
   bool ProcessFinalBlockConsensusCore(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte, uint32_t consensusId);
   bool ProcessViewChangeConsensus(
       const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
