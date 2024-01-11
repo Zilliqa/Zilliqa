@@ -21,8 +21,8 @@
 #include <chrono>
 #include <condition_variable>
 #include <optional>
-#include <thread>
 #include <set>
+#include <thread>
 
 #include "P2PMessage.h"
 #include "ShardStruct.h"
@@ -114,10 +114,12 @@ class P2P {
   /// Dispatches P2P message, returns true to keep the connection alive
   bool DispatchMessage(const Peer& from, ReadMessageResult& readResult);
 
-  void ProcessBroadCastMsg(zbytes& message, zbytes& hash, const Peer& from,
+  void ProcessBroadCastMsg(std::shared_ptr<zil::p2p::P2PServerConnection> conn,
+                           zbytes& message, zbytes& hash, const Peer& from,
                            std::string& traceInfo);
 
-  void ProcessGossipMsg(zbytes& message, const Peer& from,
+  void ProcessGossipMsg(std::shared_ptr<zil::p2p::P2PServerConnection> conn,
+                        zbytes& message, const Peer& from,
                         std::string& traceInfo);
 
   std::optional<Peer> m_selfPeer;

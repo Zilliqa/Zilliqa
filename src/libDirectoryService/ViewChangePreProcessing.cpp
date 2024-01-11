@@ -754,7 +754,8 @@ zbytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
 bool DirectoryService::ProcessVCPushLatestDSTxBlock(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

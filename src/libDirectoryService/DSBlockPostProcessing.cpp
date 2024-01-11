@@ -764,7 +764,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 bool DirectoryService::ProcessDSBlockConsensus(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessDSBlockConsensus not expected to "
@@ -785,7 +786,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "m_consensusObject is not created.");
+              "m_consensusObject is not created.");
     return false;
   }
 

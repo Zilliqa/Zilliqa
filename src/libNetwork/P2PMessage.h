@@ -32,10 +32,14 @@ constexpr size_t HDR_LEN = 8;
 constexpr size_t HASH_LEN = 32;
 
 // These types are disabled in updated protocol
-//constexpr unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
-//constexpr unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
+// constexpr unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
+constexpr unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
+
+class P2PServerConnection;
+using P2PConnPtr = std::shared_ptr<P2PServerConnection>;
 
 struct Message {
+  P2PConnPtr connection;
   zbytes msg;                // P2P protocol message
   std::string traceContext;  // trace context serialized
   Peer from;                 // endpoint
@@ -89,6 +93,11 @@ enum class ReadState {
 };
 
 struct ReadMessageResult {
+  explicit ReadMessageResult(P2PConnPtr conn) : connection(conn) {}
+
+  /// Connection associated with received message
+  P2PConnPtr connection;
+
   /// START_BYTE_*
   uint8_t startByte = 0;
 
@@ -107,6 +116,18 @@ struct ReadMessageResult {
 
 ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
                          ReadMessageResult& result);
+
+inline std::shared_ptr<Message> MakeMsg(P2PConnPtr connection, zbytes msg,
+                                        Peer peer, uint8_t startByte,
+                                        std::string& traceContext) {
+  auto r = std::make_shared<Message>();
+  r->connection = connection;
+  r->msg = std::move(msg);
+  r->traceContext = std::move(traceContext);
+  r->from = std::move(peer);
+  r->startByte = startByte;
+  return r;
+}
 
 inline uint32_t ReadU32BE(const uint8_t* bytes) {
   return (uint32_t(bytes[0]) << 24) + (uint32_t(bytes[1]) << 16) +

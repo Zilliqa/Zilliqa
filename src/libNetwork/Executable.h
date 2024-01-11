@@ -22,12 +22,18 @@
 
 struct Peer;
 
+namespace zil::p2p {
+class P2PServerConnection;
+}
+
 /// Specifies the interface required for classes that process messages.
 class Executable {
  public:
   /// Message processing function.
-  virtual bool Execute(const zbytes& message, unsigned int offset,
-                       const Peer& from, const unsigned char& startByte) = 0;
+  virtual bool Execute(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection> = nullptr) = 0;
 
   /// Virtual destructor.
   virtual ~Executable() = default;

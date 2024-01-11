@@ -644,9 +644,10 @@ void Node::PrepareGoodStateForFinalBlock() {
    */
 }
 
-bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
-                               const Peer& from,
-                               const unsigned char& startByte) {
+bool Node::ProcessVCFinalBlock(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> conn) {
   LOG_MARKER();
   auto lookupServer = m_mediator.m_lookup->GetLookupServer();
   auto apiServer = lookupServer ? lookupServer->GetApiServer() : nullptr;
@@ -668,13 +669,14 @@ bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
         "called by other than seed node without multiplier syncing mode.");
     return false;
   }
-  return ProcessVCFinalBlockCore(message, offset, from, startByte);
+  return ProcessVCFinalBlockCore(message, offset, from, startByte, conn);
 }
 
 bool Node::ProcessVCFinalBlockCore(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
@@ -718,7 +720,8 @@ bool Node::ProcessVCFinalBlockCore(
 
 bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
                              [[gnu::unused]] const Peer& from,
-                             [[gnu::unused]] const unsigned char& startByte) {
+                             [[gnu::unused]] const unsigned char& startByte,
+                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   auto lookupServer = m_mediator.m_lookup->GetLookupServer();
@@ -1577,7 +1580,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
 bool Node::ProcessMBnForwardTransaction(
     const zbytes& message, unsigned int cur_offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMBnForwardTransaction not expected to be "
@@ -1811,7 +1815,8 @@ bool Node::SendPendingTxnToLookup() {
 
 bool Node::ProcessPendingTxn(const zbytes& message, unsigned int cur_offset,
                              [[gnu::unused]] const Peer& from,
-                             [[gnu::unused]] const unsigned char& startByte) {
+                             [[gnu::unused]] const unsigned char& startByte,
+                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Node::ProcessPendingTxn called from Normal node");
     return false;

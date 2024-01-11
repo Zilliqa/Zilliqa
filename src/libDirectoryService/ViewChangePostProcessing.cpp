@@ -387,7 +387,8 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
 
 bool DirectoryService::ProcessViewChangeConsensus(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessViewChangeConsensus not expected "

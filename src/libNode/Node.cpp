@@ -1628,7 +1628,8 @@ bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
 bool Node::ProcessSubmitTransaction(
     const zbytes &message, unsigned int offset,
     [[gnu::unused]] const Peer &from,
-    [[gnu::unused]] const unsigned char &startByte) {
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessSubmitTransaction not expected to be called "
@@ -1661,7 +1662,8 @@ bool Node::ProcessSubmitTransaction(
 bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] const zbytes &message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer &from,
-    [[gnu::unused]] const unsigned char &startByte) {
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -2066,7 +2068,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
 bool Node::ProcessProposeGasPrice(
     [[gnu::unused]] const zbytes &message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer &from,
-    [[gnu::unused]] const unsigned char &startByte) {
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -2466,7 +2469,8 @@ bool Node::WhitelistReqsValidator(const uint128_t &ipAddress) {
 
 bool Node::ProcessRemoveNodeFromBlacklist(
     const zbytes &message, unsigned int offset, const Peer &from,
-    [[gnu::unused]] const unsigned char &startByte) {
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
@@ -2517,14 +2521,16 @@ bool Node::ProcessRemoveNodeFromBlacklist(
 bool Node::NoOp([[gnu::unused]] const zbytes &message,
                 [[gnu::unused]] unsigned int offset,
                 [[gnu::unused]] const Peer &from,
-                [[gnu::unused]] const unsigned char &startByte) {
+                [[gnu::unused]] const unsigned char &startByte,
+                std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
   return true;
 }
 
 bool Node::ProcessDoRejoin(const zbytes &message, unsigned int offset,
                            [[gnu::unused]] const Peer &from,
-                           [[gnu::unused]] const unsigned char &startByte) {
+                           [[gnu::unused]] const unsigned char &startByte,
+                           std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessDoRejoin not expected to be called from "
@@ -2635,7 +2641,8 @@ bool Node::UpdateShardNodeIdentity() {
 
 bool Node::ProcessNewShardNodeNetworkInfo(
     const zbytes &message, unsigned int offset, const Peer &from,
-    [[gnu::unused]] const unsigned char &startByte) {
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   uint64_t dsEpochNumber;
@@ -2748,7 +2755,8 @@ bool Node::ProcessNewShardNodeNetworkInfo(
 
 bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
                              const Peer &from,
-                             [[gnu::unused]] const unsigned char &startByte) {
+                             [[gnu::unused]] const unsigned char &startByte,
+                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (!m_versionChecked) {
@@ -2773,7 +2781,8 @@ bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
 
 bool Node::ProcessSetVersion(const zbytes &message, unsigned int offset,
                              const Peer &from,
-                             [[gnu::unused]] const unsigned char &startByte) {
+                             [[gnu::unused]] const unsigned char &startByte,
+                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   string version_tag;
@@ -2849,7 +2858,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 bool Node::ProcessDSGuardNetworkInfoUpdate(
     const zbytes &message, unsigned int offset,
     [[gnu::unused]] const Peer &from,
-    [[gnu::unused]] const unsigned char &startByte) {
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -3081,14 +3091,16 @@ bool Node::RecalculateMyShardId(bool &ipChanged) {
 }
 
 bool Node::Execute(const zbytes &message, unsigned int offset, const Peer &from,
-                   const unsigned char &startByte) {
+                   const unsigned char &startByte,
+                   std::shared_ptr<zil::p2p::P2PServerConnection> conn) {
   // LOG_MARKER();
 
   bool result = true;
 
-  typedef bool (Node::*InstructionHandler)(const zbytes &, unsigned int,
-                                           const Peer &,
-                                           const unsigned char &startByte);
+  typedef bool (Node::*InstructionHandler)(
+      const zbytes &, unsigned int, const Peer &,
+      const unsigned char &startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   InstructionHandler ins_handlers[] = {
       &Node::ProcessStartPoW,
@@ -3123,8 +3135,8 @@ bool Node::Execute(const zbytes &message, unsigned int offset, const Peer &from,
   }
 
   if (ins_byte < ins_handlers_count) {
-    result =
-        (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
+    result = (this->*ins_handlers[ins_byte])(message, offset + 1, from,
+                                             startByte, conn);
     if (!result) {
       // To-do: Error recovery
     }

@@ -86,16 +86,19 @@ void P2P::StartServer(AsioContext& asio, uint16_t port, uint16_t additionalPort,
   };
 
   if (port) {
-    m_server = P2PServer::CreateAndStart(asio, port, maxMsgSize, dispatchFn);
+    constexpr auto ADDITIONAL = false;
+    m_server = P2PServer::CreateAndStart(asio, port, maxMsgSize, ADDITIONAL,
+                                         dispatchFn);
   }
 
   if (additionalPort) {
-    m_additionalServer =
-        P2PServer::CreateAndStart(asio, additionalPort, maxMsgSize, dispatchFn);
+    constexpr auto ADDITIONAL = true;
+    m_additionalServer = P2PServer::CreateAndStart(
+        asio, additionalPort, maxMsgSize, ADDITIONAL, dispatchFn);
   }
 
   if (!m_sendJobs) {
-    m_sendJobs = SendJobs::Create();
+    m_sendJobs = SendJobs::Create(m_dispatcher);
   }
 }
 
@@ -271,9 +274,10 @@ void P2P::SendMessageNoQueue(const Peer& peer, const zbytes& message,
   }
 
   if (!m_sendJobs) {
-    m_sendJobs = SendJobs::Create();
+    m_sendJobs = SendJobs::Create(m_dispatcher);
   }
-  m_sendJobs->SendMessageToPeerSynchronous(peer, message, startByteType);
+  m_sendJobs->SendMessageToPeerSynchronous(peer, message, startByteType,
+                                           m_dispatcher);
 }
 
 bool P2P::SpreadRumor(const zbytes& message) {
@@ -342,17 +346,6 @@ void P2P::BroadcastCleanupJob() {
 
 namespace {
 
-inline std::shared_ptr<Message> MakeMsg(zbytes msg, Peer peer,
-                                        uint8_t startByte,
-                                        std::string& traceContext) {
-  auto r = std::make_shared<Message>();
-  r->msg = std::move(msg);
-  r->traceContext = std::move(traceContext);
-  r->from = std::move(peer);
-  r->startByte = startByte;
-  return r;
-}
-
 constexpr unsigned GOSSIP_MSGTYPE_LEN = 1;
 constexpr unsigned GOSSIP_ROUND_LEN = 4;
 constexpr unsigned GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
@@ -374,14 +367,15 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
       return false;
     }
 
-    ProcessBroadCastMsg(result.message, result.hash, from, result.traceInfo);
+    ProcessBroadCastMsg(result.connection, result.message, result.hash, from,
+                        result.traceInfo);
   } else if (result.startByte == START_BYTE_NORMAL) {
     LOG_PAYLOAD(INFO, "Incoming normal " << from, result.message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
-    m_dispatcher(MakeMsg(std::move(result.message), from, START_BYTE_NORMAL,
-                         result.traceInfo));
+    m_dispatcher(MakeMsg(result.connection, std::move(result.message), from,
+                         START_BYTE_NORMAL, result.traceInfo));
   } else if (result.startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (result.message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
@@ -409,7 +403,7 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
       return false;
     }
 
-    ProcessGossipMsg(result.message, from, result.traceInfo);
+    ProcessGossipMsg(result.connection, result.message, from, result.traceInfo);
   } else {
     // Unexpected start byte. Drop this message
     LOG_GENERAL(WARNING, "Incorrect start byte " << result.startByte);
@@ -421,7 +415,8 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
   return true;
 }
 
-void P2P::ProcessBroadCastMsg(zbytes& message, zbytes& hash, const Peer& from,
+void P2P::ProcessBroadCastMsg(P2PConnPtr connection, zbytes& message,
+                              zbytes& hash, const Peer& from,
                               std::string& traceInfo) {
   // Check if this message has been received before
   bool found = false;
@@ -470,12 +465,12 @@ void P2P::ProcessBroadCastMsg(zbytes& message, zbytes& hash, const Peer& from,
                        << msgHashStr.substr(0, 6) << "] RECV");
 
   // Queue the message
-  m_dispatcher(
-      MakeMsg(std::move(message), from, START_BYTE_BROADCAST, traceInfo));
+  m_dispatcher(MakeMsg(connection, std::move(message), from,
+                       START_BYTE_BROADCAST, traceInfo));
 }
 
-void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
-                           std::string& traceInfo) {
+void P2P::ProcessGossipMsg(P2PConnPtr connection, zbytes& message,
+                           const Peer& from, std::string& traceInfo) {
   unsigned char gossipMsgTyp = message.at(0);
 
   const uint32_t gossipMsgRound =
@@ -504,8 +499,8 @@ void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
-      m_dispatcher(MakeMsg(std::move(tmp), remoteListener, START_BYTE_GOSSIP,
-                           traceInfo));
+      m_dispatcher(MakeMsg(connection, std::move(tmp), remoteListener,
+                           START_BYTE_GOSSIP, traceInfo));
     }
   } else {
     auto resp = m_rumorManager->RumorReceived((unsigned int)gossipMsgTyp,
@@ -515,7 +510,7 @@ void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
       LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
 
       // Queue the message
-      m_dispatcher(MakeMsg(std::move(resp.second), remoteListener,
+      m_dispatcher(MakeMsg(connection, std::move(resp.second), remoteListener,
                            START_BYTE_GOSSIP, traceInfo));
     }
   }
