@@ -429,6 +429,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                       << m_peer.GetHostname());
       m_connected = true;
       m_is_resolving = false;
+      DetectBrokenLink();
       SendMessage();
     } else {
       LOG_GENERAL(DEBUG, "There was an error: "
@@ -436,6 +437,22 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
+  }
+
+  void DetectBrokenLink() {
+    boost::asio::async_read(
+        m_socket, boost::asio::buffer(m_buffer),
+        [this, self = shared_from_this()](const ErrorCode& ec, size_t) {
+          if (ec) {
+            if (m_closed) {
+              return;
+            }
+            m_connected = false;
+            ScheduleReconnectOrGiveUp();
+          } else {
+            DetectBrokenLink();
+          }
+        });
   }
 
   bool FindNotExpiredMessage() {
@@ -572,6 +589,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   // Timer is used
   SteadyTimer m_timer;
+
+  // dummy buffer we read into to detect EOF
+  std::array<char, 1> m_buffer;
 
   // Every message has some expire time for delivery
   // TODO: make it explicit for various kinds of messages
