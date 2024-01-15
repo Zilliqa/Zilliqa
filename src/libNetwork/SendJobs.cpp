@@ -696,7 +696,6 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnPeerQueueFinished(const Peer& peer) {
-    LOG_GENERAL(INFO, "BZ Removing peer: " << peer);
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
