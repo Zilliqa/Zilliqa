@@ -16,10 +16,10 @@
  */
 
 #include <arpa/inet.h>
+#include <boost/asio/signal_set.hpp>
 #include <chrono>
 #include <iostream>
 #include <vector>
-#include <boost/asio/signal_set.hpp>
 #include "libMetrics/Tracing.h"
 #include "libNetwork/P2P.h"
 #include "libUtils/DetachedFunction.h"
@@ -220,7 +220,7 @@ int TestSerialize() {
         break;
       }
 
-      zil::p2p::ReadMessageResult result;
+      zil::p2p::ReadMessageResult result{nullptr};
       auto state = zil::p2p::TryReadMessage((const uint8_t*)raw.data.get(),
                                             raw.size, result);
       if (state != zil::p2p::ReadState::SUCCESS) {
@@ -282,8 +282,7 @@ int main(int argc, const char* argv[]) {
       process_message(std::move(message));
     };
 
-    zil::p2p::GetInstance().StartServer(ctx, 33133, 0,
-                                        std::move(dispatcher));
+    zil::p2p::GetInstance().StartServer(ctx, 33133, 0, std::move(dispatcher));
 
     ctx.run();
   };
