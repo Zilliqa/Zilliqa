@@ -336,10 +336,16 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     ErrorCode ignored;
     m_timer.cancel(ignored);
 
+    for (const auto& endpoint : endpoints) {
+      LOG_GENERAL(INFO, "BZ resolved endpoint: " << endpoint.endpoint()
+                                                 << ", from name: "
+                                                 << m_peer.m_hostname);
+    }
+
     WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
               [self = shared_from_this()]() {
                 if (!self->m_connected) {
-                  LOG_GENERAL(DEBUG,
+                  LOG_GENERAL(INFO,
                               "Unable to connect within "
                                   << CONNECTION_TIMEOUT_IN_MS
                                   << ", canceling any operation on the socket "
@@ -392,7 +398,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
               [self = shared_from_this()]() {
                 if (!self->m_connected) {
                   LOG_GENERAL(
-                      DEBUG,
+                      INFO,
                       "Unable to connect within "
                           << CONNECTION_TIMEOUT_IN_MS
                           << ", canceling any operation on the socket to: "
@@ -432,8 +438,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       DetectBrokenLink();
       SendMessage();
     } else {
-      LOG_GENERAL(DEBUG, "There was an error: "
-                             << ec.message() << ", so I'll try to reconnect");
+      LOG_GENERAL(INFO, "There was an error: " << ec.message()
+                                               << ", so I'll try to reconnect");
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
@@ -558,7 +564,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
-    LOG_GENERAL(DEBUG, "Peer " << m_peer << " reconnects");
+    LOG_GENERAL(INFO, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Resolve();
@@ -695,6 +701,7 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnPeerQueueFinished(const Peer& peer) {
+    LOG_GENERAL(INFO, "BZ Removing peer: " << peer);
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
