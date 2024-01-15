@@ -316,6 +316,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
           [self = shared_from_this()](
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
+            self->m_is_resolving = false;
+
             if (!ec) {
               LOG_GENERAL(INFO, "BZ Successfully resolved dns name: "
                                     << self->m_peer.GetHostname());
@@ -434,7 +436,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                       << m_peer.GetPrintableIPAddress() << ", "
                       << m_peer.GetHostname());
       m_connected = true;
-      m_is_resolving = false;
       DetectBrokenLink();
       SendMessage();
     } else {
