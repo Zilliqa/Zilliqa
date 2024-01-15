@@ -317,8 +317,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
             if (!ec) {
-              LOG_GENERAL(DEBUG, "Successfully resolved dns name: "
-                                     << self->m_peer.GetHostname());
+              LOG_GENERAL(INFO, "BZ Successfully resolved dns name: "
+                                    << self->m_peer.GetHostname());
               self->OnResolved(endpoints);
             } else {
               LOG_GENERAL(WARNING, "Unable to resolve dns name: "
@@ -359,10 +359,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                       "Async connect handler called with ec: " << ec.message());
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
-            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
-                                   << self->m_endpoint << ": " << ec.message()
-                                   << " (" << ec << ')'
-                                   << ", queue size: " << self->m_queue.size());
+            LOG_GENERAL(INFO, "Connection (via async resolve) to "
+                                  << self->m_endpoint << ": " << ec.message()
+                                  << " (" << ec << ')'
+                                  << ", queue size: " << self->m_queue.size());
 
             self->m_timer.cancel();
             self->OnConnected(ec);
@@ -423,7 +423,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
     if (!ec) {
-      LOG_GENERAL(DEBUG,
+      LOG_GENERAL(INFO,
                   "There's no error, so sending the message from queue to: "
                       << m_peer.GetPrintableIPAddress() << ", "
                       << m_peer.GetHostname());
@@ -444,6 +444,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         m_socket, boost::asio::buffer(m_buffer),
         [this, self = shared_from_this()](const ErrorCode& ec, size_t) {
           if (ec) {
+            LOG_GENERAL(INFO, "BZ Detected broken link to: "
+                                  << m_peer.GetPrintableIPAddress()
+                                  << ", host: " << m_peer.m_hostname);
             if (m_closed) {
               return;
             }
