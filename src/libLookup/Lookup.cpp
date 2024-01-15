@@ -1237,8 +1237,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(
     }
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         dsInfoMessage, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -1826,8 +1825,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         returnMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -1872,8 +1870,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
-      if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-          connection->IsAdditionalServer()) {
+      if (connection && connection->IsAdditionalServer()) {
         connection->SendMessage(zil::p2p::CreateMessage(
             returnMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
       } else {
@@ -2012,8 +2009,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(
               "Messenger::SetLookupSetTxBlockFromSeed failed.");
     return false;
   }
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         txBlockMessage, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -2145,8 +2141,7 @@ bool Lookup::ProcessGetStateDeltaFromSeed(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         stateDeltaMessage, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE,
         false));
@@ -2222,8 +2217,7 @@ bool Lookup::ProcessGetStateDeltasFromSeed(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         stateDeltasMessage, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE,
         false));
@@ -2263,8 +2257,7 @@ bool Lookup::ProcessGetShardFromSeed(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         msg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -2445,8 +2438,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         retMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -2531,8 +2523,7 @@ bool Lookup::ProcessGetMicroBlockFromL2l(
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         retMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -2741,8 +2732,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         retMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -3846,8 +3836,7 @@ bool Lookup::ProcessGetTxnsFromLookup(
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         setTxnMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -3940,8 +3929,7 @@ bool Lookup::ProcessGetTxnsFromL2l(
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         setTxnMsg, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
   } else {
@@ -4346,8 +4334,7 @@ bool Lookup::ProcessGetOfflineLookups(
                 "IP:" << peer.second.GetPrintableIPAddress());
     }
   }
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         offlineLookupsMessage, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE,
         false));
@@ -5737,8 +5724,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         dsTxBlocksMessage, {}, zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE,
         false));
@@ -5806,8 +5792,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
+  if (connection && connection->IsAdditionalServer()) {
     connection->SendMessage(zil::p2p::CreateMessage(
         setNewDSGuardNetworkInfo, {},
         zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, false));
