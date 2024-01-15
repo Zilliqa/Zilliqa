@@ -319,8 +319,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
             self->m_is_resolving = false;
 
             if (!ec) {
-              LOG_GENERAL(INFO, "BZ Successfully resolved dns name: "
-                                    << self->m_peer.GetHostname());
+              LOG_GENERAL(DEBUG, "Successfully resolved dns name: "
+                                     << self->m_peer.GetHostname());
               self->OnResolved(endpoints);
             } else {
               LOG_GENERAL(WARNING, "Unable to resolve dns name: "
@@ -338,16 +338,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     ErrorCode ignored;
     m_timer.cancel(ignored);
 
-    for (const auto& endpoint : endpoints) {
-      LOG_GENERAL(INFO, "BZ resolved endpoint: " << endpoint.endpoint()
-                                                 << ", from name: "
-                                                 << m_peer.m_hostname);
-    }
-
     WaitTimer(m_timer, Milliseconds{CONNECTION_TIMEOUT_IN_MS},
               [self = shared_from_this()]() {
                 if (!self->m_connected) {
-                  LOG_GENERAL(INFO,
+                  LOG_GENERAL(DEBUG,
                               "Unable to connect within "
                                   << CONNECTION_TIMEOUT_IN_MS
                                   << ", canceling any operation on the socket "
@@ -367,10 +361,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                       "Async connect handler called with ec: " << ec.message());
           if (ec != OPERATION_ABORTED) {
             self->m_endpoint = endpoint;
-            LOG_GENERAL(INFO, "Connection (via async resolve) to "
-                                  << self->m_endpoint << ": " << ec.message()
-                                  << " (" << ec << ')'
-                                  << ", queue size: " << self->m_queue.size());
+            LOG_GENERAL(DEBUG, "Connection (via async resolve) to "
+                                   << self->m_endpoint << ": " << ec.message()
+                                   << " (" << ec << ')'
+                                   << ", queue size: " << self->m_queue.size());
 
             self->m_timer.cancel();
             self->OnConnected(ec);
@@ -400,7 +394,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
               [self = shared_from_this()]() {
                 if (!self->m_connected) {
                   LOG_GENERAL(
-                      INFO,
+                      DEBUG,
                       "Unable to connect within "
                           << CONNECTION_TIMEOUT_IN_MS
                           << ", canceling any operation on the socket to: "
@@ -431,7 +425,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       return;
     }
     if (!ec) {
-      LOG_GENERAL(INFO,
+      LOG_GENERAL(DEBUG,
                   "There's no error, so sending the message from queue to: "
                       << m_peer.GetPrintableIPAddress() << ", "
                       << m_peer.GetHostname());
@@ -439,8 +433,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       DetectBrokenLink();
       SendMessage();
     } else {
-      LOG_GENERAL(INFO, "There was an error: " << ec.message()
-                                               << ", so I'll try to reconnect");
+      LOG_GENERAL(DEBUG, "There was an error: "
+                             << ec.message() << ", so I'll try to reconnect");
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
@@ -565,7 +559,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
-    LOG_GENERAL(INFO, "Peer " << m_peer << " reconnects");
+    LOG_GENERAL(DEBUG, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Resolve();
