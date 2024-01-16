@@ -526,7 +526,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         TryReadMessage(m_readBuffer.data(), m_readBuffer.size(), result);
 
     if (state == ReadState::SUCCESS) {
-      m_readMsgDispatcher(MakeMsg(nullptr, m_readBuffer, m_peer,
+      m_readMsgDispatcher(MakeMsg(nullptr, result.message, m_peer,
                                   START_BYTE_NORMAL, result.traceInfo));
     } else {
       LOG_GENERAL(
