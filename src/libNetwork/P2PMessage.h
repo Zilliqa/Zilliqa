@@ -33,7 +33,7 @@ constexpr size_t HASH_LEN = 32;
 
 // These types are disabled in updated protocol
 // constexpr unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
-constexpr unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
+// constexpr unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
 
 class P2PServerConnection;
 using P2PConnPtr = std::shared_ptr<P2PServerConnection>;
