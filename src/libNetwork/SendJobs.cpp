@@ -318,6 +318,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
           [self = shared_from_this()](
               const ErrorCode& ec,
               const Tcp::resolver::results_type& endpoints) {
+            self->m_is_resolving = false;
+
             if (!ec) {
               LOG_GENERAL(DEBUG, "Successfully resolved dns name: "
                                      << self->m_peer.GetHostname());
@@ -431,6 +433,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                       << m_peer.GetHostname());
       m_connected = true;
       m_is_resolving = false;
+      StartReading();
       SendMessage();
     } else {
       LOG_GENERAL(DEBUG, "There was an error: "
