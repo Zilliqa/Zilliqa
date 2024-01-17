@@ -44,15 +44,17 @@ bool LocalAPIServer::StartListening() {
 
     boost::system::error_code ec;
 
-#define CHECK_EC()                                                     \
-  if (ec) {                                                            \
-    LOG_GENERAL(WARNING, "Cannot start API server: " << ec.message() << " port =" << m_port); \
-    return false;                                                      \
+#define CHECK_EC()                                                            \
+  if (ec) {                                                                   \
+    LOG_GENERAL(WARNING, "Cannot start API server: " << ec.message()          \
+                                                     << " port =" << m_port); \
+    return false;                                                             \
   }
 
     m_acceptor->open(endpoint.protocol(), ec);
     CHECK_EC();
-    m_acceptor->set_option(boost::asio::socket_base::reuse_address(true), ec);
+    m_acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true),
+                           ec);
     CHECK_EC();
     m_acceptor->bind(endpoint, ec);
     CHECK_EC();
