@@ -1406,7 +1406,7 @@ bool Lookup::ProcessGetDSBlockFromL2l(
 bool Lookup::ProcessGetVCFinalBlockFromL2l(
     const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& startByte,
-    std::shared_ptr<zil::p2p::P2PServerConnection>) {
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1429,7 +1429,10 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "ProcessGetVCFinalBlockFromL2l requested by "
-                << from << " for block " << blockNum);
+                << from << ", connection: "
+                << ((connection && connection->IsAdditionalServer()) ? "true"
+                                                                     : "false")
+                << " for block " << blockNum);
 
   // some validation before processing this request
   if (from.GetIpAddress() != requestorPeer.GetIpAddress()) {
@@ -1473,8 +1476,15 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(
 
     auto it = m_mediator.m_node->m_vcFinalBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcFinalBlockStore.end()) {
-      LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
-      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
+      if (connection && connection->IsAdditionalServer()) {
+        LOG_GENERAL(INFO, "Sending VCFinalBlock msg to via dditional server ");
+        connection->SendMessage(zil::p2p::CreateMessage(
+            it->second, {}, zil::p2p::START_BYTE_NORMAL, false));
+      } else {
+        LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
+        zil::p2p::GetInstance().SendMessage(requestorPeer, it->second,
+                                            startByte);
+      }
       return true;
     }
   }
