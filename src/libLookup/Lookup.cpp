@@ -4948,7 +4948,7 @@ bool Lookup::GetOfflineLookupNodes() {
 bool Lookup::ProcessGetDirectoryBlocksFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& startByte,
-    std::shared_ptr<zil::p2p::P2PServerConnection>) {
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -5007,7 +5007,12 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
     return false;
   }
 
-  zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
+  if (connection && connection->IsAdditionalServer()) {
+    connection->SendMessage(
+        zil::p2p::CreateMessage(msg, {}, zil::p2p::START_BYTE_NORMAL, false));
+  } else {
+    zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
+  }
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -5049,8 +5054,12 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
-
-      zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
+      if (connection && connection->IsAdditionalServer()) {
+        connection->SendMessage(zil::p2p::CreateMessage(
+            msg, {}, zil::p2p::START_BYTE_NORMAL, false));
+      } else {
+        zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
+      }
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
