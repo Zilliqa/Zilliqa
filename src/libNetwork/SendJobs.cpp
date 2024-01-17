@@ -526,8 +526,14 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         TryReadMessage(m_readBuffer.data(), m_readBuffer.size(), result);
 
     if (state == ReadState::SUCCESS) {
-      m_readMsgDispatcher(MakeMsg(nullptr, result.message, m_peer,
-                                  START_BYTE_NORMAL, result.traceInfo));
+      if (result.startByte == START_BYTE_NORMAL) {
+        LOG_GENERAL(WARNING, "Start byte is NORMAL, dispatching!");
+        m_readMsgDispatcher(MakeMsg(nullptr, result.message, m_peer,
+                                    START_BYTE_NORMAL, result.traceInfo));
+      } else {
+        LOG_GENERAL(WARNING, "Skipping msg because of start byte which is: "
+                                 << static_cast<int>(result.startByte));
+      }
     } else {
       LOG_GENERAL(
           WARNING,
