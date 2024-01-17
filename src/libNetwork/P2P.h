@@ -76,7 +76,8 @@ class P2P {
                    bool bAllowSendToRelaxedBlacklist = false);
 
   /// Sends normal message to specified peer.
-  void SendMessage(const Peer& peer, const zbytes& message,
+  void SendMessage(P2PConnPtr connection, const Peer& peer,
+                   const zbytes& message,
                    unsigned char startByteType = START_BYTE_NORMAL,
                    bool inject_trace_context = false);
 

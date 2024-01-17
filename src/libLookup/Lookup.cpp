@@ -728,7 +728,7 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   Peer tmpPeer(peer.GetIpAddress(), peer.GetListenPortHost(),
                peer.GetHostname());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
-  zil::p2p::GetInstance().SendMessage(tmpPeer, message);
+  zil::p2p::GetInstance().SendMessage(nullptr, tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
@@ -1237,14 +1237,9 @@ bool Lookup::ProcessGetDSInfoFromSeed(
     }
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        dsInfoMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    Peer requestingNode(from.m_ipAddress, portNo);
-    zil::p2p::GetInstance().SendMessage(requestingNode, dsInfoMessage,
-                                        startByte);
-  }
+  Peer requestingNode(from.m_ipAddress, portNo);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, dsInfoMessage,
+                                      startByte);
 
   return true;
 }
@@ -1270,11 +1265,8 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
                peer.GetHostname());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
   unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
-  //  TODO Disabled in updated protocol
-  // if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-  //    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
-  //}
-  zil::p2p::GetInstance().SendMessage(tmpPeer, message, startByte);
+
+  zil::p2p::GetInstance().SendMessage(nullptr, tmpPeer, message, startByte);
 }
 
 void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
@@ -1311,7 +1303,7 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   LOG_GENERAL(INFO,
               "Chosen lookup to send data to: " << peer.GetPrintableIPAddress()
                                                 << ", " << peer.GetHostname());
-  zil::p2p::GetInstance().SendMessage(peer, message);
+  zil::p2p::GetInstance().SendMessage(nullptr, peer, message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -1394,15 +1386,9 @@ bool Lookup::ProcessGetDSBlockFromL2l(
 
     auto it = m_mediator.m_node->m_vcDSBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcDSBlockStore.end()) {
-      if (connection && connection->IsAdditionalServer()) {
-        LOG_GENERAL(INFO, "Sending VCDSBlock msg to via dditional server ");
-        connection->SendMessage(zil::p2p::CreateMessage(
-            it->second, {}, zil::p2p::START_BYTE_NORMAL, false));
-      } else {
-        LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
-        zil::p2p::GetInstance().SendMessage(requestorPeer, it->second,
-                                            startByte);
-      }
+      LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
+      zil::p2p::GetInstance().SendMessage(connection, requestorPeer, it->second,
+                                          startByte);
       return true;
     }
   }
@@ -1436,10 +1422,7 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "ProcessGetVCFinalBlockFromL2l requested by "
-                << from << ", connection: "
-                << ((connection && connection->IsAdditionalServer()) ? "true"
-                                                                     : "false")
-                << " for block " << blockNum);
+                << from << " for block " << blockNum);
 
   // some validation before processing this request
   if (from.GetIpAddress() != requestorPeer.GetIpAddress()) {
@@ -1483,15 +1466,9 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(
 
     auto it = m_mediator.m_node->m_vcFinalBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcFinalBlockStore.end()) {
-      if (connection && connection->IsAdditionalServer()) {
-        LOG_GENERAL(INFO, "Sending VCFinalBlock msg to via dditional server ");
-        connection->SendMessage(zil::p2p::CreateMessage(
-            it->second, {}, zil::p2p::START_BYTE_NORMAL, false));
-      } else {
-        LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
-        zil::p2p::GetInstance().SendMessage(requestorPeer, it->second,
-                                            startByte);
-      }
+      LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
+      zil::p2p::GetInstance().SendMessage(connection, requestorPeer, it->second,
+                                          startByte);
       return true;
     }
   }
@@ -1503,7 +1480,7 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(
 bool Lookup::ProcessGetMBnForwardTxnFromL2l(
     const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& startByte,
-    std::shared_ptr<zil::p2p::P2PServerConnection>) {
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1553,8 +1530,8 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(
         auto it2 = it->second.find(shardId);
         if (it2 != it->second.end()) {
           LOG_GENERAL(INFO, "Sending MbnForrwardTxn msg to " << requestorPeer);
-          zil::p2p::GetInstance().SendMessage(requestorPeer, it2->second,
-                                              startByte);
+          zil::p2p::GetInstance().SendMessage(connection, requestorPeer,
+                                              it2->second, startByte);
           return true;
         }
       } else {
@@ -1608,7 +1585,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
                           << consensusLeaderID << " (" << dsLeader.second
                           << ')');
 
-    zil::p2p::GetInstance().SendMessage(dsLeader.second, retMsg);
+    zil::p2p::GetInstance().SendMessage(nullptr, dsLeader.second, retMsg);
   }
 
   // Wait for the reply from the DS leader
@@ -1842,14 +1819,10 @@ bool Lookup::ProcessGetDSBlockFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        returnMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    Peer requestingNode(from.m_ipAddress, portNo);
-    LOG_GENERAL(INFO, requestingNode);
-    zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
-  }
+  Peer requestingNode(from.m_ipAddress, portNo);
+  LOG_GENERAL(INFO, requestingNode);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, returnMsg,
+                                      startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -1887,15 +1860,9 @@ bool Lookup::ProcessGetDSBlockFromSeed(
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
-      if (connection && connection->IsAdditionalServer()) {
-        connection->SendMessage(zil::p2p::CreateMessage(
-            returnMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-      } else {
-        Peer requestingNode(from.m_ipAddress, portNo);
-        zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg,
-                                            startByte);
-      }
-
+      Peer requestingNode(from.m_ipAddress, portNo);
+      zil::p2p::GetInstance().SendMessage(connection, requestingNode, returnMsg,
+                                          startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -2026,14 +1993,9 @@ bool Lookup::ProcessGetTxBlockFromSeed(
               "Messenger::SetLookupSetTxBlockFromSeed failed.");
     return false;
   }
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        txBlockMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    Peer requestingNode(from.m_ipAddress, portNo);
-    zil::p2p::GetInstance().SendMessage(requestingNode, txBlockMessage,
-                                        startByte);
-  }
+  Peer requestingNode(from.m_ipAddress, portNo);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      txBlockMessage, startByte);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Sent Txblks " << lowBlockNum << " - " << highBlockNum);
   return true;
@@ -2158,17 +2120,12 @@ bool Lookup::ProcessGetStateDeltaFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        stateDeltaMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    uint128_t ipAddr = from.m_ipAddress;
-    Peer requestingNode(ipAddr, portNo);
-    LOG_GENERAL(INFO, requestingNode);
+  uint128_t ipAddr = from.m_ipAddress;
+  Peer requestingNode(ipAddr, portNo);
+  LOG_GENERAL(INFO, requestingNode);
 
-    zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltaMessage,
-                                        startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      stateDeltaMessage, startByte);
   return true;
 }
 
@@ -2233,16 +2190,11 @@ bool Lookup::ProcessGetStateDeltasFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        stateDeltasMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    uint128_t ipAddr = from.m_ipAddress;
-    Peer requestingNode(ipAddr, portNo);
-    LOG_GENERAL(INFO, requestingNode);
-    zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltasMessage,
-                                        startByte);
-  }
+  uint128_t ipAddr = from.m_ipAddress;
+  Peer requestingNode(ipAddr, portNo);
+  LOG_GENERAL(INFO, requestingNode);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      stateDeltasMessage, startByte);
   return true;
 }
 
@@ -2272,12 +2224,8 @@ bool Lookup::ProcessGetShardFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(
-        zil::p2p::CreateMessage(msg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, msg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, msg,
+                                      startByte);
 
   return true;
 }
@@ -2453,12 +2401,8 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        retMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, retMsg,
+                                      startByte);
   return true;
 }
 
@@ -2538,12 +2482,8 @@ bool Lookup::ProcessGetMicroBlockFromL2l(
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        retMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, retMsg,
+                                      startByte);
   return true;
 }
 
@@ -2747,12 +2687,8 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        retMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, retMsg,
+                                      startByte);
   return true;
 }
 
@@ -3851,12 +3787,8 @@ bool Lookup::ProcessGetTxnsFromLookup(
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        setTxnMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, setTxnMsg,
+                                      startByte);
   return true;
 }
 
@@ -3944,12 +3876,8 @@ bool Lookup::ProcessGetTxnsFromL2l(
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        setTxnMsg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, setTxnMsg,
+                                      startByte);
   return true;
 }
 
@@ -4349,13 +4277,8 @@ bool Lookup::ProcessGetOfflineLookups(
                 "IP:" << peer.second.GetPrintableIPAddress());
     }
   }
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        offlineLookupsMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(requestingNode, offlineLookupsMessage,
-                                        startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      offlineLookupsMessage, startByte);
   return true;
 }
 
@@ -5014,12 +4937,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(
-        zil::p2p::CreateMessage(msg, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
-  }
+  zil::p2p::GetInstance().SendMessage(connection, peer, msg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -5061,12 +4979,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
-      if (connection && connection->IsAdditionalServer()) {
-        connection->SendMessage(zil::p2p::CreateMessage(
-            msg, {}, zil::p2p::START_BYTE_NORMAL, false));
-      } else {
-        zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
-      }
+      zil::p2p::GetInstance().SendMessage(connection, peer, msg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -5747,14 +5660,9 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        dsTxBlocksMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    Peer requestingNode(from.m_ipAddress, listenPort);
-    zil::p2p::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage,
-                                        startByte);
-  }
+  Peer requestingNode(from.m_ipAddress, listenPort);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      dsTxBlocksMessage, startByte);
   return true;
 }
 
@@ -5814,15 +5722,10 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
     return false;
   }
 
-  if (connection && connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        setNewDSGuardNetworkInfo, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
-                          << requestingNode);
-    zil::p2p::GetInstance().SendMessage(requestingNode,
-                                        setNewDSGuardNetworkInfo);
-  }
+  LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
+                        << requestingNode);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      setNewDSGuardNetworkInfo);
   return true;
 }
 

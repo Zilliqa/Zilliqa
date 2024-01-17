@@ -2753,10 +2753,10 @@ bool Node::ProcessNewShardNodeNetworkInfo(
   return true;
 }
 
-bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
-                             const Peer &from,
-                             [[gnu::unused]] const unsigned char &startByte,
-                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
+bool Node::ProcessGetVersion(
+    const zbytes &message, unsigned int offset, const Peer &from,
+    [[gnu::unused]] const unsigned char &startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   LOG_MARKER();
 
   if (!m_versionChecked) {
@@ -2771,8 +2771,8 @@ bool Node::ProcessGetVersion(const zbytes &message, unsigned int offset,
       LOG_GENERAL(WARNING, "Messenger::SetNodeSetVersion failed");
       return false;
     }
-    zil::p2p::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
-                                        response);
+    zil::p2p::GetInstance().SendMessage(
+        connection, Peer(from.m_ipAddress, portNo), response);
     m_versionChecked = true;
   }
 

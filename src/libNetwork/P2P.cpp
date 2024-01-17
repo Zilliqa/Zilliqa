@@ -171,14 +171,21 @@ void P2P::SendMessage(const std::deque<Peer>& peers, const zbytes& message,
 }
 
 /// Sends normal message to specified peer.
-void P2P::SendMessage(const Peer& peer, const zbytes& message,
-                      unsigned char startByteType, bool inject_trace_context) {
+void P2P::SendMessage(P2PConnPtr connection, const Peer& peer,
+                      const zbytes& message, unsigned char startByteType,
+                      bool inject_trace_context) {
   if (!m_sendJobs) {
     LOG_GENERAL(WARNING, "Message pump not started");
     return;
   }
   if (message.size() <= MessageOffset::BODY) {
     LOG_GENERAL(WARNING, "Message size is smaller than MessageOffset::BODY");
+    return;
+  }
+
+  // If that came from additional server, reply directly
+  if (connection && connection->IsAdditionalServer()) {
+    connection->SendMessage(CreateMessage(message, {}, startByteType, false));
     return;
   }
   m_sendJobs->SendMessageToPeer(peer, message, startByteType,

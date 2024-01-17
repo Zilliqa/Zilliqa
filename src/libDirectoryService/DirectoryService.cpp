@@ -1147,14 +1147,8 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
     return false;
   }
 
-  if (ENABLE_SEED_TO_SEED_COMMUNICATION && connection &&
-      connection->IsAdditionalServer()) {
-    connection->SendMessage(zil::p2p::CreateMessage(
-        txnPoolMessage, {}, zil::p2p::START_BYTE_NORMAL, false));
-  } else {
-    Peer requestingNode(from.m_ipAddress, listenPort);
-    zil::p2p::GetInstance().SendMessage(requestingNode, txnPoolMessage);
-  }
+  Peer requestingNode(from.m_ipAddress, listenPort);
+  zil::p2p::GetInstance().SendMessage(nullptr, requestingNode, txnPoolMessage);
   return true;
 }
 

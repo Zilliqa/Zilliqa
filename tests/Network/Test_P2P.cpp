@@ -296,7 +296,7 @@ int main(int argc, const char* argv[]) {
   Peer peer = {ip_addr.s_addr, 33133};
   zbytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
-  zil::p2p::GetInstance().SendMessage(peer, message1,
+  zil::p2p::GetInstance().SendMessage(nullptr, peer, message1,
                                       zil::p2p::START_BYTE_NORMAL, false);
 
   vector<Peer> peers = {peer, peer, peer};
@@ -309,7 +309,7 @@ int main(int argc, const char* argv[]) {
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
-  zil::p2p::GetInstance().SendMessage(peer, longMsg,
+  zil::p2p::GetInstance().SendMessage(nullptr, peer, longMsg,
                                       zil::p2p::START_BYTE_NORMAL, false);
 
   if (argc > 1 && std::string("--long") == argv[1]) {
