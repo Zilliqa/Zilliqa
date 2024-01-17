@@ -1328,7 +1328,7 @@ bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
 bool Lookup::ProcessGetDSBlockFromL2l(
     const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& startByte,
-    std::shared_ptr<zil::p2p::P2PServerConnection>) {
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetDSBlockFromL2l not expected to be called "
@@ -1394,8 +1394,15 @@ bool Lookup::ProcessGetDSBlockFromL2l(
 
     auto it = m_mediator.m_node->m_vcDSBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcDSBlockStore.end()) {
-      LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
-      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
+      if (connection && connection->IsAdditionalServer()) {
+        LOG_GENERAL(INFO, "Sending VCDSBlock msg to via dditional server ");
+        connection->SendMessage(zil::p2p::CreateMessage(
+            it->second, {}, zil::p2p::START_BYTE_NORMAL, false));
+      } else {
+        LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
+        zil::p2p::GetInstance().SendMessage(requestorPeer, it->second,
+                                            startByte);
+      }
       return true;
     }
   }
