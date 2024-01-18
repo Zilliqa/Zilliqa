@@ -341,6 +341,8 @@ bool APIServerImpl::DoListen() {
     return false;
   }
 
+  m_active = true;
+
   auto address = m_options.bindToLocalhost
                      ? boost::asio::ip::address_v4::loopback()
                      : boost::asio::ip::address_v4::any();
@@ -367,8 +369,6 @@ bool APIServerImpl::DoListen() {
   CHECK_EC();
 
 #undef CHECK_EC
-
-  m_active = true;
 
   AcceptNext();
 
