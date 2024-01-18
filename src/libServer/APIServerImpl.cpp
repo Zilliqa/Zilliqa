@@ -443,6 +443,8 @@ bool APIServerImpl::StopListening() {
     m_websocket->CloseAll();
 
     m_options.asio->post([self = shared_from_this()] {
+      beast::error_code ignored;
+      self->m_acceptor->close(ignored);
       self->m_acceptor.reset();
       for (auto &conn : self->m_connections) {
         conn.second->Close();
