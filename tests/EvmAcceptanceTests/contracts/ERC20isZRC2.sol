@@ -1,218 +1,336 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-pragma solidity >=0.7.0 <0.9.0;
-
-// Safe Math Interface.
-contract SafeMath {
-
-    function safeAdd(uint128 a, uint128 b) public pure returns (uint128 c) {
-        c = a + b;
-        require(c >= a);
-    }
-
-    function safeSub(uint128 a, uint128 b) public pure returns (uint128 c) {
-        require(b <= a);
-        c = a - b;
-    }
-
-    function safeMul(uint128 a, uint128 b) public pure returns (uint128 c) {
-        c = a * b;
-        require(a == 0 || c / a == b);
-    }
-
-    function safeDiv(uint128 a, uint128 b) public pure returns (uint128 c) {
-        require(b > 0);
-        c = a / b;
-    }
-}
-
+pragma solidity >=0.8.0 <0.9.0;
 
 interface ERC20Interface {
-    function totalSupply() external view returns (uint128);
-    function balanceOf(address tokenOwner) external view returns (uint128);
-    function allowance(address tokenOwner, address spender) external view returns (uint128);
-    function approve(address tokenOwner, uint128 tokens) external returns (bool);
-    function transfer(address to, uint128 tokens) external returns (bool);
-    function transferFrom(address from, address to, uint128 tokens) external returns (bool);
+  function name() external view returns (string memory);
 
-    function mint(address recipient, uint128 amount) external returns (bool);
-    function burn(address recipient, uint128 amount) external returns (bool);
+  function symbol() external view returns (string memory);
 
-    event TransferEvent();
-    event IncreasedAllowanceEvent();
-    event DecreasedAllowanceEvent();
+  function decimals() external view returns (uint8);
+
+  function totalSupply() external view returns (uint256);
+
+  function balanceOf(address owner) external view returns (uint256 balance);
+
+  function transfer(address dst, uint128 amount) external returns (bool success);
+
+  function transferFrom(address src, address dst, uint128 amount) external returns (bool success);
+
+  function approve(address spender, uint128 amount) external returns (bool success);
+
+  function allowance(address owner, address spender) external view returns (uint256 remaining);
+
+  event Transfer();
+  event DecreasedAllowance();
+  event IncreasedAllowance();
 }
 
-contract ERC20isZRC2 is ERC20Interface, SafeMath {
-    address private _contract_owner;
-    address private _zrc2_address;
+library ScillaConnector {
+  uint private constant CALL_SCILLA_WITH_THE_SAME_SENDER = 1;
+  uint private constant SCILLA_CALL_PRECOMPILE_ADDRESS = 0x5a494c53;
+  uint private constant SCILLA_STATE_READ_PRECOMPILE_ADDRESS = 0x5a494c92;
 
-    uint256 private constant CALL_MODE = 1;
+  /**
+   * @dev Calls a ZRC2 contract function with two arguments
+   * @param target The address of the ZRC2 contract
+   * @param tran_name The name of the function to call
+   * @param arg1 The first argument to the function
+   * @param arg2 The second argument to the function
+   */
+  function call(address target, string memory tran_name, address arg1, uint128 arg2) internal {
+    bytes memory encodedArgs = abi.encode(target, tran_name, CALL_SCILLA_WITH_THE_SAME_SENDER, arg1, arg2);
+    uint256 argsLength = encodedArgs.length;
 
-    constructor(address zrc2_address) {
-        _contract_owner = msg.sender;
-        _zrc2_address = zrc2_address;
+    assembly {
+      let alwaysSuccessForThisPrecompile := call(
+        21000,
+        SCILLA_CALL_PRECOMPILE_ADDRESS,
+        0,
+        add(encodedArgs, 0x20),
+        argsLength,
+        0x20,
+        0
+      )
+    }
+  }
+
+  /**
+   * @dev Calls a ZRC2 contract function with three arguments
+   * @param target The address of the ZRC2 contract
+   * @param tran_name The name of the function to call on the ZRC2 contract
+   * @param arg1 The first argument to the function
+   * @param arg2 The second argument to the function
+   * @param arg3 The third argument to the function
+   */
+  function call(address target, string memory tran_name, address arg1, address arg2, uint128 arg3) internal {
+    bytes memory encodedArgs = abi.encode(target, tran_name, CALL_SCILLA_WITH_THE_SAME_SENDER, arg1, arg2, arg3);
+    uint256 argsLength = encodedArgs.length;
+
+    assembly {
+      let alwaysSuccessForThisPrecompile := call(
+        21000,
+        SCILLA_CALL_PRECOMPILE_ADDRESS,
+        0,
+        add(encodedArgs, 0x20),
+        argsLength,
+        0x20,
+        0
+      )
+    }
+  }
+
+  /**
+   * @dev Reads a 128 bit integer from a ZRC2 contract
+   * @param target The address of the ZRC2 contract
+   * @param variable_name The name of the variable to read from the ZRC2 contract
+   * @return The value of the variable
+   */
+  function read_uint128(address target, string memory variable_name) internal view returns (uint128) {
+    bytes memory encodedArgs = abi.encode(target, variable_name);
+    uint256 argsLength = encodedArgs.length;
+    bytes memory output = new bytes(36);
+
+    assembly {
+      let alwaysSuccessForThisPrecompile := staticcall(
+        21000,
+        SCILLA_STATE_READ_PRECOMPILE_ADDRESS,
+        add(encodedArgs, 0x20),
+        argsLength,
+        add(output, 0x20),
+        32
+      )
     }
 
-    function totalSupply() external view returns (uint128) {
-        return _read_scilla_uint128("total_supply");
+    return abi.decode(output, (uint128));
+  }
+
+  /**
+   * @dev Reads a 32 bit integer from a ZRC2 contract
+   * @param target The address of the ZRC2 contract
+   * @param variable_name The name of the variable to read from the ZRC2 contract
+   * @return The value of the variable
+   */
+  function read_uint32(address target, string memory variable_name) internal view returns (uint32) {
+    bytes memory encodedArgs = abi.encode(target, variable_name);
+    uint256 argsLength = encodedArgs.length;
+    bytes memory output = new bytes(36);
+
+    assembly {
+      let alwaysSuccessForThisPrecompile := staticcall(
+        21000,
+        SCILLA_STATE_READ_PRECOMPILE_ADDRESS,
+        add(encodedArgs, 0x20),
+        argsLength,
+        add(output, 0x20),
+        32
+      )
     }
 
-    function initSupply() external view returns (uint128) {
-        return _read_scilla_uint128("init_supply");
+    return abi.decode(output, (uint32));
+  }
+
+  /**
+   * @dev Reads a string from a ZRC2 contract
+   * @param target The address of the ZRC2 contract
+   * @param variable_name The name of the variable to read from the ZRC2 contract
+   * @return retVal The value of the variable
+   */
+  function read_string(address target, string memory variable_name) internal view returns (string memory retVal) {
+    bytes memory encodedArgs = abi.encode(target, variable_name);
+    uint256 argsLength = encodedArgs.length;
+    bool success;
+    bytes memory output = new bytes(128);
+    uint256 output_len = output.length - 4;
+    assembly {
+      success := staticcall(
+        21000,
+        SCILLA_STATE_READ_PRECOMPILE_ADDRESS,
+        add(encodedArgs, 0x20),
+        argsLength,
+        add(output, 0x20),
+        output_len
+      )
+    }
+    require(success);
+
+    (retVal) = abi.decode(output, (string));
+    return retVal;
+  }
+
+  /**
+   * @dev Reads a 128 bit integer from a map in a ZRC2 contract
+   * @param variable_name The name of the map in the ZRC2 contract
+   * @param addressMapKey The key to the map
+   * @return The value associated with the key in the map
+   */
+  function read_map_uint128(
+    address target,
+    string memory variable_name,
+    address addressMapKey
+  ) internal view returns (uint128) {
+    bytes memory encodedArgs = abi.encode(target, variable_name, addressMapKey);
+    uint256 argsLength = encodedArgs.length;
+    bytes memory output = new bytes(36);
+
+    assembly {
+      let alwaysSuccessForThisPrecompile := staticcall(
+        21000,
+        SCILLA_STATE_READ_PRECOMPILE_ADDRESS,
+        add(encodedArgs, 0x20),
+        argsLength,
+        add(output, 0x20),
+        32
+      )
     }
 
-    function tokenName() external view returns (string memory) {
-        return _read_scilla_string("name");
+    return abi.decode(output, (uint128));
+  }
+
+  /**
+   * @dev Reads a 128 bit integer from a nested map in a ZRC2 contract
+   * @param target The address of the ZRC2 contract
+   * @param variable_name The name of the map in the ZRC2 contract
+   * @param firstMapKey The first key to the map
+   * @param secondMapKey The second key to the map
+   * @return The value associated with the keys in the map
+   */
+  function read_nested_map_uint128(
+    address target,
+    string memory variable_name,
+    address firstMapKey,
+    address secondMapKey
+  ) internal view returns (uint128) {
+    bytes memory encodedArgs = abi.encode(target, variable_name, firstMapKey, secondMapKey);
+    uint256 argsLength = encodedArgs.length;
+    bytes memory output = new bytes(36);
+
+    assembly {
+      let alwaysSuccessForThisPrecompile := staticcall(
+        21000,
+        SCILLA_STATE_READ_PRECOMPILE_ADDRESS,
+        add(encodedArgs, 0x20),
+        argsLength,
+        add(output, 0x20),
+        32
+      )
     }
 
-    function balanceOf(address tokenOwner) external view returns (uint128) {
-        return _read_scilla_map_uint128("balances", tokenOwner);
+    return abi.decode(output, (uint128));
+  }
+}
+
+contract ERC20isZRC2 is ERC20Interface {
+  using ScillaConnector for address;
+
+  address private _contract_owner;
+
+  string public symbol;
+  string public name;
+  uint8 public decimals;
+  address zrc2_address;
+
+  uint256 private constant CALL_MODE = 1;
+  uint256 private constant _NONEVM_CALL_PRECOMPILE_ADDRESS = 0x5a494c53;
+  uint256 private constant _NONEVM_STATE_READ_PRECOMPILE_ADDRESS = 0x5a494c92;
+  uint128 private constant _UINT8_MAX = 2 ** 8 - 1;
+
+  constructor(address _zrc2_address) {
+    _contract_owner = msg.sender;
+    zrc2_address = _zrc2_address;
+
+    symbol = zrc2_address.read_string("symbol");
+    decimals = safeTrimFromUint32toUint8(zrc2_address.read_uint32("decimals"));
+    name = zrc2_address.read_string("name");
+  }
+
+  function totalSupply() external view returns (uint256) {
+    return zrc2_address.read_uint128("total_supply");
+  }
+
+  function initSupply() external view returns (uint128) {
+    return zrc2_address.read_uint128("init_supply");
+  }
+
+  function balanceOf(address tokenOwner) external view returns (uint256) {
+    return zrc2_address.read_map_uint128("balances", tokenOwner);
+  }
+
+  function transfer(address to, uint128 tokens) external returns (bool) {
+    zrc2_address.call("Transfer", to, tokens);
+    emit Transfer();
+    return true;
+  }
+
+  function transferFailed(address to, uint128 tokens) external returns (bool) {
+    zrc2_address.call("TransferFailed", to, tokens);
+    return true;
+  }
+
+  function transferFrom(address from, address to, uint128 tokens) external returns (bool) {
+    zrc2_address.call("TransferFrom", from, to, tokens);
+    return true;
+  }
+
+  function allowance(address tokenOwner, address spender) external view returns (uint256) {
+    return zrc2_address.read_nested_map_uint128("allowances", tokenOwner, spender);
+  }
+
+  function approve(address spender, uint128 new_allowance) external returns (bool) {
+    uint128 current_allowance = zrc2_address.read_nested_map_uint128("allowances", msg.sender, spender);
+    if (current_allowance >= new_allowance) {
+      zrc2_address.call("DecreaseAllowance", spender, current_allowance - new_allowance);
+      emit DecreasedAllowance();
+    } else {
+      zrc2_address.call("IncreaseAllowance", spender, new_allowance - current_allowance);
+      emit IncreasedAllowance();
     }
+    return true;
+  }
 
-    function transfer(address to, uint128 tokens) external returns (bool) {
-        _call_scilla_two_args("Transfer", to, tokens);
-        emit TransferEvent();
-        return true;
-    }
+  function mint(address to, uint128 tokens) external returns (bool) {
+    require(msg.sender == _contract_owner, "Only allowed for contract owner");
+    zrc2_address.call("Mint", to, tokens);
+    return true;
+  }
 
-    function transferFailed(address to, uint128 tokens) external returns (bool) {
-        _call_scilla_two_args("TransferFailed", to, tokens);
-        return true;
-    }
+  function burn(address to, uint128 tokens) external returns (bool) {
+    require(msg.sender == _contract_owner, "Only allowed for contract owner");
+    zrc2_address.call("Burn", to, tokens);
+    return true;
+  }
 
-    function transferFrom(address from, address to, uint128 tokens) external returns (bool) {
-        _call_scilla_three_args("TransferFrom", from, to, tokens);
-        return true;
-    }
-
-    function allowance(address tokenOwner, address spender) external view returns (uint128) {
-        return _read_scilla_nested_map_uint128("allowances", tokenOwner, spender);
-    }
-
-    function approve(address spender, uint128 new_allowance) external returns (bool) {
-        uint128 current_allowance = _read_scilla_nested_map_uint128("allowances", msg.sender, spender);
-        if (current_allowance >= new_allowance) {
-            _call_scilla_two_args("DecreaseAllowance", spender, current_allowance - new_allowance);
-            emit DecreasedAllowanceEvent();
-        }
-        else {
-            _call_scilla_two_args("IncreaseAllowance", spender, new_allowance - current_allowance);
-            emit IncreasedAllowanceEvent();
-        }
-        return true;
-    }
-
-    function mint(address to, uint128 tokens) external returns (bool) {
-        require(msg.sender == _contract_owner, "Only allowed for contract owner");
-        _call_scilla_two_args("Mint", to, tokens);
-        return true;
-    }
-
-    function burn(address to, uint128 tokens) external returns (bool) {
-        require(msg.sender == _contract_owner, "Only allowed for contract owner");
-        _call_scilla_two_args("Burn", to, tokens);
-        return true;
-    }
-
-    // Private functions used for accessing ZRC2 contract
-
-    function _call_scilla_two_args(string memory tran_name, address recipient, uint128 amount) private {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, CALL_MODE, recipient, amount);
-        uint256 argsLength = encodedArgs.length;
-        bool success;
-        assembly {
-            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
-        }
-        require(success);
-    }
-
-    function _call_scilla_three_args(string memory tran_name, address from, address to, uint128 amount) private {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, tran_name, CALL_MODE, from, to, amount);
-        uint256 argsLength = encodedArgs.length;
-        bool success;
-        assembly {
-            success := call(21000, 0x5a494c53, 0, add(encodedArgs, 0x20), argsLength, 0x20, 0)
-        }
-        require(success);
-    }
-
-    function _read_scilla_uint128(string memory variable_name) private view returns (uint128 supply) {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, variable_name);
-        uint256 argsLength = encodedArgs.length;
-        bool success;
-        bytes memory output = new bytes(36);
-        assembly {
-            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
-        }
-        require(success);
-        (supply) = abi.decode(output, (uint128));
-        return supply;
-    }
-
-    function _read_scilla_map_uint128(string memory variable_name, address owner) private view returns (uint128 allowance) {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, variable_name, owner);
-        uint256 argsLength = encodedArgs.length;
-        bool success;
-        bytes memory output = new bytes(36);
-        assembly {
-            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
-        }
-        require(success);
-        (allowance) = abi.decode(output, (uint128));
-        return allowance;
-    }
-
-    function _read_scilla_nested_map_uint128(string memory variable_name, address owner, address spender) private view returns (uint128 allowance) {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, variable_name, owner, spender);
-        uint256 argsLength = encodedArgs.length;
-        bool success;
-        bytes memory output = new bytes(36);
-        assembly {
-            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), 32)
-        }
-        require(success);
-        (allowance) = abi.decode(output, (uint128));
-        return allowance;
-    }
-
-    function _read_scilla_string(string memory variable_name) public view returns (string memory retVal) {
-        bytes memory encodedArgs = abi.encode(_zrc2_address, variable_name);
-        uint256 argsLength = encodedArgs.length;
-        bool success;
-        bytes memory output = new bytes(128);
-        uint256 output_len = output.length - 4;
-        assembly {
-            success := staticcall(21000, 0x5a494c92, add(encodedArgs, 0x20), argsLength, add(output, 0x20), output_len)
-        }
-        require(success);
-
-        (retVal) = abi.decode(output, (string));
-        return retVal;
-    }
-
+  /**
+   * @dev Asserts that a value is a valid 128 bit integer
+   * @param value The value to be checked
+   * @return The original value cast to a uint128
+   */
+  function safeTrimFromUint32toUint8(uint32 value) internal pure returns (uint8) {
+    require(value <= _UINT8_MAX, "value greater than uint8 max value");
+    return uint8(value);
+  }
 }
 
 interface ERC165 {
-    /// @notice Query if a contract implements an interface
-    /// @param interfaceID The interface identifier, as specified in ERC-165
-    /// @dev Interface identification is specified in ERC-165. This function
-    ///  uses less than 30,000 gas.
-    /// @return `true` if the contract implements `interfaceID` and
-    ///  `interfaceID` is not 0xffffffff, `false` otherwise
-    function supportsInterface(bytes4 interfaceID) external view returns (bool);
+  /// @notice Query if a contract implements an interface
+  /// @param interfaceID The interface identifier, as specified in ERC-165
+  /// @dev Interface identification is specified in ERC-165. This function
+  ///  uses less than 30,000 gas.
+  /// @return `true` if the contract implements `interfaceID` and
+  ///  `interfaceID` is not 0xffffffff, `false` otherwise
+  function supportsInterface(bytes4 interfaceID) external view returns (bool);
 }
 
 interface ScillaReceiver {
-    function handle_scilla_message(string memory, bytes calldata) external payable;
+  function handle_scilla_message(string memory, bytes calldata) external payable;
 }
 
-contract ContractSupportingScillaReceiver is ERC165{
-    function supportsInterface(bytes4 interfaceID) external view returns (bool) {
-        return
-        interfaceID == this.supportsInterface.selector || // ERC165
-        interfaceID == this.handle_scilla_message.selector; // ScillaReceiver
-    }
+contract ContractSupportingScillaReceiver is ERC165 {
+  function supportsInterface(bytes4 interfaceID) external view returns (bool) {
+    return
+      interfaceID == this.supportsInterface.selector || // ERC165
+      interfaceID == this.handle_scilla_message.selector; // ScillaReceiver
+  }
 
-    function handle_scilla_message(string memory, bytes calldata) external payable {}
+  function handle_scilla_message(string memory, bytes calldata) external payable {}
 }
