@@ -24,6 +24,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/container/small_vector.hpp>
 
 #include "Blacklist.h"
@@ -31,12 +32,6 @@
 
 namespace zil::p2p {
 
-using AsioContext = boost::asio::io_context;
-using DeadlineTimer = boost::asio::deadline_timer;
-using TcpSocket = boost::asio::ip::tcp::socket;
-using TcpAcceptor = boost::asio::ip::tcp::acceptor;
-using TcpEndpoint = boost::asio::ip::tcp::endpoint;
-using ErrorCode = boost::system::error_code;
 const ErrorCode OPERATION_ABORTED = boost::asio::error::operation_aborted;
 const ErrorCode END_OF_FILE = boost::asio::error::eof;
 
@@ -47,43 +42,6 @@ constexpr auto INACTIVITY_TIME_TO_CLOSE = std::chrono::seconds(3600);
 constexpr auto HEARTBEAT_CHECK = std::chrono::seconds(60);
 
 class P2PServerImpl;
-
-class P2PServerConnection
-    : public std::enable_shared_from_this<P2PServerConnection> {
- public:
-  P2PServerConnection(std::weak_ptr<P2PServerImpl> owner, uint64_t this_id,
-                      Peer&& remote_peer, TcpSocket socket,
-                      size_t max_message_size);
-
-  void StartReading();
-
-  void Close();
-
- private:
-  void OnHeaderRead(const ErrorCode& ec);
-
-  void OnBodyRead(const ErrorCode& ec);
-
-  void ReadNextMessage();
-
-  void SetupHeartBeat();
-
-  void OnHeartBeat(const ErrorCode& ec);
-
-  void CloseSocket();
-
-  void OnConnectionClosed();
-
-  std::weak_ptr<P2PServerImpl> m_owner;
-  uint64_t m_id;
-  Peer m_remotePeer;
-  TcpSocket m_socket;
-  DeadlineTimer m_timer;
-  std::chrono::steady_clock::time_point m_last_time_packet_received;
-  bool m_is_marked_as_closed;
-  size_t m_maxMessageSize;
-  zbytes m_readBuffer;
-};
 
 namespace {
 
@@ -111,9 +69,10 @@ class P2PServerImpl : public P2PServer,
                       public std::enable_shared_from_this<P2PServerImpl> {
  public:
   P2PServerImpl(TcpAcceptor acceptor, size_t max_message_size,
-                Callback callback)
+                bool additional_server, Callback callback)
       : m_acceptor(std::move(acceptor)),
         m_maxMessageSize(max_message_size),
+        m_additionalServer(additional_server),
         m_callback(std::move(callback)) {}
 
   ~P2PServerImpl() {
@@ -174,7 +133,7 @@ class P2PServerImpl : public P2PServer,
       auto conn = std::make_shared<P2PServerConnection>(
           weak_from_this(), ++m_counter,
           std::move(maybe_peer.value()), /*m_asio,*/
-          std::move(socket), m_maxMessageSize);
+          std::move(socket), m_maxMessageSize, m_additionalServer);
 
       conn->StartReading();
 
@@ -189,6 +148,7 @@ class P2PServerImpl : public P2PServer,
 
   TcpAcceptor m_acceptor;
   size_t m_maxMessageSize;
+  bool m_additionalServer;
   Callback m_callback;
   uint64_t m_counter = 0;
   std::unordered_map<uint64_t, std::shared_ptr<P2PServerConnection>>
@@ -201,6 +161,7 @@ class P2PServerImpl : public P2PServer,
 std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
                                                      uint16_t port,
                                                      size_t max_message_size,
+                                                     bool additional_server,
                                                      Callback callback) {
   if (port == 0 || max_message_size == 0 || !callback) {
     throw std::runtime_error("P2PServer::CreateAndStart : invalid args");
@@ -218,7 +179,8 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
     socket.listen();
 
     auto server = std::make_shared<P2PServerImpl>(
-        std::move(socket), /*asio,*/ max_message_size, std::move(callback));
+        std::move(socket), /*asio,*/ max_message_size, additional_server,
+        std::move(callback));
 
     // this call is needed to be decoupled from ctor, because in the ctor
     // it's impossible to get weak_from_this(), such a subtliety
@@ -236,7 +198,8 @@ std::shared_ptr<P2PServer> P2PServer::CreateAndStart(AsioContext& asio,
 P2PServerConnection::P2PServerConnection(std::weak_ptr<P2PServerImpl> owner,
                                          uint64_t this_id, Peer&& remote_peer,
                                          TcpSocket socket,
-                                         size_t max_message_size)
+                                         size_t max_message_size,
+                                         bool additional_server)
     : m_owner(std::move(owner)),
       m_id(this_id),
       m_remotePeer(std::move(remote_peer)),
@@ -244,7 +207,8 @@ P2PServerConnection::P2PServerConnection(std::weak_ptr<P2PServerImpl> owner,
       m_timer(m_socket.get_executor()),
       m_last_time_packet_received(std::chrono::steady_clock::now()),
       m_is_marked_as_closed(false),
-      m_maxMessageSize(max_message_size) {}
+      m_maxMessageSize(max_message_size),
+      m_additionalServer(additional_server) {}
 
 void P2PServerConnection::StartReading() {
   SetupHeartBeat();
@@ -329,7 +293,7 @@ void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
     return;
   }
   m_last_time_packet_received = std::chrono::steady_clock::now();
-  ReadMessageResult result;
+  ReadMessageResult result{shared_from_this()};
   auto state = TryReadMessage(m_readBuffer.data(), m_readBuffer.size(), result);
 
   if (state != ReadState::SUCCESS) {
@@ -380,6 +344,40 @@ void P2PServerConnection::OnHeartBeat(const zil::p2p::ErrorCode& ec) {
     CloseSocket();
     OnConnectionClosed();
   }
+}
+
+void P2PServerConnection::SendMessage(RawMessage msg) {
+  boost::asio::post(m_socket.get_executor(), [this, self = shared_from_this(),
+                                              msg = std::move(msg)] {
+    if (m_is_marked_as_closed) {
+      return;
+    }
+
+    const auto isSending = !m_sendQueue.empty();
+    m_sendQueue.push_back(std::move(msg));
+    if (!isSending) {
+      const auto& rawMsg = m_sendQueue.front();
+      boost::asio::async_write(
+          m_socket, boost::asio::const_buffer(rawMsg.data.get(), rawMsg.size),
+          std::bind(&P2PServerConnection::OnSend, shared_from_this(),
+                    std::placeholders::_1));
+    }
+  });
+}
+
+void P2PServerConnection::OnSend(const boost::system::error_code& ec) {
+  if (ec || m_is_marked_as_closed) {
+    return;
+  }
+  m_sendQueue.pop_front();
+  if (std::empty(m_sendQueue)) {
+    return;
+  }
+  const auto& rawMsg = m_sendQueue.front();
+  boost::asio::async_write(
+      m_socket, boost::asio::const_buffer(rawMsg.data.get(), rawMsg.size),
+      std::bind(&P2PServerConnection::OnSend, shared_from_this(),
+                std::placeholders::_1));
 }
 
 void P2PServerConnection::Close() {

@@ -94,7 +94,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
 
 bool Node::ProcessVCBlock(const zbytes& message, unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from,
-                          [[gnu::unused]] const unsigned char& startByte) {
+                          [[gnu::unused]] const unsigned char& startByte,
+                          std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexVCBlock);

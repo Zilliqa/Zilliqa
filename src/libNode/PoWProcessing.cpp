@@ -111,7 +111,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                        m_mediator.m_selfKey.second, lookupId,
                                        m_proposedGasPrice, {});
 
-  HeaderHashParams headerParams{rand1, rand2, m_mediator.m_selfPeer, m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice};
+  HeaderHashParams headerParams{rand1,
+                                rand2,
+                                m_mediator.m_selfPeer,
+                                m_mediator.m_selfKey.second,
+                                lookupId,
+                                m_proposedGasPrice};
   EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
       block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
       FULL_DATASET_MINE, std::time(0), POW_WINDOW_IN_SECONDS, headerParams);
@@ -123,7 +128,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                 "nonce   = " << hex << ds_pow_winning_result.winning_nonce);
     LOG_GENERAL(INFO, "result  = " << hex << ds_pow_winning_result.result);
     LOG_GENERAL(INFO, "mixhash = " << hex << ds_pow_winning_result.mix_hash);
-    LOG_GENERAL(INFO, "extraData = " << DataConversion::Uint8VecToHexStrRet(ds_pow_winning_result.extraData));
+    LOG_GENERAL(INFO, "extraData = " << DataConversion::Uint8VecToHexStrRet(
+                          ds_pow_winning_result.extraData));
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       const unsigned int fixedDSNodesPoWTime =
@@ -227,14 +233,11 @@ bool Node::CheckIfGovProposalActive() {
   return false;
 }
 
-bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
-                                 const uint8_t& difficultyLevel,
-                                 const uint64_t winningNonce,
-                                 const string& powResultHash,
-                                 const string& powMixhash,
-                                 const zbytes& extraData,
-                                 const uint32_t& lookupId,
-                                 const uint128_t& gasPrice) {
+bool Node::SendPoWResultToDSComm(
+    const uint64_t& block_num, const uint8_t& difficultyLevel,
+    const uint64_t winningNonce, const string& powResultHash,
+    const string& powMixhash, const zbytes& extraData, const uint32_t& lookupId,
+    const uint128_t& gasPrice) {
   LOG_MARKER();
 
   // If governance proposal is active, send vote in DS epoch range POW
@@ -403,7 +406,8 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
 
 bool Node::ProcessStartPoW(const zbytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from,
-                           [[gnu::unused]] const unsigned char& startByte) {
+                           [[gnu::unused]] const unsigned char& startByte,
+                           std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessStartPoW not expected to be called from "

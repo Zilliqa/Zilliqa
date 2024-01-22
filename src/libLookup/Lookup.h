@@ -228,13 +228,14 @@ class Lookup : public Executable {
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
                                [[gnu::unused]] unsigned int offset,
-                               const Peer& from,
-                               const unsigned char& startByte);
+                               const Peer& from, const unsigned char& startByte,
+                               std::shared_ptr<zil::p2p::P2PServerConnection>);
   // UNUSED
   bool ProcessSetShardFromSeed([[gnu::unused]] const zbytes& message,
                                [[gnu::unused]] unsigned int offset,
                                [[gnu::unused]] const Peer& from,
-                               [[gnu::unused]] const unsigned char& startByte);
+                               [[gnu::unused]] const unsigned char& startByte,
+                               std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum,
                                const bool includeMinerInfo = false);
 
@@ -245,13 +246,16 @@ class Lookup : public Executable {
 
   bool ProcessGetDSBlockFromL2l(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                const unsigned char& startByte);
-  bool ProcessGetVCFinalBlockFromL2l(const zbytes& message, unsigned int offset,
-                                     const Peer& from,
-                                     const unsigned char& startByte);
-  bool ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
-                                      unsigned int offset, const Peer& from,
-                                      const unsigned char& startByte);
+                                const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessGetVCFinalBlockFromL2l(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessGetMBnForwardTxnFromL2l(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   std::optional<std::vector<Transaction>> GetDSLeaderTxnPool();
 
@@ -303,34 +307,43 @@ class Lookup : public Executable {
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                const unsigned char& startByte);
-  bool ProcessGetDSBlockFromSeed(const zbytes& message, unsigned int offset,
-                                 const Peer& from,
-                                 const unsigned char& startByte);
-  bool ProcessGetTxBlockFromSeed(const zbytes& message, unsigned int offset,
-                                 const Peer& from,
-                                 const unsigned char& startByte);
-  bool ProcessGetStateDeltaFromSeed(const zbytes& message, unsigned int offset,
-                                    const Peer& from,
-                                    const unsigned char& startByte);
-  bool ProcessGetStateDeltasFromSeed(const zbytes& message, unsigned int offset,
-                                     const Peer& from,
-                                     const unsigned char& startByte);
+                                const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessGetDSBlockFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessGetTxBlockFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessGetStateDeltaFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessGetStateDeltasFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessGetTxnsFromLookup(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                const unsigned char& startByte);
+                                const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
-                             const Peer& from, const unsigned char& startByte);
+                             const Peer& from, const unsigned char& startByte,
+                             std::shared_ptr<zil::p2p::P2PServerConnection>);
 
-  bool ProcessSetDSLeaderTxnPoolFromSeed(const zbytes& message,
-                                         unsigned int offset, const Peer& from,
-                                         const unsigned char& startByte);
+  bool ProcessSetDSLeaderTxnPoolFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessSetTxnsFromLookup(const zbytes& message, unsigned int offset,
                                 [[gnu::unused]] const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   void SendGetTxnsFromLookup(const BlockHash& mbHash,
                              const std::vector<TxnHash>& txnhashes);
@@ -342,88 +355,107 @@ class Lookup : public Executable {
 
   void SendGetMicroBlockFromL2l(const std::vector<BlockHash>& mbHashes);
 
-  bool ProcessGetMicroBlockFromLookup(const zbytes& message,
-                                      unsigned int offset, const Peer& from,
-                                      const unsigned char& startByte);
+  bool ProcessGetMicroBlockFromLookup(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
-  bool ProcessGetMicroBlockFromL2l(const zbytes& message, unsigned int offset,
-                                   const Peer& from,
-                                   const unsigned char& startByte);
+  bool ProcessGetMicroBlockFromL2l(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessSetMicroBlockFromLookup(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                const unsigned char& startByte);
+                                const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessSetDSInfoFromSeed(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSetDSBlockFromSeed(
       const zbytes& message, unsigned int offset,
       [[gnu::unused]] const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSetMinerInfoFromSeed(
       const zbytes& message, unsigned int offset,
       [[gnu::unused]] const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSetTxBlockFromSeed(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
   void PrepareForStartPow();
   bool GetDSInfo();
   bool ProcessSetStateDeltaFromSeed(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSetStateDeltasFromSeed(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessSetLookupOffline(const zbytes& message, unsigned int offset,
                                const Peer& from,
-                               [[gnu::unused]] const unsigned char& startByte);
+                               [[gnu::unused]] const unsigned char& startByte,
+                               std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSetLookupOnline(const zbytes& message, unsigned int offset,
                               const Peer& from,
-                              [[gnu::unused]] const unsigned char& startByte);
+                              [[gnu::unused]] const unsigned char& startByte,
+                              std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessSetOfflineLookups(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
 
-  bool ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
-                                         unsigned int offset, const Peer& from,
-                                         const unsigned char& startByte);
+  bool ProcessGetDirectoryBlocksFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessSetDirectoryBlocksFromSeed(
       const zbytes& message, unsigned int offset,
       [[gnu::unused]] const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
-  bool ProcessVCGetLatestDSTxBlockFromSeed(const zbytes& message,
-                                           unsigned int offset,
-                                           const Peer& from,
-                                           const unsigned char& startByte);
+  bool ProcessVCGetLatestDSTxBlockFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessForwardTxn(const zbytes& message, unsigned int offset,
                          const Peer& from,
-                         [[gnu::unused]] const unsigned char& startByte);
+                         [[gnu::unused]] const unsigned char& startByte,
+                         std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessGetDSGuardNetworkInfo(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
-  bool ProcessGetCosigsRewardsFromSeed(const zbytes& message,
-                                       unsigned int offset, const Peer& from,
-                                       const unsigned char& startByte);
+  bool ProcessGetCosigsRewardsFromSeed(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool NoOp([[gnu::unused]] const zbytes& message,
             [[gnu::unused]] unsigned int offset,
             [[gnu::unused]] const Peer& from,
-            [[gnu::unused]] const unsigned char& startByte);
+            [[gnu::unused]] const unsigned char& startByte,
+            std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(
       const uint64_t& index_num, bool toSendSeed = true,
@@ -457,7 +489,8 @@ class Lookup : public Executable {
   void FindMissingMBsForLastNTxBlks(const uint32_t& num);
 
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
-               const unsigned char& startByte);
+               const unsigned char& startByte,
+               std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);

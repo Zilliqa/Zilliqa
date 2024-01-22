@@ -81,7 +81,8 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
 bool DirectoryService::ProcessPoWPacketSubmission(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
@@ -126,7 +127,8 @@ bool DirectoryService::ProcessPoWPacketSubmission(
 
 bool DirectoryService::ProcessPoWSubmission(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   static const string EXPECTED_VERSION =
@@ -174,8 +176,8 @@ bool DirectoryService::ProcessPoWSubmission(
   string version;
   if (!Messenger::GetDSPoWSubmission(
           message, offset, blockNumber, difficultyLevel, submitterPeer,
-          submitterKey, nonce, resultingHash, mixHash, extraData, signature, lookupId,
-          gasPrice, govProposalId, govVoteValue, version)) {
+          submitterKey, nonce, resultingHash, mixHash, extraData, signature,
+          lookupId, gasPrice, govProposalId, govVoteValue, version)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::ProcessPowSubmission failed.");
     return false;
@@ -232,9 +234,9 @@ bool DirectoryService::ProcessPoWSubmission(
   }
 
   DSPowSolution powSoln(blockNumber, difficultyLevel, submitterPeer,
-                        submitterKey, nonce, resultingHash, mixHash, extraData, lookupId,
-                        gasPrice, std::make_pair(govProposalId, govVoteValue),
-                        signature);
+                        submitterKey, nonce, resultingHash, mixHash, extraData,
+                        lookupId, gasPrice,
+                        std::make_pair(govProposalId, govVoteValue), signature);
 
   if (VerifyPoWSubmission(powSoln)) {
     std::unique_lock<std::mutex> lk(m_mutexPowSolution);
@@ -383,8 +385,9 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
 
   // m_timespec = r_timer_start();
 
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer,
-                                       submitterPubKey, lookupId, gasPrice, extraData);
+  auto headerHash =
+      POW::GenHeaderHash(rand1, rand2, submitterPeer, submitterPubKey, lookupId,
+                         gasPrice, extraData);
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 

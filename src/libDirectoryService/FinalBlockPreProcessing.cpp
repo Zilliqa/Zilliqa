@@ -788,7 +788,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
     return false;
   }
 
-  zil::p2p::GetInstance().SendMessage(peer, mb_message);
+  zil::p2p::GetInstance().SendMessage(nullptr, peer, mb_message);
 
   return true;
 }

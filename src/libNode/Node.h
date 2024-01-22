@@ -255,21 +255,27 @@ class Node : public Executable {
   // Message handlers
   bool ProcessStartPoW(const zbytes& message, unsigned int offset,
                        const Peer& from,
-                       [[gnu::unused]] const unsigned char& startByte);
+                       [[gnu::unused]] const unsigned char& startByte,
+                       std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSubmitTransaction(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessMicroBlockConsensus(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
-                           const Peer& from, const unsigned char& startByte);
+                           const Peer& from, const unsigned char& startByte,
+                           std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessVCFinalBlockCore(const zbytes& message, unsigned int offset,
                                const Peer& from,
-                               [[gnu::unused]] const unsigned char& startByte);
+                               [[gnu::unused]] const unsigned char& startByte,
+                               std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessFinalBlock(const zbytes& message, unsigned int offset,
                          const Peer& from,
-                         [[gnu::unused]] const unsigned char& startByte);
+                         [[gnu::unused]] const unsigned char& startByte,
+                         std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
                              TxBlock& txBlock, zbytes& stateDelta);
 
@@ -282,15 +288,18 @@ class Node : public Executable {
 
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);
 
   bool ProcessPendingTxn(const zbytes& message, unsigned int cur_offset,
                          const Peer& from,
-                         [[gnu::unused]] const unsigned char& startByte);
+                         [[gnu::unused]] const unsigned char& startByte,
+                         std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessTxnPacketFromLookup(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessTxnPacketFromLookupCore(const zbytes& message,
                                       const uint64_t& epochNum,
                                       const uint64_t& dsBlockNum,
@@ -299,35 +308,44 @@ class Node : public Executable {
                                       const std::vector<Transaction>& txns);
   bool ProcessProposeGasPrice(const zbytes& message, unsigned int offset,
                               [[gnu::unused]] const Peer& from,
-                              [[gnu::unused]] const unsigned char& startByte);
+                              [[gnu::unused]] const unsigned char& startByte,
+                              std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessDSGuardNetworkInfoUpdate(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessNewShardNodeNetworkInfo(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessGetVersion(const zbytes& message, unsigned int offset,
                          const Peer& from,
-                         [[gnu::unused]] const unsigned char& startByte);
+                         [[gnu::unused]] const unsigned char& startByte,
+                         std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessSetVersion(const zbytes& message, unsigned int offset,
                          const Peer& from,
-                         [[gnu::unused]] const unsigned char& startByte);
+                         [[gnu::unused]] const unsigned char& startByte,
+                         std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessVCDSBlocksMessage(const zbytes& message, unsigned int cur_offset,
                                 const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessDoRejoin(const zbytes& message, unsigned int offset,
                        const Peer& from,
-                       [[gnu::unused]] const unsigned char& startByte);
+                       [[gnu::unused]] const unsigned char& startByte,
+                       std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessRemoveNodeFromBlacklist(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool NoOp(const zbytes& message, unsigned int offset, const Peer& from,
-            [[gnu::unused]] const unsigned char& startByte);
+            [[gnu::unused]] const unsigned char& startByte,
+            std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ComposeMBnForwardTxnMessageForSender(zbytes& mb_txns_message);
 
@@ -340,7 +358,8 @@ class Node : public Executable {
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const zbytes& message, unsigned int cur_offset,
                       const Peer& from,
-                      [[gnu::unused]] const unsigned char& startByte);
+                      [[gnu::unused]] const unsigned char& startByte,
+                      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessVCBlockCore(const VCBlock& vcblock);
   // Transaction functions
   bool OnCommitFailure(const std::map<unsigned int, zbytes>&);
@@ -555,7 +574,8 @@ class Node : public Executable {
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
-               const unsigned char& startByte = zil::p2p::START_BYTE_NORMAL);
+               const unsigned char& startByte = zil::p2p::START_BYTE_NORMAL,
+               std::shared_ptr<zil::p2p::P2PServerConnection> = nullptr);
 
   Mediator& GetMediator() { return m_mediator; }
 

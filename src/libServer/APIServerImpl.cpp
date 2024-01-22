@@ -341,6 +341,8 @@ bool APIServerImpl::DoListen() {
     return false;
   }
 
+  m_active = true;
+
   auto address = m_options.bindToLocalhost
                      ? boost::asio::ip::address_v4::loopback()
                      : boost::asio::ip::address_v4::any();
@@ -359,7 +361,7 @@ bool APIServerImpl::DoListen() {
 
   m_acceptor->open(endpoint.protocol(), ec);
   CHECK_EC();
-  m_acceptor->set_option(asio::socket_base::reuse_address(true), ec);
+  m_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true), ec);
   CHECK_EC();
   m_acceptor->bind(endpoint, ec);
   CHECK_EC();
@@ -367,8 +369,6 @@ bool APIServerImpl::DoListen() {
   CHECK_EC();
 
 #undef CHECK_EC
-
-  m_active = true;
 
   AcceptNext();
 
@@ -443,6 +443,8 @@ bool APIServerImpl::StopListening() {
     m_websocket->CloseAll();
 
     m_options.asio->post([self = shared_from_this()] {
+      beast::error_code ignored;
+      self->m_acceptor->close(ignored);
       self->m_acceptor.reset();
       for (auto &conn : self->m_connections) {
         conn.second->Close();

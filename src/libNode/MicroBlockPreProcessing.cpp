@@ -314,7 +314,7 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
     return false;
   }
 
-  zil::p2p::GetInstance().SendMessage(peer, tx_message);
+  zil::p2p::GetInstance().SendMessage(nullptr, peer, tx_message);
 
   return true;
 }
