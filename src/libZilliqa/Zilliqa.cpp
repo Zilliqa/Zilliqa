@@ -183,7 +183,8 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
           zil::trace::FilterClass::NODE, "Dispatch", message->traceContext);
 #endif
       bool result = msg_handlers[msg_type]->Execute(
-          message->msg, MessageOffset::INST, message->from, message->startByte);
+          message->msg, MessageOffset::INST, message->from, message->startByte,
+          message->connection);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         auto tpNow = std::chrono::high_resolution_clock::now();

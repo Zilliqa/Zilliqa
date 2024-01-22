@@ -88,7 +88,8 @@ bool DirectoryService::VerifyMicroBlockCoSignature(
 bool DirectoryService::ProcessMicroblockSubmission(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   LOG_GENERAL(

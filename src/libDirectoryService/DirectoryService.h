@@ -240,51 +240,64 @@ class DirectoryService : public Executable {
   // Message handlers
   bool ProcessSetPrimary(const zbytes& message, unsigned int offset,
                          const Peer& from,
-                         [[gnu::unused]] const unsigned char& startByte);
+                         [[gnu::unused]] const unsigned char& startByte,
+                         std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessPoWSubmission(const zbytes& message, unsigned int offset,
                             const Peer& from,
-                            [[gnu::unused]] const unsigned char& startByte);
+                            [[gnu::unused]] const unsigned char& startByte,
+                            std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessPoWPacketSubmission(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool VerifyPoWSubmission(const DSPowSolution& sol);
 
   bool ProcessDSBlockConsensus(const zbytes& message, unsigned int offset,
                                const Peer& from,
-                               [[gnu::unused]] const unsigned char& startByte);
+                               [[gnu::unused]] const unsigned char& startByte,
+                               std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessMicroblockSubmission(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessFinalBlockConsensus(const zbytes& message, unsigned int offset,
-                                  const Peer& from,
-                                  const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
+  bool ProcessFinalBlockConsensus(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessFinalBlockConsensusCore(
       const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte, uint32_t consensusId);
   bool ProcessViewChangeConsensus(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessPushLatestDSBlock(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessPushLatestTxBlock(const zbytes& message, unsigned int offset,
                                 const Peer& from,
-                                [[gnu::unused]] const unsigned char& startByte);
+                                [[gnu::unused]] const unsigned char& startByte,
+                                std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessVCPushLatestDSTxBlock(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
   bool ProcessNewDSGuardNetworkInfo(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   // Get cosig and rewards for given epoch
   bool ProcessCosigsRewardsFromSeed(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessGetDSLeaderTxnPool(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte);
+      [[gnu::unused]] const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -622,7 +635,8 @@ class DirectoryService : public Executable {
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
-               const unsigned char& startByte);
+               const unsigned char& startByte,
+               std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   /// Used by PoW winner to configure sharding variables as the next DS leader
   bool ProcessShardingStructure(const DequeOfShardMembers& members,

@@ -371,7 +371,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
 bool DirectoryService::ProcessFinalBlockConsensus(
     const zbytes& message, unsigned int offset, const Peer& from,
-    const unsigned char& startByte) {
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

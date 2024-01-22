@@ -192,13 +192,13 @@ class Connectivity {
 
   void Send(const Peer& peer, const zbytes& msg) {
     assert(peer.m_listenPortHost == LISTEN_PORT);
-    m_p2p.SendMessage(peer, msg, START_BYTE_NORMAL, false);
+    m_p2p.SendMessage(nullptr, peer, msg, START_BYTE_NORMAL, false);
   }
 
   void SendPeersRequest() {
     // N.B. sizes <= 2 can be rejected due to Zil p2p protocol details
     static const zbytes request = {MSG_PEERS_REQUEST, 0, 0};
-    m_p2p.SendMessage(m_lookup, request, START_BYTE_NORMAL, false);
+    m_p2p.SendMessage(nullptr, m_lookup, request, START_BYTE_NORMAL, false);
   }
 
   void OnPayload(const Peer& peer, const zbytes& payload) {
@@ -262,7 +262,7 @@ class Connectivity {
   }
 
   void Dispatch(std::shared_ptr<Message>&& msg) {
-    auto &st = GetPeer(msg->from);
+    auto& st = GetPeer(msg->from);
     if (msg->msg.empty()) {
       ++st.empty_msgs;
       Complain(msg->from, st, "Empty message");

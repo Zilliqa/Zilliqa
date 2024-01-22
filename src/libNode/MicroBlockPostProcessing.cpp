@@ -95,7 +95,8 @@ static MicroBlockPostProcessingVariables variables{};
 
 bool Node::ProcessMicroBlockConsensus(
     const zbytes& /* message */, unsigned int /* offset */,
-    const Peer& /* from */, [[gnu::unused]] const unsigned char& startByte) {
+    const Peer& /* from */, [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_GENERAL(WARNING,
               "Node::ProcessMicroBlockConsensus not expected to be "
               "called from desharded config.");

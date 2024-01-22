@@ -44,6 +44,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2P.h"
+#include "libNetwork/P2PServer.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -727,7 +728,7 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
   Peer tmpPeer(peer.GetIpAddress(), peer.GetListenPortHost(),
                peer.GetHostname());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
-  zil::p2p::GetInstance().SendMessage(tmpPeer, message);
+  zil::p2p::GetInstance().SendMessage(nullptr, tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
@@ -1178,9 +1179,10 @@ bool Lookup::ProcessEntireShardingStructure() {
   return true;
 }
 
-bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
-                                      unsigned int offset, const Peer& from,
-                                      const unsigned char& startByte) {
+bool Lookup::ProcessGetDSInfoFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetDSInfoFromSeed not expected to be called "
@@ -1236,7 +1238,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
-  zil::p2p::GetInstance().SendMessage(requestingNode, dsInfoMessage, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, dsInfoMessage,
+                                      startByte);
 
   return true;
 }
@@ -1262,11 +1265,8 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
                peer.GetHostname());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
   unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
-  //  TODO Disabled in updated protocol
-  // if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-  //    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
-  //}
-  zil::p2p::GetInstance().SendMessage(tmpPeer, message, startByte);
+
+  zil::p2p::GetInstance().SendMessage(nullptr, tmpPeer, message, startByte);
 }
 
 void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
@@ -1303,7 +1303,7 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   LOG_GENERAL(INFO,
               "Chosen lookup to send data to: " << peer.GetPrintableIPAddress()
                                                 << ", " << peer.GetHostname());
-  zil::p2p::GetInstance().SendMessage(peer, message);
+  zil::p2p::GetInstance().SendMessage(nullptr, peer, message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -1317,9 +1317,10 @@ bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
   return isWhiteListed;
 }
 
-bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
-                                      unsigned int offset, const Peer& from,
-                                      const unsigned char& startByte) {
+bool Lookup::ProcessGetDSBlockFromL2l(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetDSBlockFromL2l not expected to be called "
@@ -1386,7 +1387,8 @@ bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcDSBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcDSBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
-      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
+      zil::p2p::GetInstance().SendMessage(connection, requestorPeer, it->second,
+                                          startByte);
       return true;
     }
   }
@@ -1394,10 +1396,10 @@ bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
   return false;
 }
 
-bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
-                                           unsigned int offset,
-                                           const Peer& from,
-                                           const unsigned char& startByte) {
+bool Lookup::ProcessGetVCFinalBlockFromL2l(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1465,7 +1467,8 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcFinalBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcFinalBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
-      zil::p2p::GetInstance().SendMessage(requestorPeer, it->second, startByte);
+      zil::p2p::GetInstance().SendMessage(connection, requestorPeer, it->second,
+                                          startByte);
       return true;
     }
   }
@@ -1474,10 +1477,10 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
   return false;
 }
 
-bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
-                                            unsigned int offset,
-                                            const Peer& from,
-                                            const unsigned char& startByte) {
+bool Lookup::ProcessGetMBnForwardTxnFromL2l(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1527,8 +1530,8 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
         auto it2 = it->second.find(shardId);
         if (it2 != it->second.end()) {
           LOG_GENERAL(INFO, "Sending MbnForrwardTxn msg to " << requestorPeer);
-          zil::p2p::GetInstance().SendMessage(requestorPeer, it2->second,
-                                              startByte);
+          zil::p2p::GetInstance().SendMessage(connection, requestorPeer,
+                                              it2->second, startByte);
           return true;
         }
       } else {
@@ -1582,7 +1585,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
                           << consensusLeaderID << " (" << dsLeader.second
                           << ')');
 
-    zil::p2p::GetInstance().SendMessage(dsLeader.second, retMsg);
+    zil::p2p::GetInstance().SendMessage(nullptr, dsLeader.second, retMsg);
   }
 
   // Wait for the reply from the DS leader
@@ -1764,9 +1767,10 @@ bool Lookup::ComposeAndStoreVCFinalBlockMessage(const uint64_t& blockNum) {
 // lowBlockNum = 1 => Latest block number
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
-bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
-                                       unsigned int offset, const Peer& from,
-                                       const unsigned char& startByte) {
+bool Lookup::ProcessGetDSBlockFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetDSBlockFromSeed not expected to be called "
@@ -1817,7 +1821,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, returnMsg,
+                                      startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -1855,8 +1860,9 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
-
-      zil::p2p::GetInstance().SendMessage(requestingNode, returnMsg, startByte);
+      Peer requestingNode(from.m_ipAddress, portNo);
+      zil::p2p::GetInstance().SendMessage(connection, requestingNode, returnMsg,
+                                          startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -1938,9 +1944,10 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 // lowBlockNum = 1 => Latest block number
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
-bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
-                                       unsigned int offset, const Peer& from,
-                                       const unsigned char& startByte) {
+bool Lookup::ProcessGetTxBlockFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetTxBlockFromSeed not expected to be called "
@@ -1987,8 +1994,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
     return false;
   }
   Peer requestingNode(from.m_ipAddress, portNo);
-  zil::p2p::GetInstance().SendMessage(requestingNode, txBlockMessage,
-                                      startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      txBlockMessage, startByte);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Sent Txblks " << lowBlockNum << " - " << highBlockNum);
   return true;
@@ -2058,9 +2065,10 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   }
 }
 
-bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
-                                          unsigned int offset, const Peer& from,
-                                          const unsigned char& startByte) {
+bool Lookup::ProcessGetStateDeltaFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -2115,15 +2123,16 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltaMessage,
-                                      startByte);
+
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      stateDeltaMessage, startByte);
   return true;
 }
 
-bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
-                                           unsigned int offset,
-                                           const Peer& from,
-                                           const unsigned char& startByte) {
+bool Lookup::ProcessGetStateDeltasFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -2184,16 +2193,16 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  zil::p2p::GetInstance().SendMessage(requestingNode, stateDeltasMessage,
-                                      startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      stateDeltasMessage, startByte);
   return true;
 }
 
 // Ex-Archival node code
-bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
-                                     [[gnu::unused]] unsigned int offset,
-                                     const Peer& from,
-                                     const unsigned char& startByte) {
+bool Lookup::ProcessGetShardFromSeed(
+    [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
+    const Peer& from, const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   uint32_t portNo = 0;
 
   if (!Messenger::GetLookupGetShardsFromSeed(message, offset, portNo)) {
@@ -2215,7 +2224,8 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  zil::p2p::GetInstance().SendMessage(requestingNode, msg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, msg,
+                                      startByte);
 
   return true;
 }
@@ -2224,7 +2234,8 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
 bool Lookup::ProcessSetShardFromSeed(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   DequeOfShardMembers shardMembers;
   PubKey senderPubKey;
   uint32_t shardingStructureVersion = 0;
@@ -2309,10 +2320,10 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   return true;
 }
 
-bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
-                                            unsigned int offset,
-                                            const Peer& from,
-                                            const unsigned char& startByte) {
+bool Lookup::ProcessGetMicroBlockFromLookup(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2390,14 +2401,15 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
-
-  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, retMsg,
+                                      startByte);
   return true;
 }
 
-bool Lookup::ProcessGetMicroBlockFromL2l(const zbytes& message,
-                                         unsigned int offset, const Peer& from,
-                                         const unsigned char& startByte) {
+bool Lookup::ProcessGetMicroBlockFromL2l(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2470,15 +2482,16 @@ bool Lookup::ProcessGetMicroBlockFromL2l(const zbytes& message,
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
-
-  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, retMsg,
+                                      startByte);
   return true;
 }
 
 bool Lookup::ProcessSetMicroBlockFromLookup(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2565,7 +2578,8 @@ void Lookup::SendGetMicroBlockFromL2l(const vector<BlockHash>& mbHashes) {
 
 bool Lookup::ProcessGetCosigsRewardsFromSeed(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
-    const Peer& from, const unsigned char& startByte) {
+    const Peer& from, const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2673,20 +2687,23 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  zil::p2p::GetInstance().SendMessage(requestingNode, retMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, retMsg,
+                                      startByte);
   return true;
 }
 
 bool Lookup::NoOp([[gnu::unused]] const zbytes& message,
                   [[gnu::unused]] unsigned int offset,
                   [[gnu::unused]] const Peer& from,
-                  [[gnu::unused]] const unsigned char& startByte) {
+                  [[gnu::unused]] const unsigned char& startByte,
+                  std::shared_ptr<zil::p2p::P2PServerConnection>) {
   return true;
 }
 
 bool Lookup::ProcessSetDSInfoFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   bool initialDS = false;
 
   PubKey senderPubKey;
@@ -2814,7 +2831,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(
 bool Lookup::ProcessSetDSBlockFromSeed(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   // #ifndef IS_LOOKUP_NODE TODO: uncomment later
 
   lock(m_mutexSetDSBlockFromSeed, m_mutexCheckDirBlocks);
@@ -2908,7 +2926,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(
 bool Lookup::ProcessSetMinerInfoFromSeed(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2949,7 +2968,8 @@ bool Lookup::ProcessSetMinerInfoFromSeed(
 
 bool Lookup::ProcessSetTxBlockFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   // #ifndef IS_LOOKUP_NODE
 
   if (AlreadyJoinedNetwork()) {
@@ -3525,7 +3545,8 @@ void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
 
 bool Lookup::ProcessSetStateDeltaFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (AlreadyJoinedNetwork()) {
     cv_setStateDeltaFromSeed.notify_all();
     return true;
@@ -3573,7 +3594,8 @@ bool Lookup::ProcessSetStateDeltaFromSeed(
 
 bool Lookup::ProcessSetStateDeltasFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (AlreadyJoinedNetwork()) {
     {
       unique_lock<std::mutex> lock(m_mutexSetStateDeltasFromSeed);
@@ -3677,10 +3699,10 @@ void Lookup::RejoinNetwork() {
   }
 }
 
-bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
-                                      [[gnu::unused]] unsigned int offset,
-                                      const Peer& from,
-                                      const unsigned char& startByte) {
+bool Lookup::ProcessGetTxnsFromLookup(
+    [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
+    const Peer& from, const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -3765,14 +3787,15 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
-
-  zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, setTxnMsg,
+                                      startByte);
   return true;
 }
 
-bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
-                                   const Peer& from,
-                                   const unsigned char& startByte) {
+bool Lookup::ProcessGetTxnsFromL2l(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -3853,14 +3876,15 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
-
-  zil::p2p::GetInstance().SendMessage(requestingNode, setTxnMsg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode, setTxnMsg,
+                                      startByte);
   return true;
 }
 
 bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
     const zbytes& message, unsigned int offset, const Peer& /*from*/,
-    const unsigned char& /*startByte*/) {
+    const unsigned char& /*startByte*/,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -3886,7 +3910,8 @@ bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
 bool Lookup::ProcessSetTxnsFromLookup(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   BlockHash mbHash;
   vector<TransactionWithReceipt> txns;
   PubKey senderPubKey;
@@ -4111,7 +4136,8 @@ bool Lookup::InitMining() {
 
 bool Lookup::ProcessSetLookupOffline(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetLookupOffline not expected to be called "
@@ -4159,7 +4185,8 @@ bool Lookup::ProcessSetLookupOffline(
 
 bool Lookup::ProcessSetLookupOnline(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetLookupOnline not expected to be called "
@@ -4205,9 +4232,10 @@ bool Lookup::ProcessSetLookupOnline(
   return true;
 }
 
-bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
-                                      unsigned int offset, const Peer& from,
-                                      const unsigned char& startByte) {
+bool Lookup::ProcessGetOfflineLookups(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetOfflineLookups not expected to be "
@@ -4249,15 +4277,15 @@ bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
                 "IP:" << peer.second.GetPrintableIPAddress());
     }
   }
-
-  zil::p2p::GetInstance().SendMessage(requestingNode, offlineLookupsMessage,
-                                      startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      offlineLookupsMessage, startByte);
   return true;
 }
 
 bool Lookup::ProcessSetOfflineLookups(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetOfflineLookups not expected to be "
@@ -4847,10 +4875,10 @@ bool Lookup::GetOfflineLookupNodes() {
   return true;
 }
 
-bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
-                                               unsigned int offset,
-                                               const Peer& from,
-                                               const unsigned char& startByte) {
+bool Lookup::ProcessGetDirectoryBlocksFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -4909,7 +4937,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
     return false;
   }
 
-  zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
+  zil::p2p::GetInstance().SendMessage(connection, peer, msg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -4951,8 +4979,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
                     "Messenger::SetLookupSetMinerInfoFromSeed failed.");
         return false;
       }
-
-      zil::p2p::GetInstance().SendMessage(peer, msg, startByte);
+      zil::p2p::GetInstance().SendMessage(connection, peer, msg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -4965,7 +4992,8 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
 bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
@@ -5150,11 +5178,13 @@ void Lookup::ComposeAndSendGetCosigsRewardsFromSeed(const uint64_t& block_num) {
 }
 
 bool Lookup::Execute(const zbytes& message, unsigned int offset,
-                     const Peer& from, const unsigned char& startByte) {
+                     const Peer& from, const unsigned char& startByte,
+                     std::shared_ptr<zil::p2p::P2PServerConnection> conn) {
   bool result = true;
 
   typedef bool (Lookup::*InstructionHandler)(
-      const zbytes&, unsigned int, const Peer&, const unsigned char& startByte);
+      const zbytes&, unsigned int, const Peer&, const unsigned char& startByte,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   InstructionHandler ins_handlers[] = {
       &Lookup::ProcessGetDSInfoFromSeed,
@@ -5209,8 +5239,8 @@ bool Lookup::Execute(const zbytes& message, unsigned int offset,
     }
   }
   if (ins_byte < ins_handlers_count) {
-    result =
-        (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
+    result = (this->*ins_handlers[ins_byte])(message, offset + 1, from,
+                                             startByte, conn);
     if (!result) {
       // To-do: Error recovery
     }
@@ -5536,7 +5566,8 @@ bool Lookup::VerifySenderNode(const DequeOfShardMembers& shardMembers,
 
 bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                                const Peer& from,
-                               [[gnu::unused]] const unsigned char& startByte) {
+                               [[gnu::unused]] const unsigned char& startByte,
+                               std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessForwardTxn not expected to be called from "
@@ -5574,7 +5605,8 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
 
 bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
-    const unsigned char& startByte) {
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -5629,8 +5661,8 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  zil::p2p::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage,
-                                      startByte);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      dsTxBlocksMessage, startByte);
   return true;
 }
 
@@ -5642,7 +5674,8 @@ void Lookup::SetSyncType(SyncType syncType) {
 
 bool Lookup::ProcessGetDSGuardNetworkInfo(
     const zbytes& message, unsigned int offset, const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessGetDSGuardNetworkInfo not expected to be "
@@ -5691,7 +5724,8 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
 
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
-  zil::p2p::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
+  zil::p2p::GetInstance().SendMessage(connection, requestingNode,
+                                      setNewDSGuardNetworkInfo);
   return true;
 }
 

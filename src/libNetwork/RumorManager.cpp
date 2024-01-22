@@ -465,7 +465,7 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
 
-  zil::p2p::GetInstance().SendMessage(toForeignPeer, cmd,
+  zil::p2p::GetInstance().SendMessage(nullptr, toForeignPeer, cmd,
                                       zil::p2p::START_BYTE_GOSSIP);
 }
 
@@ -801,7 +801,8 @@ void RumorManager::SendMessage(const Peer& toPeer,
     std::this_thread::sleep_for(
         std::chrono::milliseconds(SIMULATED_NETWORK_DELAY_IN_MS));
   }
-  zil::p2p::GetInstance().SendMessage(toPeer, cmd, zil::p2p::START_BYTE_GOSSIP);
+  zil::p2p::GetInstance().SendMessage(nullptr, toPeer, cmd,
+                                      zil::p2p::START_BYTE_GOSSIP);
 }
 
 void RumorManager::SendMessages(const Peer& toPeer,

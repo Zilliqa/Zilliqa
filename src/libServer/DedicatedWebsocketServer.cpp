@@ -240,7 +240,7 @@ void DedicatedWSImpl::Start() {
 
   m_acceptor->open(endpoint.protocol(), ec);
   CHECK_EC();
-  m_acceptor->set_option(asio::socket_base::reuse_address(true), ec);
+  m_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true), ec);
   CHECK_EC();
   m_acceptor->bind(endpoint, ec);
   CHECK_EC();

@@ -342,7 +342,8 @@ void Node::ResetConsensusId() {
 bool Node::ProcessVCDSBlocksMessage(
     const zbytes& message, unsigned int cur_offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   const bool leader = m_mediator.m_ds->GetConsensusMyID() ==

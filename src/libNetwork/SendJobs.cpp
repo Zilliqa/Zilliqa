@@ -270,10 +270,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   using DoneCallback = std::function<void(const Peer& peer)>;
 
-  PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb, Peer peer,
-                bool is_multiplier, bool no_wait)
+  PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb,
+                Dispatcher readMsgDispatcher, Peer peer, bool is_multiplier,
+                bool no_wait)
       : m_asioContext(ctx),
         m_doneCallback(done_cb),
+        m_readMsgDispatcher(readMsgDispatcher),
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
         m_resolver(m_asioContext),
@@ -430,7 +432,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
                       << m_peer.GetPrintableIPAddress() << ", "
                       << m_peer.GetHostname());
       m_connected = true;
-      DetectBrokenLink();
+      m_is_resolving = false;
+      StartReading();
       SendMessage();
     } else {
       LOG_GENERAL(DEBUG, "There was an error: "
@@ -438,25 +441,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
-  }
-
-  void DetectBrokenLink() {
-    boost::asio::async_read(
-        m_socket, boost::asio::buffer(m_buffer),
-        [this, self = shared_from_this()](const ErrorCode& ec, size_t) {
-          if (ec) {
-            LOG_GENERAL(INFO, "BZ Detected broken link to: "
-                                  << m_peer.GetPrintableIPAddress()
-                                  << ", host: " << m_peer.m_hostname);
-            if (m_closed) {
-              return;
-            }
-            m_connected = false;
-            ScheduleReconnectOrGiveUp();
-          } else {
-            DetectBrokenLink();
-          }
-        });
   }
 
   bool FindNotExpiredMessage() {
@@ -481,6 +465,81 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (m_inIdleTimeout && m_queue.empty()) {
       Done();
     }
+  }
+
+  void StartReading() {
+    static constexpr size_t RESERVE_SIZE = 1024;
+    static constexpr size_t THRESHOLD_SIZE = 1024 * 100;
+
+    auto cap = m_readBuffer.capacity();
+    if (cap > THRESHOLD_SIZE) {
+      zbytes b;
+      m_readBuffer.swap(b);
+    }
+    m_readBuffer.reserve(RESERVE_SIZE);
+    m_readBuffer.resize(HDR_LEN);
+
+    boost::asio::async_read(
+        m_socket, boost::asio::buffer(m_readBuffer),
+        [self = shared_from_this()](const ErrorCode& ec, size_t) {
+          self->OnReadHeader(ec);
+        });
+  }
+
+  void OnReadHeader(const ErrorCode& ec) {
+    if (m_closed) {
+      return;
+    }
+    if (ec) {
+      m_connected = false;
+      ScheduleReconnectOrGiveUp();
+      return;
+    }
+    auto remainingLength = ReadU32BE(m_readBuffer.data() + 4);
+    const auto MAX_MSG_SIZE = MAX_READ_WATERMARK_IN_BYTES;
+
+    if (remainingLength > MAX_MSG_SIZE) {
+      return;
+    }
+
+    m_readBuffer.resize(HDR_LEN + remainingLength);
+    boost::asio::async_read(
+        m_socket,
+        boost::asio::buffer(m_readBuffer.data() + HDR_LEN, remainingLength),
+        [self = shared_from_this()](const ErrorCode& ec, size_t n) {
+          self->OnReadBody(ec);
+        });
+  }
+
+  void OnReadBody(const ErrorCode& ec) {
+    if (m_closed) {
+      return;
+    }
+    if (ec) {
+      m_connected = false;
+      ScheduleReconnectOrGiveUp();
+      return;
+    }
+
+    ReadMessageResult result{nullptr};
+    auto state =
+        TryReadMessage(m_readBuffer.data(), m_readBuffer.size(), result);
+
+    if (state == ReadState::SUCCESS) {
+      if (result.startByte == START_BYTE_NORMAL) {
+        m_readMsgDispatcher(MakeMsg(nullptr, result.message, m_peer,
+                                    START_BYTE_NORMAL, result.traceInfo));
+      } else {
+        LOG_GENERAL(WARNING, "Skipping msg because of start byte which is: "
+                                 << static_cast<int>(result.startByte));
+      }
+    } else {
+      LOG_GENERAL(
+          WARNING,
+          "Unable to correctly parse read message that came in return!");
+      return;
+    }
+    StartReading();
   }
 
   void SendMessage() {
@@ -576,6 +635,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   // cb to the owner
   DoneCallback m_doneCallback;
 
+  // Dispatches read messages
+  Dispatcher m_readMsgDispatcher;
+
   // remote peer
   Peer m_peer;
 
@@ -594,8 +656,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   // Timer is used
   SteadyTimer m_timer;
 
-  // dummy buffer we read into to detect EOF
-  std::array<char, 1> m_buffer;
+  // Read buffer for reads
+  zbytes m_readBuffer;
 
   // Every message has some expire time for delivery
   // TODO: make it explicit for various kinds of messages
@@ -621,10 +683,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 class SendJobsImpl : public SendJobs,
                      public std::enable_shared_from_this<SendJobsImpl> {
  public:
-  SendJobsImpl()
+  SendJobsImpl(Dispatcher dispatcher)
       : m_doneCallback([this](const Peer& peer) { OnPeerQueueFinished(peer); }),
         m_multipliers(ExtractMultipliers()),
-        m_workerThread([this] { WorkerThread(); }) {}
+        m_workerThread([this] { WorkerThread(); }),
+        m_readMsgDispatcher(dispatcher) {}
 
   ~SendJobsImpl() override {
     LOG_MARKER();
@@ -655,7 +718,8 @@ class SendJobsImpl : public SendJobs,
   }
 
   void SendMessageToPeerSynchronous(const Peer& peer, const zbytes& message,
-                                    uint8_t start_byte) override {
+                                    uint8_t start_byte,
+                                    Dispatcher dispatcher) override {
     LOG_MARKER();
     zil::local::variables.AddSendMessageToPeerSyncCount(1);
 
@@ -668,7 +732,7 @@ class SendJobsImpl : public SendJobs,
     };
 
     auto peerCtx = std::make_shared<PeerSendQueue>(
-        localCtx, doneCallback, std::move(peer), false, true);
+        localCtx, doneCallback, dispatcher, std::move(peer), false, true);
     peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();
@@ -689,7 +753,8 @@ class SendJobsImpl : public SendJobs,
     if (!ctx) {
       bool is_multiplier = m_multipliers.contains(peer);
       ctx = std::make_shared<PeerSendQueue>(
-          m_asioCtx, m_doneCallback, std::move(peer), is_multiplier, false);
+          m_asioCtx, m_doneCallback, m_readMsgDispatcher, std::move(peer),
+          is_multiplier, false);
     }
     zil::local::variables.SetActivePeersSize(m_activePeers.size());
     ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
@@ -725,11 +790,12 @@ class SendJobsImpl : public SendJobs,
   PeerSendQueue::DoneCallback m_doneCallback;
   std::set<Peer> m_multipliers;
   std::thread m_workerThread;
+  Dispatcher m_readMsgDispatcher;
   std::map<Peer, std::shared_ptr<PeerSendQueue>> m_activePeers;
 };
 
-std::shared_ptr<SendJobs> SendJobs::Create() {
-  return std::make_shared<SendJobsImpl>();
+std::shared_ptr<SendJobs> SendJobs::Create(Dispatcher dispatcher) {
+  return std::make_shared<SendJobsImpl>(dispatcher);
 }
 
 }  // namespace zil::p2p

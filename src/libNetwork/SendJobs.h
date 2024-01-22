@@ -24,15 +24,15 @@ namespace zil::p2p {
 
 class SendJobs {
  public:
-  static std::shared_ptr<SendJobs> Create();
+  static std::shared_ptr<SendJobs> Create(Dispatcher dispatcher);
 
-  //std::mutex m_mutexTemp;
-  //struct Connections {
-  //  int failures = 0;
-  //  int successes = 0;
-  //};
-  //int iterations = 0;
-  //std::map<std::string, Connections> sendJobsConnectionList;
+  // std::mutex m_mutexTemp;
+  // struct Connections {
+  //   int failures = 0;
+  //   int successes = 0;
+  // };
+  // int iterations = 0;
+  // std::map<std::string, Connections> sendJobsConnectionList;
 
   virtual ~SendJobs() = default;
 
@@ -53,7 +53,8 @@ class SendJobs {
   /// WARNING: it blocks
   virtual void SendMessageToPeerSynchronous(const Peer& peer,
                                             const zbytes& message,
-                                            uint8_t start_byte) = 0;
+                                            uint8_t start_byte,
+                                            Dispatcher dispatcher) = 0;
 };
 
 }  // namespace zil::p2p

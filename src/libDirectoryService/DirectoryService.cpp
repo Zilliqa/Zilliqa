@@ -29,6 +29,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2P.h"
+#include "libNetwork/P2PServer.h"
 #include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -188,7 +189,8 @@ bool DirectoryService::CheckState(Action action) {
 bool DirectoryService::ProcessSetPrimary(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessSetPrimary not "
@@ -925,7 +927,8 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (!GUARD_MODE) {
@@ -1055,7 +1058,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 bool DirectoryService::ProcessCosigsRewardsFromSeed(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
-    [[gnu::unused]] const unsigned char& startByte) {
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1103,7 +1107,8 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
 
 bool DirectoryService::ProcessGetDSLeaderTxnPool(
     const zbytes& message, unsigned int offset, const Peer& from,
-    const unsigned char& /*startByte*/) {
+    const unsigned char& /*startByte*/,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1143,7 +1148,7 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-  zil::p2p::GetInstance().SendMessage(requestingNode, txnPoolMessage);
+  zil::p2p::GetInstance().SendMessage(nullptr, requestingNode, txnPoolMessage);
   return true;
 }
 
@@ -1154,15 +1159,17 @@ void DirectoryService::GetCoinbaseRewardees(
   coinbase_rewardees = m_coinbaseRewardees;
 }
 
-bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
-                               const Peer& from,
-                               const unsigned char& startByte) {
+bool DirectoryService::Execute(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> conn) {
   // LOG_MARKER();
 
   bool result = false;
 
   typedef bool (DirectoryService::*InstructionHandler)(
-      const zbytes&, unsigned int, const Peer&, const unsigned char&);
+      const zbytes&, unsigned int, const Peer&, const unsigned char&,
+      std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   std::vector<InstructionHandler> ins_handlers;
 
@@ -1188,8 +1195,8 @@ bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
     return false;
   }
   if (ins_byte < ins_handlers_count) {
-    result =
-        (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
+    result = (this->*ins_handlers[ins_byte])(message, offset + 1, from,
+                                             startByte, conn);
 
     if (!result) {
       // To-do: Error recovery
