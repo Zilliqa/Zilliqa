@@ -68,8 +68,12 @@ class APIServerImpl : public APIServer,
   void Close() override;
 
   void Pause(bool value) override {
-    m_isPaused = value;
-    LOG_GENERAL(INFO, "API server is: " << (value ? "paused" : "resumed"));
+    if (value) {
+      m_pausedCounter += 1;
+    } else {
+      m_pausedCounter -= 1;
+    }
+    LOG_GENERAL(INFO, "API server is: " << (value > 0 ? "paused" : "resumed"));
   }
 
   // AbstractServerConnector overrides
@@ -125,7 +129,7 @@ class APIServerImpl : public APIServer,
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
 
-  std::atomic<bool> m_isPaused = false;
+  std::atomic<int32_t> m_pausedCounter = 0;
 
   Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
                        "api.server.metrics", "API server metrics", "units",

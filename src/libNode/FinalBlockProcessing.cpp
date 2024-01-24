@@ -850,7 +850,7 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
 
   // Loop for a long time waiting for the microblock details from peers
   bool found_mbs = false;
-  for (int i = 0; i < 3 && !found_mbs; ++i) {
+  for (int i = 0; i < 10 && !found_mbs; ++i) {
     {
       lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
 
@@ -876,9 +876,12 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
       }
     }  // guard end
 
-    LOG_GENERAL(WARNING,
-                "TXTRACEGEN: microblock details not found, sleeping: " << hash);
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    if (!found_mbs) {
+      LOG_GENERAL(
+          WARNING,
+          "TXTRACEGEN: microblock details not found, sleeping: " << hash);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
   }
 }
 
@@ -1090,7 +1093,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash, txsToExecute);
     }
 
-    PopulateTxsToExecute(microblockPtrs, txsToExecute);
+    // PopulateTxsToExecute(microblockPtrs, txsToExecute);
 
     for (const auto& t : txsToExecute) {
       // Guard against double exeucuting a TX

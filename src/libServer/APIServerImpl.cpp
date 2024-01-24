@@ -360,9 +360,7 @@ bool APIServerImpl::DoListen() {
   }
 
   LOG_GENERAL(INFO, "API server: trying to start. m_acceptor is opened: "
-                            << m_acceptor->is_open()
-                        ? "true"
-                        : "false");
+                        << (m_acceptor->is_open() ? "true" : "false"));
 
   m_acceptor->open(endpoint.protocol(), ec);
   CHECK_EC();
@@ -376,7 +374,8 @@ bool APIServerImpl::DoListen() {
 #undef CHECK_EC
 
   LOG_GENERAL(
-      INFO, "API server successfully stated, will start accepting connections");
+      INFO,
+      "API server successfully started, will start accepting connections");
 
   AcceptNext();
 
@@ -503,7 +502,7 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
   APIThreadPool::Response response;
   bool error = false;
   try {
-    while (m_isPaused) {
+    while (m_pausedCounter > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
