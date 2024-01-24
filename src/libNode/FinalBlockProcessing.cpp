@@ -718,12 +718,12 @@ bool Node::ProcessVCFinalBlockCore(
   return false;
 }
 
-bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
-                             [[gnu::unused]] const Peer& from,
-                             [[gnu::unused]] const unsigned char& startByte,
-                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
+bool Node::ProcessFinalBlock(
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   LOG_MARKER();
-
   auto lookupServer = m_mediator.m_lookup->GetLookupServer();
   auto apiServer = lookupServer ? lookupServer->GetApiServer() : nullptr;
 
@@ -736,6 +736,92 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
     }
   }
   BOOST_SCOPE_EXIT_END
+
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    return ProcessFinalBlockInner(message, offset, from, startByte, connection);
+  }
+
+  uint64_t dsBlockNumber = 0;
+  uint32_t consensusID = 0;
+  TxBlock txBlock;
+  zbytes stateDelta;
+  LOG_GENERAL(WARNING,
+              "Processing final block with committee size: "
+                  << m_mediator.m_DSCommittee->size()
+                  << ", shard size: " << std::size(m_mediator.m_ds->m_shards));
+  if (LOOKUP_NODE_MODE) {
+    if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
+      // Buffer the Final Block
+      lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
+      m_seedTxnBlksBuffer.push_back(message);
+      LOG_GENERAL(INFO, "Seed not synced, buffered this FBLK");
+      return false;
+    } else {
+      // If seed node is synced and have buffered txn blocks
+      lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
+      if (!m_seedTxnBlksBuffer.empty()) {
+        LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
+        for (const auto& m : m_seedTxnBlksBuffer) {
+          if (!Messenger::GetNodeFinalBlock(m, offset, dsBlockNumber,
+                                            consensusID, txBlock, stateDelta)) {
+            LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                      "Messenger::GetNodeFinalBlock failed.");
+            return false;
+          }
+          if (!ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock,
+                                     stateDelta)) {
+            // ignore bufferred final blocks because rejoin must have been
+            // already
+            break;
+          }
+        }
+        // clear the buffer since all buffered ones are checked and processed
+        m_seedTxnBlksBuffer.clear();
+      }
+    }
+  }
+
+  if (!Messenger::GetNodeFinalBlock(message, offset, dsBlockNumber, consensusID,
+                                    txBlock, stateDelta)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetNodeFinalBlock failed.");
+    return false;
+  }
+
+  if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && MULTIPLIER_SYNC_MODE) {
+      // Reached here. Final block was processed successfully.
+      // Avoid using the original message in case it contains
+      // excess data beyond the FINALBLOCK
+      zbytes vc_fb_message = {MessageType::NODE,
+                              NodeInstructionType::VCFINALBLOCK};
+      /*
+        Check if the VCBlock exist in local store for key:
+        txBlock.GetHeader().GetBlockNum()
+      */
+      std::lock_guard<mutex> g1(m_mutexvcBlocksStore);
+      if (!Messenger::SetNodeVCFinalBlock(vc_fb_message, MessageOffset::BODY,
+                                          dsBlockNumber, consensusID, txBlock,
+                                          stateDelta, m_vcBlockStore)) {
+        LOG_GENERAL(WARNING, "Messenger::SetNodeVCFinalBlock failed");
+      } else {
+        // Store to local map for VCFINALBLOCK
+        m_vcFinalBlockStore[txBlock.GetHeader().GetBlockNum()] = vc_fb_message;
+      }
+      // Clear the vc blocks store
+      m_vcBlockStore.clear();
+    }
+    return true;
+  }
+
+  return false;
+}
+
+bool Node::ProcessFinalBlockInner(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection>) {
+  LOG_MARKER();
 
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
