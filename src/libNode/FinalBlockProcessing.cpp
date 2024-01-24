@@ -886,7 +886,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
   zil::local::variables.SetLastBlockHeight(txBlock.GetHeader().GetBlockNum());
-  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ENTER");
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
@@ -1113,6 +1113,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     for (const auto& txnHash : txsExecuted) {
       m_pendingTxns.erase(txnHash);
     }
+    LOG_GENERAL(WARNING, "TXTRACEGEN: finished");
   }
   LOG_GENERAL(
       WARNING,
@@ -1121,7 +1122,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
   }
-
+  LOG_GENERAL(
+      WARNING,
+      "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock Completed");
   if (isVacuousEpoch) {
     unordered_map<Address, int256_t> addressMap;
     if (!Messenger::StateDeltaToAddressMap(stateDelta, 0, addressMap)) {

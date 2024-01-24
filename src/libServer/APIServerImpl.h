@@ -21,6 +21,8 @@
 #include "APIServer.h"
 
 #include <jsonrpccpp/server/abstractserverconnector.h>
+#include <libUtils/Logger.h>
+
 #include <atomic>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -65,7 +67,10 @@ class APIServerImpl : public APIServer,
   jsonrpc::AbstractServerConnector& GetRPCServerBackend() override;
   void Close() override;
 
-  void Pause(bool value) override { m_isPaused = value; }
+  void Pause(bool value) override {
+    m_isPaused = value;
+    LOG_GENERAL(INFO, "API server is: " << (value ? "paused" : "resumed"));
+  }
 
   // AbstractServerConnector overrides
   bool StartListening() override;
