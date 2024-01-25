@@ -799,9 +799,9 @@ Json::Value LookupServer::GetLatestTxBlock() {
 
   TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-  LOG_GENERAL(DEBUG, m_mediator.m_currentEpochNum,
-              "BlockNum " << Latest.GetHeader().GetBlockNum()
-                          << "  Timestamp:        " << Latest.GetTimestamp());
+  LOG_GENERAL(DEBUG, "BlockNum "
+                         << Latest.GetHeader().GetBlockNum()
+                         << "  Timestamp:        " << Latest.GetTimestamp());
 
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
