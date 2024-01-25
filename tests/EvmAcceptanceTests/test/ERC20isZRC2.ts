@@ -79,7 +79,7 @@ describe("ERC20 Is ZRC2", function () {
   });
 
   it("Should return token name via bridge contract", async function () {
-    expect(await erc20_contract.tokenName()).to.be.eq("ERC20isZRC2 Token");
+    expect(await erc20_contract.name()).to.be.eq("ERC20isZRC2 Token");
   });
 
   it("Should be able to transfer via erc20", async function () {
@@ -91,7 +91,7 @@ describe("ERC20 Is ZRC2", function () {
     {
       const events = receipt["events"];
       validateScillaEvent("TransferSuccess", zrc2_contract.address!, events[0]);
-      validateEvmEvent("TransferEvent", erc20_contract.address, events[1]);
+      validateEvmEvent("Transfer", erc20_contract.address, events[1]);
     }
   });
 
@@ -103,7 +103,7 @@ describe("ERC20 Is ZRC2", function () {
     {
       const events = receipt["events"];
       validateScillaEvent("IncreasedAllowance", zrc2_contract.address!, events[0]);
-      validateEvmEvent("IncreasedAllowanceEvent", erc20_contract.address, events[1]);
+      validateEvmEvent("IncreasedAllowance", erc20_contract.address, events[1]);
     }
     let aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
     expect(aliceAllowance).to.be.eq(50);
@@ -114,7 +114,7 @@ describe("ERC20 Is ZRC2", function () {
     {
       const events = receipt["events"];
       validateScillaEvent("IncreasedAllowance", zrc2_contract.address!, events[0]);
-      validateEvmEvent("IncreasedAllowanceEvent", erc20_contract.address, events[1]);
+      validateEvmEvent("IncreasedAllowance", erc20_contract.address, events[1]);
     }
 
     aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());
@@ -126,7 +126,7 @@ describe("ERC20 Is ZRC2", function () {
     {
       const events = receipt["events"];
       validateScillaEvent("DecreasedAllowance", zrc2_contract.address!, events[0]);
-      validateEvmEvent("DecreasedAllowanceEvent", erc20_contract.address, events[1]);
+      validateEvmEvent("DecreasedAllowance", erc20_contract.address, events[1]);
     }
 
     aliceAllowance = await erc20_contract.allowance(await alice.getAddress(), await contractOwner.getAddress());

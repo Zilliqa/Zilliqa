@@ -634,8 +634,6 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
   INC_CALLS(GetCallsCounter());
 
-  LOG_MARKER();
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -795,17 +793,15 @@ Json::Value LookupServer::GetLatestDsBlock() {
 Json::Value LookupServer::GetLatestTxBlock() {
   INC_CALLS(GetCallsCounter());
 
-  LOG_MARKER();
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
 
   TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "BlockNum " << Latest.GetHeader().GetBlockNum()
-                        << "  Timestamp:        " << Latest.GetTimestamp());
+  LOG_GENERAL(DEBUG, "BlockNum "
+                         << Latest.GetHeader().GetBlockNum()
+                         << "  Timestamp:        " << Latest.GetTimestamp());
 
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -831,7 +827,7 @@ Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
 
       ret["balance"] = balance.str();
       ret["nonce"] = static_cast<unsigned int>(nonce);
-      LOG_GENERAL(INFO,
+      LOG_GENERAL(DEBUG,
                   "DEBUG: Addr: " << address << " balance: " << balance.str()
                                   << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
@@ -841,7 +837,7 @@ Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
 
     return ret;
   } catch (const JsonRpcException& je) {
-    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
+    LOG_GENERAL(DEBUG, "[Error] getting balance" << je.GetMessage());
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
