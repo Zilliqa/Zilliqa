@@ -793,17 +793,15 @@ Json::Value LookupServer::GetLatestDsBlock() {
 Json::Value LookupServer::GetLatestTxBlock() {
   INC_CALLS(GetCallsCounter());
 
-  LOG_MARKER();
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
 
   TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "BlockNum " << Latest.GetHeader().GetBlockNum()
-                        << "  Timestamp:        " << Latest.GetTimestamp());
+  LOG_GENERAL(DEBUG, m_mediator.m_currentEpochNum,
+              "BlockNum " << Latest.GetHeader().GetBlockNum()
+                          << "  Timestamp:        " << Latest.GetTimestamp());
 
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
