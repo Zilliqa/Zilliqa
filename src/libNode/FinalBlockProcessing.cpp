@@ -813,34 +813,6 @@ bool Node::ProcessFinalBlock(
   return false;
 }
 
-void Node::PopulateTxsToExecute(
-    std::vector<MicroBlockSharedPtr> const& microblockPtrs,
-    std::vector<Transaction>& txsToExecute) {
-  // Now collect a vector of TXs we need to execute
-  for (auto const& microBlockPtr : microblockPtrs) {
-    const auto& tranHashes = microBlockPtr->GetTranHashes();
-
-    // Loop through the TX hashes making sure we have a corresponding TX
-    for (const auto& transactionHash : tranHashes) {
-      for (int ii = 0; ii < 2; ++ii) {
-        TxBodySharedPtr transactionBodyPtr;
-
-        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                       transactionBodyPtr)) {
-          LOG_GENERAL(WARNING, "TXTRACEGEN: FAILED to get tx body for: "
-                                   << transactionHash);
-          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-          continue;
-        } else {
-          LOG_GENERAL(WARNING,
-                      "TXTRACEGEN: FOUND tx body for: " << transactionHash);
-          txsToExecute.push_back(transactionBodyPtr->GetTransaction());
-        }
-      }
-    }
-  }
-}
-
 // Helper function to get the transactions, in order, corresponding to a given
 // microblock
 void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
@@ -1092,8 +1064,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
       PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash, txsToExecute);
     }
-
-    // PopulateTxsToExecute(microblockPtrs, txsToExecute);
 
     for (const auto& t : txsToExecute) {
       // Guard against double exeucuting a TX

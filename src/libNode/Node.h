@@ -283,9 +283,6 @@ class Node : public Executable {
   void PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
                            BlockHash const& hash,
                            std::vector<Transaction>& txsToExecute);
-  void PopulateTxsToExecute(
-      std::vector<MicroBlockSharedPtr> const& microblockPtrs,
-      std::vector<Transaction>& txsToExecute);
 
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,
