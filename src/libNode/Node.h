@@ -276,9 +276,6 @@ class Node : public Executable {
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte,
                          std::shared_ptr<zil::p2p::P2PServerConnection>);
-  bool ProcessFinalBlockInner(const zbytes& message, unsigned int offset,
-                              const Peer& from, const unsigned char& startByte,
-                              std::shared_ptr<zil::p2p::P2PServerConnection>);
 
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
                              TxBlock& txBlock, zbytes& stateDelta);
