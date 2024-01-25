@@ -21,6 +21,8 @@
 #include "APIServer.h"
 
 #include <jsonrpccpp/server/abstractserverconnector.h>
+#include <libUtils/Logger.h>
+
 #include <atomic>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -65,7 +67,14 @@ class APIServerImpl : public APIServer,
   jsonrpc::AbstractServerConnector& GetRPCServerBackend() override;
   void Close() override;
 
-  void Pause(bool value) override { m_isPaused = value; }
+  void Pause(bool value) override {
+    if (value) {
+      m_pausedCounter += 1;
+    } else {
+      m_pausedCounter -= 1;
+    }
+    LOG_GENERAL(INFO, "API server is: " << (value > 0 ? "paused" : "resumed"));
+  }
 
   // AbstractServerConnector overrides
   bool StartListening() override;
@@ -120,7 +129,7 @@ class APIServerImpl : public APIServer,
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
 
-  std::atomic<bool> m_isPaused = false;
+  std::atomic<int32_t> m_pausedCounter = 0;
 
   Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
                        "api.server.metrics", "API server metrics", "units",

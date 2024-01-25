@@ -352,12 +352,15 @@ bool APIServerImpl::DoListen() {
 
   beast::error_code ec;
 
-#define CHECK_EC()                                                             \
-  if (ec) {                                                                    \
-    LOG_GENERAL(FATAL, "Cannot start API server: " << ec.message() << " port " \
-                                                   << m_options.port);         \
-    return false;                                                              \
+#define CHECK_EC()                                                           \
+  if (ec) {                                                                  \
+    LOG_GENERAL(WARNING, "Cannot start API server: "                         \
+                             << ec.message() << " port " << m_options.port); \
+    return false;                                                            \
   }
+
+  LOG_GENERAL(INFO, "API server: trying to start. m_acceptor is opened: "
+                        << (m_acceptor->is_open() ? "true" : "false"));
 
   m_acceptor->open(endpoint.protocol(), ec);
   CHECK_EC();
@@ -369,6 +372,10 @@ bool APIServerImpl::DoListen() {
   CHECK_EC();
 
 #undef CHECK_EC
+
+  LOG_GENERAL(
+      INFO,
+      "API server successfully started, will start accepting connections");
 
   AcceptNext();
 
@@ -434,14 +441,16 @@ bool APIServerImpl::StartListening() {
 }
 
 bool APIServerImpl::StopListening() {
+  LOG_MARKER();
   if (m_active) {
     m_active = false;
-
+    LOG_GENERAL(INFO, "API server was active, will try to stop it");
     m_threadPool->Reset();
 
     assert(m_websocket);
     m_websocket->CloseAll();
 
+    LOG_GENERAL(INFO, "API server: posting close operation to threadpool");
     m_options.asio->post([self = shared_from_this()] {
       beast::error_code ignored;
       self->m_acceptor->close(ignored);
@@ -450,6 +459,7 @@ bool APIServerImpl::StopListening() {
         conn.second->Close();
       }
       self->m_connections.clear();
+      LOG_GENERAL(INFO, "API server is stopped now");
     });
   }
   return true;
@@ -492,7 +502,7 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
   APIThreadPool::Response response;
   bool error = false;
   try {
-    while (m_isPaused) {
+    while (m_pausedCounter > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 

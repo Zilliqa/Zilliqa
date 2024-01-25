@@ -276,15 +276,13 @@ class Node : public Executable {
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte,
                          std::shared_ptr<zil::p2p::P2PServerConnection>);
+
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
                              TxBlock& txBlock, zbytes& stateDelta);
 
   void PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
                            BlockHash const& hash,
                            std::vector<Transaction>& txsToExecute);
-  void PopulateTxsToExecute(
-      std::vector<MicroBlockSharedPtr> const& microblockPtrs,
-      std::vector<Transaction>& txsToExecute);
 
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,

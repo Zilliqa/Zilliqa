@@ -718,12 +718,12 @@ bool Node::ProcessVCFinalBlockCore(
   return false;
 }
 
-bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
-                             [[gnu::unused]] const Peer& from,
-                             [[gnu::unused]] const unsigned char& startByte,
-                             std::shared_ptr<zil::p2p::P2PServerConnection>) {
+bool Node::ProcessFinalBlock(
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte,
+    std::shared_ptr<zil::p2p::P2PServerConnection> connection) {
   LOG_MARKER();
-
   auto lookupServer = m_mediator.m_lookup->GetLookupServer();
   auto apiServer = lookupServer ? lookupServer->GetApiServer() : nullptr;
 
@@ -813,34 +813,6 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   return false;
 }
 
-void Node::PopulateTxsToExecute(
-    std::vector<MicroBlockSharedPtr> const& microblockPtrs,
-    std::vector<Transaction>& txsToExecute) {
-  // Now collect a vector of TXs we need to execute
-  for (auto const& microBlockPtr : microblockPtrs) {
-    const auto& tranHashes = microBlockPtr->GetTranHashes();
-
-    // Loop through the TX hashes making sure we have a corresponding TX
-    for (const auto& transactionHash : tranHashes) {
-      for (int ii = 0; ii < 2; ++ii) {
-        TxBodySharedPtr transactionBodyPtr;
-
-        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                       transactionBodyPtr)) {
-          LOG_GENERAL(WARNING, "TXTRACEGEN: FAILED to get tx body for: "
-                                   << transactionHash);
-          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-          continue;
-        } else {
-          LOG_GENERAL(WARNING,
-                      "TXTRACEGEN: FOUND tx body for: " << transactionHash);
-          txsToExecute.push_back(transactionBodyPtr->GetTransaction());
-        }
-      }
-    }
-  }
-}
-
 // Helper function to get the transactions, in order, corresponding to a given
 // microblock
 void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
@@ -850,7 +822,7 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
 
   // Loop for a long time waiting for the microblock details from peers
   bool found_mbs = false;
-  for (int i = 0; i < 3 && !found_mbs; ++i) {
+  for (int i = 0; i < 10 && !found_mbs; ++i) {
     {
       lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
 
@@ -876,9 +848,12 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
       }
     }  // guard end
 
-    LOG_GENERAL(WARNING,
-                "TXTRACEGEN: microblock details not found, sleeping: " << hash);
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    if (!found_mbs) {
+      LOG_GENERAL(
+          WARNING,
+          "TXTRACEGEN: microblock details not found, sleeping: " << hash);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
   }
 }
 
@@ -886,7 +861,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
   zil::local::variables.SetLastBlockHeight(txBlock.GetHeader().GetBlockNum());
-  LOG_GENERAL(WARNING, "Node::ProcessFinalBlockCore ENTER");
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
@@ -1090,8 +1065,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash, txsToExecute);
     }
 
-    PopulateTxsToExecute(microblockPtrs, txsToExecute);
-
     for (const auto& t : txsToExecute) {
       // Guard against double exeucuting a TX
       if (txsExecuted.insert(t.GetTranID()).second) {
@@ -1113,6 +1086,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     for (const auto& txnHash : txsExecuted) {
       m_pendingTxns.erase(txnHash);
     }
+    LOG_GENERAL(WARNING, "TXTRACEGEN: finished");
   }
   LOG_GENERAL(
       WARNING,
@@ -1121,7 +1095,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
   }
-
+  LOG_GENERAL(
+      WARNING,
+      "Node::ProcessFinalBlockCore ProcessStateDeltaFromFinalBlock Completed");
   if (isVacuousEpoch) {
     unordered_map<Address, int256_t> addressMap;
     if (!Messenger::StateDeltaToAddressMap(stateDelta, 0, addressMap)) {
