@@ -93,6 +93,7 @@ class RemoteStorageDB : boost::noncopyable {
     static RemoteStorageDB rsDB;
     return rsDB;
   }
+  static auto constexpr ETH_KEY = "eth";
 
  private:
   mongoConnection GetConnection();

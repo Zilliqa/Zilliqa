@@ -2134,7 +2134,7 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
 
     TxnHash tranHash(txnhash);
 
-    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(tranHash);
+    auto result = RemoteStorageDB::GetInstance().QueryTxnHash(tranHash);
 
     if (result.isMember("error")) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
@@ -2142,6 +2142,7 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
       // No txnhash matches the one in DB
       throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");
     }
+    result.removeMember(RemoteStorageDB::ETH_KEY);
     return result;
   } catch (const JsonRpcException& je) {
     throw je;
