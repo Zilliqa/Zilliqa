@@ -1166,26 +1166,17 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
     if (!isPresent) {
       try {
         // Check if transaction was recoreded in mongo
-        LOG_GENERAL(WARNING,
-                    "BZ Transaction not present in block, query pending");
         TxnHash hash(transactionHash);
-        ;
         const auto db_json = RemoteStorageDB::GetInstance().QueryTxnHash(hash);
-        LOG_GENERAL(WARNING,
-                    "BZ DBJSON is: " +
-                        JSONUtils::GetInstance().convertJsontoStr(db_json));
         if (db_json.isMember(RemoteStorageDB::ETH_KEY) &&
             db_json.isMember("status")) {
-          LOG_GENERAL(WARNING, "BZ EHT key present");
           const auto status = db_json["status"];
           if (status.isInt() &&
               status.asInt() <=
                   static_cast<int>(
                       TxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED)) {
-            LOG_GENERAL(WARNING, "RETURNING ETH_KEY");
             return db_json[RemoteStorageDB::ETH_KEY];
           }
-          LOG_GENERAL(WARNING, "RETURNING NULL!");
           return Json::nullValue;
         }
         return Json::nullValue;
