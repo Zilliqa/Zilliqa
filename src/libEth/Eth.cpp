@@ -456,7 +456,7 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          uint32_t logIndex) {
   for (auto &logEntry : logsArrayFromEvm) {
     logEntry["removed"] = false;
-    logEntry["transactionIndex"] = transactionIndex;
+    logEntry["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
