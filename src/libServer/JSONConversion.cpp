@@ -769,6 +769,97 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   return retJson;
 }
 
+Json::Value JSONConversion::convertPendingTxtoEthJson(const Transaction& tx) {
+  Json::Value retJson;
+
+  retJson["blockNumber"] = Json::nullValue;
+  retJson["blockHash"] = Json::nullValue;
+  retJson["from"] = "0x" + tx.GetSenderAddr().hex();
+  retJson["gas"] = (boost::format("0x%x") % tx.GetGasLimitEth()).str();
+  // ethers also expectes gasLimit and ChainId
+  retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitEth()).str();
+  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
+  retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
+  retJson["hash"] = "0x" + tx.GetTranID().hex();
+
+  // Concatenated Code and CallData form input entry in response json
+  std::string inputField;
+
+  if (!tx.GetCode().empty()) {
+    inputField =
+        "0x" + DataConversion::Uint8VecToHexStrRet(StripEVM(tx.GetCode()));
+  }
+
+  if (!tx.GetData().empty()) {
+    const auto callData = DataConversion::Uint8VecToHexStrRet(tx.GetData());
+    // Append extra '0x' prefix iff GetCode() gave empty string
+    if (inputField.empty()) {
+      inputField += "0x" + callData;
+    } else {
+      inputField += callData;
+    }
+  } else {
+    // Append extra '0x' prefix if GetCode() gave empty string
+    if (inputField.empty()) {
+      inputField = "0x";
+    }
+  }
+
+  retJson["input"] = inputField;
+  // ethers also expects 'data' field
+  retJson["data"] = inputField;
+
+  // NOTE: Nonce is decremented since the internal representation is +1 due to
+  // Zil accounting
+  retJson["nonce"] = (boost::format("0x%x") % (tx.GetNonce() - 1)).str();
+  if (IsNullAddress(tx.GetToAddr())) {
+    retJson["to"] =
+        Json::nullValue;  // special for contract creation transactions.
+  } else {
+    retJson["to"] = "0x" + tx.GetToAddr().hex();
+  }
+  retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
+  if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
+    retJson["contractAddress"] =
+        "0x" + Account::GetAddressForContract(tx.GetSenderAddr(),
+                                              tx.GetNonce() - 1,
+                                              tx.GetVersionIdentifier())
+                   .hex();
+  }
+  switch (tx.GetVersionIdentifier()) {
+    case TRANSACTION_VERSION:
+      // Return a type of 0 for native Zilliqa transactions too.
+      retJson["type"] = "0x0";
+      break;
+    case TRANSACTION_VERSION_ETH_LEGACY:
+      retJson["type"] = "0x0";
+      break;
+    case TRANSACTION_VERSION_ETH_EIP_2930:
+      retJson["type"] = "0x1";
+      retJson["accessList"] = convertAccessList(tx.GetCoreInfo().accessList);
+      break;
+    case TRANSACTION_VERSION_ETH_EIP_1559:
+      retJson["type"] = "0x2";
+      retJson["accessList"] = convertAccessList(tx.GetCoreInfo().accessList);
+      retJson["maxPriorityFeePerGas"] =
+          (boost::format("0x%x") % tx.GetCoreInfo().maxPriorityFeePerGas).str();
+      retJson["maxFeePerGas"] =
+          (boost::format("0x%x") % tx.GetCoreInfo().maxFeePerGas).str();
+      break;
+    default:
+      LOG_GENERAL(WARNING, "Invalid transaction type");
+      break;
+  }
+
+  std::string sig{tx.GetSignature()};
+  retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  retJson["r"] = GetR(sig);
+  retJson["s"] = GetS(sig);
+
+  retJson["transactionIndex"] = Json::nullValue;
+  return retJson;
+}
+
 const Json::Value JSONConversion::convertAccessList(
     const AccessList& accessList) {
   Json::Value result = Json::arrayValue;

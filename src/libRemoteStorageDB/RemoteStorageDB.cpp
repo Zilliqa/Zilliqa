@@ -218,6 +218,9 @@ bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
   tx_json["epochUpdated"] = to_string(epoch);
   tx_json["lastModified"] = to_string(get_time_as_int());
   tx_json["modificationState"] = static_cast<int>(GetModificationState(status));
+  if (txn.IsEth()) {
+    tx_json[ETH_KEY] = JSONConversion::convertPendingTxtoEthJson(txn);
+  }
 
   try {
     const bsoncxx::document::value& doc_val =
