@@ -16,6 +16,8 @@
  */
 #include "EthRpcMethods.h"
 #include <jsonrpccpp/common/exception.h>
+#include <libRemoteStorageDB/RemoteStorageDB.h>
+
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -1162,7 +1164,25 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactionBodyPtr);
     if (!isPresent) {
-      return Json::nullValue;
+      try {
+        // Check if transaction was recoreded in mongo
+        TxnHash hash(transactionHash);
+        const auto db_json = RemoteStorageDB::GetInstance().QueryTxnHash(hash);
+        if (db_json.isMember(RemoteStorageDB::ETH_KEY) &&
+            db_json.isMember("status")) {
+          const auto status = db_json["status"];
+          if (status.isInt() &&
+              status.asInt() <=
+                  static_cast<int>(
+                      TxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED)) {
+            return db_json[RemoteStorageDB::ETH_KEY];
+          }
+          return Json::nullValue;
+        }
+        return Json::nullValue;
+      } catch (...) {
+        return Json::nullValue;
+      }
     }
 
     const TxBlock EMPTY_BLOCK;

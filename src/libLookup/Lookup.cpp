@@ -5288,9 +5288,10 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " fromAddr "
                                  << tx.GetSenderAddr()
                                  << ", nonce: " << tx.GetNonce());
-  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+  if (REMOTESTORAGE_DB_ENABLE && ARCHIVAL_LOOKUP) {
     RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
                                              m_mediator.m_currentEpochNum);
+    RemoteStorageDB::GetInstance().ExecuteWrite();
   }
 
   return true;
