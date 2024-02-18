@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <optional>
 
 #include <boost/asio.hpp>
@@ -50,6 +51,9 @@ int main(int argc, const char* argv[]) {
     Peer my_network_info;
     string privK;
     string pubK;
+    string line;
+    ifstream privKFile;
+    ifstream extSeedPrivKFile;
     PrivKey privkey;
     PubKey pubkey;
     string extSeedPrivK;
@@ -111,7 +115,13 @@ int main(int argc, const char* argv[]) {
       po::notify(vm);
 
       try {
-        privkey = PrivKey::GetPrivKeyFromString(privK);
+        privKFile.open(privK);
+        if (privKFile.fail()) {
+          privkey = PrivKey::GetPrivKeyFromString(privK);
+        } else {
+          getline(privKFile, line);
+          privkey = PrivKey::GetPrivKeyFromString(line);
+        }
       } catch (std::invalid_argument& e) {
         std::cerr << e.what() << endl;
         return ERROR_IN_COMMAND_LINE;
@@ -130,7 +140,13 @@ int main(int argc, const char* argv[]) {
           return ERROR_IN_COMMAND_LINE;
         }
         if (!extSeedPrivK.empty()) {
-          extSeedPrivKey = PrivKey::GetPrivKeyFromString(extSeedPrivK);
+          extSeedPrivKFile.open(extSeedPrivK);
+          if (extSeedPrivKFile.fail()) {
+            extSeedPrivKey = PrivKey::GetPrivKeyFromString(extSeedPrivK);
+          } else {
+            getline(extSeedPrivKFile, line);
+            extSeedPrivKey = PrivKey::GetPrivKeyFromString(line);
+          }
           extSeedPubKey = PubKey(extSeedPrivKey);
         }
       } catch (std::invalid_argument& e) {
