@@ -28,7 +28,7 @@
 #include "libTestUtils/TestUtils.h"
 #include <cassert>
 
-#define BOOST_TEST_MODULE remotemine 
+#define BOOST_TEST_MODULE remotemine
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(test_remoteMineHeaderHashGenerate) {
   std::cout << "computedHeaderHash = "
             << POW::BlockhashToHexString(computedHeaderHash) << std::endl;
   BOOST_REQUIRE_MESSAGE(POW::BlockhashToHexString(computedHeaderHash) == expectedHeaderhash,
-                        "Obtained: " << expectedHeaderhash);
+                        "Obtained: " << computedHeaderHash);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
