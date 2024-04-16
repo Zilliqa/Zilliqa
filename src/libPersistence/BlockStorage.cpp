@@ -2283,6 +2283,13 @@ std::vector<std::string> BlockStorage::GetOtterTxAddressMapping(
     std::reverse(addresses.begin(), addresses.end());
   }
 
+  std::unordered_set<std::string> visited;
+
+  addresses.erase(std::remove_if(addresses.begin(), addresses.end(),
+                                 [&](const auto& value) {
+                                   return !visited.insert(value).second;
+                                 }),
+                  addresses.end());
   return addresses;
 }
 

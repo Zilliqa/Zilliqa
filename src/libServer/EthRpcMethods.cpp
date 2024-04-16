@@ -2080,7 +2080,15 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(
     Json::Value txs = Json::arrayValue;
     Json::Value receipts = Json::arrayValue;
 
+    std::unordered_set<std::string> visited;
+
     for (const auto &hash : res) {
+      if (visited.contains(hash)) {
+        continue;
+      }
+
+      visited.insert(hash);
+
       // Get Tx result
       auto const txByHash = GetEthTransactionByHash(hash);
       auto txReceipt = GetEthTransactionReceipt(hash);
