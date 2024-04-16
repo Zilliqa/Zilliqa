@@ -356,6 +356,8 @@
         <SHARDLDR_SAVE_TXN_LOCALLY>false</SHARDLDR_SAVE_TXN_LOCALLY>
         <BLOOM_FILTER_FALSE_RATE>0.000001</BLOOM_FILTER_FALSE_RATE>
         <TXN_DISPATCH_ATTEMPT_LIMIT>3</TXN_DISPATCH_ATTEMPT_LIMIT>
+        <!--MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT = Sometimes txns are rejected silently so to invalidate those nonces-->
+        <MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT>10</MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT>
     </transactions>
     <metric>
         <zilliqa>

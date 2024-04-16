@@ -1108,16 +1108,14 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       if (it != addressMap.end()) {
         auto reward = it->second;
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "[REWARD]"
-                      << " Got " << reward << " as reward");
+                  "[REWARD]" << " Got " << reward << " as reward");
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << m_mediator.m_currentEpochNum << "]["
                               << reward << "] FLBLK");
       } else {
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "[REWARD]"
-                      << "Got no reward this ds epoch");
+                  "[REWARD]" << "Got no reward this ds epoch");
       }
     }
   }
@@ -1183,6 +1181,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     if (!LOOKUP_NODE_MODE) {
       QueryLookupForDSGuardNetworkInfoUpdate();
     }
+    m_mediator.m_lookup->ClearCurrDSEpochTxnLiteMemPool();
 
     if (m_mediator.m_ds->m_dsEpochAfterUpgrade) {
       m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
@@ -1395,10 +1394,18 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
 
     auto& cache_upd = m_mediator.m_filtersAPICache->GetUpdate();
+    m_mediator.m_lookup
+        ->PrintAllTransactionsInTxnLiteMemPool();  // TODO Remove this function
 
     for (const auto& twr : entry.m_transactions) {
       const auto& tran = twr.GetTransaction();
       const auto& txhash = tran.GetTranID();
+
+      if (tran.IsEth()) {
+        m_mediator.m_lookup->RemoveTxnFromCurrentTxnLiteMemPool(
+            tran.GetSenderAddr(), txhash);
+      }
+      m_mediator.m_lookup->PrintAllTransactionsInTxnLiteMemPool();
 
       LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
 

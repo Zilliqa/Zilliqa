@@ -4,6 +4,7 @@ add_library(AccountData
     Transaction.cpp
     LogEntry.cpp
     TransactionReceipt.cpp
+    TransactionLite.cpp
     InvokeType.h
         ../AccountStore/services/evm/EvmProcessContext.cpp)
 target_include_directories(AccountData PUBLIC ${PROJECT_SOURCE_DIR}/src)

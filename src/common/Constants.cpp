@@ -728,6 +728,8 @@ const unsigned int REWARD_EACH_MUL_IN_MILLIS{ReadConstantNumeric(
     "REWARD_EACH_MUL_IN_MILLIS", "node.transactions.", 1668)};
 const unsigned int BASE_REWARD_MUL_IN_MILLIS{ReadConstantNumeric(
     "BASE_REWARD_MUL_IN_MILLIS", "node.transactions.", 4726)};
+const unsigned int MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT{ReadConstantNumeric(
+    "MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT", "node.transactions.", 10)};
 const unsigned int NODE_REWARD_IN_PERCENT{
     ReadConstantNumeric("NODE_REWARD_IN_PERCENT", "node.transactions.", 40)};
 
