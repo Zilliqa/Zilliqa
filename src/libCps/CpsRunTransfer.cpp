@@ -36,9 +36,6 @@ CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, const CpsContext& ctx,
       mAmount(amount) {}
 
 CpsExecuteResult CpsRunTransfer::Run(TransactionReceipt& /*receipt*/) {
-  if (mCpsContext.isStatic) {
-    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
-  }
   if (!mAccountStore.TransferBalanceAtomic(mFrom, mTo, mAmount)) {
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
