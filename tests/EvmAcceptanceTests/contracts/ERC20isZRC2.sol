@@ -3,23 +3,20 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 interface ERC20Interface {
-  function name() external view returns (string memory);
-
-  function symbol() external view returns (string memory);
-
-  function decimals() external view returns (uint8);
-
   function totalSupply() external view returns (uint256);
 
-  function balanceOf(address owner) external view returns (uint256 balance);
+  function balanceOf(address account) external view returns (uint256);
 
-  function transfer(address dst, uint128 amount) external returns (bool success);
+  function transfer(address to, uint256 amount) external returns (bool);
 
   function transferFrom(address src, address dst, uint128 amount) external returns (bool success);
 
-  function approve(address spender, uint128 amount) external returns (bool success);
+  function approve(address spender, uint256 amount) external returns (bool);
 
-  function allowance(address owner, address spender) external view returns (uint256 remaining);
+  function allowance(address owner, address spender) external view returns (uint256);
+
+  event Transfer(address indexed from, address indexed to, uint256 value);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
 
   event Transfer();
   event DecreasedAllowance();
@@ -38,7 +35,7 @@ library ScillaConnector {
    * @param arg1 The first argument to the function
    * @param arg2 The second argument to the function
    */
-  function call(address target, string memory tran_name, address arg1, uint128 arg2) internal {
+  function call(address target, string memory tran_name, address arg1, uint256 arg2) internal {
     bytes memory encodedArgs = abi.encode(target, tran_name, CALL_SCILLA_WITH_THE_SAME_SENDER, arg1, arg2);
     uint256 argsLength = encodedArgs.length;
 
@@ -63,7 +60,7 @@ library ScillaConnector {
    * @param arg2 The second argument to the function
    * @param arg3 The third argument to the function
    */
-  function call(address target, string memory tran_name, address arg1, address arg2, uint128 arg3) internal {
+  function call(address target, string memory tran_name, address arg1, address arg2, uint256 arg3) internal {
     bytes memory encodedArgs = abi.encode(target, tran_name, CALL_SCILLA_WITH_THE_SAME_SENDER, arg1, arg2, arg3);
     uint256 argsLength = encodedArgs.length;
 
@@ -256,7 +253,7 @@ contract ERC20isZRC2 is ERC20Interface {
     return zrc2_address.read_map_uint128("balances", tokenOwner);
   }
 
-  function transfer(address to, uint128 tokens) external returns (bool) {
+  function transfer(address to, uint256 tokens) external returns (bool) {
     zrc2_address.call("Transfer", to, tokens);
     emit Transfer();
     return true;
@@ -276,7 +273,7 @@ contract ERC20isZRC2 is ERC20Interface {
     return zrc2_address.read_nested_map_uint128("allowances", tokenOwner, spender);
   }
 
-  function approve(address spender, uint128 new_allowance) external returns (bool) {
+  function approve(address spender, uint256 new_allowance) external returns (bool) {
     uint128 current_allowance = zrc2_address.read_nested_map_uint128("allowances", msg.sender, spender);
     if (current_allowance >= new_allowance) {
       zrc2_address.call("DecreaseAllowance", spender, current_allowance - new_allowance);
