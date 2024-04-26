@@ -6,8 +6,6 @@ import logDebug from "../../helpers/DebugHelper";
 import {Contract} from "ethers";
 import {expect} from "chai";
 
-
-
 const METHOD = "eth_getTransactionReceipt";
 
 describe(`Calling ${METHOD} #parallel`, function () {
@@ -200,5 +198,4 @@ describe(`Calling ${METHOD} #parallel`, function () {
       assert.match(result.result.logs[0].logIndex, /^0x/, "Should be HEX starting with 0x");
     });
   });
-
 });

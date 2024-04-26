@@ -1,6 +1,7 @@
 import {assert, expect} from "chai";
 import {BigNumber, Contract} from "ethers";
 import hre, {ethers} from "hardhat";
+import {TransactionRequest} from "@ethersproject/abstract-provider";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
@@ -211,6 +212,39 @@ describe("Transfer ethers #parallel", function () {
     const receivedBal = await ethers.provider.getBalance(randomAccount);
 
     expect(receivedBal).to.be.eq(TRANSFER_VALUE);
+    hre.releaseEthSigner(owner);
+  });
+
+  it("probably should be possible to simulate transfer via eth_call", async function () {
+    const TRANSFER_VALUE = 1_000_000;
+
+    // Create random account
+    const rndAccount = ethers.Wallet.createRandom().connect(ethers.provider);
+    const randomAccount = rndAccount.address;
+
+    let initialBal = await ethers.provider.getBalance(randomAccount);
+    expect(initialBal).to.be.eq(0);
+
+    const owner = hre.allocateEthSigner();
+    let InitialOwnerbal = await ethers.provider.getBalance(owner.address);
+
+    // check enough funds + gas
+    expect(InitialOwnerbal).to.be.at.least(TRANSFER_VALUE * 1.1);
+
+    // Deploy the contract
+    const singleTransfer = await hre.deployContractWithSigner("SingleTransfer", owner);
+
+    let data = singleTransfer.interface.encodeFunctionData("doTransfer", [randomAccount, TRANSFER_VALUE]);
+
+    let transaction: TransactionRequest = {
+      to: singleTransfer.address,
+      from: owner.address,
+      gasLimit: 250000,
+      data: data,
+      value: TRANSFER_VALUE
+    };
+
+    await expect(ethers.provider.call(transaction)).not.to.be.rejected;
     hre.releaseEthSigner(owner);
   });
 
