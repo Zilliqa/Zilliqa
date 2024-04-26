@@ -5257,7 +5257,6 @@ void Lookup::RemoveSeedNodesFromBlackList() {
 
 void Lookup::RemoveTxnFromCurrentTxnLiteMemPool(const Address& address,
                                                 const TxnHash& txnhash) {
-  LOG_MARKER();
   m_txnLiteManager.RemoveTransaction(address, txnhash);
 }
 
@@ -5298,7 +5297,7 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
     TransactionLite lite(tx.GetTranID(), tx.GetNonce(),
                          m_mediator.m_currentEpochNum);
     m_txnLiteManager.AddTransaction(tx.GetSenderAddr(), std::move(lite));
-    PrintAllTransactionsInTxnLiteMemPool();// Remove the print function
+    // PrintAllTransactionsInTxnLiteMemPool();// Remove the print function
   }
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " fromAddr "
                                  << tx.GetSenderAddr()

@@ -54,7 +54,7 @@ class TransactionLiteManager {
 
  private:
   std::mutex m_currDSEpochTxnLiteMemPoolMutex;
-  std::map<Address, std::vector<TransactionLite>> m_txnLiteMemPool;
+  std::unordered_map<Address, std::vector<TransactionLite>> m_txnLiteMemPool;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONLITE_H_

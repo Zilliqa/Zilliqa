@@ -84,17 +84,21 @@ uint64_t TransactionLiteManager::GetHighestNonceForAddress(
                         << " MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT = "
                         << MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT);
   const auto& transactions = m_txnLiteMemPool[address];
-  for (const auto& txn : transactions) {
-    LOG_GENERAL(INFO, txn);
-    uint64_t epochDiff = currentTxEpoch - txn.GetCurrentEpoch();
-    LOG_GENERAL(INFO, "GetHighestNonceForAddress  txn.m_nonce = "
-                          << txn.GetNonce() << " maxNonce =" << maxNonce
-                          << " txepoch = " << txn.GetCurrentEpoch()
-                          << " epochDiff = " << epochDiff);
+  const auto& it = m_txnLiteMemPool.find(address);
+  if (it != m_txnLiteMemPool.end()) {
+    const auto& transactions = it->second;
+    for (const auto& txn : transactions) {
+      LOG_GENERAL(INFO, txn);
+      uint64_t epochDiff = currentTxEpoch - txn.GetCurrentEpoch();
+      LOG_GENERAL(INFO, "GetHighestNonceForAddress  txn.m_nonce = "
+                            << txn.GetNonce() << " maxNonce =" << maxNonce
+                            << " txepoch = " << txn.GetCurrentEpoch()
+                            << " epochDiff = " << epochDiff);
 
-    if (txn.GetNonce() > maxNonce &&
-        epochDiff < MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT) {
-      maxNonce = txn.GetNonce();
+      if (txn.GetNonce() > maxNonce &&
+          epochDiff < MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT) {
+        maxNonce = txn.GetNonce();
+      }
     }
   }
   return maxNonce;

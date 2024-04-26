@@ -1394,8 +1394,8 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
 
     auto& cache_upd = m_mediator.m_filtersAPICache->GetUpdate();
-    m_mediator.m_lookup
-        ->PrintAllTransactionsInTxnLiteMemPool();  // TODO Remove this function
+    // m_mediator.m_lookup ->PrintAllTransactionsInTxnLiteMemPool();  // TODO
+    // Remove this function
 
     for (const auto& twr : entry.m_transactions) {
       const auto& tran = twr.GetTransaction();
@@ -1405,7 +1405,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         m_mediator.m_lookup->RemoveTxnFromCurrentTxnLiteMemPool(
             tran.GetSenderAddr(), txhash);
       }
-      m_mediator.m_lookup->PrintAllTransactionsInTxnLiteMemPool();
+      // m_mediator.m_lookup->PrintAllTransactionsInTxnLiteMemPool();
 
       LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
 
