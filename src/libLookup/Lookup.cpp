@@ -1214,9 +1214,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(
                           LookupInstructionType::SETDSINFOFROMSEED};
 
   if (initialDS) {
-    LOG_GENERAL(WARNING, "[DSINFOVERIF]"
-                             << "Recvd call to send initial ds "
-                             << " Unsupported");
+    LOG_GENERAL(WARNING, "[DSINFOVERIF]" << "Recvd call to send initial ds "
+                                         << " Unsupported");
 
   }
 
@@ -2283,9 +2282,8 @@ bool Lookup::ProcessSetShardFromSeed(
 bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   TxBlock txblk =
       m_mediator.m_txBlockChain.GetBlock(microblock.GetHeader().GetEpochNum());
-  LOG_GENERAL(INFO, "[SendMB]"
-                        << "Add MicroBlock hash: "
-                        << microblock.GetBlockHash());
+  LOG_GENERAL(
+      INFO, "[SendMB]" << "Add MicroBlock hash: " << microblock.GetBlockHash());
   unsigned int i = 0;
 
   // TODO
@@ -2368,8 +2366,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   vector<MicroBlock> retMicroBlocks;
 
   for (const auto& mbhash : microBlockHashes) {
-    LOG_GENERAL(INFO, "[SendMB]"
-                          << "Request for microBlockHash " << mbhash);
+    LOG_GENERAL(INFO, "[SendMB]" << "Request for microBlockHash " << mbhash);
     shared_ptr<MicroBlock> mbptr;
     int retryCount = MAX_FETCH_BLOCK_RETRIES;
 
@@ -2449,8 +2446,7 @@ bool Lookup::ProcessGetMicroBlockFromL2l(
   vector<MicroBlock> retMicroBlocks;
 
   for (const auto& mbhash : microBlockHashes) {
-    LOG_GENERAL(INFO, "[SendMB]"
-                          << "Request for microBlockHash " << mbhash);
+    LOG_GENERAL(INFO, "[SendMB]" << "Request for microBlockHash " << mbhash);
     shared_ptr<MicroBlock> mbptr;
     int retryCount = MAX_FETCH_BLOCK_RETRIES;
 
@@ -2524,9 +2520,8 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
   vector<TxnHash> txnhashes;
 
   for (const auto& mb : mbs) {
-    LOG_GENERAL(INFO, "[SendMB]"
-                          << " Recvd " << mb.GetHeader().GetEpochNum()
-                          << " MBHash:" << mb.GetBlockHash());
+    LOG_GENERAL(INFO, "[SendMB]" << " Recvd " << mb.GetHeader().GetEpochNum()
+                                 << " MBHash:" << mb.GetBlockHash());
     AddMicroBlockToStorage(mb);
     if (!MULTIPLIER_SYNC_MODE) {
       SendGetTxnsFromL2l(mb.GetBlockHash(), mb.GetTranHashes());
@@ -2746,16 +2741,14 @@ bool Lookup::ProcessSetDSInfoFromSeed(
   }
 
   if (initialDS && !LOOKUP_NODE_MODE) {
-    LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                          << "Recvd inital ds config "
-                          << "Call Unsupported");
+    LOG_GENERAL(INFO, "[DSINFOVERIF]" << "Recvd inital ds config "
+                                      << "Call Unsupported");
     return false;
   }
 
   if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
     lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
-    LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                          << "Recvd initial ds config");
+    LOG_GENERAL(INFO, "[DSINFOVERIF]" << "Recvd initial ds config");
     if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
       LOG_GENERAL(WARNING, "The initial ds comm recvd and from file differs "
                                << dsNodes.size() << " "
@@ -3113,12 +3106,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         break;
       }
       case TxBlockValidationMsg::INVALID:
-        LOG_GENERAL(INFO, "[TxBlockVerif]"
-                              << "Invalid blocks");
+        LOG_GENERAL(INFO, "[TxBlockVerif]" << "Invalid blocks");
         break;
       case TxBlockValidationMsg::STALEDSINFO:
-        LOG_GENERAL(INFO, "[TxBlockVerif]"
-                              << "Saved to buffer");
+        LOG_GENERAL(INFO, "[TxBlockVerif]" << "Saved to buffer");
         m_txBlockBuffer.clear();
         for (const auto& txBlock : txBlocks) {
           m_txBlockBuffer.emplace_back(txBlock);
@@ -3183,8 +3174,7 @@ void Lookup::PrepareForStartPow() {
 }
 
 bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
-  LOG_GENERAL(INFO, "[TxBlockVerif]"
-                        << "Success");
+  LOG_GENERAL(INFO, "[TxBlockVerif]" << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
   bool placeholder = false;
@@ -5047,8 +5037,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
   uint64_t dsblocknumbefore =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                        << "Recvd " << dirBlocks.size() << " from lookup");
+  LOG_GENERAL(
+      INFO, "[DSINFOVERIF]" << "Recvd " << dirBlocks.size() << " from lookup");
   {
     if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
       LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
@@ -5060,8 +5050,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
             newDScomm)) {
       LOG_GENERAL(WARNING, "Verification of ds information failed");
     } else {
-      LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << "Verified successfully");
+      LOG_GENERAL(INFO, "[DSINFOVERIF]" << "Verified successfully");
     }
 
     m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
@@ -5266,6 +5255,25 @@ void Lookup::RemoveSeedNodesFromBlackList() {
   }
 }
 
+void Lookup::RemoveTxnFromCurrentTxnLiteMemPool(const Address& address,
+                                                const TxnHash& txnhash) {
+  m_txnLiteManager.RemoveTransaction(address, txnhash);
+}
+
+void Lookup::ClearCurrDSEpochTxnLiteMemPool() {
+  m_txnLiteManager.ClearTransactionLitePool();
+}
+
+uint64_t Lookup::GetHighestNonceForAddressInCurrTxTxnLitePool(
+    const Address& address) {
+  return m_txnLiteManager.GetHighestNonceForAddress(
+      address, m_mediator.m_currentEpochNum);
+}
+
+void Lookup ::PrintAllTransactionsInTxnLiteMemPool() {
+  m_txnLiteManager.PrintAllTransactions();
+}
+
 bool Lookup::AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
                              mutex& txnMemPoolMutex) {
   lock_guard<mutex> g(txnMemPoolMutex);
@@ -5285,6 +5293,12 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
   }
 
   txnMemPool.push_back(tx);
+  if (tx.IsEth()) {
+    TransactionLite lite(tx.GetTranID(), tx.GetNonce(),
+                         m_mediator.m_currentEpochNum);
+    m_txnLiteManager.AddTransaction(tx.GetSenderAddr(), std::move(lite));
+    // PrintAllTransactionsInTxnLiteMemPool();// Remove the print function
+  }
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " fromAddr "
                                  << tx.GetSenderAddr()
                                  << ", nonce: " << tx.GetNonce());
@@ -5457,8 +5471,7 @@ void Lookup::SendTxnPacketToShard(std::vector<Transaction> transactions) {
     }
     zil::p2p::GetInstance().SendBroadcastMessage(toSend, msg);
 
-    LOG_GENERAL(INFO, "[DSMB]"
-                          << " Sent DS the txns");
+    LOG_GENERAL(INFO, "[DSMB]" << " Sent DS the txns");
   }
 }
 
@@ -5596,8 +5609,8 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
                     << transactions.size());
     SendMessageToRandomSeedNode(message);
   } else {
-    // I'm a lookup (non-seed & non-external) - save this message into mempool.
-    // Mempool will be sent to ds members when final block arrives
+    // I'm a lookup (non-seed & non-external) - save this message into
+    // mempool. Mempool will be sent to ds members when final block arrives
     AddTxnToMemPool(transactions);
   }
 

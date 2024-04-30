@@ -32,6 +32,7 @@
 #include "libBlockchain/MicroBlock.h"
 #include "libBlockchain/TxBlock.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionLite.h"
 #include "libNetwork/Executable.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"
@@ -110,6 +111,7 @@ class Lookup : public Executable {
 
   TxnMemPool m_txnMemPool;
   TxnMemPool m_txnMemPoolGenerated;
+
   std::map<Address, uint64_t> m_gentxnAddrLatestNonceSent;
 
   // Get StateDeltas from seed
@@ -176,7 +178,12 @@ class Lookup : public Executable {
   VectorOfNode GetSeedNodes() const;
 
   auto GetTransactionsFromMemPool() const { return m_txnMemPool; }
-
+  TransactionLiteManager m_txnLiteManager;
+  void RemoveTxnFromCurrentTxnLiteMemPool(const Address& address,
+                                          const TxnHash& txn);
+  void ClearCurrDSEpochTxnLiteMemPool();
+  uint64_t GetHighestNonceForAddressInCurrTxTxnLitePool(const Address& address);
+  void PrintAllTransactionsInTxnLiteMemPool();  // Remove Later on
   std::mutex m_txnMemPoolMutex;
   std::mutex m_txnMemPoolGeneratedMutex;
 
@@ -277,7 +284,8 @@ class Lookup : public Executable {
   // Set my lookup ip online in other lookup nodes
   bool GetMyLookupOnline(bool fromRecovery = false);
 
-  // Rejoin the network as a lookup node in case of failure happens in protocol
+  // Rejoin the network as a lookup node in case of failure happens in
+  // protocol
   void RejoinAsLookup(bool fromLookup = true);
 
   // Rejoin the network as a newlookup node in case of failure happens in
@@ -495,7 +503,8 @@ class Lookup : public Executable {
   inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);
 
-  // Create MBnForwardTxn raw message for older txblk if not available in store.
+  // Create MBnForwardTxn raw message for older txblk if not available in
+  // store.
   bool ComposeAndStoreMBnForwardTxnMessage(const uint64_t& blockNum);
 
   // Create VCFinal raw message for older txblk if not available in store.
@@ -591,7 +600,8 @@ class Lookup : public Executable {
   std::condition_variable cv_vcDsBlockProcessed;
   bool m_vcDsBlockProcessed = false;
 
-  // VCFinalblock processed variables - used by seed nodes using PULL P1 option
+  // VCFinalblock processed variables - used by seed nodes using PULL P1
+  // option
   std::mutex m_mutexVCFinalBlockProcessed;
   std::condition_variable cv_vcFinalBlockProcessed;
   bool m_vcFinalBlockProcessed = false;

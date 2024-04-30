@@ -17,8 +17,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 #define ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 
-#include "Server.h"
 #include <jsonrpccpp/common/exception.h>
+#include "Server.h"
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
@@ -78,8 +78,9 @@ class EthRpcMethods {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
 
-    // Because we bypassed the library to validate parameters, we should do it manually.
-    if (request[0].empty() || !request[1].isBool()){
+    // Because we bypassed the library to validate parameters, we should do it
+    // manually.
+    if (request[0].empty() || !request[1].isBool()) {
       throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
     }
 
@@ -137,10 +138,10 @@ class EthRpcMethods {
     }
 
     try {
-
       std::string address = request[0u].asString();
+      std::string pendingOrLatest = request[1u].asString();
       DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
+      const auto resp = this->GetEthTransactionCount(address, pendingOrLatest);
       response = DataConversion::IntToHexString(resp);
     } catch (...) {
       response = "0x0";
@@ -189,8 +190,9 @@ class EthRpcMethods {
                                      Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
 
-    // Because we bypassed the library parameters validation, let's do it manually.
-    if (request[0].empty() || request[1].empty()){
+    // Because we bypassed the library parameters validation, let's do it
+    // manually.
+    if (request[0].empty() || request[1].empty()) {
       throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
     }
 
@@ -396,8 +398,9 @@ class EthRpcMethods {
   virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
 
-    // Because we bypassed the library parameters validation, let's do it manually.
-    if (request[0].empty() || request[1].empty()){
+    // Because we bypassed the library parameters validation, let's do it
+    // manually.
+    if (request[0].empty() || request[1].empty()) {
       throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
     }
 
@@ -436,8 +439,9 @@ class EthRpcMethods {
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
 
-    // Because we bypassed the library to validate parameters, we should do it manually.
-    if (request[0].empty()){
+    // Because we bypassed the library to validate parameters, we should do it
+    // manually.
+    if (request[0].empty()) {
       throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
     }
 
@@ -472,7 +476,7 @@ class EthRpcMethods {
       const Json::Value& request, Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
 
-    if (request[0].empty() || request[1].empty()){
+    if (request[0].empty() || request[1].empty()) {
       throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
     }
 
@@ -625,9 +629,9 @@ class EthRpcMethods {
   inline virtual void OtterscanEnableI(const Json::Value& request,
                                        Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    // This is fatal to ordinary seedpubs - partly because they never receive some txns,
-    // partly because it takes a long time to generate the traces once they have;
-    // disabled.
+    // This is fatal to ordinary seedpubs - partly because they never receive
+    // some txns, partly because it takes a long time to generate the traces
+    // once they have; disabled.
     // - rrw 2023-11-24
     // ARCHIVAL_LOOKUP_WITH_TX_TRACES = request[0u].asBool();
   }
@@ -795,6 +799,8 @@ class EthRpcMethods {
 
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
+  uint64_t GetEthTransactionCount(const std::string& address,
+                                  const std::string& pendingOrLatest);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
                                   const bool includeFullTransactions);
   Json::Value GetEthBlockNumber();

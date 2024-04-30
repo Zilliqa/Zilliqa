@@ -579,6 +579,29 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
   return ret;
 }
 
+uint64_t EthRpcMethods::GetEthTransactionCount(const string &address,
+                                               const string &pendingOrLatest) {
+  LOG_GENERAL(INFO, "GetEthTransactionCount address= "
+                        << address << " pendingOrLatest = " << pendingOrLatest);
+  try {
+    Json::Value balanceAndNonce = GetBalanceAndNonce(address);
+    uint64_t accountNonce =
+        static_cast<uint64_t>(balanceAndNonce["nonce"].asUInt());
+    if (pendingOrLatest == "latest" || pendingOrLatest == "")
+      return accountNonce;
+
+    Address addr{ToBase16AddrHelper(address)};
+    const uint64_t highestNonceInCurrTxnPool =
+        m_sharedMediator.m_lookup->GetHighestNonceForAddressInCurrTxTxnLitePool(
+            addr);
+    LOG_GENERAL(INFO, "accountNonce = " << accountNonce << " txnPoolNonce = "
+                                        << highestNonceInCurrTxnPool);
+    return std::max(accountNonce, highestNonceInCurrTxnPool);
+  } catch (...) {
+    throw;
+  }
+}
+
 Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
