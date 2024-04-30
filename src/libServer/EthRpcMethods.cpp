@@ -105,6 +105,7 @@ struct EthRpcMethods::ApiKeys {
   std::string value;
   std::string gas;
   std::string data;
+  std::string input;
 };
 
 void EthRpcMethods::Init(LookupServer *lookupServer) {
@@ -578,6 +579,29 @@ std::string EthRpcMethods::CreateTransactionEth(Eth::EthFields const &fields,
   return ret;
 }
 
+uint64_t EthRpcMethods::GetEthTransactionCount(const string &address,
+                                               const string &pendingOrLatest) {
+  LOG_GENERAL(INFO, "GetEthTransactionCount address= "
+                        << address << " pendingOrLatest = " << pendingOrLatest);
+  try {
+    Json::Value balanceAndNonce = GetBalanceAndNonce(address);
+    uint64_t accountNonce =
+        static_cast<uint64_t>(balanceAndNonce["nonce"].asUInt());
+    if (pendingOrLatest == "latest" || pendingOrLatest == "")
+      return accountNonce;
+
+    Address addr{ToBase16AddrHelper(address)};
+    const uint64_t highestNonceInCurrTxnPool =
+        m_sharedMediator.m_lookup->GetHighestNonceForAddressInCurrTxTxnLitePool(
+            addr);
+    LOG_GENERAL(INFO, "accountNonce = " << accountNonce << " txnPoolNonce = "
+                                        << highestNonceInCurrTxnPool);
+    return std::max(accountNonce, highestNonceInCurrTxnPool);
+  } catch (...) {
+    throw;
+  }
+}
+
 Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -630,7 +654,7 @@ string EthRpcMethods::GetEthCallZil(const Json::Value &_json) {
   INC_CALLS(GetInvocationsCounter());
 
   return this->GetEthCallImpl(
-      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
+      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data", "input"});
 }
 
 string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
@@ -642,7 +666,7 @@ string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
                            "Unsupported block or tag in eth_call");
   }
 
-  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
+  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data", "input"});
 }
 
 // Convenience fn to extract the tracer - valid types are 'raw' and 'callTracer'
@@ -995,7 +1019,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     }
 
     zbytes data;
-    if (!DataConversion::HexStrToUint8Vec(_json[apiKeys.data].asString(),
+    const std::string encoded = _json.isMember(apiKeys.data) ? _json[apiKeys.data].asString() : _json[apiKeys.input].asString();
+
+    if (!DataConversion::HexStrToUint8Vec(encoded,
                                           data)) {
       TRACE_ERROR("Data Argument invalid");
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
@@ -2080,7 +2106,15 @@ Json::Value EthRpcMethods::OtterscanSearchTransactions(
     Json::Value txs = Json::arrayValue;
     Json::Value receipts = Json::arrayValue;
 
+    std::unordered_set<std::string> visited;
+
     for (const auto &hash : res) {
+      if (visited.contains(hash)) {
+        continue;
+      }
+
+      visited.insert(hash);
+
       // Get Tx result
       auto const txByHash = GetEthTransactionByHash(hash);
       auto txReceipt = GetEthTransactionReceipt(hash);

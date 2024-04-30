@@ -396,7 +396,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
           currentBalance.toWei().convert_to<std::string>() + " in call-trap");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
-
     const auto value =
         Amount::fromWei(ProtoToUint(callData.transfer().value()));
     auto transferRun = std::make_shared<CpsRunTransfer>(
