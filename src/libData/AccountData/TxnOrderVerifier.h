@@ -59,7 +59,7 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
     //    1 3 2 4 5 6 7 8 10, the expected order is 0 1 2 3 4 5 6 7 8 9 10 11 12
     //    when it comes to 9, which is out of the 20% of the size of the
     //    received order(2) + sizeof matchedIndexes(1), discard when it comes to
-    //    3, which is in the the range (2 + sizeof{0,1}) = 4, accept finally the
+    //    3, which is in the range (2 + sizeof{0,1}) = 4, accept finally the
     //    indexed items are 0 1 3 4 5 6 7 8 10, size(9), which is more than 80%
     //    of the size in the expecting order (12*0.8 = 9), thus return true if
     //    the expectig order is 0 1 2 3 4 5 6 7 8 9 10 11 12 13, then the min

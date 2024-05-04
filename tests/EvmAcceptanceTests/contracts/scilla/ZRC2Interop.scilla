@@ -140,10 +140,10 @@ procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: 
   can_do = uint128_le amount bal;
   match can_do with
   | True =>
-    (* Subtract amount from from and add it to to address *)
+    (* Subtract amount from from and add it to address *)
     new_from_bal = builtin sub bal amount;
     balances[from] := new_from_bal;
-    (* Adds amount to to address *)
+    (* Adds amount to address *)
     get_to_bal <- balances[to];
     new_to_bal = match get_to_bal with
     | Some bal => builtin add bal amount
