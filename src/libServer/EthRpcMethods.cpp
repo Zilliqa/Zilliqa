@@ -587,7 +587,8 @@ uint64_t EthRpcMethods::GetEthTransactionCount(const string &address,
     Json::Value balanceAndNonce = GetBalanceAndNonce(address);
     uint64_t accountNonce =
         static_cast<uint64_t>(balanceAndNonce["nonce"].asUInt());
-    if (pendingOrLatest == "latest" || pendingOrLatest == "")
+    if (pendingOrLatest == "latest" || pendingOrLatest == "" ||
+        !ENABLE_ETH_TXN_COUNT_PENDING_TXN)
       return accountNonce;
 
     Address addr{ToBase16AddrHelper(address)};
@@ -666,7 +667,8 @@ string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
                            "Unsupported block or tag in eth_call");
   }
 
-  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data", "input"});
+  return this->GetEthCallImpl(_json,
+                              {"from", "to", "value", "gas", "data", "input"});
 }
 
 // Convenience fn to extract the tracer - valid types are 'raw' and 'callTracer'
@@ -1019,10 +1021,11 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     }
 
     zbytes data;
-    const std::string encoded = _json.isMember(apiKeys.data) ? _json[apiKeys.data].asString() : _json[apiKeys.input].asString();
+    const std::string encoded = _json.isMember(apiKeys.data)
+                                    ? _json[apiKeys.data].asString()
+                                    : _json[apiKeys.input].asString();
 
-    if (!DataConversion::HexStrToUint8Vec(encoded,
-                                          data)) {
+    if (!DataConversion::HexStrToUint8Vec(encoded, data)) {
       TRACE_ERROR("Data Argument invalid");
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");

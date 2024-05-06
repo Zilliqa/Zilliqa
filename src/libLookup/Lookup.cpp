@@ -5293,7 +5293,7 @@ bool Lookup::AddTxnToMemPool(const Transaction& tx, TxnMemPool& txnMemPool,
   }
 
   txnMemPool.push_back(tx);
-  if (tx.IsEth()) {
+  if (tx.IsEth() && ENABLE_ETH_TXN_COUNT_PENDING_TXN) {
     TransactionLite lite(tx.GetTranID(), tx.GetNonce(),
                          m_mediator.m_currentEpochNum);
     m_txnLiteManager.AddTransaction(tx.GetSenderAddr(), std::move(lite));
