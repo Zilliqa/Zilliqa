@@ -732,6 +732,9 @@ const unsigned int MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT{ReadConstantNumeric(
     "MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT", "node.transactions.", 10)};
 const unsigned int NODE_REWARD_IN_PERCENT{
     ReadConstantNumeric("NODE_REWARD_IN_PERCENT", "node.transactions.", 40)};
+const bool ENABLE_ETH_TXN_COUNT_PENDING_TXN{
+    ReadConstantString("ENABLE_ETH_TXN_COUNT_PENDING_TXN",
+                       "node.transactions.") == "true"};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

@@ -83,7 +83,6 @@ uint64_t TransactionLiteManager::GetHighestNonceForAddress(
                         << address << " current txEPoch = " << currentTxEpoch
                         << " MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT = "
                         << MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT);
-  const auto& transactions = m_txnLiteMemPool[address];
   const auto& it = m_txnLiteMemPool.find(address);
   if (it != m_txnLiteMemPool.end()) {
     const auto& transactions = it->second;

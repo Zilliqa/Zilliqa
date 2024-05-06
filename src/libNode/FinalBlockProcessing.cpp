@@ -1401,7 +1401,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
       const auto& tran = twr.GetTransaction();
       const auto& txhash = tran.GetTranID();
 
-      if (tran.IsEth()) {
+      if (tran.IsEth() && ENABLE_ETH_TXN_COUNT_PENDING_TXN) {
         m_mediator.m_lookup->RemoveTxnFromCurrentTxnLiteMemPool(
             tran.GetSenderAddr(), txhash);
       }
