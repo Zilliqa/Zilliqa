@@ -358,7 +358,7 @@
         <TXN_DISPATCH_ATTEMPT_LIMIT>3</TXN_DISPATCH_ATTEMPT_LIMIT>
         <!--MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT = Sometimes txns are rejected silently so to invalidate those nonces-->
         <MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT>10</MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT>
-        <ENABLE_ETH_TXN_COUNT_PENDING_TXN>true</ENABLE_ETH_TXN_COUNT_PENDING_TXN>
+        <ENABLE_ETH_TXN_COUNT_PENDING_TXN>false</ENABLE_ETH_TXN_COUNT_PENDING_TXN>
     </transactions>
     <metric>
         <zilliqa>
