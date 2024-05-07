@@ -153,8 +153,12 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
-  retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
-  retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") %
+                         GasConv::GasUnitsFromCoreToEth(txheader.GetGasLimit()))
+                            .str();
+  retJson["gasUsed"] = (boost::format("0x%x") %
+                        GasConv::GasUnitsFromCoreToEth(txheader.GetGasUsed()))
+                           .str();
   retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
