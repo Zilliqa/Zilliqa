@@ -479,6 +479,7 @@ extern const bool ENABLE_REWARD_DEBUG_FILE;
 extern const unsigned int REWARD_EACH_MUL_IN_MILLIS;
 extern const unsigned int BASE_REWARD_MUL_IN_MILLIS;
 extern const unsigned int MAX_EPOCH_DIFFERENCE_FOR_ETH_TXN_COUNT;
+extern const bool ENABLE_ETH_TXN_COUNT_PENDING_TXN;
 extern const unsigned int NODE_REWARD_IN_PERCENT;
 
 // TxBlockAux constants
