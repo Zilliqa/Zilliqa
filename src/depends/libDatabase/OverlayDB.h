@@ -1,15 +1,15 @@
 /*
-	This file is part of cpp-ethereum.
-	cpp-ethereum is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-	cpp-ethereum is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-	You should have received a copy of the GNU General Public License
-	along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
+        This file is part of cpp-ethereum.
+        cpp-ethereum is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+        cpp-ethereum is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+        You should have received a copy of the GNU General Public License
+        along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
 */
 /** @file OverlayDB.h
  * @author Gav Wood <i@gavwood.com>
@@ -21,41 +21,41 @@
 
 #include <memory>
 
+#include "LevelDB.h"
+#include "MemoryDB.h"
 #include "common/Constants.h"
 #include "depends/common/Common.h"
 #include "depends/common/RLP.h"
-#include "LevelDB.h"
-#include "MemoryDB.h"
 
-namespace dev
-{
-	static std::vector<h256> list_placeholder;
-	static std::unordered_set<h256> set_placeholder;
+namespace dev {
+static std::vector<h256> list_placeholder;
+static std::unordered_set<h256> set_placeholder;
 
-	// TODO: change inheritance from MemoryDB to composition
-	class OverlayDB: public MemoryDB
-	{
-	public:
-		explicit OverlayDB(const std::string & dbName): m_levelDB(dbName) {}
-		~OverlayDB() = default;
+// TODO: change inheritance from MemoryDB to composition
+class OverlayDB : public MemoryDB {
+ public:
+  explicit OverlayDB(const std::string& dbName) : m_levelDB(dbName) {}
+  ~OverlayDB() = default;
 
-		void ResetDB();
-		bool RefreshDB();
+  void ResetDB();
+  bool RefreshDB();
 
-		bool commit(bool keepHistory = false, std::vector<h256>& toPurge = list_placeholder, std::unordered_set<h256>& inserted = set_placeholder);
-		void rollback();
+  bool commit(bool keepHistory = false,
+              std::vector<h256>& toPurge = list_placeholder,
+              std::unordered_set<h256>& inserted = set_placeholder);
+  void rollback();
 
-		std::string lookup(h256 const& _h) const;
-		bool exists(h256 const& _h) const;
-		void kill(h256 const& _h);
+  std::string lookup(h256 const& _h) const;
+  bool exists(h256 const& _h) const;
+  void kill(h256 const& _h);
 
-		zbytes lookupAux(h256 const& _h) const;
+  zbytes lookupAux(h256 const& _h) const;
 
-	protected:
-		// using MemoryDB::clear;
+ public:
+  // using MemoryDB::clear;
 
-		LevelDB m_levelDB;
-	};
-}
+  LevelDB m_levelDB;
+};
+}  // namespace dev
 
-#endif // __OVERLAYDB_H__
+#endif  // __OVERLAYDB_H__

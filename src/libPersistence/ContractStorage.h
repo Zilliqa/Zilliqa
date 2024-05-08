@@ -34,6 +34,7 @@ namespace Contract {
 static std::string type_placeholder;
 
 class ContractStorage : boost::noncopyable {
+ public:
   LevelDB m_stateDataDB;
   LevelDB m_codeDB;
   LevelDB m_initDataDB;

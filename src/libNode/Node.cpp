@@ -43,6 +43,7 @@
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
+#include "libPersistence/ContractStorage.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
@@ -330,10 +331,31 @@ bool Node::DownloadPersistenceFromS3() {
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
                    bool rejoiningAfterRecover) {
   LOG_MARKER();
+  Contract::ContractStorage::GetContractStorage().m_trieDB.m_levelDB.Lookup(
+      dev::h256(
+          "0468fe943769c81318b067f58aa5627352691d24505e71a1ffcb922794005c3d"));
 
   m_txn_distribute_window_open = false;
   m_confirmedNotInNetwork = false;
+  Address addr{"a7c67d49c82c7dc1b73d231640b2e4d0661d37c1", Address::FromHex};
 
+  Account *toAccount = AccountStore::GetInstance().GetAccount(addr);
+  if (toAccount == nullptr) {
+    LOG_GENERAL(INFO, "nullptr here");
+    return false;
+  }
+  LOG_GENERAL(INFO, "Account balance = " << toAccount->GetBalance());
+
+  toAccount->UpdateStates(
+      addr,
+      {{"a7c67d49c82c7dc1b73d231640b2e4d0661d37c1\026buff_deposit_"
+        "deleg\026\"0x234d8ec4afed36e653d48557e47680700d7088ae\"\026\"0xbf4e500"
+        "1"
+        "339dec3cda012f471f4f2d9e8bed2f5b\"\026\"1395\"\026",
+        {34, 52, 56, 51, 52, 50, 52, 48, 48, 48, 48, 48, 48, 48, 48, 34}}},
+      {}, false, true);
+
+  LOG_GENERAL(INFO, "Updating states hehey");
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
 

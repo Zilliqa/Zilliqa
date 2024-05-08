@@ -369,6 +369,7 @@ bool Account::UpdateStates(const Address& addr,
                            const std::map<std::string, zbytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
+  LOG_MARKER();
   ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
       addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
       revertible);
@@ -448,7 +449,8 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
   if (publicKey.size() != UNCOMPRESSED_SIGNATURE_SIZE) {
-    // Implicitly filled with the zero address - this may not be right, but at least it isn't a segfault.
+    // Implicitly filled with the zero address - this may not be right, but at
+    // least it isn't a segfault.
     return Address();
   }
 
