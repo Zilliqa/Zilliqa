@@ -342,7 +342,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   Account *toAccount = AccountStore::GetInstance().GetAccount(addr);
   if (toAccount == nullptr) {
     LOG_GENERAL(INFO, "nullptr here");
-    return false;
+    return true;
   }
   LOG_GENERAL(INFO, "Account balance = " << toAccount->GetBalance());
 
