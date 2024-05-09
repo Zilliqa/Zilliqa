@@ -22,6 +22,7 @@
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
 #include "depends/common/FixedHash.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -194,6 +195,11 @@ string LevelDB::Lookup(const dev::h256& key) const {
     LOG_GENERAL(WARNING, "BZ: There's no value for key: " << key.hex());
   }
   if (!s.ok()) {
+    LOG_GENERAL(WARNING, "BZ: 's' is not ok, key is:  "
+                             << key.hex() << ", value: ["
+                             << DataConversion::Uint8VecToHexStrRet(
+                                    zbytes{value.begin(), value.end()})
+                             << "]");
     log_error(s);
     return "";
   }
