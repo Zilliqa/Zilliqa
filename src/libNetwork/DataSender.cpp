@@ -232,17 +232,9 @@ bool DataSender::SendDataToOthers(
         committeeTooSmall ? tmpCommittee.size()
                           : nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
-    if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
-      LOG_GENERAL(INFO, "I will send data to the lookups");
-      if (sendDataToLookupFunc) {
-        sendDataToLookupFunc(lookups, message);
-      }
-    } else {
-      LOG_GENERAL(WARNING,
-                  "I'm not going to send data to others because: IndexB2 is: "
-                      << indexB2
-                      << ", nodeLookupLo is : " << nodeToSendToLookUpLo
-                      << ", nodeLookupHi is: " << nodeToSendToLookUpHi);
+    LOG_GENERAL(INFO, "I will unconditionally send data to the lookups because I am special");
+    if (sendDataToLookupFunc) {
+      sendDataToLookupFunc(lookups, message);
     }
 
     if (!shards.empty()) {
