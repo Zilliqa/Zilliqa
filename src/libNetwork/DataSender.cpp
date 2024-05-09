@@ -23,6 +23,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
+#include "libNetwork/Guard.h"
 
 using namespace std;
 
@@ -196,7 +197,11 @@ bool DataSender::SendDataToOthers(
   DequeOfNode tmpCommittee;
   for (unsigned int i = 0; i < blockwcosigSender.GetB2().size(); i++) {
     if (blockwcosigSender.GetB2().at(i)) {
-      tmpCommittee.push_back(sendercommittee.at(i));
+      PairOfNode node = sendercommittee.at(i);
+      bool isGuard = Guard::GetInstance().IsNodeInDSGuardList(node.first);
+      if (isGuard) {
+        tmpCommittee.push_back(node);
+      }
     }
   }
 
@@ -223,16 +228,13 @@ bool DataSender::SendDataToOthers(
 
     uint16_t randomDigits =
         DataConversion::charArrTo16Bits(hashForRandom.asBytes());
-
-    // HACK: Divide the commitee size by 2 to ensure we pick a window which is always covered by our own DS guards.
-    std::size_t committeeSize = tmpCommittee.size() / 2;
-    bool committeeTooSmall = committeeSize <= TX_SHARING_CLUSTER_SIZE;
+    bool committeeTooSmall = tmpCommittee.size() <= TX_SHARING_CLUSTER_SIZE;
     uint16_t nodeToSendToLookUpLo =
         committeeTooSmall
             ? 0
-            : (randomDigits % (committeeSize - TX_SHARING_CLUSTER_SIZE));
+            : (randomDigits % (tmpCommittee.size() - TX_SHARING_CLUSTER_SIZE));
     uint16_t nodeToSendToLookUpHi =
-        committeeTooSmall ? committeeSize
+        committeeTooSmall ? tmpCommittee.size()
                           : nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
     if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
