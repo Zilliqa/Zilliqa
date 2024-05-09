@@ -162,7 +162,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 
   const bool isFailure = !m_queue.empty() || !execResult.isSuccess;
 
-  LOG_GENERAL(DEBUG, "Scilla CPS run is completed with status: "
+  LOG_GENERAL(INFO, "Scilla CPS run is completed with status: "
                          << (isFailure ? "failure" : "success"));
   span.SetAttribute("Failure", isFailure);
   if (isFailure) {
@@ -220,7 +220,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   }
 
   LOG_GENERAL(
-      DEBUG, "CpsExecutor::RunFromEvm(): From "
+      INFO, "CpsExecutor::RunFromEvm(): From "
                  << ProtoToAddress(clientContext.GetEvmArgs().origin()).hex()
                  << " , to: "
                  << ProtoToAddress(clientContext.GetEvmArgs().address()).hex());
@@ -264,13 +264,13 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   const bool isEstimate = !clientContext.GetCommit();
   const bool isEthCall = cpsCtx.isStatic;
 
-  LOG_GENERAL(DEBUG, "Evm CPS run is completed with status: "
+  LOG_GENERAL(INFO, "Evm CPS run is completed with status: "
                          << (isFailure ? "failure" : "success"));
 
   span.SetAttribute("Estimate", isEstimate);
   span.SetAttribute("EthCall", isEthCall);
   span.SetAttribute("Failure", isFailure);
-  LOG_GENERAL(DEBUG, "Estimate: " << isEstimate << ", EthCall: " << isEthCall
+  LOG_GENERAL(INFO, "Estimate: " << isEstimate << ", EthCall: " << isEthCall
                                   << ", Failure: " << isFailure);
 
   const auto usedGasCore = givenGasCore - gasRemainingCore;
@@ -413,7 +413,7 @@ void CpsExecutor::TakeGasFromAccount(
     amount = Amount::fromQa(gasDepositQa);
   }
 
-  LOG_GENERAL(DEBUG, "Take " << amount.toWei().str() << " Wei ("
+  LOG_GENERAL(INFO, "Take " << amount.toWei().str() << " Wei ("
                              << amount.toQa().str() << " Qa) from " << address
                              << " for gas deposit");
   // This is in Wei!
