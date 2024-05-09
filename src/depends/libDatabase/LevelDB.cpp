@@ -378,6 +378,7 @@ bool LevelDB::BatchInsert(
 bool LevelDB::BatchDelete(const std::vector<dev::h256>& toDelete) {
   ldb::WriteBatch batch;
   for (const auto& i : toDelete) {
+    LOG_GENERAL(WARNING, "BZ Deleting via batch delete, key: " << i.hex());
     batch.Delete(leveldb::Slice(i.hex()));
   }
 
@@ -414,6 +415,7 @@ bool LevelDB::Exists(const std::string& key) const {
 int LevelDB::DeleteKey(const dev::h256& key) {
   leveldb::Status s =
       m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
+  LOG_GENERAL(WARNING, "BZ: Deleting key from db: " << key.hex());
   if (!s.ok()) {
     LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
     return -1;
