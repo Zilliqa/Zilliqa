@@ -354,7 +354,8 @@ bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
       }
     }
   }
-  LOG_GENERAL(WARNING, "AccountStore::DeserializeDelta revertible " << revertible);
+  LOG_GENERAL(WARNING,
+              "AccountStore::DeserializeDelta revertible " << revertible);
   if (revertible) {
     unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
     unique_lock<mutex> g2(m_mutexRevertibles, defer_lock);
@@ -577,8 +578,11 @@ bool AccountStore::UpdateAccountsTemp(
   }
 
   bool status;
-  LOG_GENERAL(WARNING,
-              "[AS] Starting to Process <" << transaction.GetTranID() << ">");
+  LOG_GENERAL(WARNING, "[AS] Starting to Process <"
+                           << transaction.GetTranID()
+                           << ">, Sender: " << transaction.GetSenderAddr().hex()
+                           << ", recipient: " << transaction.GetToAddr().hex());
+
   if (isEvm) {
     EvmProcessContext context(blockNum, transaction, txnExtras);
 
@@ -592,13 +596,14 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  // This needs to be outside the above as needs to include possibility of non evm tx
-  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES && transaction.GetTranID()) {
-
-    if (!BlockStorage::GetBlockStorage().PutOtterAddressNonceLookup(transaction.GetTranID(),
-                                                                    transaction.GetNonce() - 1, transaction.GetSenderAddr().hex())) {
-      LOG_GENERAL(INFO,
-                  "FAIL: Put otter addr nonce failed " << transaction.GetTranID());
+  // This needs to be outside the above as needs to include possibility of non
+  // evm tx
+  if (ARCHIVAL_LOOKUP_WITH_TX_TRACES && transaction.GetTranID()) {
+    if (!BlockStorage::GetBlockStorage().PutOtterAddressNonceLookup(
+            transaction.GetTranID(), transaction.GetNonce() - 1,
+            transaction.GetSenderAddr().hex())) {
+      LOG_GENERAL(INFO, "FAIL: Put otter addr nonce failed "
+                            << transaction.GetTranID());
     }
 
     // For when vanilla TX, we still want to log this for otterscan
@@ -607,10 +612,10 @@ bool AccountStore::UpdateAccountsTemp(
       addresses_touched.insert(transaction.GetSenderAddr().hex());
       addresses_touched.insert(transaction.GetToAddr().hex());
 
-      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(transaction.GetTranID(),
-                                                                    addresses_touched, blockNum)) {
-        LOG_GENERAL(INFO,
-                    "FAIL: Put otter tx addr mapping failed " << transaction.GetTranID());
+      if (!BlockStorage::GetBlockStorage().PutOtterTxAddressMapping(
+              transaction.GetTranID(), addresses_touched, blockNum)) {
+        LOG_GENERAL(INFO, "FAIL: Put otter tx addr mapping failed "
+                              << transaction.GetTranID());
       }
     }
   }
@@ -705,7 +710,10 @@ void AccountStore::CommitTempRevertible() {
 
 bool AccountStore::RevertCommitTemp() {
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "AccountStore::RevertCommitTemp Commiting from temp to normal, size: " << m_addressToAccountRevChanged.size());
+  LOG_GENERAL(
+      WARNING,
+      "AccountStore::RevertCommitTemp Commiting from temp to normal, size: "
+          << m_addressToAccountRevChanged.size());
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
   for (auto const &entry : m_addressToAccountRevChanged) {
