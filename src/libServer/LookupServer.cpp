@@ -539,6 +539,8 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
 
   LOG_MARKER();
 
+  const auto txn_str = JSONUtils::GetInstance().convertJsontoStr(_json);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -614,6 +616,10 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
+
+    LOG_GENERAL(WARNING, "BZ: Storing transaction with hash: "
+                             << tx.GetTranID().hex()
+                             << " as_sent: " << txn_str);
 
     if (!m_sharedMediator.m_lookup->AddTxnToMemPool(tx)) {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,

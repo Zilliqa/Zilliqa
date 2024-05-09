@@ -71,7 +71,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mCpsContext.gasTracker.DecreaseByEth(baseFee);
 
       LOG_GENERAL(
-          DEBUG,
+          INFO,
           "About to make transfer from : "
               << ProtoToAddress(mProtoArgs.origin())
               << ", to: " << ProtoToAddress(mProtoArgs.address()) << ", value: "
@@ -97,7 +97,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
           DataConversion::CharArrayToString(StripEVM(code));
       mCpsContext.gasTracker.DecreaseByEth(MIN_ETH_GAS);
       LOG_GENERAL(
-          DEBUG,
+          INFO,
           "About to make transfer from : "
               << ProtoToAddress(mProtoArgs.origin())
               << ", to: " << ProtoToAddress(mProtoArgs.address()) << ", value: "
@@ -122,7 +122,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   mProtoArgs.set_tx_trace_enabled(TX_TRACES);
   mProtoArgs.set_tx_trace(mExecutor.CurrentTrace());
 
-  LOG_GENERAL(DEBUG, "Running EVM with gasLimit: " << mProtoArgs.gas_limit());
+  LOG_GENERAL(INFO, "Running EVM with gasLimit: " << mProtoArgs.gas_limit());
 
   const auto invokeResult = InvokeEvm();
 
@@ -143,10 +143,10 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-    LOG_GENERAL(DEBUG, "EVM: Handle trap result");
+    LOG_GENERAL(INFO, "EVM: Handle trap result");
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
-    LOG_GENERAL(DEBUG, "EVM: Handle apply result");
+    LOG_GENERAL(INFO, "EVM: Handle apply result");
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
@@ -268,7 +268,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
               mProtoArgs.is_static_call()) {
             break;
           }
-          LOG_GENERAL(DEBUG,
+          LOG_GENERAL(INFO,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
                   thisContractAddress,
@@ -314,7 +314,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   if (!isStatic && transferValue > 0) {
     if (inputGas < MIN_ETH_GAS) {
-      LOG_GENERAL(DEBUG, "Insufficient gas in call-trap, remaining: "
+      LOG_GENERAL(INFO, "Insufficient gas in call-trap, remaining: "
                              << inputGas << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in call-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
@@ -387,7 +387,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
         mAccountStore.GetBalanceForAccountAtomic(fromAccount);
     const auto requestedValue = Amount::fromWei(transferValue);
     if (requestedValue > currentBalance) {
-      LOG_GENERAL(DEBUG, "From account has insufficient balance in call-trap");
+      LOG_GENERAL(INFO, "From account has insufficient balance in call-trap");
       TRACE_ERROR("Insufficient balance");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance in call-trap");
       span.SetError(
@@ -702,7 +702,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
               mProtoArgs.is_static_call()) {
             break;
           }
-          LOG_GENERAL(DEBUG,
+          LOG_GENERAL(INFO,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
                   thisContractAddress,
