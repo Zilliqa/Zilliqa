@@ -83,60 +83,6 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
                                bool purgeAll) {
   LOG_MARKER();
 
-  std::unique_ptr<leveldb::Iterator> iter(
-      m_purgeDB.GetDB()->NewIterator(leveldb::ReadOptions()));
-  iter->SeekToFirst();
-  for (; iter->Valid(); iter->Next()) {
-    if (purgeAll && m_stopSignal) {
-      LOG_GENERAL(WARNING, "m_stopSignal = true");
-      break;
-    }
-    uint64_t t_dsBlockNum;
-    try {
-      t_dsBlockNum = stoull(iter->key().ToString());
-    } catch (...) {
-      LOG_GENERAL(INFO, "key is not numeric: " << iter->key().ToString());
-      return false;
-    }
-
-    // If purgeAll = true, dsBlockNum is inconsequential
-    dev::RLP rlp(iter->value());
-    std::vector<dev::h256> toPurge(rlp);
-    bool updated = false;
-    for (auto it = toPurge.begin(); it != toPurge.end();) {
-      if (inserted.find(*it) != inserted.end()) {
-        LOG_GENERAL(INFO, "Do not purge : " << it->hex());
-        it = toPurge.erase(it);
-        updated = true;
-      } else {
-        ++it;
-      }
-    }
-    if ((t_dsBlockNum + NUM_DS_EPOCHS_STATE_HISTORY < dsBlockNum) || purgeAll) {
-      m_levelDB.BatchDelete(toPurge);
-      m_purgeDB.DeleteKey(iter->key().ToString());
-      // compact/cleanup for this key immediately.
-      leveldb::Slice k(iter->key());
-      m_purgeDB.GetDB()->CompactRange(&k, &k);
-      LOG_GENERAL(INFO, "Purged entries for t_dsBlockNum = " << t_dsBlockNum);
-    } else {
-      if (updated) {
-        dev::RLPStream s(toPurge.size());
-
-        for (const auto& i : toPurge) {
-          s.append(i);
-        }
-        // Replace the blocknum with new purge hashes
-        m_purgeDB.Insert(iter->key().ToString(), s.out());
-
-        // memory mgmt
-        s.clear();
-      }
-    }
-    // memory mgmt
-    dev::h256s().swap(toPurge);
-  }
-
   return true;
 }
 

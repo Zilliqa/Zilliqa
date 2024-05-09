@@ -47,12 +47,6 @@ namespace dev
 		{
 			shared_lock<shared_timed_mutex> lock(x_this);
 
-			/// delete removed nodes in both mem and disk
-			purge(toPurge, false);
-			if (!keepHistory) {
-				m_levelDB.BatchDelete(toPurge);
-			}
-
 			/// add newly created nodes in disk
 			if (!m_levelDB.BatchInsert(*m_main, m_aux, inserted)) {
 				LOG_GENERAL(WARNING, "BatchInsert failed");
