@@ -364,6 +364,30 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
       this->Prepare(runInitializeGenesisBlocks);
       return false;
     }
+    Address convertedAddr;
+    if (ToBase16Addr("a7c67d49c82c7dc1b73d231640b2e4d0661d37c1",
+                     convertedAddr) == AddressConversionCode::OK) {
+      LOG_GENERAL(INFO, "Address conversion success");
+    }
+
+    Account *toAccount = AccountStore::GetInstance().GetAccount(convertedAddr);
+    if (toAccount == nullptr) {
+      LOG_GENERAL(INFO, "nullptr here");
+      return true;
+    }
+    LOG_GENERAL(INFO, "Account balance = " << toAccount->GetBalance());
+
+    toAccount->UpdateStates(
+        convertedAddr,
+        {{"a7c67d49c82c7dc1b73d231640b2e4d0661d37c1\026buff_deposit_"
+          "deleg\026\"0x234d8ec4afed36e653d48557e47680700d7088ae\"\026\"0xbf4e5"
+          "00"
+          "1"
+          "339dec3cda012f471f4f2d9e8bed2f5b\"\026\"1395\"\026",
+          {34, 52, 56, 51, 52, 50, 52, 48, 48, 48, 48, 48, 48, 48, 48, 34}}},
+        {}, false, true);
+
+    LOG_GENERAL(INFO, "Updating states hehey");
 
     if (!LOOKUP_NODE_MODE) {
       AccountStore::GetInstance().PurgeUnnecessary();
@@ -392,29 +416,6 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   }
 
   this->Prepare(runInitializeGenesisBlocks);
-  Address convertedAddr;
-  if (ToBase16Addr("a7c67d49c82c7dc1b73d231640b2e4d0661d37c1", convertedAddr) ==
-      AddressConversionCode::OK) {
-    LOG_GENERAL(INFO, "Address conversion success");
-  }
-
-  Account *toAccount = AccountStore::GetInstance().GetAccount(convertedAddr);
-  if (toAccount == nullptr) {
-    LOG_GENERAL(INFO, "nullptr here");
-    return true;
-  }
-  LOG_GENERAL(INFO, "Account balance = " << toAccount->GetBalance());
-
-  toAccount->UpdateStates(
-      convertedAddr,
-      {{"a7c67d49c82c7dc1b73d231640b2e4d0661d37c1\026buff_deposit_"
-        "deleg\026\"0x234d8ec4afed36e653d48557e47680700d7088ae\"\026\"0xbf4e500"
-        "1"
-        "339dec3cda012f471f4f2d9e8bed2f5b\"\026\"1395\"\026",
-        {34, 52, 56, 51, 52, 50, 52, 48, 48, 48, 48, 48, 48, 48, 48, 34}}},
-      {}, false, true);
-
-  LOG_GENERAL(INFO, "Updating states hehey");
   return true;
 }
 
