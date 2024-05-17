@@ -100,6 +100,20 @@ else()
   target_link_libraries(buildTxBlockHashesToNums PUBLIC "-Wl,--start-group" AccountData Persistence)
 endif()
 
+add_executable(buildOtterScanMappings buildOtterScanMappings.cpp)
+add_custom_command(TARGET zilliqa
+       POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:buildOtterScanMappings> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(buildOtterScanMappings PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+  target_link_libraries(buildOtterScanMappings PUBLIC AccountData Persistence)
+else()
+  # FIXME: "-Wl,--start-group" was apparently added as a hack for some circular dependency; this shouldn't
+  #        really be required and resolved by fixing the (circular) dependencies.
+  target_link_libraries(buildOtterScanMappings PUBLIC "-Wl,--start-group" AccountData Persistence)
+endif()
+
 add_executable(rebuildState rebuildState.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
