@@ -42,11 +42,12 @@ int main(int argc, char* argv[]) {
     for (auto const& mbInfo : microBlockInfos) {
       MicroBlockSharedPtr mbptr;
       if (!BlockStorage::GetBlockStorage().GetMicroBlock(
-              mbInfo.m_microBlockHash, mbptr))
-        ;
+              mbInfo.m_microBlockHash, mbptr)) {
+        LOG_GENERAL(INFO, "Error for block hash = " << mbInfo.m_microBlockHash);
+      }
       if (!mbptr) {
-        // LOG_GENERAL(INFO, "No microblock present for hash = "
-        //                       << mbInfo.m_microBlockHash);
+        LOG_GENERAL(INFO, "No microblock present for hash = "
+                              << mbInfo.m_microBlockHash);
         continue;
       }
       const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
