@@ -26,6 +26,8 @@ int main(int argc, char* argv[]) {
   INIT_STDOUT_LOGGER();
   uint64_t maxTxBlockNum = 10;
   TxBlockSharedPtr txBlock;
+  dev::h256 txnHashh256(
+      "425b600e982da68ab6c3daa1c6e45d1a941d8e89391a9f8d131dfc22662f2f33");
 
   for (uint64_t blockNum = 0; blockNum <= maxTxBlockNum; ++blockNum) {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlock)) {
@@ -51,6 +53,11 @@ int main(int argc, char* argv[]) {
       for (const auto& txnhash : tranHashes) {
         LOG_GENERAL(INFO,
                     "txn hash = " << txnhash << " block num = " << blockNum);
+        if (txnhash == txnHashh256) {
+          LOG_GENERAL(INFO,
+                      "txn hash = " << txnhash
+                                    << " present in block num = " << blockNum);
+        }
         TxBodySharedPtr tptr;
         bool isPresent =
             BlockStorage::GetBlockStorage().GetTxBody(txnhash, tptr);
@@ -60,19 +67,8 @@ int main(int argc, char* argv[]) {
           continue;
         }
         const Transaction& txn = tptr->GetTransaction();
-        // LOG_GENERAL(INFO, "txn id = " << txn.GetTranID().hex()
-        //                               << "nonce = " << txn.GetNonce());
-        bool isEvm = txn.IsEth();
-        if (isEvm) {
-          if (ARCHIVAL_LOOKUP_WITH_TX_TRACES && txn.GetTranID()) {
-            if (!BlockStorage::GetBlockStorage().PutOtterAddressNonceLookup(
-                    txn.GetTranID(), txn.GetNonce() - 1,
-                    txn.GetSenderAddr().hex())) {
-              LOG_GENERAL(INFO, "FAIL: Put otter addr nonce failed "
-                                    << txn.GetTranID());
-            }
-          }
-        }
+        LOG_GENERAL(INFO, "txn id = " << txn.GetTranID().hex()
+                                      << "nonce = " << txn.GetNonce());
       }
     }
   }
