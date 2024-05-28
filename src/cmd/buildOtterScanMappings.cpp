@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
   LOG_GENERAL(INFO,
               "searching for txn hash " << txnHashh256 << " in microblocks db");
 
-  for (uint64_t blockNum = 0; blockNum <= maxTxBlockNum; ++blockNum) {
+  for (uint64_t blockNum = 1383035; blockNum <= 1383035; ++blockNum) {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlock)) {
       LOG_GENERAL(INFO, "GetTxBlock failed for " << blockNum);
       continue;
