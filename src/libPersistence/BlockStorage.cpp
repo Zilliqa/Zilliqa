@@ -530,6 +530,7 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
+  LOG_MARKER();
   const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
@@ -545,6 +546,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   if (epochString.empty()) {
     return false;
   }
+  LOG_GENERAL(INFO, "epochString = " << epochString);
 
   zbytes epochBytes(epochString.begin(), epochString.end());
   uint64_t epochNum = 0;
@@ -552,10 +554,12 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
     LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
     return false;
   }
+  LOG_GENERAL(INFO, "epochNumber = " << epochNum);
 
   string bodyString = GetTxBodyDB(epochNum)->Lookup(keyBytes);
 
   if (bodyString.empty()) {
+    LOG_GENERAL(INFO, "bodyString = " << bodyString);
     return false;
   }
   body = TxBodySharedPtr(new TransactionWithReceipt(
@@ -718,8 +722,7 @@ bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
 
   // Store txn hash and epoch inside txEpochs DB
   if (m_txTraceDB->Insert(key, result.SerializeAsString()) != 0) {
-    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
-                             << " key=" << key);
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. " << " key=" << key);
     return false;
   }
 
@@ -2028,9 +2031,12 @@ shared_ptr<LevelDB> BlockStorage::GetMicroBlockDB(const uint64_t& epochNum) {
 
 shared_ptr<LevelDB> BlockStorage::GetTxBodyDB(const uint64_t& epochNum) {
   const unsigned int dbindex = epochNum / NUM_EPOCHS_PER_PERSISTENT_DB;
+  LOG_GENERAL(INFO, "dbindex = " << dbindex);
   while (m_txBodyDBs.size() <= dbindex) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>(
         string("txBodies_") + to_string(m_txBodyDBs.size())));
+    LOG_GENERAL(
+        INFO, "db  = " << string("txBodies_") + to_string(m_txBodyDBs.size()));
   }
   return m_txBodyDBs.at(dbindex);
 }
@@ -2113,8 +2119,7 @@ bool BlockStorage::PutOtterTrace(const dev::h256& key,
 
   // Store txn hash and epoch inside txEpochs DB
   if (m_otterTraceDB->Insert(key, toWrite.SerializeAsString()) != 0) {
-    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
-                             << " key=" << key);
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. " << " key=" << key);
     return false;
   }
 

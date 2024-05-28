@@ -192,14 +192,14 @@ string LevelDB::Lookup(const dev::h256& key) const {
   leveldb::Status s =
       m_db->Get(leveldb::ReadOptions(), leveldb::Slice(key.hex()), &value);
   if (value.empty()) {
-    LOG_GENERAL(WARNING, "BZ: There's no value for key: " << key.hex());
+    // LOG_GENERAL(WARNING, "BZ: There's no value for key: " << key.hex());
   }
   if (!s.ok()) {
-    LOG_GENERAL(WARNING, "BZ: 's' is not ok, key is:  "
-                             << key.hex() << ", value: ["
-                             << DataConversion::Uint8VecToHexStrRet(
-                                    zbytes{value.begin(), value.end()})
-                             << "]");
+    // LOG_GENERAL(WARNING, "BZ: 's' is not ok, key is:  "
+    //                          << key.hex() << ", value: ["
+    //                          << DataConversion::Uint8VecToHexStrRet(
+    //                                 zbytes{value.begin(), value.end()})
+    //                          << "]");
     log_error(s);
     return "";
   }
@@ -415,7 +415,7 @@ bool LevelDB::Exists(const std::string& key) const {
 int LevelDB::DeleteKey(const dev::h256& key) {
   leveldb::Status s =
       m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
-  LOG_GENERAL(WARNING, "BZ: Deleting key from db: " << key.hex());
+  // LOG_GENERAL(WARNING, "BZ: Deleting key from db: " << key.hex());
   if (!s.ok()) {
     LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
     return -1;
