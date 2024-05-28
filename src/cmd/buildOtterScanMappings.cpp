@@ -23,11 +23,14 @@
 
 using namespace std;
 int main(int argc, char* argv[]) {
-  INIT_STDOUT_LOGGER();
-  uint64_t maxTxBlockNum = 10;
+  INIT_FILE_LOGGER("zilliqa", "/mnt/code/zilliqa/build/bin");
+  uint64_t maxTxBlockNum = 3820656;
   TxBlockSharedPtr txBlock;
   dev::h256 txnHashh256(
       "425b600e982da68ab6c3daa1c6e45d1a941d8e89391a9f8d131dfc22662f2f33");
+
+  LOG_GENERAL(INFO,
+              "searching for txn hash " << txnHashh256 << " in microblocks db");
 
   for (uint64_t blockNum = 0; blockNum <= maxTxBlockNum; ++blockNum) {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlock)) {
@@ -35,8 +38,6 @@ int main(int argc, char* argv[]) {
       continue;
     }
     uint32_t numTransactions = txBlock->GetHeader().GetNumTxs();
-    LOG_GENERAL(INFO, "blockNum = " << blockNum << " numTransactions = "
-                                    << numTransactions);
     auto microBlockInfos = txBlock->GetMicroBlockInfos();
     for (auto const& mbInfo : microBlockInfos) {
       MicroBlockSharedPtr mbptr;
@@ -51,24 +52,22 @@ int main(int argc, char* argv[]) {
       }
       const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
       for (const auto& txnhash : tranHashes) {
-        LOG_GENERAL(INFO,
-                    "txn hash = " << txnhash << " block num = " << blockNum);
         if (txnhash == txnHashh256) {
           LOG_GENERAL(INFO,
                       "txn hash = " << txnhash
                                     << " present in block num = " << blockNum);
+          TxBodySharedPtr tptr;
+          bool isPresent =
+              BlockStorage::GetBlockStorage().GetTxBody(txnhash, tptr);
+          if (!isPresent) {
+            LOG_GENERAL(INFO,
+                        "Txn body is not present for txn has = " << txnhash);
+            continue;
+          }
+          const Transaction& txn = tptr->GetTransaction();
+          LOG_GENERAL(INFO, "txn id = " << txn.GetTranID().hex()
+                                        << "nonce = " << txn.GetNonce());
         }
-        TxBodySharedPtr tptr;
-        bool isPresent =
-            BlockStorage::GetBlockStorage().GetTxBody(txnhash, tptr);
-        if (!isPresent) {
-          LOG_GENERAL(INFO,
-                      "Txn body is not present for txn has = " << txnhash);
-          continue;
-        }
-        const Transaction& txn = tptr->GetTransaction();
-        LOG_GENERAL(INFO, "txn id = " << txn.GetTranID().hex()
-                                      << "nonce = " << txn.GetNonce());
       }
     }
   }
