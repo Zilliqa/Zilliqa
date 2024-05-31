@@ -33,7 +33,7 @@ import multiprocessing
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
 BUCKET_NAME='BUCKET_NAME'
-AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/OtterScanPersistence/"+TESTNET_NAME
+AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/OtterScanPersistence/"+TESTNET_NAME+"-otter"
 AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
 
 # By default pigz uses all cores.But our application threads are also active
