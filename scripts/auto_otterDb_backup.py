@@ -196,14 +196,15 @@ def main():
     for elem in tree.iter(tag=TAG_NUM_FINAL_BLOCK_PER_POW):
         num_final_block_per_pow = (int)(elem.text)
 
+    target_backup_final_block = math.floor(num_final_block_per_pow * 0.88)
 
     while True:
         try:
             curr_blockNum = GetCurrentTxBlockNum()
             print("Current blockNum = %s" % curr_blockNum)
 
-            if((curr_blockNum % 10) == 0 and curr_blockNum != last_backup_blockNum):
-                logging.info("Starting to back-up persistence at blockNum : %s" % curr_blockNum)
+            if(((curr_blockNum % num_final_block_per_pow) == target_backup_final_block) and curr_blockNum != last_backup_blockNum):
+                logging.info("Starting to back-up of otterscan persistence at blockNum : %s" % curr_blockNum)
                 backUp(curr_blockNum)
                 logging.info("Backing up persistence successfully.")
                 last_backup_blockNum = curr_blockNum
