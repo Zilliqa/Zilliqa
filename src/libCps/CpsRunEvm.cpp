@@ -474,7 +474,7 @@ CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
       .from = ProtoToAddress(mProtoArgs.address()),
       .dest = Address{destAddress},
       .origin = mCpsContext.origSender,
-      .value = Amount{},
+      .value = Amount::fromWei(ProtoToUint(callData.transfer().value())),
       .calldata = jsonData,
       .edge = 0,
       .depth = 0,
@@ -832,9 +832,9 @@ bool CpsRunEvm::ProbeERC165Interface(CpsAccountStoreInterface& accStore,
     // Check if destination supports 'function
     // handle_scilla_message(string,bytes)'
     // it's a 0x01ffc9a7 (ERC-165) +
-    // bytes4(keccak(hadle_scilla_message(string,bytes))
+    // bytes4(keccak(handle_scilla_message(string,bytes))
     constexpr auto SUPPORT_SCILLA_IFACE =
-        "0x01ffc9a742ede2780000000000000000000000000000000000000000000000000000"
+        "0x01ffc9a7ebc8a27f0000000000000000000000000000000000000000000000000000"
         "0000";
     *args.mutable_data() = DataConversion::CharArrayToString(
         DataConversion::HexStrToUint8VecRet(SUPPORT_SCILLA_IFACE));
