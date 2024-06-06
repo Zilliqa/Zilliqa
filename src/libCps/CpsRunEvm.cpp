@@ -844,7 +844,7 @@ bool CpsRunEvm::ProbeERC165Interface(CpsAccountStoreInterface& accStore,
     const auto result = evmRun.InvokeEvm();
     const evm::EvmResult& evmResult = result.value();
 
-    if (!std::empty(evmResult.return_value()) ||
+    if (!std::empty(evmResult.return_value()) &&
         static_cast<uint8_t>(evmResult.return_value().back()) == 0x01) {
       return true;
     }
