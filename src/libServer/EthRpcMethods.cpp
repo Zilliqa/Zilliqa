@@ -237,6 +237,17 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::GetEthMiningI);
 
   m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_accountRange", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_INTEGER, "param02", jsonrpc::JSON_INTEGER,
+                         NULL),
+      &EthRpcMethods::GetDebugAccountRangeI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_printCache", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &EthRpcMethods::PrintCacheContentsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthCoinbaseI);
@@ -1126,6 +1137,58 @@ Json::Value EthRpcMethods::GetEthMining() {
   INC_CALLS(GetInvocationsCounter());
 
   return Json::Value(false);
+}
+
+Json::Value EthRpcMethods::GetDebugAccountRange(unsigned long pageNumber, unsigned long pageSize) {
+  INC_CALLS(GetInvocationsCounter());
+
+  try {
+    unique_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    //TODO: Remove this line
+    AccountStore::GetInstance().FillAddressCache();
+
+    //TODO: Add input sanitation
+    bool wasMore = false;
+    auto addresses = AccountStore::GetInstance().GetAccountAddresses(pageNumber,pageSize, wasMore);
+    Json::Value response = Json::objectValue;
+    Json::Value jsonAddresses = Json::arrayValue;
+    
+    for (const std::array<zbyte, 40>& entry : addresses) {
+      std::string address(entry.begin(), entry.end());
+      jsonAddresses.append(address);
+    }
+
+    response["addresses"] = jsonAddresses;
+    response["wasMore"] = wasMore;
+
+    return response;
+  } catch (const JsonRpcException &je) {
+    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
+    throw je;
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value EthRpcMethods::PrintCacheContents() {
+  INC_CALLS(GetInvocationsCounter());
+
+  try {
+    unique_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
+    AccountStore::GetInstance().PrintAddressCache();
+
+    return Json::Value("Printed contents in log.");
+  } catch (const JsonRpcException &je) {
+    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
+    throw je;
+  } catch (exception &e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 std::string EthRpcMethods::GetEthCoinbase() {
