@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB) {
                       "ERROR: Trie2 still have the new element after rollback");
   m_trie2.setRoot(root2);
   BOOST_CHECK_MESSAGE(m_trie2.contains(h),
-                      "ERROR: Trie2 still cannot get the the old element "
+                      "ERROR: Trie2 still cannot get the old element "
                       "after reset the root to the old one");
 }
 
