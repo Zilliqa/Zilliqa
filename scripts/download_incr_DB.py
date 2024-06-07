@@ -68,11 +68,11 @@ def getURL():
 	if CDN_ENDPOINT_URL:
 		return f"{CDN_ENDPOINT_URL}"
 	if isGCP():
-		return "http://"+BUCKET_NAME+".storage.googleapis.com"
+		return "https://"+BUCKET_NAME+".storage.googleapis.com"
 	elif AWS_ENDPOINT_URL:
 		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
 	else:
-		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+		return "https://"+BUCKET_NAME+".s3.amazonaws.com"
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock", headers=EXCLUDE_CDN_CACHE_HEADER)
