@@ -42,7 +42,7 @@ The current live version on the Developer Testnet is Zilliqa [v9.2.5](https://gi
 
 ## Zilliqa Improvement Proposal (ZIP)
 
-The Zilliqa Improvement Proposals (ZIPs) are the core protocol standards for the Zilliqa platform.To view or contribute to ZIP, please visit https://github.com/Zilliqa/zip
+The Zilliqa Improvement Proposals (ZIPs) are the core protocol standards for the Zilliqa platform. To view or contribute to ZIP, please visit https://github.com/Zilliqa/zip
 
 ## Available Features
 

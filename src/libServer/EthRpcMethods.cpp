@@ -1133,7 +1133,7 @@ std::string EthRpcMethods::GetEthCoinbase() {
 
   throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                          "Unsupported method: eth_coinbase. Zilliqa mining "
-                         "model is different from that of Etherium");
+                         "model is different from that of Ethereum");
 }
 
 Json::Value EthRpcMethods::GetNetListening() {
