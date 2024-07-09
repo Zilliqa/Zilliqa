@@ -1800,6 +1800,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         Eth::GetLogsFromReceipt(transactionBodyPtr->GetTransactionReceipt());
 
     logs = Eth::ConvertScillaEventsToEvm(logs);
+    Json::Value filteredLogs =
+        JSONUtils::GetInstance().FilterDuplicateLogs(logs);
 
     const auto [errors, exceptions] = Eth::GetErrorsAndExceptionsFromReceipt(
         transactionBodyPtr->GetTransactionReceipt());
@@ -1808,24 +1810,24 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         Eth::ConvertScillaExceptionsToEvm(exceptions);
 
     for (const auto &error : convertedErrors) {
-      logs.append(error);
+      filteredLogs.append(error);
     }
 
     for (const auto &exception : convertedExceptions) {
-      logs.append(exception);
+      filteredLogs.append(exception);
     }
 
     const auto baselogIndex =
         Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
 
-    Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
+    Eth::DecorateReceiptLogs(filteredLogs, txnhash, blockHash, blockNumber,
                              transactionIndex, baselogIndex);
     const auto bloomLogs = Eth::GetBloomFromReceiptHex(
         transactionBodyPtr->GetTransactionReceipt());
 
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, gasPrice, blockHash,
-        blockNumber, contractAddress, logs, bloomLogs, transactionIndex,
+        blockNumber, contractAddress, filteredLogs, bloomLogs, transactionIndex,
         transactionBodyPtr->GetTransaction());
 
     return res;
