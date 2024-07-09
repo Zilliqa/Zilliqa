@@ -607,6 +607,7 @@ class EthRpcMethods {
   inline virtual void GetDSLeaderTxnPoolI(const Json::Value& /*request*/,
                                           Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
+
     response = this->GetDSLeaderTxnPool();
   }
 
