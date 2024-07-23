@@ -1879,6 +1879,7 @@ Json::Value EthRpcMethods::EthGetFilterLogs(const std::string &filter_id) {
 }
 
 Json::Value EthRpcMethods::EthGetLogs(const Json::Value &param) {
+  LOG_MARKER();
   INC_CALLS(GetInvocationsCounter());
 
   auto &api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();

@@ -61,6 +61,7 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
 
   void StartEpoch(uint64_t epoch, const BlockHash& block_hash,
                   uint32_t num_shards, uint32_t num_txns) override {
+    LOG_MARKER();
     m_blocksCache.StartEpoch(epoch, NormalizeHexString(block_hash), num_shards,
                              num_txns);
   }
@@ -100,6 +101,9 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
     }
 
     auto earliest = epoch > TXMETADATADEPTH ? epoch - TXMETADATADEPTH : 1;
+    LOG_GENERAL(INFO, "EpochFinalized , earliest = "
+                          << earliest << " TXMETADATADEPTH = "
+                          << TXMETADATADEPTH << " epoch = " << epoch);
     m_filterAPI.SetEpochRange(earliest, epoch);
   }
 

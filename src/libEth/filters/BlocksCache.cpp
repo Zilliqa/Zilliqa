@@ -45,6 +45,7 @@ EpochNumber BlocksCache::GetLastEpoch() {
 
 void BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
                              uint32_t num_shards, uint32_t num_txns) {
+  LOG_MARKER();
   EpochNumber n = static_cast<EpochNumber>(epoch);
 
   UniqueLock lock(m_mutex);
@@ -59,8 +60,16 @@ void BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
     return;
   }
 
+  LOG_GENERAL(INFO, "m_finalizedEpochs size = "
+                        << m_finalizedEpochs.size() << " m_depth = " << m_depth
+                        << " epoch Num = " << epoch << " num_shards = "
+                        << num_shards << " num txns = " << num_txns);
+
   if (num_txns == 0) {
     if (m_finalizedEpochs.size() >= m_depth) {
+      LOG_GENERAL(INFO, "m_finalizedEpochs front = "
+                            << m_finalizedEpochs.front().epoch << " hash = "
+                            << m_finalizedEpochs.front().blockHash);
       m_finalizedEpochs.pop_front();
     }
     m_finalizedEpochs.emplace_back();
@@ -80,6 +89,9 @@ void BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
 void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
                                           const TxnHash &hash,
                                           const Json::Value &receipt) {
+  LOG_MARKER();
+  LOG_GENERAL(INFO, "epoch = " << epoch << " shard = " << shard << " hash = "
+                               << hash << " receipt = " << receipt);
   EpochNumber n = static_cast<EpochNumber>(epoch);
 
   UniqueLock lock(m_mutex);
@@ -147,13 +159,21 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
     log.response =
         CreateEventResponseItem(n, hash, log.address, log.topics, data);
   }
-
+  LOG_GENERAL(INFO, "ctx currentTxns = " << ctx.currentTxns
+                                         << " totalTxns = " << ctx.totalTxns)
   if (ctx.currentTxns >= ctx.totalTxns) {
     TryFinalizeEpochs();
   }
 }
 
 void BlocksCache::TryFinalizeEpochs() {
+  LOG_MARKER();
+  if (!m_epochsInProcess.empty()) {
+    LOG_GENERAL(INFO, "TryFinalizeEpochs start  m_epochsInProgress size = "
+                          << m_epochsInProcess.size() << " first = "
+                          << m_epochsInProcess.begin()->first << " last = "
+                          << std::prev(m_epochsInProcess.end())->first);
+  }
   while (!m_epochsInProcess.empty()) {
     auto it = m_epochsInProcess.begin();
     auto &ctx = it->second;
@@ -163,10 +183,19 @@ void BlocksCache::TryFinalizeEpochs() {
     FinalizeOneEpoch(it->first, ctx);
     m_epochsInProcess.erase(it);
   }
+  if (!m_epochsInProcess.empty()) {
+    LOG_GENERAL(INFO, "TryFinalizeEpochs end  m_epochsInProgress size = "
+                          << m_epochsInProcess.size() << " first = "
+                          << m_epochsInProcess.begin()->first << " last = "
+                          << std::prev(m_epochsInProcess.end())->first);
+  }
 }
 
 void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
+  LOG_MARKER();
   if (m_finalizedEpochs.size() >= m_depth) {
+    LOG_GENERAL(INFO, "Removing = m_finalizedEpochs  ="
+                          << m_finalizedEpochs.front().epoch);
     m_finalizedEpochs.pop_front();
   }
   m_finalizedEpochs.emplace_back();
@@ -212,14 +241,20 @@ BlocksCache::FinalizedEpochs::iterator BlocksCache::FindNext(
 EpochNumber BlocksCache::GetEventFilterChanges(EpochNumber after_epoch,
                                                const EventFilterParams &filter,
                                                PollResult &result) {
+  LOG_MARKER();
   result.result = Json::Value(Json::arrayValue);
   result.success = true;
 
   SharedLock lock(m_mutex);
 
   auto last_epoch = GetLastEpoch();
+  LOG_GENERAL(INFO,
+              "last_epoch = " << last_epoch << " after_epoch = " << after_epoch
+                              << " filter.fromBlock = " << filter.fromBlock
+                              << " LATEST_EPOCH = " << LATEST_EPOCH);
 
   if (last_epoch <= after_epoch || filter.fromBlock == PENDING_EPOCH) {
+    LOG_GENERAL(INFO, "Returning after_epoch = " << after_epoch);
     return after_epoch;
   }
 
@@ -234,18 +269,24 @@ EpochNumber BlocksCache::GetEventFilterChanges(EpochNumber after_epoch,
   if (filter.toBlock >= 0) {
     end_epoch = filter.toBlock;
   }
-
+  LOG_GENERAL(
+      INFO, " from block = " << filter.fromBlock << " to block = " << end_epoch
+                             << " it epoch = " << FindNext(begin_epoch)->epoch);
   for (auto it = FindNext(begin_epoch); it != m_finalizedEpochs.end(); ++it) {
     if (it->epoch > end_epoch) {
       break;
     }
 
     for (const auto &log : it->meta) {
+      LOG_GENERAL(INFO, "here log.address = " << log.address);
       if (Match(filter, log.address, log.topics)) {
+        LOG_GENERAL(INFO, "here");
         result.result.append(log.response);
       }
     }
   }
+  LOG_GENERAL(INFO, "result = " << result.result.toStyledString());
+  LOG_GENERAL(INFO, "last_epoch = " << last_epoch);
 
   return last_epoch;
 }
