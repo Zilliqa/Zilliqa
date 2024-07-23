@@ -339,6 +339,7 @@ bool ExtractTopicFilters(const Json::Value &topics, EventFilterParams &filter,
 
 bool InitializeEventFilter(const Json::Value &params, EventFilterParams &filter,
                            std::string &error) {
+  LOG_MARKER();
   if (!params.isObject()) {
     error = "Invalid event filter params (not an object)";
     return false;

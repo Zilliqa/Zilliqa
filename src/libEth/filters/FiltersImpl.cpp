@@ -207,10 +207,15 @@ void FilterAPIBackendImpl::GetEventFilterChanges(
     const std::string &filter_id, PollResult &result,
     std::chrono::seconds &expireTime, bool ignore_last_seen_cursor) {
   SharedLock lock(m_installMutex);
+  LOG_GENERAL(
+      INFO, "GetEventFilterChanges filter_id = "
+                << filter_id << " expire = " << expireTime.count() << " seconds"
+                << " infore_last_seen_cursor = " << ignore_last_seen_cursor);
 
   auto it = m_eventFilters.find(filter_id);
   if (it == m_eventFilters.end()) {
     result.error = FILTER_NOT_FOUND;
+    LOG_GENERAL(INFO, "Filter is not found");
     return;
   }
 
@@ -222,12 +227,19 @@ void FilterAPIBackendImpl::GetEventFilterChanges(
   if (ignore_last_seen_cursor) {
     std::ignore =
         m_cache.GetEventFilterChanges(SEEN_NOTHING, filter.params, result);
+    LOG_GENERAL(INFO, "Ignore filter changes");
     return;
   }
 
   expireTime = filter.expireTime;
+  LOG_GENERAL(INFO,
+              "filter.lastSeen = " << filter.lastSeen
+                                   << " m_latestEpoch = " << m_latestEpoch);
 
   if (filter.lastSeen >= m_latestEpoch) {
+    LOG_GENERAL(INFO,
+                "filter.lastSeen = " << filter.lastSeen
+                                     << " m_latestEpoch = " << m_latestEpoch);
     result.success = true;
     return;
   }
@@ -240,7 +252,6 @@ void FilterAPIBackendImpl::GetPendingTxnFilterChanges(
     const std::string &filter_id, PollResult &result,
     std::chrono::seconds &expireTime) {
   SharedLock lock(m_installMutex);
-
   auto it = m_pendingTxnFilters.find(filter_id);
   if (it == m_pendingTxnFilters.end()) {
     result.error = FILTER_NOT_FOUND;
@@ -303,6 +314,7 @@ PollResult FilterAPIBackendImpl::GetFilterLogs(const FilterId &filter_id) {
 }
 
 PollResult FilterAPIBackendImpl::GetLogs(const Json::Value &params) {
+  LOG_MARKER();
   PollResult ret;
 
   if (m_latestEpoch < 0) {
