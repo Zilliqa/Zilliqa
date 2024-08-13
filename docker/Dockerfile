@@ -21,68 +21,68 @@ ARG SCILLA_IMAGE=zilliqa/scilla:${SCILLA_VERSION}
 FROM ubuntu:22.04 AS base
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
-    && apt-get install -y software-properties-common \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    autoconf \
-    bison \
-    build-essential \
-    ca-certificates \
-    ccache \
-    clang-format \
-    clang-tidy \
-    cron \
-    curl \
-    dnsutils \
-    gawk \
-    gdb \
-    git \
-    htop \
-    iproute2 \
-    lcov \
-    pigz \
-    libcurl4-openssl-dev \
-    libgmp-dev \
-    libsecp256k1-dev \
-    libssl-dev \
-    libtool \
-    libxml2-utils \
-    logrotate \
-    net-tools \
-    ninja-build \
-    nload \
-    ocl-icd-opencl-dev \
-    openssh-client \
-    pkg-config \
-    rsync \
-    rsyslog \
-    tar \
-    trickle \
-    unzip \
-    vim \
-    wget \
-    zip \
-    && apt-get remove -y cmake python2 && apt-get autoremove -y
+  && apt-get install -y software-properties-common \
+  && apt-get update && apt-get install -y --no-install-recommends \
+  autoconf \
+  bison \
+  build-essential \
+  ca-certificates \
+  ccache \
+  clang-format \
+  clang-tidy \
+  cron \
+  curl \
+  dnsutils \
+  gawk \
+  gdb \
+  git \
+  htop \
+  iproute2 \
+  lcov \
+  pigz \
+  libcurl4-openssl-dev \
+  libgmp-dev \
+  libsecp256k1-dev \
+  libssl-dev \
+  libtool \
+  libxml2-utils \
+  logrotate \
+  net-tools \
+  ninja-build \
+  nload \
+  ocl-icd-opencl-dev \
+  openssh-client \
+  pkg-config \
+  rsync \
+  rsyslog \
+  tar \
+  trickle \
+  unzip \
+  vim \
+  wget \
+  zip \
+  && apt-get remove -y cmake python2 && apt-get autoremove -y
 
 FROM base AS builder
 ARG EXTRA_BUILD_PARAMS
 
 # Cargo
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
-    sh install_script.sh -y
+  sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN cargo install --git https://github.com/rrw-zilliqa/sccache --branch rrw_compile_fix sccache --locked
+RUN cargo install --git https://github.com/rrw-zilliqa/sccache --branch main sccache --locked
 ENV SCCACHE_CACHE_SIZE="1G"
 ENV SCCACHE_DIR="/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
 ARG CMAKE_VERSION=3.25.1
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
-    && echo "6598da34f0e3a0f763809e25cfdd646aa1d5e4d133c4277821e63ae5cfe09457 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
-    && mkdir -p "${HOME}"/.local \
-    && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
-    && "${HOME}"/.local/bin/cmake --version \
-    && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+  && echo "6598da34f0e3a0f763809e25cfdd646aa1d5e4d133c4277821e63ae5cfe09457 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+  && mkdir -p "${HOME}"/.local \
+  && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
+  && "${HOME}"/.local/bin/cmake --version \
+  && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Setup ccache
@@ -151,8 +151,8 @@ COPY isolated-server-accounts.json .
 
 # Build & install Zilliqa
 RUN --mount=type=cache,target=/ccache/ \
-    --mount=type=cache,target=/root/.cache/vcpkg/ \
-    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja ${EXTRA_BUILD_PARAMS} && cmake --build "/zilliqa/build" --target install
+  --mount=type=cache,target=/root/.cache/vcpkg/ \
+  CCACHE_BASEDIR="/zilliqa" ./build.sh ninja ${EXTRA_BUILD_PARAMS} && cmake --build "/zilliqa/build" --target install
 
 # Make sure all DLLs / shared libraries are installed
 RUN ldd /usr/local/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} /usr/local/lib
@@ -160,26 +160,26 @@ RUN echo "built files:" && ls -lh /zilliqa/build && echo "installed libs:" && ls
 
 # strip all exes
 RUN strip /usr/local/bin/zilliqad \
-   /usr/local/bin/genkeypair \
-   /usr/local/bin/signmultisig \
-   /usr/local/bin/verifymultisig \
-   /usr/local/bin/getpub \
-   /usr/local/bin/getaddr \
-   /usr/local/bin/genaccounts \
-   /usr/local/bin/sendcmd \
-   /usr/local/bin/gentxn \
-   /usr/local/bin/validateDB \
-   /usr/local/bin/genTxnBodiesFromS3 \
-   /usr/local/bin/getnetworkhistory \
-   /usr/local/bin/isolatedServer \
-   /usr/local/bin/getrewardhistory \
-   /usr/local/bin/buildTxBlockHashesToNums \
-#    /usr/local/bin/zilliqa \
-   /usr/local/lib/libSchnorr.so \
-   /usr/local/lib/libCryptoUtils.so \
-   /usr/local/lib/libNAT.so \
-   /usr/local/lib/libCommon.so \
-   /usr/local/lib/libTrie.so
+  /usr/local/bin/genkeypair \
+  /usr/local/bin/signmultisig \
+  /usr/local/bin/verifymultisig \
+  /usr/local/bin/getpub \
+  /usr/local/bin/getaddr \
+  /usr/local/bin/genaccounts \
+  /usr/local/bin/sendcmd \
+  /usr/local/bin/gentxn \
+  /usr/local/bin/validateDB \
+  /usr/local/bin/genTxnBodiesFromS3 \
+  /usr/local/bin/getnetworkhistory \
+  /usr/local/bin/isolatedServer \
+  /usr/local/bin/getrewardhistory \
+  /usr/local/bin/buildTxBlockHashesToNums \
+  #    /usr/local/bin/zilliqa \
+  /usr/local/lib/libSchnorr.so \
+  /usr/local/lib/libCryptoUtils.so \
+  /usr/local/lib/libNAT.so \
+  /usr/local/lib/libCommon.so \
+  /usr/local/lib/libTrie.so
 
 FROM ${SCILLA_IMAGE} AS scilla
 
@@ -188,8 +188,8 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 
 FROM builder AS test_runner
 RUN mkdir -p \
-    /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/x64-linux-dynamic \
-    && ln -s /usr/local/lib /scilla/0/vcpkg_installed/x64-linux-dynamic
+  /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/x64-linux-dynamic \
+  && ln -s /usr/local/lib /scilla/0/vcpkg_installed/x64-linux-dynamic
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 # pour in scilla tests
@@ -206,8 +206,8 @@ FROM base
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
-    /scilla/0/bin /scilla/0/src/stdlib \
-    /zilliqa/scripts
+  /scilla/0/bin /scilla/0/src/stdlib \
+  /zilliqa/scripts
 
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
@@ -226,13 +226,13 @@ ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 # The above COPY doesn't preserve symlinks which causes gcc/g++/cc/c++
 # to hang as stand-alone binaries on Ubuntu 22.04.
 RUN rm -f /usr/local/bin/gcc \
-      /usr/local/bin/g++ \
-      /usr/local/bin/cc \
-      /usr/local/bin/c++ \
-    && ln -s "$(which ccache)" /usr/local/bin/gcc \
-    && ln -s "$(which ccache)" /usr/local/bin/g++ \
-    && ln -s "$(which ccache)" /usr/local/bin/cc \
-    && ln -s "$(which ccache)" /usr/local/bin/c++
+  /usr/local/bin/g++ \
+  /usr/local/bin/cc \
+  /usr/local/bin/c++ \
+  && ln -s "$(which ccache)" /usr/local/bin/gcc \
+  && ln -s "$(which ccache)" /usr/local/bin/g++ \
+  && ln -s "$(which ccache)" /usr/local/bin/cc \
+  && ln -s "$(which ccache)" /usr/local/bin/c++
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
