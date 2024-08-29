@@ -18,6 +18,7 @@
 #include <leveldb/db.h>
 #include <regex>
 
+#include "common/Common.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libScilla/ScillaClient.h"
@@ -795,8 +796,18 @@ bool AccountStore::UpdateStateTrie(const Address &address,
     return false;
   }
 
-  std::lock_guard<std::mutex> g(m_mutexTrie);
-  m_state.insert(DataConversion::StringToCharArray(address.hex()), rawBytes);
+  std::lock(m_mutexTrie, m_mutexCache);
+  std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+  std::lock_guard<std::mutex> lock2(m_mutexCache, std::adopt_lock);
+
+
+  zbytes z = DataConversion::StringToCharArray(address.hex());
+  if(!m_state.contains(z)){
+    std::array<unsigned char, 40> arr;
+    std::copy(z.begin(), z.end(), arr.begin());
+    m_cache.push_back(arr);
+  }
+  m_state.insert(z, rawBytes);
 
   return true;
 }
@@ -850,4 +861,41 @@ bool AccountStore::UpdateStateTrieAll() {
 void AccountStore::PrintAccountState() {
   AccountStoreBase::PrintAccountState();
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
+}
+
+void AccountStore::FillAddressCache(){
+  std::lock(m_mutexTrie, m_mutexDB, m_mutexCache);
+  std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+  std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
+  std::lock_guard<std::mutex> lock3(m_mutexCache, std::adopt_lock);
+
+  m_cache.clear();
+
+  for(auto it = m_state.begin(); it != m_state.end(); ++it){
+    std::pair<zbytesConstRef , zbytesConstRef >item = it.at();
+    std::array<zbyte, 40> arr;
+    std::copy(item.first.begin(), item.first.end(), arr.begin());
+    m_cache.push_back(arr);
+  }
+}
+
+void AccountStore::PrintAddressCache(){
+  std::lock_guard<std::mutex> g(m_mutexCache);
+  for (const std::array<zbyte, 40>& entry : m_cache) {
+    std::string address(entry.begin(), entry.end());
+    LOG_GENERAL(INFO, "Address: " << address);
+  }
+
+}  
+
+std::vector<std::array<zbyte, 40>> AccountStore::GetAccountAddresses(unsigned long pageNumber, unsigned long pageSize, bool &wasMore){
+  //TODO: Implement input sanitisation before locking
+  std::lock_guard<std::mutex> g(m_mutexCache);
+  auto start = pageNumber * pageSize >= m_cache.size() ? m_cache.end() : m_cache.begin() + (pageNumber * pageSize);
+  wasMore = (pageNumber + 1) * pageSize < m_cache.size();
+  auto end = wasMore ? m_cache.begin() + ((pageNumber + 1) * pageSize) : m_cache.end();
+
+  std::vector<std::array<zbyte, 40>> slice(end - start);
+  std::copy(start, end, slice.begin());
+  return slice;
 }

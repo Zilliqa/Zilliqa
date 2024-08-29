@@ -222,6 +222,17 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthMiningI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("debug_accountRange", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_INTEGER, "param02", jsonrpc::JSON_INTEGER,
+                         NULL),
+        &LookupServer::GetDebugAccountRangeI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("debug_printCache", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::PrintCacheContentsI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getUncleByBlockHashAndIndex",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                            "param01", jsonrpc::JSON_STRING, "param02",
