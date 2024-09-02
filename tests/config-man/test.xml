@@ -1,0 +1,6 @@
+<node>
+  <general>
+    <DEBUG_LEVEL>9</DEBUG_LEVEL>
+    <LOG_FILE>test.log</LOG_FILE>
+  </general>
+</node>
