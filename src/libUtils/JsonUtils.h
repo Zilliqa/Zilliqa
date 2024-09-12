@@ -45,7 +45,7 @@ class JSONUtils {
         std::unique_ptr<Json::StreamWriter>(writeBuilder.newStreamWriter());
   }
 
-  ~JSONUtils(){};
+  ~JSONUtils() {};
 
  public:
   static JSONUtils& GetInstance() {
@@ -53,20 +53,22 @@ class JSONUtils {
     return jsonutils;
   }
 
-  bool getUint128FromObject(const Json::Value& obj, const std::string& key, uint128_t &result) const {
+  bool getUint128FromObject(const Json::Value& obj, const std::string& key,
+                            uint128_t& result) const {
     return this->getUint128FromObject(obj, key.c_str(), result);
   }
-  
+
   /// Get an object value as a uint128_t.
   /// @return false if we failed, true if we succeeded.
-  bool getUint128FromObject(const Json::Value& obj, const char* key, uint128_t &result) const {
-    if (obj.isObject() &&
-        obj.isMember(key)) {
+  bool getUint128FromObject(const Json::Value& obj, const char* key,
+                            uint128_t& result) const {
+    if (obj.isObject() && obj.isMember(key)) {
       Json::Value member = obj[key];
       if (member.isString()) {
         // Parse it.
         try {
-          result = DataConversion::ConvertStrToInt<uint128_t>(member.asString());
+          result =
+              DataConversion::ConvertStrToInt<uint128_t>(member.asString());
           return true;
         } catch (...) {
           return false;
@@ -117,6 +119,33 @@ class JSONUtils {
     std::ofstream os(path);
     std::lock_guard<std::mutex> g(m_mutexWriter);
     m_writer->write(_json, &os);
+  }
+
+  static std::size_t hashJsonValue(const Json::Value& log) {
+    Json::StreamWriterBuilder writer;
+    std::string logStr = Json::writeString(writer, log);
+    return std::hash<std::string>{}(logStr);
+  }
+
+  static bool equalJsonValue(const Json::Value& lhs, const Json::Value& rhs) {
+    return lhs == rhs;
+  }
+
+  Json::Value FilterDuplicateLogs(const Json::Value& logs) {
+    using CustomHash = std::function<std::size_t(const Json::Value&)>;
+    using CustomEqual =
+        std::function<bool(const Json::Value&, const Json::Value&)>;
+
+    std::unordered_set<Json::Value, CustomHash, CustomEqual> uniqueLogs(
+        10, hashJsonValue, equalJsonValue);
+    Json::Value filteredLogs(Json::arrayValue);
+
+    for (const auto& log : logs) {
+      if (uniqueLogs.insert(log).second) {
+        filteredLogs.append(log);
+      }
+    }
+    return filteredLogs;
   }
 };
 
