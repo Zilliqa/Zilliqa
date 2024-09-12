@@ -1,7 +1,18 @@
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import {assert} from "chai";
-import {ethers} from "hardhat";
+import { assert } from "chai";
+import { ethers } from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
+const eip1898TestParams = require('../../common/eip1898TestParams');
+
+
+// Now you can use the parameters from the imported object
+const {
+  validEip1898Complete,
+  validEip1898WithHash,
+  validEip1898WithNumber,
+  invalidEip1898Empty,
+  invalidEip1898IncorrectKeys
+} = eip1898TestParams;
 
 const METHOD = "eth_getBalance";
 
@@ -45,6 +56,97 @@ describe(`Calling ${METHOD} #parallel`, function () {
       );
     });
   });
+  it("should return the latest balance as per eip-1898 scenario1 @block-1", async function () {
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(METHOD, 1, [signer.address, validEip1898Complete], (result, status) => {
+      logDebug("Result:", result);
+
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isString(result.result, "is string");
+      assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+      assert.isNumber(+result.result, "can be converted to a number");
+
+      var expectedBalance = 0;
+      assert.isAbove(
+        +result.result,
+        expectedBalance,
+        "Has result:" + result + " should have balance " + expectedBalance
+      );
+    });
+  });
+  it("should return the latest balance as per eip-1898 scenario2 @block-1", async function () {
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(METHOD, 1, [signer.address, validEip1898WithHash], (result, status) => {
+      logDebug("Result:", result);
+
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isString(result.result, "is string");
+      assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+      assert.isNumber(+result.result, "can be converted to a number");
+
+      var expectedBalance = 0;
+      assert.isAbove(
+        +result.result,
+        expectedBalance,
+        "Has result:" + result + " should have balance " + expectedBalance
+      );
+    });
+  });
+  it("should return the latest balance as per eip-1898 scenario3 @block-1", async function () {
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(METHOD, 1, [signer.address, validEip1898WithNumber], (result, status) => {
+      logDebug("Result:", result);
+
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isString(result.result, "is string");
+      assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+      assert.isNumber(+result.result, "can be converted to a number");
+
+      var expectedBalance = 0;
+      assert.isAbove(
+        +result.result,
+        expectedBalance,
+        "Has result:" + result + " should have balance " + expectedBalance
+      );
+    });
+  });
+  it("should return the error for invalid eip-1898 scenario1 @block-1", async function () {
+    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: blockParam object must contain either blockHash or blockNumber or both";
+    let errorCode = -32602;
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(
+      METHOD,
+      1,
+      [signer.address, invalidEip1898Empty],
+      (result, status) => {
+        logDebug(result);
+
+        assert.equal(status, 200, "has status code");
+        assert.equal(result.error.code, errorCode);
+        assert.equal(result.error.message, expectedErrorMessage);
+      }
+    );
+  });
+  it("should return the error for invalid eip-1898 scenario2 @block-1", async function () {
+    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: blockParam object must contain either blockHash or blockNumber or both";
+    let errorCode = -32602;
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(
+      METHOD,
+      1,
+      [signer.address, invalidEip1898IncorrectKeys],
+      (result, status) => {
+        logDebug(result);
+
+        assert.equal(status, 200, "has status code");
+        assert.equal(result.error.code, errorCode);
+        assert.equal(result.error.message, expectedErrorMessage);
+      }
+    );
+  });
 
   it("should return the pending balance as specified in the ethereum protocol @block-1", async function () {
     const [signer] = await ethers.getSigners();
@@ -85,7 +187,7 @@ describe(`Calling ${METHOD} #parallel`, function () {
   });
 
   it("should return an error requesting the balance due to insufficient parameters @block-1", async function () {
-    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised";
+    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Parameters cannot be empty or Invalid parameter types";
     let errorCode = -32602;
     const [signer] = await ethers.getSigners();
     await sendJsonRpcRequest(
@@ -103,7 +205,7 @@ describe(`Calling ${METHOD} #parallel`, function () {
   });
 
   it("should return an error requesting the balance if no parameters is specified @block-1", async function () {
-    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised";
+    let expectedErrorMessage = "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Parameters cannot be empty or Invalid parameter types";
     let errorCode = -32602;
     await sendJsonRpcRequest(
       METHOD,
