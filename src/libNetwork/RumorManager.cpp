@@ -487,7 +487,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
       std::copy_n(message.begin(), PUB_KEY_SIZE,
                   std::back_inserter(messagePubK));
     } else {
-      LOG_GENERAL(WARNING, "message size is not approriate");
+      LOG_GENERAL(WARNING, "message size is not approriate message size = "<<message.size());
       return {false, {}};
     }
 
