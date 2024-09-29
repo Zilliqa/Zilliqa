@@ -436,6 +436,7 @@ int LevelDB::DeleteKey(const boost::multiprecision::uint256_t& blockNum) {
 }
 
 int LevelDB::DeleteKey(const std::string& key) {
+  LOG_GENERAL(WARNING, "BZ: Deleting key from db: " << key);
   leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key));
   if (!s.ok()) {
     LOG_GENERAL(WARNING, "[DeleteKey] Status: " << s.ToString());
