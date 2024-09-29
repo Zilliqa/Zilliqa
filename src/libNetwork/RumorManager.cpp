@@ -483,11 +483,14 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     // verify if the pubkey is from with-in our network
     PubKey senderPubKey;
     zbytes messagePubK;
+    LOG_GENERAL(INFO, "VerifyMessage message size = " << message.size()
+                                                      << " PUB_KEY_SIZE = "
+                                                      << PUB_KEY_SIZE);
     if (message.size() >= PUB_KEY_SIZE) {
       std::copy_n(message.begin(), PUB_KEY_SIZE,
                   std::back_inserter(messagePubK));
     } else {
-      LOG_GENERAL(WARNING, "message size is not approriate message size = "<<message.size());
+      LOG_GENERAL(WARNING, "message size is not approriate");
       return {false, {}};
     }
 
