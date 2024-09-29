@@ -483,7 +483,12 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     // verify if the pubkey is from with-in our network
     PubKey senderPubKey;
     zbytes messagePubK;
-    std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
+    if (message.size() >= PUB_KEY_SIZE) {
+      std::copy_n(message.begin(), PUB_KEY_SIZE,
+                  std::back_inserter(messagePubK));
+    } else {
+      return {false, {}};
+    }
 
     if (!senderPubKey.Deserialize(messagePubK, 0)) {
       LOG_GENERAL(WARNING, "Failed to deser sender pub key!");
