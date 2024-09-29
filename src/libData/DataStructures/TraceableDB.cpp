@@ -16,6 +16,7 @@
  */
 
 #include "libData/DataStructures/TraceableDB.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 
 using namespace std;
@@ -23,6 +24,7 @@ using namespace std;
 bool TraceableDB::commit(const uint64_t& dsBlockNum) {
   std::vector<dev::h256> toPurge;
   unordered_set<dev::h256> inserted;
+  LOG_GENERAL(WARNING, "RRW: calling traceableDB::commit() " << dsBlockNum);
   if (!OverlayDB::commit(KEEP_HISTORICAL_STATE && LOOKUP_NODE_MODE, toPurge,
                          inserted)) {
     LOG_GENERAL(WARNING, "OverlayDB::commit failed");
@@ -70,6 +72,8 @@ bool TraceableDB::AddPendingPurge(const uint64_t& dsBlockNum,
   keystream.width(BLOCK_NUMERIC_DIGITS);
   keystream << std::to_string(dsBlockNum);
 
+  LOG_GENERAL(INFO, "RRW: Inserting into PurgeDB "
+                        << DataConversion::Uint8VecToHexStrRet(s.out()));
   bool res = m_purgeDB.Insert(keystream.str(), s.out());
 
   // memory mgmt
@@ -114,6 +118,7 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
     }
     if ((t_dsBlockNum + NUM_DS_EPOCHS_STATE_HISTORY < dsBlockNum) || purgeAll) {
       m_levelDB.BatchDelete(toPurge);
+      LOG_GENERAL(INFO, "RRW: Purging: " << iter->key().ToString());
       m_purgeDB.DeleteKey(iter->key().ToString());
       // compact/cleanup for this key immediately.
       leveldb::Slice k(iter->key());
@@ -127,6 +132,8 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
           s.append(i);
         }
         // Replace the blocknum with new purge hashes
+        LOG_GENERAL(INFO, "RRW: Replacing purgeDB from "
+                              << DataConversion::Uint8VecToHexStrRet(s.out()));
         m_purgeDB.Insert(iter->key().ToString(), s.out());
 
         // memory mgmt
@@ -141,6 +148,7 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
 }
 
 bool TraceableDB::RefreshDB() {
+  LOG_GENERAL(INFO, "RRW: traceableDB::RefreshDB()");
   return m_levelDB.RefreshDB() && m_purgeDB.RefreshDB();
 }
 

@@ -627,6 +627,7 @@ ZilliqaMessage::TxTraceStoredDisk GetTxTraceInfoStruct(
       if (i < TX_TRACES_TO_STORE) {
         ret.add_items();
       } else if (!current_items[i].data().empty()) {
+        LOG_GENERAL("RRW: Deleting trace " << current_items[i].data());
         blockStorage.GetTxTraceDb()->DeleteKey(current_items[i].data());
       }
     }
@@ -754,6 +755,7 @@ bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
   unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+  LOG_GENERAL("RRW: blockchainDB deleting " << blocknum);
   int ret = m_txBlockchainDB->DeleteKey(blocknum);
   return (ret == 0);
 }
@@ -761,6 +763,7 @@ bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
 bool BlockStorage::DeleteStateDelta(const uint64_t& finalBlockNum) {
   unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
 
+  LOG_GENERAL("RRW: DeleteStateDelta " << finalBlockNum);
   int ret = m_stateDeltaDB->DeleteKey(finalBlockNum);
 
   return (ret == 0);
@@ -853,6 +856,7 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
     string pns = it->key().ToString();
     string pubkString = it->value().ToString();
     if (pubkString == pubKStrI) {
+      LOG_GENERAL("RRW: extSeedPubKeysDB delete " << pns);
       if (0 == m_extSeedPubKeysDB->DeleteKey(pns)) {
         LOG_GENERAL(
             INFO, "Deleted extseed pubkey " << pubK << " from DB successfully");
@@ -1528,6 +1532,7 @@ unsigned int BlockStorage::GetDiagnosticDataCoinbaseCount() {
 
 bool BlockStorage::DeleteDiagnosticDataNodes(const uint64_t& dsBlockNum) {
   lock_guard<mutex> g(m_mutexDiagnostic);
+  LOG_GENERAL("RRW: diagnostic delete " << dsBlockNum);
   bool result = (0 == m_diagnosticDBNodes->DeleteKey(dsBlockNum));
   if (result) {
     m_diagnosticDBNodesCounter--;
@@ -1537,6 +1542,7 @@ bool BlockStorage::DeleteDiagnosticDataNodes(const uint64_t& dsBlockNum) {
 
 bool BlockStorage::DeleteDiagnosticDataCoinbase(const uint64_t& dsBlockNum) {
   lock_guard<mutex> g(m_mutexDiagnostic);
+  LOG_GENERAL("RRW: diagnostic db coinbase delete " << dsBlockNum);
   bool result = (0 == m_diagnosticDBCoinbase->DeleteKey(dsBlockNum));
   if (result) {
     m_diagnosticDBCoinbaseCounter--;

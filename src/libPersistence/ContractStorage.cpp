@@ -74,6 +74,7 @@ bool ContractStorage::DeleteContractCode(const dev::h160& address) {
       TracedIds::GetInstance().GetCurrentEpochSpanIds());
   span.SetAttribute("contract_code_batch.address", address.hex());
 
+  LOG_GENERAL(WARNING, "RRW: Deleting contract code key from db: " << address.hex());
   lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.DeleteKey(address.hex()) == 0;
 }
@@ -491,8 +492,10 @@ bool ContractStorage::FetchExternalStateValue(
 
 void ContractStorage::DeleteByPrefix(const string& prefix) {
   auto p = t_stateDataMap.lower_bound(prefix);
+  LOG_GENERAL(WARNING, "RRW: DeleteByPrefix " << prefix);
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, prefix.size(), prefix) == 0) {
+    LOG_GENERAL(WARNING, "RRW: DeleteByPrefix[1] " << p->first);
     t_indexToBeDeleted.emplace(p->first);
     ++p;
   }
@@ -501,6 +504,7 @@ void ContractStorage::DeleteByPrefix(const string& prefix) {
   while ((p != m_stateDataMap.end() &&
           p->first.compare(0, prefix.size(), prefix) == 0)) {
     if (m_indexToBeDeleted.find(p->first) == m_indexToBeDeleted.cend()) {
+      LOG_GENERAL(WARNING, "RRW: DeleteByPrefix[2] " << p->first);
       t_indexToBeDeleted.emplace(p->first);
     }
     ++p;
@@ -512,11 +516,13 @@ void ContractStorage::DeleteByPrefix(const string& prefix) {
   it->Seek({prefix});
   if (!it->Valid() ||
       it->key().ToString().compare(0, prefix.size(), prefix) != 0) {
+    LOG_GENERAL(WARNING, "RRW: DeleteByPrefix[3] case 1");
     // no entry
   } else {
     for (; it->Valid() &&
            it->key().ToString().compare(0, prefix.size(), prefix) == 0;
          it->Next()) {
+      LOG_GENERAL(WARNING, "RRW: DeleteByPrefix[3] " << it->key().ToString());
       t_indexToBeDeleted.emplace(it->key().ToString());
     }
   }
@@ -736,6 +742,7 @@ void ContractStorage::FetchStateDataForKey(map<string, zbytes>& states,
   }
 
   if (temp) {
+    LOG_GENERAL(WARNING, "RRW: temp=true, deleting state");
     for (auto it = states.begin(); it != states.end();) {
       if (t_indexToBeDeleted.find(it->first) != t_indexToBeDeleted.cend()) {
         it = states.erase(it);
@@ -883,6 +890,7 @@ void ContractStorage::FetchUpdatedStateValuesForAddress(
     auto r = m_indexToBeDeleted.lower_bound(address.hex());
     while (r != m_indexToBeDeleted.end() &&
            r->compare(0, address.hex().size(), address.hex()) == 0) {
+      LOG_GENERAL(WARNING, "RRW: toBeDeleted emplace " << *r);
       toDeletedIndices.emplace(*r);
       ++r;
     }
@@ -910,6 +918,8 @@ bool ContractStorage::CleanEmptyMapPlaceholders(const string& key) {
   }
   if (indices.back().empty()) indices.pop_back();
 
+  LOG_GENERAL(WARNING, "RRW: Deleting empty map placeholders " << key);
+  
   string scankey = indices.at(0) + SCILLA_INDEX_SEPARATOR + indices.at(1) +
                    SCILLA_INDEX_SEPARATOR;
   DeleteByIndex(scankey);  // clean root level
@@ -1232,6 +1242,7 @@ void ContractStorage::RevertContractStates() {
   LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
 
+  LOG_GENERAL(WARNING, "RRW: RevertContractStates");
   for (const auto& entry : r_stateDataMap) {
     if (entry.first == dev::h256()) {
       m_stateTrie.init();
@@ -1258,14 +1269,17 @@ void ContractStorage::RevertContractStates() {
   }
 
   for (const auto& index : r_indexToBeDeleted) {
+    LOG_GENERAL(WARNING, "RRW: Revert[0]");
     if (index.second) {
       // revert newly added indexToBeDeleted
       const auto& found = m_indexToBeDeleted.find(index.first);
       if (found != m_indexToBeDeleted.end()) {
+        LOG_GENERAL(WARNING, "RRW: Revert[1] - " << *found);
         m_indexToBeDeleted.erase(found);
       }
     } else {
       // revert newly deleted indexToBeDeleted
+      LOG_GENERAL(WARNING, "RRW: Revert[2] - " << index.first);
       m_indexToBeDeleted.emplace(index.first);
     }
   }
@@ -1285,6 +1299,8 @@ bool ContractStorage::CommitStateDB(const uint64_t& dsBlockNum) {
     // Index
     unordered_map<string, std::string> batch;
 
+
+    LOG_GENERAL(WARNING, "RRW: CommitStateDB");
     // Data
     for (const auto& i : m_stateDataMap) {
       batch.insert({i.first, DataConversion::CharArrayToString(i.second)});
@@ -1295,6 +1311,7 @@ bool ContractStorage::CommitStateDB(const uint64_t& dsBlockNum) {
     }
     // ToDelete
     for (const auto& index : m_indexToBeDeleted) {
+      LOG_GENERAL(WARNING, "RRW: Deleting contract state key " << index);
       if (m_stateDataDB.DeleteKey(index) < 0) {
         LOG_GENERAL(WARNING, "DeleteKey " << index << " failed");
         return false;
@@ -1330,6 +1347,7 @@ void ContractStorage::InitTempStateCore() {
 }
 
 void ContractStorage::InitTempState(bool callFromExternal) {
+  LOG_GENERAL(WARNING, "RRW: InitTempState");
   if (callFromExternal) {
     lock_guard<mutex> g(m_stateDataMutex);
     InitTempStateCore();
@@ -1359,6 +1377,7 @@ bool ContractStorage::CheckHasMap(const dev::h160& addr, bool temp) {
 }
 
 void ContractStorage::Reset() {
+  LOG_GENERAL(WARNING, "RRW: REset");
   {
     lock_guard<mutex> g(m_codeMutex);
     m_codeDB.ResetDB();
@@ -1389,6 +1408,7 @@ void ContractStorage::Reset() {
 }
 
 bool ContractStorage::RefreshAll() {
+  LOG_GENERAL(WARNING, "RRW: RefreshAll");
   bool ret;
   {
     lock_guard<mutex> g(m_codeMutex);
