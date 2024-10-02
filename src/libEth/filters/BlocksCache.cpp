@@ -177,6 +177,12 @@ void BlocksCache::TryFinalizeEpochs() {
   while (!m_epochsInProcess.empty()) {
     auto it = m_epochsInProcess.begin();
     auto &ctx = it->second;
+    if (ctx.currentTxns < ctx.totalTxns) {
+      LOG_GENERAL(INFO, "bug m_epochsInProcess first = "
+                            << it->first << " currentTxns = " << ctx.currentTxns
+                            << " total txns = " << ctx.totalTxns);
+      //break; comment out temporarily
+    }
     FinalizeOneEpoch(it->first, ctx);
     m_epochsInProcess.erase(it);
   }
