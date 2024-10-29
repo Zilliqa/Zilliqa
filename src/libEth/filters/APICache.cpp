@@ -28,7 +28,7 @@ namespace filters {
 namespace {
 
 // TODO this is to be a parameter from constants.xml
-const size_t TXMETADATADEPTH = 17150;  // ~7 days
+const size_t TXMETADATADEPTH = 72000;  // ~7 days
 
 }  // namespace
 
