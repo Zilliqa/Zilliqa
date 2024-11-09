@@ -182,8 +182,6 @@ void IsolatedServer::BindAllEvmMethods() {
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_OBJECT, "param02",
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthCallEthI);
 
@@ -359,11 +357,9 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthFeeHistoryI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure(
-            "eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
-            jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02",
-            jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_STRING, NULL),
-        &LookupServer::GetEthStorageAtI);
+        jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetEthStorageAtI);  // No strict parameter validation
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,

@@ -46,8 +46,23 @@ class EthRpcMethods {
                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
-    response = this->GetEthCallEth(request[0u], request[1u].asString());
-    LOG_GENERAL(DEBUG, "EthCall response:" << response);
+    if (request.size() < 2) {
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
+                                      "Invalid number of parameters");
+    }
+    // Validate that request[0] is not empty and request[1] is either a string
+    // or an object
+    if (request[0].empty() ||
+        (!request[1].isString() && !request[1].isObject())) {
+      throw jsonrpc::JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMS,
+          "Parameters cannot be empty or Invalid parameter types");
+    }
+    const std::string tagOrBlockParam = GetTagOrBlockParam(request[1u]);
+    LOG_GENERAL(INFO, " tagOrBlockParam = " << tagOrBlockParam);
+
+    response = this->GetEthCallEth(request[0u], tagOrBlockParam);
+    LOG_GENERAL(INFO, "EthCall response:" << response);
   }
 
   virtual void DebugTraceCallI(const Json::Value& request,
@@ -133,17 +148,26 @@ class EthRpcMethods {
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    if (request[0u].empty() || request[1u].empty()) {
-      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    if (request[0].empty() ||
+        (!request[1].isString() && !request[1].isObject())) {
+      throw jsonrpc::JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMS,
+          "Parameters cannot be empty or Invalid parameter types");
     }
 
     try {
       std::string address = request[0u].asString();
-      std::string pendingOrLatest = request[1u].asString();
       DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetEthTransactionCount(address, pendingOrLatest);
+      const std::string tagOrBlockParam = GetTagOrBlockParam(request[1u]);
+      LOG_GENERAL(INFO, " tagOrBlockParam = " << tagOrBlockParam);
+
+      const auto resp = this->GetEthTransactionCount(address, tagOrBlockParam);
       response = DataConversion::IntToHexString(resp);
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+      response = "0x0";
     } catch (...) {
+      LOG_GENERAL(WARNING, "Unknown exception caught");
       response = "0x0";
     }
   }
@@ -192,16 +216,18 @@ class EthRpcMethods {
 
     // Because we bypassed the library parameters validation, let's do it
     // manually.
-    if (request[0].empty() || request[1].empty()) {
-      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    if (request[0].empty() ||
+        (!request[1].isString() && !request[1].isObject())) {
+      throw jsonrpc::JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMS,
+          "Parameters cannot be empty or Invalid parameter types");
     }
 
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
-
-    const std::string tag{request[1u].asString()};
-
-    response = this->GetEthBalance(address, tag);
+    const std::string tagOrBlockParam = GetTagOrBlockParam(request[1u]);
+    LOG_GENERAL(INFO, " tagOrBlockParam = " << tagOrBlockParam);
+    response = this->GetEthBalance(address, tagOrBlockParam);
   }
 
   /**
@@ -391,8 +417,23 @@ class EthRpcMethods {
   virtual void GetEthStorageAtI(const Json::Value& request,
                                 Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->GetEthStorageAt(
-        request[0u].asString(), request[1u].asString(), request[2u].asString());
+    if (request.size() < 3) {
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
+                                      "Invalid number of params");
+    }
+    if (request[0].empty() || request[1].empty() ||
+        (!request[2].isString() && !request[2].isObject())) {
+      throw jsonrpc::JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMS,
+          "Parameters cannot be empty or Invalid parameter types");
+    }
+    const std::string& address = request[0u].asString();
+    const std::string& position = request[1u].asString();
+
+    const std::string tagOrBlockParam = GetTagOrBlockParam(request[2u]);
+    LOG_GENERAL(INFO, " tagOrBlockParam = " << tagOrBlockParam);
+    response = this->GetEthStorageAt(request[0u].asString(),
+                                     request[1u].asString(), tagOrBlockParam);
   }
 
   virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
@@ -400,11 +441,15 @@ class EthRpcMethods {
 
     // Because we bypassed the library parameters validation, let's do it
     // manually.
-    if (request[0].empty() || request[1].empty()) {
-      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS);
+    if (request[0].empty() ||
+        (!request[1].isString() && !request[1].isObject())) {
+      throw jsonrpc::JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMS,
+          "Parameters cannot be empty or Invalid parameter types");
     }
-
-    response = this->GetEthCode(request[0u].asString(), request[1u].asString());
+    const std::string tagOrBlockParam = GetTagOrBlockParam(request[1u]);
+    LOG_GENERAL(INFO, " tagOrBlockParam = " << tagOrBlockParam);
+    response = this->GetEthCode(request[0u].asString(), tagOrBlockParam);
   }
 
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
@@ -800,7 +845,7 @@ class EthRpcMethods {
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   uint64_t GetEthTransactionCount(const std::string& address,
-                                  const std::string& pendingOrLatest);
+                                  const std::string& tagOrBlockNum);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
                                   const bool includeFullTransactions);
   Json::Value GetEthBlockNumber();
@@ -862,6 +907,7 @@ class EthRpcMethods {
 
   Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
+  std::string GetTagOrBlockParam(const Json::Value& blockParam);
   static bool UnpackRevert(const std::string& data_in, std::string& message);
 
  public:

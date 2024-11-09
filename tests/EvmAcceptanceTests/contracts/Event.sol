@@ -32,4 +32,12 @@ contract Event {
         child.one_log();
         revert();
     }
+    function duplicate_one_log() public {
+        emit Log(msg.sender, "Hello World!");
+        emit Log(msg.sender, "Hello World!");
+        emit Log(msg.sender, "Hello World!");
+        emit Log(msg.sender, "Hello World!");
+        emit Log(msg.sender, "Hello World2!");
+        emit Log(msg.sender, "Hello World3!");
+    }
 }

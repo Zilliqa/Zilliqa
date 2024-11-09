@@ -1,7 +1,18 @@
 import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
-import {assert} from "chai";
-import {ethers} from "hardhat";
+import { assert } from "chai";
+import { ethers } from "hardhat";
 import logDebug from "../../helpers/DebugHelper";
+const eip1898TestParams = require('../../common/eip1898TestParams');
+
+
+// Now you can use the parameters from the imported object
+const {
+  validEip1898Complete,
+  validEip1898WithHash,
+  validEip1898WithNumber,
+  invalidEip1898Empty,
+  invalidEip1898IncorrectKeys
+} = eip1898TestParams;
 
 const METHOD = "eth_getTransactionCount";
 
@@ -61,6 +72,61 @@ describe(`Calling ${METHOD} #parallel`, function () {
         expectedTransactionCount,
         "should have a transaction count >=:" + expectedTransactionCount
       );
+    });
+  });
+  it("eip-1898 valid scenario1", async function () {
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(METHOD, 1, [signer.address, validEip1898Complete], (result, status) => {
+      logDebug(result);
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isString(result.result, "is string");
+      assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+      assert.isNumber(+result.result, "can be converted to a number");
+
+      const expectedTransactionCount = 0;
+      assert.isAtLeast(
+        +result.result,
+        expectedTransactionCount,
+        "should have a transaction count >=:" + expectedTransactionCount
+      );
+    });
+  });
+  it("eip-1898 valid scenario2", async function () {
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(METHOD, 1, [signer.address, validEip1898WithHash], (result, status) => {
+      logDebug(result);
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isString(result.result, "is string");
+      assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+      assert.isNumber(+result.result, "can be converted to a number");
+
+      const expectedTransactionCount = 0;
+      assert.isAtLeast(
+        +result.result,
+        expectedTransactionCount,
+        "should have a transaction count >=:" + expectedTransactionCount
+      );
+    });
+  });
+  it("eip-1898 invalid scenario1", async function () {
+    const [signer] = await ethers.getSigners();
+    await sendJsonRpcRequest(METHOD, 1, [signer.address, invalidEip1898Empty], (result, status) => {
+      logDebug(result);
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isString(result.result, "is string");
+      assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+      assert.isNumber(+result.result, "can be converted to a number");
+
+      const expectedTransactionCount = 0;
+      assert.isAtLeast(
+        +result.result,
+        expectedTransactionCount,
+        "should have a transaction count >=:" + expectedTransactionCount
+      );
+
     });
   });
 });

@@ -100,12 +100,12 @@ Address ToBase16AddrHelper(const std::string &addr) {
 using zil::metrics::FilterClass;
 
 struct EthRpcMethods::ApiKeys {
-  std::string from;
-  std::string to;
-  std::string value;
-  std::string gas;
-  std::string data;
-  std::string input;
+  std::string from = "";
+  std::string to = "";
+  std::string value = "";
+  std::string gas = "";
+  std::string data = "";
+  std::string input = "";
 };
 
 void EthRpcMethods::Init(LookupServer *lookupServer) {
@@ -128,8 +128,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         "param02", jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetEthCallEthI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -304,10 +303,8 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
-      &EthRpcMethods::GetEthStorageAtI);
+      &EthRpcMethods::GetEthStorageAtI);  // No strict parameter validation
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_getTransactionReceipt",
@@ -1236,6 +1233,32 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
   }
 }
 
+std::string EthRpcMethods::GetTagOrBlockParam(const Json::Value &blockParam) {
+  if (blockParam.isString()) {
+    return blockParam.asString();
+  } else if (blockParam.isObject()) {
+    // According to EIP-1898, but default to "latest" as we do not currently
+    // support blockHash and blockNumber
+    if (blockParam.isMember("blockHash") &&
+        blockParam.isMember("blockNumber")) {
+      return "latest";
+    } else if (blockParam.isMember("blockNumber")) {
+      return blockParam["blockNumber"].asString();
+    } else if (blockParam.isMember("blockHash")) {
+      // According to EIP-1898, but default to "latest" as we do not currently
+      // support blockHash and blockNumber
+      return "latest";
+    } else {
+      throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
+                                      "blockParam object must contain either "
+                                      "blockHash or blockNumber or both");
+    }
+  } else {
+    throw jsonrpc::JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
+                                    "Invalid block parameter type");
+  }
+}
+
 Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
                                            std::string const &position,
                                            std::string const & /*blockNum*/) {
@@ -1777,6 +1800,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         Eth::GetLogsFromReceipt(transactionBodyPtr->GetTransactionReceipt());
 
     logs = Eth::ConvertScillaEventsToEvm(logs);
+    Json::Value filteredLogs =
+        JSONUtils::GetInstance().FilterDuplicateLogs(logs);
 
     const auto [errors, exceptions] = Eth::GetErrorsAndExceptionsFromReceipt(
         transactionBodyPtr->GetTransactionReceipt());
@@ -1785,24 +1810,24 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         Eth::ConvertScillaExceptionsToEvm(exceptions);
 
     for (const auto &error : convertedErrors) {
-      logs.append(error);
+      filteredLogs.append(error);
     }
 
     for (const auto &exception : convertedExceptions) {
-      logs.append(exception);
+      filteredLogs.append(exception);
     }
 
     const auto baselogIndex =
         Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
 
-    Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
+    Eth::DecorateReceiptLogs(filteredLogs, txnhash, blockHash, blockNumber,
                              transactionIndex, baselogIndex);
     const auto bloomLogs = Eth::GetBloomFromReceiptHex(
         transactionBodyPtr->GetTransactionReceipt());
 
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, gasPrice, blockHash,
-        blockNumber, contractAddress, logs, bloomLogs, transactionIndex,
+        blockNumber, contractAddress, filteredLogs, bloomLogs, transactionIndex,
         transactionBodyPtr->GetTransaction());
 
     return res;
