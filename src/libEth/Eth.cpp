@@ -456,7 +456,8 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          uint32_t logIndex) {
   for (auto &logEntry : logsArrayFromEvm) {
     logEntry["removed"] = false;
-    logEntry["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
+    logEntry["transactionIndex"] =
+        (boost::format("0x%x") % transactionIndex).str();
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
@@ -581,9 +582,16 @@ Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt) {
 }
 
 Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt) {
-  const Json::Value logs =
-      receipt.GetJsonValue().get("event_logs", Json::arrayValue);
-  return logs;
+  if (receipt.GetJsonValue().isMember("success") &&
+      receipt.GetJsonValue()["success"].asBool()) {
+    // If success is true, get the event logs
+    LOG_GENERAL(INFO, "add logs");
+    const Json::Value logs =
+        receipt.GetJsonValue().get("event_logs", Json::arrayValue);
+    return logs;
+  }
+  LOG_GENERAL(INFO, "empty json value");
+  return Json::Value();
 }
 
 std::pair<Json::Value, Json::Value> GetErrorsAndExceptionsFromReceipt(

@@ -118,6 +118,11 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
 
   std::string error;
   bool found = false;
+  // Check if success is false in the receipt and return if so
+  if (receipt.isMember("success") && !receipt["success"].asBool()) {
+    LOG_GENERAL(WARNING, "Transaction was not successful. Returning early.");
+    return;
+  }
 
   auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
   if (!error.empty()) {
@@ -181,7 +186,7 @@ void BlocksCache::TryFinalizeEpochs() {
       LOG_GENERAL(INFO, "bug m_epochsInProcess first = "
                             << it->first << " currentTxns = " << ctx.currentTxns
                             << " total txns = " << ctx.totalTxns);
-      //break; comment out temporarily
+      // break; comment out temporarily
     }
     FinalizeOneEpoch(it->first, ctx);
     m_epochsInProcess.erase(it);
