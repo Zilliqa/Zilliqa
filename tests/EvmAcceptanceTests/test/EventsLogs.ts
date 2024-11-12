@@ -25,20 +25,20 @@ describe("Events and logs #parallel", function () {
 
   it("Should return 2 logs whenever a function with two events is called @block-2", async function () {
     const tx = await contract.two_logs();
-    const tx = await contract.one_log();
+    await tx.wait();
     const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
     expect(receipt.logs.length).to.be.eq(2);
   });
 
   it("Should return log from child contract even if function failed @block-2", async function () {
     const tx = await contract.one_log_and_fail({ gasLimit: 250000 });
-    const tx = await contract.one_log();
+    await tx.wait();
     const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
     expect(receipt.logs.length).to.be.eq(1);
   });
   it("Should return 3 log whenever a function with duplicate one event is called @block-1", async function () {
     const tx = await contract.duplicate_one_log();
-    const tx = await contract.one_log();
+    await tx.wait();
     const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
     //console.log("Receipt = ", JSON.stringify(receipt));
     expect(receipt.logs.length).to.be.eq(3);
