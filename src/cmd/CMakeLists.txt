@@ -125,5 +125,5 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:asio_multiplier> ${CMAKE_BINARY_DIR}/tests/asio_multiplier)
 target_include_directories(asio_multiplier PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(asio_multiplier Network AccountStore AccountData Mediator Persistence Server Validator Boost::program_options cpr::cpr)
+target_link_libraries(asio_multiplier Network Boost::program_options cpr::cpr)
 
